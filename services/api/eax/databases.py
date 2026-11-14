@@ -82,7 +82,8 @@ TABLES: dict[str, tuple[str, ...]] = {
     # versions, the start-up status, health history; housekeeping stays (it moves the model's own rows)
     "archive": ("archive.archive_store",),                 # archived and deleted models and projects (R2.41)
     "operations": ("operations.backup_schedules", "operations.deployments", "operations.update_history",
-                   "operations.heartbeat_logs", "operations.startup_parts", "operations.ssh_sessions"),
+                   "operations.heartbeat_logs", "operations.startup_parts", "operations.ssh_sessions",
+                   "operations.resource_samples"),
     "files": ("files.store",),                          # EAX_FILE_STORE=database (R2.44, D635)
     "farm": ("farm.sites",),                            # the sites (R2.1, D646)
     # each person's own data (R2.53, D632): no foreign key into the repository

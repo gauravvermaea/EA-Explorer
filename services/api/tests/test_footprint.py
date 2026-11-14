@@ -51,8 +51,8 @@ def test_wired_in_every_form_and_the_page():
     ops = (REPO / "services/ops/ops.py").read_text()
     assert 'if cmd == "footprint":' in ops and 'self.path == "/footprint"' in ops
     assert "COPY footprint.py /app/footprint.py" in (REPO / "services/ops/Dockerfile").read_text()
-    assert 'footprint) shift; compose exec ops python3 /app/ops.py footprint' in (REPO / "eax.sh").read_text()
-    assert '"footprint" { Invoke-Interactive @("ops", "python3", "/app/ops.py", "footprint")' in (REPO / "eax.ps1").read_text()
+    assert 'else compose exec ops python3 /app/ops.py footprint "$@"; fi' in (REPO / "eax.sh").read_text()
+    assert '} else { Invoke-Interactive @("ops", "python3", "/app/ops.py", "footprint") $RestArgs }' in (REPO / "eax.ps1").read_text()
     assert 'stack.interactive([*ops, "footprint"], rest)' in (REPO / "eaxcli/main.py").read_text()
     assert "### footprint [label] | --watch" in (REPO / "eaxcli/help.txt").read_text()
     assert '@blp.route("/admin/footprint")' in (REPO / "services/api/eax/api/admin.py").read_text()
@@ -182,8 +182,51 @@ def test_every_self_test_run_is_watched_and_never_stopped_by_it():
     assert "memory = memory_watch(folder, run_id, level, suites)" in runs
     assert "        if memory is not None:\n            memory.set()" in runs                # stopped with the run, whatever happens
     assert "except Exception:  # noqa: BLE001 - measuring is never in a test's way" in runs
-    assert "footprint.hooks.update(stats=stats, docker=docker, project=project, _size=_size)" in (REPO / "services/ops/ops.py").read_text()
+    assert "footprint.hooks.update(stats=stats, docker=docker, project=project, _size=_size," in (REPO / "services/ops/ops.py").read_text()
     help_ = (REPO / "eaxcli/help.txt").read_text()
     assert "### footprint [label] | --watch [minutes] [label]" in help_ and "$ {eax} footprint --watch 30 at-rest" in help_
     page = (REPO / "services/web/src/Footprint.jsx").read_text()
     assert "<MemoryWatch w={data.memory} />" in page and "a guide, not a limit" in page
+
+
+def test_a_self_test_run_waits_for_its_memory_table_before_it_ends(tmp_path, monkeypatch):
+    """`eax test` ends its command as soon as the tests finish; the watch's table must be written by then (owner, 14 Nov
+    2026: "the test ran but was not measured", twice: the thread was ended before it wrote memory.json)."""
+    import time as _t
+    fp, _calls = _memory_fp(tmp_path, monkeypatch)
+    real = fp.sample
+
+    def slow():
+        _t.sleep(0.3)                     # a docker stats call takes a moment: the stop arrives during one
+        return real()
+    monkeypatch.setattr(fp, "sample", slow)
+    run = tmp_path / "tests" / "run2"
+    run.mkdir(parents=True)
+    stopper = fp.watch_in_background("self-test 2 smoke api", run)
+    _t.sleep(0.1)                         # the run ends while a sample is being taken
+    stopper.set()                         # what testruns.run_sequence does when the run ends
+    assert (run / "memory.json").exists() and (run / "memory.md").exists()    # written before set() returned
+    assert stopper.is_set() and json.loads((run / "memory.json").read_text())["samples"] >= 1
+
+
+def test_only_measurements_count_as_the_latest_not_other_files_in_the_folder(tmp_path, monkeypatch):
+    """eax measure keeps its progress in work/footprint; it once came out as "the latest measurement" and the Footprint
+    page broke on it (self-test, 14 Nov 2026: "#/admin/footprint: script error: Cannot read properties of undefined
+    (reading 'map')", and every page after it timed out)."""
+    fp = _load(tmp_path, monkeypatch)
+    d = tmp_path / "footprint"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "20261114T090659Z.json").write_text(json.dumps({"at": "x", "label": "snapshot", "containers": [{"container": "api"}]}))
+    (d / "20261114T090647Z-memory.json").write_text(json.dumps({"kind": "memory", "containers": []}))
+    (d / "measure-progress.json").write_text(json.dumps({"started": 1.0, "kind": "laptop", "args": []}))
+    (d / "notes.json").write_text("[1, 2]")
+    (d / "20261114T100000Z.json").write_text("{not json")
+    got = fp.latest()
+    assert got["latest"]["name"] == "20261114T090659Z" and got["count"] == 1 and got["before"] is None
+    assert got["memory"]["kind"] == "memory"
+
+
+def test_the_footprint_page_never_breaks_on_a_measurement_without_containers():
+    page = (REPO / "services/web/src/Footprint.jsx").read_text()
+    assert "(m.containers || []).map(" in page and "(w.containers || []).map(" in page
+    assert ".containers.map(" not in page.replace("(m.containers || []).map(", "").replace("(w.containers || []).map(", "")

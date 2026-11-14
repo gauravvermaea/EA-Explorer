@@ -39,39 +39,61 @@ def test_every_blueprint_under_a_service_prefix_belongs_to_that_service():
                 assert prefix == s["prefix"] or prefix.startswith(s["prefix"] + "/"), f"{name} must be under {s['prefix']}"
 
 
-def test_the_self_test_calls_each_service_directly(monkeypatch):
+def test_every_part_is_served_by_the_api_unless_a_setting_gives_it_a_container(monkeypatch):
+    """D677, R3.5-M1b (owner, 14 Nov 2026: "they should always live in api"): the operations and personal data parts are
+    the API's again; a part goes to a container of its own only when its setting says so."""
     from eax import service_split as ss
-    monkeypatch.delenv("EAX_API_INTERNAL_URL", raising=False)
-    assert ss.route("http://api:8000", "/api/v1/operations/deploys") == "http://operations:8120"
-    assert ss.route("http://api:8000", "/api/v1/me/notifications") == "http://personal:8130"
-    assert ss.route("http://api:8000", "/api/v1/me") == "http://api:8000"          # who am I stays on the main API
+    for k in ("EAX_API_INTERNAL_URL", "EAX_OPERATIONS_INTERNAL_URL", "EAX_PERSONAL_INTERNAL_URL"):
+        monkeypatch.delenv(k, raising=False)
+    assert ss.route("http://api:8000", "/api/v1/operations/deploys") == "http://api:8000"
+    assert ss.route("http://api:8000", "/api/v1/me/notifications") == "http://api:8000"
+    assert ss.route("http://api:8000", "/api/v1/me") == "http://api:8000"
     assert ss.route("https://eax.example", "/api/v1/operations/usage") == "https://eax.example"   # the front door routes
-    assert ss.route("http://api:8000", "/api/v1/models") == "http://api:8000"
+    monkeypatch.setenv("EAX_OPERATIONS_INTERNAL_URL", "http://ops-part:8120/")                 # one given its own
+    assert ss.route("http://api:8000", "/api/v1/operations/deploys") == "http://ops-part:8120"
+    assert ss.route("http://api:8000", "/api/v1/me/notifications") == "http://api:8000"
+    from eax import health
+    assert health._part_host("operations") == ("ops-part", 8120) and health._part_host("personal") == ("api", 8000)
 
 
-def test_the_containers_and_the_front_door():
+def test_the_compose_file_runs_no_part_containers_and_the_front_door_sends_them_to_the_api():
     compose = yaml.safe_load((REPO / "docker-compose.yml").read_text())
     svc = compose["services"]
-    assert svc["api"]["environment"]["EAX_SERVE"] == "core"
-    for key, port, prefix in (("operations", 8120, "/api/v1/operations"), ("personal", 8130, "/api/v1/me")):
-        assert svc[key]["environment"]["EAX_SERVE"] == key and svc[key]["image"].startswith("eaexplorer/api:")
-        assert f"localhost:{port}{prefix}/health" in " ".join(svc[key]["healthcheck"]["test"])
-        assert "backend" in svc[key]["networks"]
+    assert "operations" not in svc and "personal" not in svc                      # removed (R3.5-M1b)
+    assert svc["api"]["environment"]["EAX_SERVE"] == "${EAX_API_SERVE:-all}"
     env = svc["proxy"]["environment"]
-    assert env["EAX_OPERATIONS_UPSTREAM"].endswith("operations:8120}") and env["EAX_PERSONAL_UPSTREAM"].endswith("personal:8130}")
+    assert env["EAX_OPERATIONS_UPSTREAM"] == "${EAX_OPERATIONS_UPSTREAM:-api:8000}"
+    assert env["EAX_PERSONAL_UPSTREAM"] == "${EAX_PERSONAL_UPSTREAM:-api:8000}"
     tpl = (REPO / "deploy/proxy/templates/default.conf.template").read_text()
-    assert tpl.count("location /api/v1/operations/") == 3 and tpl.count("${EAX_OPERATIONS_UPSTREAM}") == 3
-    assert tpl.count("location /api/v1/me/") == 3 and tpl.count("${EAX_PERSONAL_UPSTREAM}") == 3
+    assert tpl.count("${EAX_OPERATIONS_UPSTREAM}") == 3 and tpl.count("${EAX_PERSONAL_UPSTREAM}") == 3   # still a setting
     entry = (REPO / "services/api/entrypoint.sh").read_text()
-    assert "operations|personal)" in entry and "python -m eax.service_split ready" in entry
-    assert entry.index("operations|personal)") < entry.index("alembic upgrade head")    # a service never migrates
+    assert "operations|personal)" in entry                                         # a part on its own: by configuration
+    for name in ("laptop", "server"):
+        assert "\nEAX_API_SERVE=all\n" in (REPO / f"deploy/templates/eaexplorer.{name}.env").read_text()
 
 
-def test_the_app_registers_by_role_and_each_service_has_its_health():
+def test_the_whole_api_answers_every_part_health():
+    from eax import service_split as ss
+    assert ss.parts_served("all") == ["operations", "personal"]
+    assert ss.parts_served("operations") == ["operations"] and ss.parts_served("core") == []
     app = (REPO / "services/api/eax/app.py").read_text()
-    assert "service_split.wanted(blp.name)" in app and 'f"{svc[\'prefix\']}/health"' in app
+    assert "service_split.wanted(blp.name)" in app and "for part in service_split.parts_served():" in app
     from eax import health
     assert health.check_operations in health.CHECKS and health.check_personal in health.CHECKS
+
+
+def test_memory_settings_for_documents_and_keycloak():
+    """R3.5 (the smoke test of 14 Nov 2026: Documents 1.9 to 2.6 GB): Mayan's workers and Keycloak's heap by setting."""
+    svc = yaml.safe_load((REPO / "docker-compose.yml").read_text())["services"]
+    dms = svc["dms"]["environment"]
+    assert dms["MAYAN_GUNICORN_WORKERS"] == "${EAX_MAYAN_WEB_WORKERS:-2}"
+    for w in "ABC":
+        assert dms[f"MAYAN_WORKER_{w}_CONCURRENCY"] == "${EAX_MAYAN_WORKER_CONCURRENCY:-1}"
+    assert svc["keycloak"]["environment"]["JAVA_OPTS_KC_HEAP"] == "${EAX_KEYCLOAK_HEAP:--Xms64m -Xmx512m}"
+    laptop = (REPO / "deploy/templates/eaexplorer.laptop.env").read_text()
+    server = (REPO / "deploy/templates/eaexplorer.server.env").read_text()
+    assert "EAX_MAYAN_WORKER_CONCURRENCY=1" in laptop and "EAX_MAYAN_WORKER_CONCURRENCY=2" in server
+    assert "EAX_KEYCLOAK_HEAP=-Xms64m -Xmx512m" in laptop and "EAX_KEYCLOAK_HEAP=-Xms256m -Xmx1024m" in server
 
 
 def test_the_screens_and_tests_use_the_new_paths():

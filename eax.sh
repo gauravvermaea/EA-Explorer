@@ -864,7 +864,9 @@ case "$CMD" in
   backup)  service_on backups || { err "backups are switched off: ./eax.sh service backups on"; exit 1; }
            shift; backup_helpers; compose exec ops python3 /app/ops.py backup "$@" ;;
   backups) shift; backup_helpers; compose exec ops python3 /app/ops.py list "$@" ;;
-  footprint) shift; compose exec ops python3 /app/ops.py footprint "$@" ;;   # how much each container takes (R2.22)
+  footprint) shift
+    if [ "${1:-}" = "--history" ]; then shift; compose exec api python -m eax.resources history "$@"   # R3.5-M8
+    else compose exec ops python3 /app/ops.py footprint "$@"; fi ;;   # how much each container takes (R2.22)
   stop-backup) backup_helpers; compose exec ops python3 /app/ops.py stop-backup ;;
   restore-app) shift; compose exec api python -m eax.backups_cli restore-all "$@" ;;
   maintenance)

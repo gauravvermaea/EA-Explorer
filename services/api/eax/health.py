@@ -197,18 +197,25 @@ def check_views() -> dict:
     return _http("Drawn views", "Views (ours)", host, 8110, "/api/views/v1/health")
 
 
+def _part_host(key: str) -> tuple[str, int]:
+    """Host and port of the container serving a part: the API unless the part has its own (D677, R3.5-M1b)."""
+    from urllib.parse import urlsplit
+
+    from .service_split import part_url
+    u = urlsplit(part_url(key))
+    return u.hostname or "api", u.port or 8000
+
+
 def check_operations() -> dict:
-    """The operations service (R2.27 part 2): housekeeping, usage, deployments and updates in their own container."""
-    import os
-    host = (os.environ.get("EAX_OPERATIONS_INTERNAL_URL", "http://operations:8120").split("//")[-1].split(":")[0]) or "operations"
-    return _http("Operations", "Operations (ours)", host, 8120, "/api/v1/operations/health")
+    """The operations part (R2.27 part 2): housekeeping, usage, deployments and updates; served by the API (D677)."""
+    host, port = _part_host("operations")
+    return _http("Operations", "Operations (ours)", host, port, "/api/v1/operations/health")
 
 
 def check_personal() -> dict:
-    """The personal data service (R2.53): notifications, requests, favourites, saved views, skills, settings."""
-    import os
-    host = (os.environ.get("EAX_PERSONAL_INTERNAL_URL", "http://personal:8130").split("//")[-1].split(":")[0]) or "personal"
-    return _http("Personal data", "Personal (ours)", host, 8130, "/api/v1/me/health")
+    """The personal data part (R2.53): notifications, requests, favourites, saved views, skills, settings; the API."""
+    host, port = _part_host("personal")
+    return _http("Personal data", "Personal (ours)", host, port, "/api/v1/me/health")
 
 
 def check_web() -> dict:

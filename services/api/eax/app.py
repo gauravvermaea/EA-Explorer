@@ -280,22 +280,25 @@ def create_app(testing: bool = False) -> Flask:
         """Liveness check for Docker: the process is up (does not touch the database)."""
         return {"status": "ok"}
 
-    role = service_split.serving()
-    if role in service_split.SERVICES:          # a service of its own (R2.27 part 2, R2.53): its health, by its prefix
-        svc = service_split.SERVICES[role]
+    def _part_health(part: str):
+        svc = service_split.SERVICES[part]
 
-        def service_health():
-            """The service is up and reaches its schema (public, like /api/health)."""
+        def part_health():
+            """The part is served and reaches its schema (public, like /api/health)."""
             from sqlalchemy import text as _t
 
             from . import databases
             try:
-                with databases.engine_for(role).connect() as c:
+                with databases.engine_for(part).connect() as c:
                     c.execute(_t("SELECT 1"))
-                return {"status": "ok", "service": role, "what": svc["what"], "version": __version__}
+                return {"status": "ok", "service": part, "what": svc["what"], "version": __version__}
             except Exception as exc:  # noqa: BLE001 - answered, not raised
-                return {"status": "down", "service": role, "message": str(exc).splitlines()[0][:200]}, 503
-        app.add_url_rule(f"{svc['prefix']}/health", f"{role}_health", service_health)
+                return {"status": "down", "service": part, "message": str(exc).splitlines()[0][:200]}, 503
+        return part_health
+
+    # each part this container serves answers its own health by its prefix: the whole API all of them (D677, R3.5-M1b)
+    for part in service_split.parts_served():
+        app.add_url_rule(f"{service_split.SERVICES[part]['prefix']}/health", f"{part}_health", _part_health(part))
 
     @app.get("/api/startup")
     def startup_public():

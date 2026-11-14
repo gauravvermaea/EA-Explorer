@@ -5,6 +5,7 @@ one is shown beside the one before (before and after a change). Read only.
 
   GET  /footprint            the newest measurement and the one before, and the newest memory watch
   POST /footprint {label}    measure now (eax footprint [label])
+  GET  /resources            one sample for the resource history (R3.5-M8; the API keeps it in the operations schema)
 
 Memory over time (Release 3.5, R3.5-M1; owner, 14 Nov 2026: "Lets measure first", "In an ideal world I want laptop to
 run at around 10 GB", "No functionality loss or paging should happen"): a **watch** samples every container's memory
@@ -29,6 +30,7 @@ from pathlib import Path
 WORK = Path(os.environ.get("EAX_WORK_MOUNT", "/eax-work"))
 hooks: dict = {}       # set by ops.py: stats, docker, project
 EVERY = 15             # seconds between memory samples in a watch
+MEASUREMENT = re.compile(r"\d{8}T\d{6}Z")     # a measurement's file name (its time), as save() names it
 MEMINFO = "/proc/meminfo"
 
 
@@ -142,6 +144,108 @@ def sample(project: str | None = None) -> dict:
     return {"at": time.time(), "containers": mem, "host": host_memory()}
 
 
+# ---------------------------------------------------------------- resource history (R3.5-M8)
+UP = re.compile(r"Up (?:Less than a second|(\d+) (second|minute|hour|day|week|month|year)s?|About an? (minute|hour))")
+
+
+def _pair(text: str) -> tuple[float, float]:
+    """Docker's "1.2kB / 3.4MB" (network or disk in and out) as two numbers in MB."""
+    size = hooks.get("_size") or (lambda t: 0)
+    a, _, b = (text or "").partition("/")
+    return round(size(a.strip()) / 1e6, 2), round(size(b.strip()) / 1e6, 2)
+
+
+def uptime_seconds(status: str) -> float | None:
+    """Docker's "Up 3 minutes (healthy)" as seconds (None when not up)."""
+    m = UP.search(status or "")
+    if not m:
+        return None
+    if m.group(3):
+        return 60.0 if m.group(3) == "minute" else 3600.0
+    if not m.group(1):
+        return 0.5
+    unit = {"second": 1, "minute": 60, "hour": 3600, "day": 86400, "week": 604800, "month": 2592000, "year": 31536000}
+    return float(m.group(1)) * unit[m.group(2)]
+
+
+def activity(states: list[dict]) -> list[str]:
+    """What was happening (owner, 14 Nov 2026: "run this while testing or working"): a self-test and its level, a backup
+    or a restore, a start-up (a container still starting, or the API up less than ten minutes)."""
+    out = []
+    t = (hooks.get("tests") or (lambda: {}))() or {}
+    if t.get("busy"):
+        out.append(f"self-test {t.get('level') or ''}".strip())
+    if (hooks.get("restore") or (lambda: {}))().get("active"):
+        out.append("restore")
+    elif (hooks.get("backing_up") or (lambda: False))():
+        out.append("backup")
+    api = [uptime_seconds(c.get("status", "")) for c in states if c.get("service") == "api"]
+    if any("health: starting" in (c.get("status") or "") for c in states) or any(u is not None and u < 600 for u in api):
+        out.append("start-up")
+    return out
+
+
+def resources(project: str | None = None) -> dict:
+    """One sample for the resource history (R3.5-M8): per container memory, its limit, CPU, network and disk in and out,
+    and its volumes on disk; the Docker host's memory, swap and processors; the file systems; what was happening.
+    One `docker stats` call and one `docker ps`; the volume sizes are the ones the helper refreshes in the background
+    (at most every five minutes), so a sample never waits for them."""
+    project = project if project is not None else (hooks["project"]() if hooks.get("project") else "")
+    size = hooks.get("_size") or (lambda t: 0)
+    states = []
+    try:
+        for line in hooks["docker"]("ps", "-a", "--filter", f"label=com.docker.compose.project={project}",
+                                    "--format", "{{json .}}", timeout=30).splitlines():
+            c = json.loads(line)
+            states.append({"name": c.get("Names", ""), "service": service_of(c.get("Names", ""), project),
+                           "state": c.get("State", ""), "status": c.get("Status", "")})
+    except Exception:  # noqa: BLE001 - the sample is still taken from docker stats
+        pass
+    vols = (hooks.get("volumes") or (lambda: {}))() or {}
+    mounts = (hooks.get("mounts") or (lambda: {}))() or {}
+    rows: dict[str, dict] = {}
+    for line in (hooks["docker"]("stats", "--no-stream", "--format", "{{json .}}", timeout=60) or "").splitlines():
+        try:
+            st = json.loads(line)
+        except ValueError:
+            continue
+        name = st.get("Name") or ""
+        if project and not name.startswith(project + "-"):
+            continue
+        key = service_of(name, project)
+        used, _, limit = (st.get("MemUsage") or "").partition("/")
+        net_in, net_out = _pair(st.get("NetIO", ""))
+        disk_read, disk_write = _pair(st.get("BlockIO", ""))
+        try:
+            cpu = float(str(st.get("CPUPerc") or "0").rstrip("%"))
+        except ValueError:
+            cpu = 0.0
+        r = rows.setdefault(key, {"container": key, "memory_mb": 0.0, "memory_limit_mb": 0.0, "cpu_percent": 0.0,
+                                  "net_in_mb": 0.0, "net_out_mb": 0.0, "disk_read_mb": 0.0, "disk_write_mb": 0.0,
+                                  "volumes_mb": 0.0})
+        r["memory_mb"] = round(r["memory_mb"] + size(used.strip()) / 1e6, 1)
+        r["memory_limit_mb"] = round(max(r["memory_limit_mb"], size(limit.strip()) / 1e6), 1)
+        r["cpu_percent"] = round(r["cpu_percent"] + cpu, 1)
+        for k, v in (("net_in_mb", net_in), ("net_out_mb", net_out), ("disk_read_mb", disk_read), ("disk_write_mb", disk_write)):
+            r[k] = round(r[k] + v, 2)
+        r["volumes_mb"] = round(sum(vols.get(v, 0) for v in mounts.get(name, [])) / 1e6, 1)
+    for c in states:                           # a container that is not running is still listed, with nothing in use
+        if c["service"] not in rows:
+            rows[c["service"]] = {"container": c["service"], "state": c["state"]}
+    host = host_memory()
+    cpus = (hooks.get("cpus") or (lambda: None))()
+    if cpus:
+        host["cpus"] = cpus
+    disks = []
+    for f in (hooks.get("filesystems") or (lambda: []))() or []:
+        if f.get("error") or f.get("same_as"):
+            continue
+        disks.append({"label": f["label"], "total_gb": round(f["total_bytes"] / 1e9, 1), "used_gb": round(f["used_bytes"] / 1e9, 1),
+                      "free_gb": round(f["free_bytes"] / 1e9, 1), "used_percent": f["used_percent"]})
+    return {"at": datetime.now(UTC).isoformat(timespec="seconds"), "containers": sorted(rows.values(), key=lambda r: r["container"]),
+            "host": host, "disks": disks, "activity": activity(states)}
+
+
 class Recorder:
     """The samples of one watch, summed up as they come: per container lowest, average and peak; the installation's
     total peak and when; the host's least available memory and most swap in use."""
@@ -253,13 +357,31 @@ def watch(label: str = "", seconds: float = 600, until=None, every: float = EVER
     return m
 
 
-def watch_in_background(label: str, folder: Path):
-    """For a self-test run (testruns.run_sequence): samples on a thread until the returned event is set."""
+class Stopper:
+    """Stops a background watch and waits for it to write its table. `eax test` runs the tests in a command that ends as
+    soon as they finish, which ended the watch's thread before it wrote memory.json (owner, 14 Nov 2026: "the test ran
+    but was not measured", twice); so set() waits for the table, up to `wait` seconds."""
+
+    def __init__(self, stop, thread, wait: float = 90):
+        self.stop, self.thread, self.wait = stop, thread, wait
+
+    def set(self) -> None:
+        self.stop.set()
+        self.thread.join(self.wait)
+
+    def is_set(self) -> bool:
+        return self.stop.is_set()
+
+
+def watch_in_background(label: str, folder: Path, wait: float = 90) -> Stopper:
+    """For a self-test run (testruns.run_sequence): samples on a thread until the returned Stopper is set, which then
+    waits for the table to be written."""
     import threading
     stop = threading.Event()
-    threading.Thread(target=watch, kwargs={"label": label, "seconds": 0, "folder": folder, "stop": stop},
-                     daemon=True, name="selftest-memory").start()
-    return stop
+    t = threading.Thread(target=watch, kwargs={"label": label, "seconds": 0, "folder": folder, "stop": stop},
+                         daemon=True, name="selftest-memory")
+    t.start()
+    return Stopper(stop, t, wait)
 
 
 def latest_memory() -> dict | None:
@@ -277,12 +399,16 @@ def history() -> list[dict]:
     d = WORK / "footprint"
     out = []
     for f in sorted(d.glob("*.json")) if d.is_dir() else []:
-        if f.stem.endswith("-memory"):
+        # only the measurements themselves, named by their time (20261114T090659Z.json): not the memory watches, not
+        # eax measure's progress file, which once came out as "the latest" and broke the Footprint page (14 Nov 2026)
+        if not MEASUREMENT.fullmatch(f.stem):
             continue
         try:
-            out.append({"name": f.stem, **json.loads(f.read_text(encoding="utf-8"))})
+            m = json.loads(f.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             continue
+        if isinstance(m, dict) and isinstance(m.get("containers"), list):
+            out.append({"name": f.stem, **m})
     return out
 
 

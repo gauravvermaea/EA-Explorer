@@ -12,8 +12,8 @@ reason and the command to carry on (--from N) when one fails, and ends with one 
   4 smoke      eax test smoke, then checks the run was measured (its memory.md)
   5 at-rest    10 minutes, nobody using it
   6 using-it   20 minutes while people use it (on a laptop the browser is opened for you; on a server, its real users)
-  7 full       eax test full while it is used (a laptop by default; a server only with --full, and the restore part asked
-               first there, as restores stop the services)
+  7 full       eax test full while it is used (a laptop by default, --no-full leaves it out; a server only with --full,
+               and the restore part asked first there, as restores stop the services)
   8 summary    each situation's peak and average, paging, the biggest containers, beside the guide (10 GB, not a limit)
 
 Safe on a running installation: it only reads and measures, except the restart asked for and the tests, which work in
@@ -56,15 +56,18 @@ def address() -> str:
 
 
 def parse(args: list[str]) -> dict:
-    """The choices: --restart | --clean-restart, --full, --unattended (nobody there: no browser, no waiting for use),
+    """The choices: --restart | --clean-restart, --full | --no-full, --unattended (nobody there: no browser, no waiting for use),
     --use-minutes N, --from N, --yes (no question first)."""
-    o = {"restart": "", "full": False, "unattended": False, "use_minutes": MINUTES["using-it"], "from": 1, "yes": False}
+    o = {"restart": "", "full": False, "no_full": False, "unattended": False, "use_minutes": MINUTES["using-it"], "from": 1,
+         "yes": False}
     it = iter(args)
     for a in it:
         if a in ("--restart", "--clean-restart"):
             o["restart"] = a[2:]
         elif a == "--full":
             o["full"] = True
+        elif a == "--no-full":             # owner, 14 Nov 2026: "can we just check memory after step 4, I dont want to do a full test"
+            o["no_full"] = True
         elif a == "--unattended":
             o["unattended"] = True
         elif a == "--yes":
@@ -85,7 +88,7 @@ def plan(o: dict, kind: str) -> list[dict]:
     if o["restart"] == "clean-restart" and not laptop:
         raise ValueError(f"--clean-restart deletes every database: refused on a {kind} installation. Use --restart "
                          "(data kept), or leave it out to measure it as it is.")
-    full = o["full"] or laptop
+    full = (o["full"] or laptop) and not o["no_full"]
     use = o["use_minutes"]
     steps = [
         ("restart", f"eax {o['restart'] or 'restart'}" + (" (DELETES everything, starts fresh)" if o["restart"] == "clean-restart" else " (data kept)"),
@@ -98,7 +101,7 @@ def plan(o: dict, kind: str) -> list[dict]:
         ("using-it", f"memory for {use} minutes while it is used" + ("" if o["unattended"] else (" (the browser opens: use it)" if laptop else " (its users at work)")),
          ["footprint", "--watch", str(use), "using-it"], "unattended: nobody to use it" if o["unattended"] and laptop else ""),
         ("full", "the full test, measured" + ("" if o["unattended"] else ", while you use it"),
-         ["test", "full"] + (["--yes"] if laptop else []), "" if full else "a server: only with --full"),
+         ["test", "full"] + (["--yes"] if laptop else []), "" if full else ("--no-full" if o["no_full"] else "a server: only with --full")),
         ("summary", "the summary", None, ""),
     ]
     return [{"n": i + 1, "name": n, "what": w, "line": line, "skip": skip} for i, (n, w, line, skip) in enumerate(steps)]
@@ -136,28 +139,45 @@ def situation(label: str) -> str:
     return label or "Watched"
 
 
+def newest_each(found: list[dict]) -> list[dict]:
+    """The newest watch of each situation, in the order of the steps (14 Nov 2026: a measure carried on with --from after
+    a failed step listed every earlier attempt too, and the attempts' paging made the summary say it paged)."""
+    order = ["Starting up", "Smoke test", "At rest", "In use", "Full test"]
+    keep: dict[str, dict] = {}
+    for m in sorted(found, key=lambda m: m.get("until") or m.get("at") or ""):
+        keep[situation(m.get("label", ""))] = m
+    return sorted(keep.values(), key=lambda m: order.index(s) if (s := situation(m.get("label", ""))) in order else len(order))
+
+
 def summary(found: list[dict], kind: str) -> str:
-    """One table: each situation's peak, average, paging and its three biggest containers, beside the guide."""
+    """One table: each situation's newest watch, its peak, average, paging and three biggest containers, beside the guide.
+    Paging while starting up is allowed (owner, 14 Nov 2026: "Its ok if things peak during startup") and said apart."""
     gb = lambda mb: f"{mb / 1024:.1f}"  # noqa: E731
+    found = newest_each(found)
     guide = found[0]["target_mb"] if found else 10240
     lines = [f"# EA Explorer memory, measured {datetime.now(UTC).strftime('%d %b %Y %H:%M')} UTC ({kind})", "",
              f"`eax measure` (R3.5-M1). The guide: {gb(guide)} GB on a laptop (not a limit). Paging: the Docker host's swap grew.", "",
-             "| Situation | Peak GB | Average GB | Paged | Least left GB | Biggest at its peak |", "|---|---:|---:|---|---:|---|"]
+             "| Situation | Watched (UTC) | Peak GB | Average GB | Paged | Least left GB | Biggest at its peak |",
+             "|---|---|---:|---:|---|---:|---|"]
     worst = None
     for m in found:
         h = m.get("host") or {}
         top = ", ".join(f"{r['container']} {gb(r['peak_mb'])}" for r in (m.get("containers") or [])[:3])
-        lines.append(f"| {situation(m.get('label', ''))} | {gb(m['total_peak_mb'])} | {gb(m['total_average_mb'])} | "
+        when = str(m.get("at") or "")[11:16] + ("-" + str(m["until"])[11:16] if m.get("until") else "")
+        lines.append(f"| {situation(m.get('label', ''))} | {when or '-'} | {gb(m['total_peak_mb'])} | {gb(m['total_average_mb'])} | "
                      f"{'**yes**' if h.get('paged') else 'no' if h else '-'} | {gb(h['least_available_mb']) if h else '-'} | {top} |")
-        if worst is None or m["total_peak_mb"] > worst["total_peak_mb"]:
+        if situation(m.get("label", "")) != "Starting up" and (worst is None or m["total_peak_mb"] > worst["total_peak_mb"]):
             worst = m
     if worst:
         h = worst.get("host") or {}
-        lines += ["", f"**Highest: {gb(worst['total_peak_mb'])} GB ({situation(worst.get('label', ''))})**, "
+        lines += ["", f"**Highest once started: {gb(worst['total_peak_mb'])} GB ({situation(worst.get('label', ''))})**, "
                       f"{'within' if worst['total_peak_mb'] <= guide else 'above'} the guide of {gb(guide)} GB"
                   + (f"; the Docker host has {gb(h['total_mb'])} GB" if h else "") + "."]
-        if any((m.get("host") or {}).get("paged") for m in found):
-            lines.append("**It paged**: memory ran short at some point; see which situation above.")
+    paged = [situation(m.get("label", "")) for m in found if (m.get("host") or {}).get("paged")]
+    if [p for p in paged if p != "Starting up"]:
+        lines.append("**It paged once started**: memory ran short in " + ", ".join(p for p in paged if p != "Starting up") + ".")
+    elif paged:
+        lines.append("It paged only while starting up (allowed: start-up is judged by how long it takes); no paging once started.")
     lines += ["", "Each watch in full: work/footprint/*-memory.md; each test run's: work/tests/<run>/memory.md.", ""]
     return "\n".join(lines)
 
@@ -237,8 +257,8 @@ def main(args: list[str], run=subprocess.call, ask=input, open_browser=webbrowse
             mem = measured(t0 - 5)
             if not mem:
                 out(f"\nStep {s['n']} ({s['name']}): the test ran but was not measured (no memory.json in its folder in "
-                    "work/tests): the operations helper may be older than this eax. Run eax restart, then: "
-                    f"{resume(args, s['n'])}")
+                    "work/tests). Its result is in work/tests; the operations helper's log (eax logs ops) says why the "
+                    f"memory table is missing. Carry on with: {resume(args, s['n'])}")
                 return 1
             out(f"Measured: {mem.parent.relative_to(ROOT)}/memory.md")
     try:

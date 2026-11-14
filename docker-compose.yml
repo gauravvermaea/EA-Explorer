@@ -85,8 +85,8 @@ services:
       EAX_API_UPSTREAM: ${EAX_API_UPSTREAM:-api:8000}
       EAX_LIBRARY_UPSTREAM: ${EAX_LIBRARY_UPSTREAM:-library:8100}
       EAX_VIEWS_UPSTREAM: ${EAX_VIEWS_UPSTREAM:-views:8110}
-      EAX_OPERATIONS_UPSTREAM: ${EAX_OPERATIONS_UPSTREAM:-operations:8120}   # R2.27 part 2
-      EAX_PERSONAL_UPSTREAM: ${EAX_PERSONAL_UPSTREAM:-personal:8130}         # R2.53
+      EAX_OPERATIONS_UPSTREAM: ${EAX_OPERATIONS_UPSTREAM:-api:8000}   # R2.27: in the API (D677)
+      EAX_PERSONAL_UPSTREAM: ${EAX_PERSONAL_UPSTREAM:-api:8000}       # R2.53: in the API (D677)
       NGINX_ENVSUBST_FILTER: "^EAX_"
     volumes:
       - ./deploy/proxy/templates:/etc/nginx/templates:ro
@@ -121,7 +121,7 @@ services:
     env_file: work/eaexplorer.env
     environment:
       EAX_ROLE: api            # entrypoint runs migrations, then the web API and the job runner
-      EAX_SERVE: core          # the main API: what the operations and personal data services serve is theirs (R2.27, R2.53)
+      EAX_SERVE: ${EAX_API_SERVE:-all}   # everything, the operations and personal data parts too (D677, R3.5-M1b)
       EAX_OPS_URL: http://ops:8090                       # the operations helper (phase 10, D183)
       EAX_OPS_TOKEN: ${EAX_OPS_TOKEN:-eax-ops-laptop}
       # the build shown top left with the release (R2.47): set by eax from git when it starts the stack, or by CI
@@ -235,52 +235,9 @@ services:
       retries: 10
       start_period: 30s
 
-  # The operations service (R2.27 part 2; owner, 12 and 13 Nov 2026): the running of the installation, its own
-  # container and API (/api/v1/operations: housekeeping, retention, usage, deployments, updates) and its own schema
-  # (operations, EAX_OPERATIONS_DB_URL, D630). The API's code and image, started with EAX_SERVE=operations; the front
-  # door sends its prefix here. It waits for the main API to bring the database up to date.
-  operations:
-    image: eaexplorer/api:${EAX_VERSION:-dev}
-    <<: [*restart, *logging]
-    env_file: work/eaexplorer.env
-    environment:
-      EAX_SERVE: operations
-      EAX_OPS_URL: http://ops:8090
-      EAX_OPS_TOKEN: ${EAX_OPS_TOKEN:-eax-ops-laptop}
-      EAX_BUILD: ${EAX_BUILD:-dev}
-    depends_on:
-      db:
-        condition: service_healthy
-    volumes:
-      - ./work:/eax-work:ro      # updates and deployments read the work folder as the API does
-    networks: [frontend, backend]
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8120/api/v1/operations/health').status==200 else 1)"]
-      interval: 15s
-      timeout: 5s
-      retries: 20
-      start_period: 60s
-
-  # The personal data service (R2.53; owner, 12 and 13 Nov 2026): each person's notifications, requests, favourites,
-  # saved views, skills and settings, its own container and API (/api/v1/me/...) and its own schema (personal,
-  # EAX_PERSONAL_DB_URL, D630). When it is down the rest keeps working; notifications made meanwhile wait and are sent.
-  personal:
-    image: eaexplorer/api:${EAX_VERSION:-dev}
-    <<: [*restart, *logging]
-    env_file: work/eaexplorer.env
-    environment:
-      EAX_SERVE: personal
-      EAX_BUILD: ${EAX_BUILD:-dev}
-    depends_on:
-      db:
-        condition: service_healthy
-    networks: [frontend, backend]
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8130/api/v1/me/health').status==200 else 1)"]
-      interval: 15s
-      timeout: 5s
-      retries: 20
-      start_period: 60s
+  # The operations and personal data parts (R2.27, R2.53) are served by the API again (D677, R3.5-M1b; owner, 14 Nov
+  # 2026: "they should always live in api"): their schemas and connection strings stay (D630); scaling out is more
+  # copies of the API. A part can still run in a container of its own by configuration (EAX_SERVE, its upstream).
 
   # The test runner (phase 36.1, D367, D523): the API's code with pytest, Playwright and Chromium, and pip-audit. Only for a
   # test run (profile "test"): `eax test` builds and runs it; the Health page asks the operations helper, which starts it
@@ -411,6 +368,8 @@ services:
       KC_HEALTH_ENABLED: "true"
       KC_BOOTSTRAP_ADMIN_USERNAME: ${EAX_KC_ADMIN:-kcadmin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${EAX_KC_ADMIN_PASSWORD:?set EAX_KC_ADMIN_PASSWORD}
+      # its Java heap by setting (R3.5), not a share of the whole host's memory (Keycloak's default)
+      JAVA_OPTS_KC_HEAP: ${EAX_KEYCLOAK_HEAP:--Xms64m -Xmx512m}
     volumes:
       - eax-kc-import:/opt/keycloak/data/import:ro
     networks: [frontend, backend]
@@ -516,6 +475,13 @@ services:
       MAYAN_AUTOADMIN_USERNAME: ${EAX_MAYAN_ADMIN_USER:-admin}
       MAYAN_AUTOADMIN_PASSWORD: ${EAX_MAYAN_ADMIN_PASSWORD:?set EAX_MAYAN_ADMIN_PASSWORD}
       MAYAN_AUTOADMIN_EMAIL: ${EAX_FIRST_ADMIN_EMAIL:-admin@example.org}
+      # memory (R3.5; the smoke test of 14 Nov 2026: Documents 1.9 to 2.6 GB, half of everything): Mayan's workers A, B
+      # and C default to one process per CPU core each; one each on a laptop (documents processed one at a time, nothing
+      # lost), more on a server (0 = one per core, Mayan's own default)
+      MAYAN_GUNICORN_WORKERS: ${EAX_MAYAN_WEB_WORKERS:-2}
+      MAYAN_WORKER_A_CONCURRENCY: ${EAX_MAYAN_WORKER_CONCURRENCY:-1}
+      MAYAN_WORKER_B_CONCURRENCY: ${EAX_MAYAN_WORKER_CONCURRENCY:-1}
+      MAYAN_WORKER_C_CONCURRENCY: ${EAX_MAYAN_WORKER_CONCURRENCY:-1}
     volumes:
       - ${EAX_DOCS_DIR:-eax-docs}:/var/lib/mayan
     networks: [frontend, backend]

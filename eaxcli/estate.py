@@ -27,8 +27,6 @@ LOGICAL = [  # id, name, what it does, group
     ("mcp", "MCP server", "the tools an assistant may use, with the person's own rights", "Application"),
     ("library", "Library service", "reference and enterprise libraries, documentation", "Application"),
     ("views", "Views service", "drawn views and their versions", "Application"),
-    ("operations", "Operations service", "housekeeping, retention, usage, deployments, updates (R2.27)", "Application"),
-    ("personal", "Personal data service", "each person's notifications, requests, favourites, views, skills (R2.53)", "Application"),
     ("drawio", "draw.io", "the diagram editor", "Application"),
     ("keycloak", "Keycloak", "sign-in and the global roles", "Platform"),
     ("reports", "Reports (Superset)", "dashboards and charts on the report views", "Platform"),
@@ -44,11 +42,9 @@ FLOWS = [  # from, to, what
     ("proxy", "web", "pages"), ("proxy", "api", "/api"), ("proxy", "mcp", "/mcp"), ("proxy", "keycloak", "/auth"),
     ("proxy", "reports", "/reports"), ("proxy", "dms", "/documents"), ("proxy", "drawio", "/drawio"),
     ("web", "api", "REST"), ("api", "db", "SQL"), ("api", "library", "REST"), ("api", "views", "REST"),
-    ("api", "keycloak", "tokens"), ("api", "dms", "REST"), ("api", "ops", "operations"), ("mcp", "db", "SQL"),
+    ("api", "keycloak", "tokens"), ("api", "dms", "REST"), ("api", "ops", "operations, updates"), ("mcp", "db", "SQL"),
     ("reports", "db", "report views"), ("dms", "db", "SQL"), ("keycloak", "db", "SQL"), ("library", "db", "SQL"),
     ("views", "db", "SQL"), ("ops", "backup", "backups"), ("backup", "db", "dump, restore"), ("backup", "files", "archive"),
-    ("proxy", "operations", "/api/v1/operations"), ("proxy", "personal", "/api/v1/me/"), ("operations", "db", "SQL"),
-    ("personal", "db", "SQL"), ("operations", "ops", "updates, deployments"),
     ("ops", "testrunner", "runs"), ("testrunner", "proxy", "tests as people do"), ("dms", "files", "documents"),
 ]
 GROUP_ORDER = ["Users", "Edge", "Application", "Platform", "Operations", "Data"]

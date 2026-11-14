@@ -160,6 +160,22 @@ def personal_flush(timestamp: int) -> None:
     log.info("personal data service: %s", out)
 
 
+@app.periodic(cron="* * * * *")
+@app.task(name="eax.resource_sample", queue="default", queueing_lock="resource_sample")
+def resource_sample(timestamp: int) -> None:
+    """R3.5-M8: the resource history: a sample when one is due (every 15 minutes unless set, System Admin > Footprint),
+    old samples made hourly and deleted; quiet when the operations helper is not there (tried again next minute)."""
+    from . import resources
+    from .api.admin import _ops_raw
+    try:
+        out = resources.tick(get_engine(), _ops_raw)
+    except Exception as exc:  # noqa: BLE001 - a missed sample is not an error worth more than a line
+        log.info("resource history: no sample (%s)", str(exc).splitlines()[0][:200] if str(exc) else type(exc).__name__)
+        return
+    if not out.startswith("not due"):
+        log.info("resource history: %s", out)
+
+
 @app.periodic(cron="*/5 * * * *")
 @app.task(name="eax.library_models_move", queue="default", queueing_lock="library_models_move")
 def library_models_move(timestamp: int) -> None:

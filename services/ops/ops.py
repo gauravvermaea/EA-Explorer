@@ -104,7 +104,7 @@ SERVICES = {"reports": ("EAX_SERVICE_REPORTS", ["reports-init", "reports"]),
             "views": ("EAX_SERVICE_VIEWS", ["views"])}
 OFF = {"off", "false", "0", "no", "disabled"}
 SECTION = "# ---- Services (D191)"
-ORDER = ["db", "dms-broker", "keycloak", "api", "operations", "personal", "library", "views", "reports", "dms", "drawio", "web", "backup", "proxy"]
+ORDER = ["db", "dms-broker", "keycloak", "api", "library", "views", "reports", "dms", "drawio", "web", "backup", "proxy"]
 state = {"restarting": False, "started": None, "finished": None, "log": []}
 # what is being applied, one entry per service (owner, 5 Nov 2026: each switched on its own, the others stay usable),
 # and "config" for a restore or a saved config file (these may touch several services, so they wait for the others)
@@ -712,6 +712,23 @@ def _volume_sizes() -> dict:
 
 
 _host_cpus_cache: dict = {"n": None}
+
+
+_mounts_cache: dict = {"at": 0.0, "data": {}}
+
+
+def _volume_mounts() -> dict:
+    """Each container's named volumes {container name: [volume, ...]} (one docker inspect, read again every five minutes)."""
+    if time.time() - _mounts_cache["at"] >= 300:
+        try:
+            ids = [c["id"] for c in containers()]
+            data = json.loads(docker("inspect", *ids, timeout=60) or "[]") if ids else []
+            _mounts_cache["data"] = {(d.get("Name") or "").lstrip("/"): [m.get("Name") for m in d.get("Mounts") or []
+                                                                      if m.get("Type") == "volume" and m.get("Name")] for d in data}
+        except Exception:  # noqa: BLE001 - the volume sizes are a nicety
+            pass
+        _mounts_cache["at"] = time.time()
+    return _mounts_cache["data"]
 
 
 def host_cpus() -> int | None:
@@ -2128,6 +2145,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(409, {"message": str(exc)})
         if self.path == "/footprint":                          # how much each container takes (R2.22)
             return self._send(200, footprint.latest())
+        if self.path == "/resources":                          # one sample for the resource history (R3.5-M8)
+            return self._send(200, footprint.resources())
         if self.path == "/estate":                             # the estate's diagrams, as it runs (R2.33)
             try:
                 return self._send(200, estate_ops.live())
@@ -2740,7 +2759,9 @@ import logsops  # noqa: E402 - the logs on disk: written every minute, read, bac
 logsops.hooks.update(containers=containers)
 import footprint  # noqa: E402 - how much each container takes (R2.22)
 
-footprint.hooks.update(stats=stats, docker=docker, project=project, _size=_size)
+footprint.hooks.update(stats=stats, docker=docker, project=project, _size=_size, cpus=host_cpus, filesystems=filesystems,
+                       volumes=_volume_sizes, mounts=_volume_mounts, tests=lambda: dict(testruns.current),
+                       restore=active_restore, backing_up=_someone_restoring)
 import estate_ops  # noqa: E402 - the estate's diagrams (R2.33)
 
 estate_ops.hooks.update(containers=containers, docker=docker)

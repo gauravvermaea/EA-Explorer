@@ -17,8 +17,6 @@ in draw.io); System Admin › Estate draws them for the running installation.
 | MCP server | the tools an assistant may use, with the person's own rights | Application |
 | Library service | reference and enterprise libraries, documentation | Application |
 | Views service | drawn views and their versions | Application |
-| Operations service | housekeeping, retention, usage, deployments, updates (R2.27) | Application |
-| Personal data service | each person's notifications, requests, favourites, views, skills (R2.53) | Application |
 | draw.io | the diagram editor | Application |
 | Keycloak | sign-in and the global roles | Platform |
 | Reports (Superset) | dashboards and charts on the report views | Platform |
@@ -49,7 +47,7 @@ in draw.io); System Admin › Estate draws them for the running installation.
 | API and job runner | Views service | REST |
 | API and job runner | Keycloak | tokens |
 | API and job runner | Documents (Mayan) | REST |
-| API and job runner | Operations helper | operations |
+| API and job runner | Operations helper | operations, updates |
 | MCP server | PostgreSQL | SQL |
 | Reports (Superset) | PostgreSQL | report views |
 | Documents (Mayan) | PostgreSQL | SQL |
@@ -59,11 +57,6 @@ in draw.io); System Admin › Estate draws them for the running installation.
 | Operations helper | Backup service | backups |
 | Backup service | PostgreSQL | dump, restore |
 | Backup service | Files and folders | archive |
-| Front door (nginx) | Operations service | /api/v1/operations |
-| Front door (nginx) | Personal data service | /api/v1/me/ |
-| Operations service | PostgreSQL | SQL |
-| Personal data service | PostgreSQL | SQL |
-| Operations service | Operations helper | updates, deployments |
 | Operations helper | Test runner | runs |
 | Test runner | Front door (nginx) | tests as people do |
 | Documents (Mayan) | Files and folders | documents |
@@ -79,8 +72,6 @@ in draw.io); System Admin › Estate draws them for the running installation.
 | backup | `eaexplorer/backup:dev` | backend | - | ./work/backups → /backups, eax-docs → /mayan, eax-tls → /tls, eax-superset-home → /superset-home, eax-imports → /imports, eax-exports → /exports, ./persist → /persist |
 | library | `eaexplorer/library:dev` | frontend, backend | - | ./docs → /data/docs/docs, ./README.md → /data/docs/README.md, ./eaxcli/help.txt → /data/docs/eaxcli/help.txt, ./releases → /data/docs/releases, ./services/api/version.toml → /data/docs/version.toml |
 | views | `eaexplorer/views:dev` | frontend, backend | - | - |
-| operations | `eaexplorer/api:dev` | frontend, backend | - | ./work → /eax-work |
-| personal | `eaexplorer/api:dev` | frontend, backend | - | - |
 | testrunner (on demand) | `eaexplorer/testrunner:dev` | frontend, backend | - | ./work/tests → /results, ./testbench/data → /testdata, ./persist → /persist |
 | testrunner-service (on demand) | `eaexplorer/testrunner:dev` | frontend, backend | - | - |
 | ops | `eaexplorer/ops:dev` | backend, terminal | - | /var/run/docker.sock → /var/run/docker.sock, ./work → /eax-work, ./persist → /eax-persist, ./logs → /eax-logs, ./work/backups → /backups, ./docker-compose.yml → /eax-repo/docker-compose.yml, ./deploy → /eax-repo/deploy, ./eaxcli → /eax-repo/eaxcli, ./services/api/version.toml → /eax-repo/services/api/version.toml |

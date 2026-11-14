@@ -1,4 +1,4 @@
-# What EA Explorer does today (version 3.0.0)
+# What EA Explorer does today (version 3.5.0)
 
 One page for anyone weighing EA Explorer up: what is **built and in the box today**, area by area, and what is still
 **planned**, with its build phase. "Planned" adds to what is already there; it does not mean an area is missing.
@@ -292,6 +292,11 @@ Built ([operations.md](operations.md), [command-line-and-console.md](command-lin
 - **Operations data in its own database** (R2.27, D614); **persist/ emptied from the web or eax** (D618); **logs kept by day,
   backed up and cleaned** (D619); **the footprint measured** (D620); **the UI review's screenshots** (D621); **the release
   and build at the top left** (D616).
+- **Memory measured and recorded** (Release 3.5): `eax footprint --watch` and `eax measure` (start-up, smoke test, at
+  rest, in use, full test, one summary); every self-test run watched; **the resource history** (D679): memory, CPU,
+  disk and the database's cache of every container every 15 minutes, kept and charted on System Admin › Footprint
+  (CSV, a shorter interval for a test, deleted by a Super Admin), `eax footprint --history`. The operations and
+  personal data parts run inside the API container (D677); Documents' workers and Keycloak's heap are set per deployment.
 - **Every optional service can be switched off** (reports, documents, draw.io, MCP, change log, backups, library),
   with a dated copy of the configuration kept.
 - **Operations insight** (phase 35, [phase-35.md](phase-35.md)): who uses what and how often, models' use and size,

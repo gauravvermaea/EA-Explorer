@@ -72,8 +72,8 @@ def test_a_laptop_with_a_clean_restart_runs_every_step_in_order(m, monkeypatch):
                          ["test", "full", "--yes"]]
     assert opened == ["https://localhost:8443/", "https://localhost:8443/"]     # in use, and during the full test
     text = "\n".join(out)
-    assert "| Starting up | 4.9 |" in text and "| Full test | 5.9 |" in text and "| In use | 6.8 |" in text
-    assert "**Highest: 6.8 GB (In use)**, within the guide of 10.0 GB" in text
+    assert "| 4.9 | 3.9 |" in text and "| Full test |" in text and "| In use |" in text and "| 6.8 | 5.5 |" in text
+    assert "**Highest once started: 6.8 GB (In use)**, within the guide of 10.0 GB" in text
     assert list((m.FOOT).glob("measure-*.md")) and not m.PROGRESS.exists()
 
 
@@ -120,7 +120,7 @@ def test_a_test_that_was_not_measured_stops_it(m, monkeypatch):
     _deploy(monkeypatch, "laptop")
     out = []
     assert m.main(["--yes"], run=Runner(m, measured=False), open_browser=lambda u: None, out=out.append) == 1
-    assert "was not measured" in out[-1] and "eax restart" in out[-1]
+    assert "was not measured" in out[-1] and "eax logs ops" in out[-1] and "--from 4" in out[-1]
 
 
 def test_unattended_opens_nothing_and_skips_the_in_use_step(m, monkeypatch):
@@ -133,7 +133,8 @@ def test_unattended_opens_nothing_and_skips_the_in_use_step(m, monkeypatch):
 def test_paging_is_called_out(m):
     text = m.summary([{"label": "using-it", "total_peak_mb": 12000.0, "total_average_mb": 9000.0, "target_mb": 10240.0,
                        "containers": [], "host": {"total_mb": 12288.0, "least_available_mb": 100.0, "paged": True}}], "laptop")
-    assert "| In use | 11.7 | 8.8 | **yes** | 0.1 |" in text and "above the guide" in text and "**It paged**" in text
+    assert "| In use | - | 11.7 | 8.8 | **yes** | 0.1 |" in text and "above the guide" in text
+    assert "**It paged once started**: memory ran short in In use." in text
 
 
 def test_bad_choices_are_refused(m, monkeypatch):
@@ -148,4 +149,32 @@ def test_wired_in_every_form():
     assert 'measure) EAX_FORM=sh exec "$BASH" ./eaxpy.sh "$@" ;;' in (REPO / "eax.sh").read_text()
     main = (REPO / "eaxcli/main.py").read_text()
     assert 'if command == "measure":' in main and "return measure.main(argv[1:])" in main
-    assert "### measure [--restart|--clean-restart] [--full] [--unattended]" in (REPO / "eaxcli/help.txt").read_text()
+    assert "### measure [--restart|--clean-restart] [--full|--no-full] [--unattended]" in (REPO / "eaxcli/help.txt").read_text()
+
+
+def test_no_full_leaves_the_full_test_out_and_still_sums_up(m, monkeypatch):
+    """Owner, 14 Nov 2026: "can we just check memory after step 4, I dont want to do a full test"."""
+    _deploy(monkeypatch, "laptop")
+    run, out = Runner(m), []
+    assert m.main(["--yes", "--no-full", "--from", "5"], run=run, open_browser=lambda u: None, out=out.append) == 0
+    assert run.lines == [["footprint", "--watch", "10", "at-rest"], ["footprint", "--watch", "20", "using-it"]]
+    assert any("[--no-full]" in line for line in out) and "| 3.9 | 3.1 |" in "\n".join(out)
+
+
+def _m(label, peak, at, paged=False):
+    return {"label": label, "total_peak_mb": peak, "total_average_mb": peak, "target_mb": 10240.0, "containers": [],
+            "at": f"2026-11-14T{at}:00+00:00", "until": f"2026-11-14T{at}:30+00:00",
+            "host": {"total_mb": 11878.0, "least_available_mb": 5000.0, "paged": paged}}
+
+
+def test_a_measure_carried_on_lists_only_the_newest_attempt_of_each_step():
+    """Bug (owner's measure of 14 Nov 2026): carried on with --from after a failed smoke step, the summary listed the smoke
+    test four times, the failed attempt's paging among them, and said it paged."""
+    text = measure.summary([_m("start-up", 6400, "13:15", paged=True), _m("self-test 1 smoke api", 6500, "13:28", paged=True),
+                            _m("self-test 2 smoke api", 4800, "13:54"), _m("self-test 3 smoke api", 5300, "14:01"),
+                            _m("at-rest", 4900, "14:36"), _m("self-test 4 smoke api", 5100, "14:28")], "laptop")
+    rows = [line for line in text.splitlines() if line.startswith("| ") and "Situation" not in line]
+    assert [r.split(" | ")[0] for r in rows] == ["| Starting up", "| Smoke test", "| At rest"]
+    assert "| Smoke test | 14:28-14:28 | 5.0 |" in text                     # the newest smoke run, not the first
+    assert "**Highest once started: 5.0 GB (Smoke test)**" in text
+    assert "It paged only while starting up" in text and "It paged once started" not in text

@@ -163,6 +163,106 @@ class Footprint(MethodView):
         return _ops("POST", "/footprint", {"label": str((data or {}).get("label") or "")[:60]}, timeout=180)
 
 
+@blp.route("/admin/resources")
+class Resources(MethodView):
+    @blp.doc(security=[{"bearerAuth": []}])
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def get(self):
+        """The resource history over a period (R3.5-M8): ?from=&to= (UTC times) or ?days= (1 unless given): the whole
+        installation's memory and CPU, the host's memory left and paging, the database's cache, each container's memory
+        and CPU, the peaks; and the settings (how often, how long kept, a shorter interval for a while)"""
+        from .. import resources as rs
+        try:
+            days = float(request.args.get("days") or 1)
+            start, end = rs.period(request.args.get("from"), request.args.get("to"), days)
+        except (ValueError, EditError) as exc:
+            abort(400, message=str(exc))
+        with get_engine().connect() as conn:
+            out = rs.history(rs.rows_between(conn, start, end))
+            last = rs.last_sample(conn)
+            out["settings"] = rs.settings_of(st.values(conn))
+        out.update({"from": start.isoformat(timespec="seconds"), "to": end.isoformat(timespec="seconds"),
+                    "last_sample": last.isoformat(timespec="seconds") if last else None,
+                    "may_delete": _is_super(g.user)})
+        return out
+
+    @blp.doc(security=[{"bearerAuth": []}])
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def delete(self):
+        """Deletes the resource history (Super Admin, audited): ?from=&to= a period, ?to= everything before, neither: all"""
+        from .. import resources as rs
+        if not _is_super(g.user):
+            abort(403, message="Only a Super Admin deletes the resource history.")
+        a, b = request.args.get("from") or None, request.args.get("to") or None
+        try:
+            with get_engine().begin() as conn:
+                n = rs.delete(conn, a, b)
+                audit.record(conn, actor=g.user.username, action="resources.delete", object_type="resource_history",
+                             object_id="", details={"from": a, "to": b, "deleted": n})
+        except EditError as exc:
+            abort(exc.status, message=str(exc))
+        what = f"from {a} to {b}" if a and b else f"before {b}" if b else f"from {a}" if a else "all of it"
+        return {"deleted": n, "message": f"{n} samples deleted ({what})."}
+
+
+@blp.route("/admin/resources/csv")
+class ResourcesCsv(MethodView):
+    @blp.doc(security=[{"bearerAuth": []}])
+    @require_auth("system.operate")
+    def get(self):
+        """The resource history over a period as CSV (?from=&to= or ?days=): one line per container per sample"""
+        from flask import Response
+
+        from .. import resources as rs
+        try:
+            start, end = rs.period(request.args.get("from"), request.args.get("to"), float(request.args.get("days") or 1))
+        except (ValueError, EditError) as exc:
+            abort(400, message=str(exc))
+        with get_engine().connect() as conn:
+            body = rs.csv_text(rs.rows_between(conn, start, end))
+        name = f"eaexplorer-resources-{start:%Y%m%dT%H%M}-{end:%Y%m%dT%H%M}.csv"
+        return Response(body, mimetype="text/csv", headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+
+@blp.route("/admin/resources/sample")
+class ResourcesSample(MethodView):
+    @blp.doc(security=[{"bearerAuth": []}])
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def post(self):
+        """A sample of the resource history now (as the job takes every few minutes)"""
+        from .. import resources as rs
+        with get_engine().begin() as conn:
+            return rs.take(conn, _ops)
+
+
+@blp.route("/admin/resources/settings")
+class ResourcesSettings(MethodView):
+    @blp.doc(security=[{"bearerAuth": []}])
+    @blp.arguments(FreeIn)
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def put(self, data):
+        """How often a sample is taken and how long kept {every_minutes, detail_days, keep_days}, and a shorter interval
+        for a while {boost_every, boost_hours} (0 ends it); applied at once, audited"""
+        from .. import resources as rs
+        try:
+            with get_engine().begin() as conn:
+                out = rs.change_settings(conn, data or {})
+                audit.record(conn, actor=g.user.username, action="resources.settings", object_type="resource_history",
+                             object_id="", details=dict(data or {}))
+        except EditError as exc:
+            abort(exc.status, message=str(exc))
+        return out
+
+
+def _is_super(user) -> bool:
+    from .. import permissions as perms
+    return perms.SUPER_ADMIN in (user.roles or [])
+
+
 @blp.route("/admin/estate")
 class Estate(MethodView):
     @blp.doc(security=[{"bearerAuth": []}])

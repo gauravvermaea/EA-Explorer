@@ -55,6 +55,19 @@ REGISTRY: dict[str, tuple] = {
     "logs_keep_days": ("system", "Delete logs older than (days)", "int", 14, (0, 3650),
                        "eax's own logs (work/logs), the log backups and the containers' daily log files are deleted when "
                        "older, every night (R2.30); the default by deployment: 14 on a laptop, 90 on a server; 0 keeps them."),
+    # the resource history (R3.5-M8; owner, 14 Nov 2026: "every 15 min configurable from admin screen"): set here or on
+    # System Admin > Footprint, applied at once (the job eax.resource_sample reads them each minute)
+    "resource_every_minutes": ("system", "Resource history: a sample every (minutes)", "int", 15, (0, 1440),
+                               "Memory, CPU, disk and the database's cache of every container, kept on System Admin › Footprint; "
+                               "0 stops it. Taken while people work and while the self-test runs."),
+    "resource_detail_days": ("system", "Resource history: every sample kept for (days)", "int", 7, (1, 365),
+                             "Older samples become one an hour (their average and peak), so the history stays small."),
+    "resource_keep_days": ("system", "Resource history: kept for (days)", "int", 90, (1, 3650),
+                           "Older samples are deleted automatically."),
+    "resource_boost_every": ("hidden", "Resource history: for a while, a sample every (minutes)", "int", 0, (0, 60),
+                             "Set on System Admin › Footprint for a test; goes back by itself."),
+    "resource_boost_until": ("hidden", "Resource history: the shorter interval until", "text", "", (0, 40),
+                             "When the shorter interval ends (UTC)."),
     # the parts of EA Explorer an organisation uses (owner, 8 Nov 2026, phase 13.3, D329): off hides a part's screens, menus,
     # API, MCP tools and background work; its data is kept and comes back when it is switched on again
     "part_projects": ("system", "Projects", "bool", True, None,
@@ -159,6 +172,8 @@ def describe(conn) -> dict:
     rows = {r["key"]: r for r in conn.execute(text("SELECT key, modified_at, modified_by FROM core.settings")).mappings()}
     out: dict[str, list] = {"application": [], "system": []}
     for k, (group, label, typ, _default, choices, help_) in REGISTRY.items():
+        if group == "hidden":                   # set by their own screen only (the resource history's shorter interval)
+            continue
         out[group].append({"key": k, "label": label, "type": typ, "value": v[k], "default": default_of(k),
                            "choices": choices if isinstance(choices, list) else None,
                            "range": list(choices) if isinstance(choices, tuple) else None, "help": help_,
@@ -217,6 +232,18 @@ def check(key: str, value: Any) -> Any:
     return s
 
 
+def store(conn, clean: dict) -> None:
+    """Writes checked values (check()) and forgets the cache, so they apply at once. The caller says who may."""
+    import json
+    for k, v in clean.items():
+        conn.execute(text("""INSERT INTO core.settings (key, value, name) VALUES (:k, CAST(:v AS jsonb), :n)
+                             ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, modified_at = now(),
+                                 modified_by = core.current_actor(), row_version = core.settings.row_version + 1
+                             WHERE core.settings.value IS DISTINCT FROM EXCLUDED.value"""),
+                     {"k": k, "v": json.dumps(v), "n": REGISTRY[k][1]})
+    forget()
+
+
 def library(conn=None) -> dict:
     """The enterprise library as the screens and the library service see it (D350): mode ours, link or off. Off when
     the library service is switched off (EAX_SERVICE_LIBRARY) and EA Explorer's own is chosen, or when Projects is off."""
@@ -243,14 +270,7 @@ def update(conn, user, changes: dict) -> dict:
     if clean.get("decimal_separator", values(conn)["decimal_separator"]) == clean.get("thousands_separator",
                                                                                        values(conn)["thousands_separator"]):
         raise EditError("The decimal and thousands separators must differ.")
-    import json
-    for k, v in clean.items():
-        conn.execute(text("""INSERT INTO core.settings (key, value, name) VALUES (:k, CAST(:v AS jsonb), :n)
-                             ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, modified_at = now(),
-                                 modified_by = core.current_actor(), row_version = core.settings.row_version + 1
-                             WHERE core.settings.value IS DISTINCT FROM EXCLUDED.value"""),
-                     {"k": k, "v": json.dumps(v), "n": REGISTRY[k][1]})
-    forget()
+    store(conn, clean)
     applied, note = [], ""
     if {"session_idle_minutes", "session_max_hours"} & set(clean):
         v = {**values(conn), **clean}

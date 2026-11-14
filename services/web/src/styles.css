@@ -2699,3 +2699,16 @@ th.sortable { cursor: pointer; }
 .wizard-choices .lock-opt { display: flex; gap: 8px; align-items: flex-start; padding: 6px 4px; }
 .wizard-more { margin: 6px 0 10px; }
 .wizard-more > summary { cursor: pointer; color: var(--accent, #3d7bd9); }
+
+/* the resource history (R3.5-M8; Footprint.jsx) */
+.res-settings { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 6px 0; }
+.res-settings input[type="number"] { width: 5em; }
+.res-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; margin: 10px 0; }
+.res-chart { margin: 0; padding: 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); }
+.res-chart figcaption { font-size: 0.9em; margin-bottom: 4px; }
+.res-chart svg { width: 100%; height: 140px; display: block; border-bottom: 1px solid var(--line); }
+.res-line { stroke-width: 1.6; }
+.res-line-0 { stroke: var(--accent); color: var(--accent); }
+.res-line-1 { stroke: var(--ok); color: var(--ok); }
+.res-key.res-line-0::before, .res-key.res-line-1::before { content: "\25A0 "; }
+.res-band { fill: #f2a33a; opacity: 0.18; }

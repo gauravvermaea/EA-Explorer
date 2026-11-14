@@ -1029,7 +1029,11 @@ try {
                     Start-BackupHelpers
                     Invoke-Interactive @("ops", "python3", "/app/ops.py", "backup") $RestArgs }
         "backups" { Start-BackupHelpers; Invoke-Interactive @("ops", "python3", "/app/ops.py", "list") $RestArgs }
-        "footprint" { Invoke-Interactive @("ops", "python3", "/app/ops.py", "footprint") $RestArgs }   # how much each container takes (R2.22)
+        "footprint" {   # how much each container takes (R2.22); --history: the resource history (R3.5-M8)
+            if ($RestArgs.Count -gt 0 -and $RestArgs[0] -eq "--history") {
+                Invoke-Interactive @("api", "python", "-m", "eax.resources", "history") @($RestArgs | Select-Object -Skip 1)
+            } else { Invoke-Interactive @("ops", "python3", "/app/ops.py", "footprint") $RestArgs }
+        }
         "stop-backup" { Start-BackupHelpers; Invoke-Interactive @("ops", "python3", "/app/ops.py", "stop-backup") @() }
         "restore-app" { Invoke-Interactive @("api", "python", "-m", "eax.backups_cli", "restore-all") $RestArgs }
         "maintenance" {

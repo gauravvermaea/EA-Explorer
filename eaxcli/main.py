@@ -378,6 +378,8 @@ def dispatch(command: str, rest: list[str], wait_all: bool) -> None:
     elif command == "backups":
         stack.backup_helpers()
         stack.interactive([*ops, "list"], rest)
+    elif command == "footprint" and rest[:1] == ["--history"]:     # the resource history (R3.5-M8), kept by the API
+        stack.interactive(["api", "python", "-m", "eax.resources", "history"], rest[1:])
     elif command == "footprint":        # how much each container takes (R2.22): kept in work/footprint
         stack.interactive([*ops, "footprint"], rest)
     elif command == "stop-backup":

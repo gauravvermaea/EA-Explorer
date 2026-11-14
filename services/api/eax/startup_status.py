@@ -34,8 +34,8 @@ PARTS = [  # key, name, what it is, its check, its containers (in start order)
     ("drawio", "Diagrams", "draw.io", hc.check_drawio, ["drawio"]),
     ("library", "Library", "the library service", hc.check_library, ["library"]),
     ("views", "Drawn views", "the views service", hc.check_views, ["views"]),
-    ("operations", "Operations", "the operations service (R2.27)", hc.check_operations, ["operations"]),
-    ("personal", "Personal data", "the personal data service (R2.53)", hc.check_personal, ["personal"]),
+    ("operations", "Operations", "housekeeping, usage, deployments, updates (in the API, D677)", hc.check_operations, ["api"]),
+    ("personal", "Personal data", "each person's notifications, requests, settings (in the API, D677)", hc.check_personal, ["api"]),
 ]
 CORE = ["db", "setup", "proxy", "web", "keycloak", "api"]     # the first tier: started before anyone can sign in
 
