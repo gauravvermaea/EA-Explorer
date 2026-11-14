@@ -1,7 +1,7 @@
 // How to connect a language model to the EA Explorer MCP server; the AI activity log (phases 26/27, D482, D483).
 import { useState } from "react";
 import { config } from "./config";
-import { fmtDateTime } from "./fmt";
+import { fmtDateTime, serviceOn } from "./fmt";
 import { useApi } from "./ModelViews";
 
 const KINDS = [["", "Every kind"], ["read", "Read"], ["preview", "Preview"], ["change", "Change"], ["refused", "Refused"], ["error", "Error"]];
@@ -9,7 +9,8 @@ const KINDS = [["", "Every kind"], ["read", "Read"], ["preview", "Preview"], ["c
 function Activity() {
   const [kind, setKind] = useState("");
   const [days, setDays] = useState(30);
-  const [who, setWho] = useState("");
+  // R4.20: AI (MCP) › My AI activity opens it as ?who=me
+  const [who, setWho] = useState(() => new URLSearchParams(window.location.hash.split("?")[1] || "").get("who") || "");
   const [open, setOpen] = useState(null);
   const q = new URLSearchParams({ days: String(days), ...(kind ? { kind } : {}), ...(who ? { who } : {}) });
   const { data, error } = useApi(`/api/v1/mcp/activity?${q}`);
@@ -120,7 +121,9 @@ export default function Mcp() {
   }, null, 2);
   return (
     <section>
-      <h1>MCP server</h1>
+      <h1>AI (MCP)</h1>
+      {!serviceOn("mcp") && <p className="status warn">MCP is switched off in this installation: a Super Admin or IT Admin
+        switches it on in System Admin › Settings › System settings (Services). Until then no AI assistant can connect.</p>}
       <div className="tabs" role="tablist">
         {tabs.map(([k, n]) => <a key={k} role="tab" aria-selected={tab === k} className={`tab${tab === k ? " on" : ""}`} href={`#/mcp/${k}`}>{n}</a>)}
       </div>

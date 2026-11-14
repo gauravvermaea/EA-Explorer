@@ -21,6 +21,7 @@ import json
 import re
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
@@ -86,8 +87,8 @@ def fill(path: str, ids: dict[str, str]) -> str | None:
     def one(m: re.Match) -> str:
         name = m.group(1).split(":")[-1]
         for key in (name, name.removesuffix("_id"), name.removesuffix("_guid")):
-            if key in ids:
-                return ids[key]
+            if key in ids:      # R4.16: a value with a space ("Application Component") encoded, as a browser does
+                return urllib.parse.quote(str(ids[key]), safe="")
         raise KeyError(name)
     try:
         return re.sub(r"\{([^}]+)\}", one, path)
@@ -179,10 +180,12 @@ def _first_item(body: str):
         return None
     if isinstance(data, list):
         return data[0] if data else None
-    if isinstance(data, dict):
-        for v in data.values():
-            if isinstance(v, list) and v:
+    if isinstance(data, dict):        # R4.16: the first list of records, not a list of choices ("kinds": ["Decision"])
+        lists = [v for v in data.values() if isinstance(v, list) and v]
+        for v in lists:
+            if isinstance(v[0], dict):
                 return v[0]
+        return lists[0][0] if lists else None
     return None
 
 

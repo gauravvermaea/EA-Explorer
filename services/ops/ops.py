@@ -26,6 +26,7 @@ restarts the system from the administration console. It talks to the Docker engi
                                 eax commands from a web page: the Command centre and the Console (D554; commandcentre.py)
   GET  /terminal/<ticket>       on port 8091 only, no token (the ticket is the key): the WebSocket of the terminal
   GET  /backups                 the infrastructure backups, the one running (progress), maintenance
+  GET  /vault                   the key vault's state (R4.19): unsealed, audit log, references, passwords left in clear
   POST /backups/backup          {tag, by, kind, version, pinned, keep}: an infrastructure backup now, in the background
                                 (D216); then the oldest beyond `keep` go (pinned ones stay)
   POST /backups/stop            {by}: stop the backups running (D231)
@@ -127,6 +128,12 @@ def docker(*args: str, timeout: int = 120) -> str:
     return r.stdout
 
 
+def gone(exc: Exception) -> bool:
+    """Docker's answer for a container that no longer exists (removed between being listed and being looked into)."""
+    text_ = str(exc).lower()
+    return "no such object" in text_ or "no such container" in text_
+
+
 def project() -> str:
     labels = json.loads(docker("inspect", "--format", "{{json .Config.Labels}}", socket.gethostname()))
     return labels.get("com.docker.compose.project", "")
@@ -146,11 +153,16 @@ def containers() -> list[dict]:
     rows = []
     for line in out.splitlines():
         c = json.loads(line)
-        svc, num, made, oneoff = (docker("inspect", "--format", '{{index .Config.Labels "com.docker.compose.service"}}|'
-                                                              '{{index .Config.Labels "com.docker.compose.container-number"}}|'
-                                                              '{{index .Config.Labels "com.docker.compose.config-hash"}}|'
-                                                              '{{index .Config.Labels "com.docker.compose.oneoff"}}',
-                                       c["ID"]).strip().split("|") + ["1", "", ""])[:4]
+        try:
+            labels = docker("inspect", "--format", '{{index .Config.Labels "com.docker.compose.service"}}|'
+                                                   '{{index .Config.Labels "com.docker.compose.container-number"}}|'
+                                                   '{{index .Config.Labels "com.docker.compose.config-hash"}}|'
+                                                   '{{index .Config.Labels "com.docker.compose.oneoff"}}', c["ID"])
+        except RuntimeError as exc:
+            if gone(exc):                   # R4.15: gone since it was listed (a one-shot one, a test runner): left out
+                continue
+            raise
+        svc, num, made, oneoff = (labels.strip().split("|") + ["1", "", ""])[:4]
         if not is_service_container(made, oneoff):
             continue
         rows.append({"id": c["ID"], "name": c["Names"], "service": svc, "number": int(num or 1) if (num or "1").isdigit() else 1,
@@ -372,7 +384,12 @@ def api_servers() -> list[dict]:
     for c in containers():
         if c["service"] != "api":
             continue
-        info = json.loads(docker("inspect", "--format", "{{json .}}", c["id"]))
+        try:
+            info = json.loads(docker("inspect", "--format", "{{json .}}", c["id"]))
+        except RuntimeError as exc:
+            if gone(exc):                   # R4.15: gone since it was listed: left out, never a failure of the page
+                continue
+            raise
         labels = info["Config"].get("Labels") or {}
         health = ((info.get("State") or {}).get("Health") or {}).get("Status", "")
         out.append({"id": c["id"], "name": c["name"], "key": c["key"], "number": int(labels.get("com.docker.compose.container-number", "1")),
@@ -1245,8 +1262,8 @@ FILE_SETS = {   # file set: (named volume, what it is)
     "reports": ("eax-superset-home", "the reports' home (Superset's secret key and uploads; its dashboards are in its database)"),
     "imports": ("eax-imports", "the API's import folder (files uploaded to be imported)"),
     "exports": ("eax-exports", "the API's export folder (files made to be downloaded)"),
-    "persist": ("./persist", "the settings that survive resets: schedules and the banner (persist/, D558; its "
-                             "safety-backups/ are left out, being backups themselves)"),
+    "persist": ("./persist", "the settings that survive resets: schedules, the banner and the key vault's keys "
+                             "(persist/, D558, R4.19; its safety-backups/ are left out, being backups themselves)"),
 }
 NOT_NEEDED = {  # named volume: why it is not in a backup
     "eax-pgdata": "the database server's own files: every database in it is in the backup as a dump (databases/)",
@@ -1924,6 +1941,7 @@ def _restore_steps(name: str, what: str, by: str, version: str, force: bool, rec
                 docker("start", c["id"], timeout=180)
             except Exception as exc:  # noqa: BLE001
                 rlog(rec, f"{c['service']} did not start: {exc}")
+        unseal_vault(lambda m: rlog(rec, m))        # the key vault starts sealed: unsealed as eax up would (R4.19)
         if "keycloak" not in {c["service"] for c in stopped}:   # everyone signs in again after a restore
             k = _container("keycloak")
             if k and k["state"] == "running":
@@ -1936,6 +1954,69 @@ def _restore_steps(name: str, what: str, by: str, version: str, force: bool, rec
     backup_events.append({"kind": "restore", "by": by, "at": time.time(), **result})
     rlog(rec, f"restore {name}: {result['status']}{' - ' + result.get('error', '') if result.get('error') else ''}")
     return result
+
+
+def unseal_vault(say=lambda _m: None) -> bool:
+    """The key vault (OpenBao, R4.19) unsealed with the key in persist/ when it runs sealed (after a restore or a
+    restart): the containers have their values already, but eax secrets and the console read it. False when there is
+    no vault or it could not be unsealed (said)."""
+    c = _container("openbao")
+    if not c or c["state"] != "running":       # none: OpenBao is switched off (D684) and not in docker-compose.yml
+        return False
+    try:
+        if "/eax-repo" not in sys.path:
+            sys.path.insert(0, "/eax-repo")
+        from eaxcli import vault
+        text = "\n".join(_read_config())
+        where_ = vault.where(text) or vault.DEFAULT_WHERE
+        from pathlib import Path
+        keys = vault.keys_path(Path("/"), os.environ.get("EAX_PERSIST_DIR", "/eax-persist"))
+        vault.ready(keys, vault.url_for(inside=True), where_, None, wait=60)
+        say("the key vault is unsealed")
+        return True
+    except Exception as exc:  # noqa: BLE001 - said; eax up unseals it too
+        say(f"the key vault could not be unsealed ({exc}): eax up does it")
+        return False
+
+
+def vault_report() -> dict:
+    """The key vault's state for the self-test (R4.19): used or not, unsealed, its audit log on, every reference with a
+    value, the passwords still in the config file in clear, and the containers that hold one in their environment."""
+    lines = _read_config()
+    text = "\n".join(lines)
+    if "/eax-repo" not in sys.path:
+        sys.path.insert(0, "/eax-repo")
+    from eaxcli import vault
+    where_ = vault.where(text)
+    if not where_:
+        return {"used": False}
+    from pathlib import Path
+    template = Path("/eax-repo/deploy/templates/eaexplorer.server.env").read_text(encoding="utf-8")
+    keys = re.findall(r"^([A-Z0-9_]+)=change-me", template, re.MULTILINE)
+    values = _values(lines)
+    out = {"used": True, "where": where_, "clear": sorted(k for k in keys if values.get(k) and not vault.is_reference(values[k])),
+           "references": len(vault.references(text))}
+    try:
+        c = vault.ready(vault.keys_path(Path("/"), os.environ.get("EAX_PERSIST_DIR", "/eax-persist")),
+                        vault.url_for(inside=True), where_, None, wait=10)
+        held = c.read(where_)
+        out.update(unsealed=True, audit=c.audited,
+                   missing=sorted(k for k, n in vault.references(text).items() if n not in held))
+        secret = {v for v in held.values() if len(v) >= 8}
+        found = []
+        for ctr in containers():
+            if ctr["state"] != "running":
+                continue
+            try:
+                env = json.loads(docker("inspect", "--format", "{{json .Config.Env}}", ctr["id"], timeout=30)) or []
+            except Exception:  # noqa: BLE001 - gone since listed
+                continue
+            if any(e.partition("=")[2] in secret for e in env):
+                found.append(ctr["service"])
+        out["in_environment"] = sorted(set(found))
+    except Exception as exc:  # noqa: BLE001 - said in the answer
+        out.update(unsealed=False, error=str(exc)[:300])
+    return out
 
 
 def start_backup_job(action: str, **kw) -> dict:
@@ -2085,6 +2166,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(404, {"message": str(exc)})
             except Exception as exc:  # noqa: BLE001
                 return self._send(500, {"message": str(exc)})
+        if self.path == "/vault":                       # the key vault's state, for the self-test (R4.19)
+            try:
+                return self._send(200, vault_report())
+            except Exception as exc:  # noqa: BLE001
+                return self._send(500, {"message": str(exc)[:300]})
         if self.path == "/servers":
             try:
                 return self._send(200, {"servers": api_servers(), "wanted": servers_wanted(), "max": MAX_SERVERS,

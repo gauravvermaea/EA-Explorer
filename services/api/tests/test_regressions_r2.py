@@ -99,8 +99,8 @@ def test_r2_24_the_last_critical_findings_in_backup_and_reports():
     backup = _read("services", "backup", "Dockerfile")
     assert "rm -f /usr/local/bin/gosu" in backup and "gosu" not in _read("services", "backup", "entrypoint.sh")
     superset = _read("deploy", "superset", "Dockerfile")
-    for x in ('"Brotli>=1.2.1"', '"PyJWT>=2.14.0,<3"', '"certifi>=2026.10.18"'):
-        assert x in superset, x
+    # one quoted list since Superset 6.1 (R4.7: installed into its .venv with uv)
+    assert "FIXED='Brotli>=1.2.1 PyJWT>=2.14.0,<3 certifi>=2026.10.18'" in superset and "--upgrade $FIXED" in superset
 
 
 def test_the_child_merge_journey_waits_for_the_merge_to_finish():

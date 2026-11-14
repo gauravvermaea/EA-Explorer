@@ -59,6 +59,10 @@ def check_config() -> list[str]:
     if not re.fullmatch(r"[a-z][a-z0-9-]{1,39}", realm) or realm == "master":
         problems.append("EAX_KEYCLOAK_REALM must be 2 to 40 lower-case letters, digits or hyphens, start with a letter, "
                         "and not be master")
+    unread = sorted(k for k, v in os.environ.items() if k.startswith("EAX_") and v.startswith("openbao:"))
+    if unread:                                       # R4.19: a reference reached a container, not the vault's value
+        problems.append("the key vault's values were not read (" + ", ".join(unread) + "): start EA Explorer with eax up, "
+                        "which reads them from OpenBao, not with docker compose directly")
     weak = [k for k, v in os.environ.items() if k.startswith("EAX_") and v.startswith("change-me")]
     if weak:
         message = "still set to the example value: " + ", ".join(sorted(weak))

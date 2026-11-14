@@ -7,6 +7,7 @@ ever deletes, as small JSON files a person can also read and edit by hand:
   persist/schedules.json      scheduled eax commands (eaxcli/schedules.py)
   persist/banner.json         the banner under the top bar (eaxcli/banner.py)
   persist/safety-backups/     the backup taken before a command that deletes everything (eaxcli/commands.py)
+  persist/vault/keys.json     the key vault's unseal key and root token (eaxcli/vault.py, R4.19): never deleted here
   persist/test-results/       the reset-survival test's results (eaxcli/reset_survival.py)
 
 The JSON files are the source of truth. They are written atomically (a temporary file, then a rename), with the last
@@ -93,7 +94,10 @@ WHAT = {
     "banner.json": "the banner under the top bar and its history (no banner once deleted)",
     "settings.json": "the Self-test page's settings (the defaults once deleted)",
     "test-results": "the reset-survival test's results",
+    "vault": "the key vault's unseal key and root token (R4.19): never deleted here (without them the vault, and every "
+             "password in it, cannot be opened)",
 }
+NEVER = {"vault"}       # listed, never deleted from here (R4.19)
 
 
 def _size(p: Path) -> int:
@@ -133,6 +137,8 @@ def delete(name: str, root: Path | str | None = None) -> list[str]:
     known = {i["name"] for i in items(root)}
     if name not in known:
         raise ValueError(f"persist/ has no {name!r}. There: {', '.join(sorted(known)) or 'nothing'}.")
+    if name in NEVER:
+        raise ValueError(f"persist/{name} is {WHAT[name]}.")
     target = (base / name).resolve()
     if base not in target.parents:
         raise ValueError("Only what is in persist/ can be deleted.")
@@ -151,5 +157,6 @@ def delete_all(root: Path | str | None = None) -> list[str]:
     """Every item of items(), for good."""
     gone: list[str] = []
     for i in items(root):
-        gone += delete(i["name"], root)
+        if i["name"] not in NEVER:
+            gone += delete(i["name"], root)
     return gone

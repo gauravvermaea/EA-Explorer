@@ -20,6 +20,7 @@ project is made. A Project Admin or Lead Architect changes and approves it; a ch
 from __future__ import annotations
 
 import json
+import uuid
 from datetime import date
 from typing import Any
 
@@ -137,6 +138,10 @@ def add(conn, project: Any, user, d: dict) -> dict:
 
 
 def _row(conn, p: dict, rid: str) -> dict:
+    try:                                        # R4.14: an id that is not one is a 404 before the query, not a DataError
+        uuid.UUID(str(rid))
+    except ValueError as exc:
+        raise EditError("No such record in the governance log.", 404) from exc
     r = _one(conn, "SELECT * FROM proj.gov_records WHERE project_id = :p AND guid = CAST(:g AS uuid)", p=p["id"], g=rid)
     if not r:
         raise EditError("No such record in the governance log.", 404)

@@ -34,7 +34,7 @@ import threading
 import time
 
 H: dict = {}                                   # ops.py's globals: docker, containers, jobs, _in_background...
-SUITES = ("api", "ui", "db", "security", "backup", "restore")   # backup (R2.45), then restore (R3.8, the command line only)
+SUITES = ("api", "ui", "db", "security", "reports", "backup", "restore")   # backup (R2.45), then restore (R3.8, the command line only)
 ALIASES = {"backup-restore": "restore"}
 ZAP_IMAGE = os.environ.get("EAX_IMAGE_ZAP", "ghcr.io/zaproxy/zaproxy:2.15.0")
 TRIVY_IMAGE = os.environ.get("EAX_IMAGE_TRIVY", "aquasec/trivy:0.56.2")

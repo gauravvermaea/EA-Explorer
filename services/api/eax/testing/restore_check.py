@@ -281,6 +281,8 @@ def run(base: str, token: str, ids: dict[str, str], record: Callable[..., None],
             if x.get("kind") == "before-restore" and _after(x.get("created"), started)] if isinstance(b, dict) else []
     gone, left = [], []
     for name in [n for n in [infra, *made] if n]:
+        if name in made:          # R4.16: a restore keeps its safety backup pinned; the test's own are unpinned first
+            call(base, "POST", f"/api/v1/admin/backups/infrastructure/{name}/pin", token, {"pinned": False})
         c, _ = call(base, "POST", f"/api/v1/admin/backups/infrastructure/{name}/delete", token, {})
         (gone if c == 200 else left).append(name)
     if app:

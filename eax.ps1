@@ -156,7 +156,37 @@ function Get-Setting([string]$Name, [string]$Default = "") {
     $v = ($line -split "=", 2)[1].Trim()
     # strip surrounding single or double quotes
     if ($v.Length -ge 2 -and (($v.StartsWith("'") -and $v.EndsWith("'")) -or ($v.StartsWith('"') -and $v.EndsWith('"')))) { $v = $v.Substring(1, $v.Length - 2) }
+    if ($v.StartsWith("openbao:")) {                      # a reference: the key vault's value (R4.19)
+        Use-VaultEnv
+        $v = [Environment]::GetEnvironmentVariable($Name)
+        if (-not $v) { $v = "" }
+    }
     if ($v -eq "") { return $Default } else { return $v }
+}
+
+# the key vault (R4.19, D684): with EAX_SECRETS_FROM=openbao:..., its container is in every compose command (profile
+# "vault") and, before containers are made, the values behind the config file's references are read into this
+# session's own environment (eaxpy secrets env: over a pipe, never a file); docker compose takes them from there
+function Use-VaultProfile {
+    if (-not (Test-Path $EnvFile)) { return }
+    if (-not (Select-String -Path $EnvFile -Pattern "^EAX_SECRETS_FROM=openbao:" -Quiet)) { return }
+    $have = @(($env:COMPOSE_PROFILES -split ",") | Where-Object { $_ })
+    if ($have -notcontains "vault") { $env:COMPOSE_PROFILES = (@($have) + "vault") -join "," }
+}
+
+function Use-VaultEnv {
+    if ($env:EAX_VAULT_RESOLVED) { return }
+    if (-not (Test-Path $EnvFile)) { return }
+    if (-not (Select-String -Path $EnvFile -Pattern "^EAX_SECRETS_FROM=openbao:" -Quiet)) { return }
+    if (-not (Select-String -Path $EnvFile -Pattern "^[A-Z0-9_]+=openbao:" -Quiet)) { return }
+    Use-VaultProfile
+    $lines = & (Join-Path $PSScriptRoot "eaxpy.ps1") secrets env
+    if ($LASTEXITCODE -ne 0) { throw "The key vault (OpenBao) could not be read: .\eaxpy secrets" }
+    foreach ($line in @($lines)) {
+        $i = "$line".IndexOf("=")
+        if ($i -gt 0) { [Environment]::SetEnvironmentVariable("$line".Substring(0, $i), "$line".Substring($i + 1)) }
+    }
+    $env:EAX_VAULT_RESOLVED = "1"
 }
 
 # the build shown with the release (R2.47): EAX_BUILD as CI sets it, else the commit's short id ("-changed" when files
@@ -179,6 +209,8 @@ function Get-ComposeArgs([string[]]$Arguments) {
     $env:EAX_BUILD = Get-BuildId
     if (-not $env:EAX_COMMIT) { $env:EAX_COMMIT = "$(& git rev-parse HEAD 2>$null)".Trim() }
     if (-not $env:EAX_BUILT_AT) { $env:EAX_BUILT_AT = "$(& git log -1 --format=%cI 2>$null)".Trim() }
+    Use-VaultProfile
+    if ($Arguments.Count -gt 0 -and @("up", "run", "create") -contains $Arguments[0]) { Use-VaultEnv }
     $kind = Get-Setting "EAX_DEPLOYMENT" "laptop"
     # plain progress and no colour codes, so the log reads cleanly
     # scale-out extra files (phase 36.3, D521): EAX_COMPOSE_EXTRA=standby,shared-storage... (deploy/compose/scale)
@@ -976,9 +1008,29 @@ try {
             # Plain copy, UTF-8 without BOM and LF endings (Docker Compose reads it cleanly). No passwords are generated.
             foreach ($d in "work/logs", "work/backups", "work/proxy", "work/data/imports", "work/data/exports", "work/data/tls") { New-Item -ItemType Directory -Force -Path $d | Out-Null }
             $lines = Get-Content $template
+            # the key vault (R4.19, D684; the default, laptop and server alike): every password and key (each one the
+            # server template holds as change-me) a reference to OpenBao, made there at the first .\eax up
+            $useVault = $false   # R4.19: OpenBao switched off for now (owner, 14 Nov 2026); was: -not ($RestArgs -contains "--no-vault")
+            if ($useVault) {
+                $keys = @(Get-Content "deploy/templates/eaexplorer.server.env" | Where-Object { $_ -match "^[A-Z0-9_]+=change-me" } | ForEach-Object { ($_ -split "=", 2)[0] })
+                $lines = @($lines | ForEach-Object { $k = ($_ -split "=", 2)[0]; if ($_ -match "^[A-Z0-9_]+=" -and $keys -contains $k) { "$k=openbao:$k" } else { $_ } })
+                $lines += @("", "# ---- The key vault (R4.19): every password and key in OpenBao, references above (eax secrets) ----", "EAX_SECRETS_FROM=openbao:eax/eaexplorer")
+            }
             [System.IO.File]::WriteAllText((Join-Path $PSScriptRoot $EnvFile), (($lines -join "`n") + "`n"), $Utf8)
             Write-Log "Created $EnvFile ($kind) from $template."
-            if ($kind -eq "laptop") { Show-Logins }
+            if ($useVault) {
+                Write-Log "Every password and key is made in the key vault (OpenBao) at the first .\eax up and kept there; $EnvFile holds references only. .\eax logins shows them; the vault's keys: persist\vault\keys.json."
+                if ($kind -ne "laptop") {
+                    $bdir = Read-Host "Folder for backups: a mounted network share or volume (empty: set EAX_BACKUP_DIR later)"
+                    if ($bdir) {
+                        $path = Join-Path $PSScriptRoot $EnvFile
+                        $content = [System.IO.File]::ReadAllText($path) -replace "(?m)^EAX_BACKUP_DIR=$", "EAX_BACKUP_DIR=$bdir"
+                        [System.IO.File]::WriteAllText($path, $content, $Utf8)
+                        Write-Log "Backups go to $bdir (EAX_BACKUP_DIR)."
+                    } else { Write-Log "No backups are taken until EAX_BACKUP_DIR is set in $EnvFile." }
+                }
+            }
+            elseif ($kind -eq "laptop") { Show-Logins }
             else {
                 # a server or platform keeps its backups in a mounted folder (R2.44, D635): no backups until it is set
                 $bdir = Read-Host "Folder for backups: a mounted network share or volume (empty: set EAX_BACKUP_DIR later)"

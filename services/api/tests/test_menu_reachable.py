@@ -36,7 +36,7 @@ def test_the_areas_and_where_they_sit():
     keys = re.findall(r'\{ key: "([a-z]+)", label: "([^"]+)"(?:, title: "[^"]+")?(?:, place: "([a-z]+)")?', MENU)
     main = [label for _, label, place in keys if not place]
     assert main == ["Architecture Work", "Model Admin", "Project Admin", "Repository & Content Framework",
-                    "System Admin"], keys
+                    "AI (MCP)", "System Admin"], keys                     # AI (MCP): R4.20
     # owner, 21:46: "Call it Reposiory & Content Framework"
     assert {k: place for k, _, place in keys if place} == {"me": "right", "help": "right", "farm": "left"}
     me = MENU[MENU.index('key: "me"'):MENU.index('key: "work"')]

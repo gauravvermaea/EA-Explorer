@@ -98,19 +98,22 @@ JOURNEYS: list[dict] = [
      "refused": {"role": "no-role", "open": "#/projects/{p}", "disabled_or_absent": "Change…"},
      "steps": [
          {"open": "#/projects/{p}", "expect": "{project_name}"},
-         {"click": "Choose…", "optional_alt": "Change…"},
-         {"choose": "Transition Planning"},
-         {"fill": "Note (optional)", "value": "self-test {sid} {role}"},
-         {"click": "Save", "exact": True},
+         {"click": "Choose…", "optional_alt": "Change…", "within": ".iteration-bar"},
+         # R4.17: every step of the dialog inside the dialog: it is drawn at the end of the page, so a plain "Save" could be
+         # another Save on the project page, and the dialog stayed open with "Note (optional)" in it
+         {"choose": "Transition Planning", "within": "[role=dialog]"},
+         {"fill": "Note (optional)", "value": "self-test {sid} {role}", "within": "[role=dialog]"},
+         {"click": "Save", "exact": True, "within": "[role=dialog]"},
          {"expect": "Now a Transition Planning"},          # what saving said, in the dialog (it closes after)
          {"expect_not": "Note (optional)", "timeout": 5000},   # the dialog closed: the iteration was saved
          {"expect": "Transition Planning"},
          {"open": "#/projects/{p}/phases/B", "expect": "isn't part of this", "optional": True},
          {"open": "#/projects/{p}", "expect": "{project_name}"},
-         {"click": "Change…"},
-         {"choose": "Full cycle"},
-         {"click": "Save", "exact": True, "wait": 1500},
-         {"expect_not": "Note (optional)", "timeout": 8000},   # R3.14: a save under load closes the dialog later
+         {"click": "Change…", "within": ".iteration-bar"},
+         {"choose": "Full cycle", "within": "[role=dialog]"},
+         {"click": "Save", "exact": True, "within": "[role=dialog]"},
+         {"expect": "Now a Full cycle"},                   # R4.17: what saving said (or why it did not), not just a wait
+         {"expect_not": "Note (optional)", "timeout": 8000},
          {"click": "Iteration history", "optional": True},
          {"expect": "Full cycle"},
      ]},

@@ -41,7 +41,7 @@ def health_now() -> dict:
               "proxy": hc.check_proxy, "reports": hc.check_reports, "documents": hc.check_dms,
               "documents_broker": hc.check_dms_broker, "drawio": hc.check_drawio, "mcp": hc.check_mcp,
               "backups": hc.check_backup, "library": hc.check_library, "views": hc.check_views, "api_jobs": hc.check_jobs,
-              "operations": hc.check_operations, "personal": hc.check_personal}
+              "operations": hc.check_operations, "personal": hc.check_personal, "vault": hc.check_vault}
     with ThreadPoolExecutor(max_workers=len(checks) + 1) as pool:
         futures = {k: pool.submit(f) for k, f in checks.items()}
 

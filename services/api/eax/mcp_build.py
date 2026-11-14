@@ -401,10 +401,21 @@ async def create_project(name: str, template: str, models: list[dict], descripti
 
 
 @mcp.tool()
-async def add_project_step(project: str, phase: str, name: str, due_date: str = "") -> Any:
-    """Add a step of the project's own to an ADM phase (P, A, B, C-D, C-A, D, E, F, G, H, RM), at any time."""
+async def add_project_step(project: str, phase: str, name: str, due_date: str = "", where: str = "") -> Any:
+    """Add a step of the project's own to an ADM phase (P, A, B, C-D, C-A, D, E, F, G, H, RM), at any time; where: "start",
+    "end" (the default) or the id of the step to put it after (R4.21)."""
     from . import projects as pj
-    return await _proj(lambda pc, who: pj.add_step(pc, _project_id(pc, project), who, {"phase": phase, "name": name, "due_date": due_date or None}), write=True)
+    return await _proj(lambda pc, who: pj.add_step(pc, _project_id(pc, project), who, {"phase": phase, "name": name,
+                                                                                      "due_date": due_date or None,
+                                                                                      "where": where or "end"}), write=True)
+
+
+@mcp.tool()
+async def move_project_step(project: str, step: int, to: str) -> Any:
+    """Move a step within its ADM phase (R4.21): to "up", "down", "start", "end", or the id of the step to put it after;
+    its sub steps move with it; recorded on the step."""
+    from . import projects as pj
+    return await _proj(lambda pc, who: pj.move_step(pc, _project_id(pc, project), who, step, {"to": to}), write=True)
 
 
 @mcp.tool()

@@ -8,6 +8,7 @@ the `eax` commands (backups and restores included) and the phase table.
 | Document | What it covers |
 | --- | --- |
 | [README](../README.md) | Quick start on a laptop, the `eax` commands, the work folder, certificates, the phase table |
+| [Starting EA Explorer](starting.md) | Step by step: the first start and every start after, on a laptop and a server; when something is wrong |
 | [Drawn views in draw.io (design)](phase-28.md) | Phases 28 and 29: views drawn in draw.io from the model's own entities, the rules, where views live, entity type looks (D354, D355) |
 | [What EA Explorer does today](capabilities.md) | Every area (metamodel, diagrams, reports, AI, governance, projects, documents, integration, operations): what is built today and what is planned, with its phase |
 | [Business architecture artifacts](business-architecture.md) | The TOGAF Phase B catalogues, matrices and diagrams as views, the extension types they need, the Business views tab of a model and the Business artifacts tab of a project (D345, D352) |

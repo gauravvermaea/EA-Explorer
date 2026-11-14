@@ -350,8 +350,8 @@ def _code_for_model(conn, model: Any) -> str | None:
     from .seed import build, industries
     row = conn.execute(text("SELECT guid::text AS guid, industry FROM core.models WHERE guid::text = :m OR id::text = :m"),
                        {"m": str(model)}).mappings().first()
-    if not row:
-        return None
+    if not row:                                 # R4.14: a model that is not there is a 404, not "no industry pack"
+        raise EditError("No such model.", 404)
     for code, *_rest in industries.MODELS:
         if build.gid("model", industries.key(code)) == row["guid"]:
             return next((c for c, _n, _f, models in INDUSTRIES if code in models), None)

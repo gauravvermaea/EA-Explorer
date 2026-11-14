@@ -69,6 +69,7 @@ class Run:
         self.only: set[tuple[str, str]] | None = None    # a repeat (R2.36): the checks to record, by suite and canon name
         self.ids: dict[str, str] = {}                     # this run's fixture ids (for the canon names)
         self.left_out = 0
+        self.ready: dict[str, str] = {}               # each container under test: up, starting, failed, off
 
     def where(self) -> str:
         """How far the run is, for the command line (R2.40): "[120 of about 900, 780 left]"."""
@@ -334,6 +335,19 @@ def documentation(rec, tokens: dict[str, str]) -> None:
         int((time.time() - t0) * 1000), request="" if ok else "GET /api/library/v1/libraries/org", response="" if ok else f"{s}\n{body}")
 
 
+def _reports_suite(r: Run, tokens: dict[str, str], ids: dict[str, str]) -> None:
+    """Every report in Reports (reports_check.py, R4.1): Keycloak test users for the run, each signed in to Reports in
+    Chromium; deleted at the end."""
+    from . import reports_check
+    state = (getattr(r, "ready", None) or {}).get("reports", "up")
+    if state != "up":                                # Reports switched off or not up: said, never a failure of the run
+        r.recorder("reports")("reports: every report opens", "skipped",
+                              "Reports is switched off" if state == "off" else f"Reports is {state}", 0)
+        return
+    r.log("reports: Keycloak test users for this run, then every report dashboard as the Super Admin and the Report Viewer")
+    r.counts.update({f"reports {k}": v for k, v in reports_check.run(API, tokens, ids, r.recorder("reports"), r.log).items()})
+
+
 def _backup_suite(r: Run, tokens: dict[str, str], ids: dict[str, str], run_id: int) -> None:
     """The backup checks (backups_check.py, R2.45), as the run's Super Admin; the restored model is the run's fixture."""
     from . import backups_check
@@ -491,7 +505,7 @@ def coverage_result(r: Run, token: str, scope: str = "") -> dict | None:
 # needed for testing?" They are not): the core and the second-tier services the checks use. The sample data, the
 # industry packs and the demo estate are never waited for.
 UNDER_TEST = {"api": "the API", "web": "the screens", "proxy": "the front door", "keycloak": "sign-in", "db": "the database",
-              "operations": "the operations service", "personal": "the personal data service", "library": "the libraries",
+              "library": "the libraries",
               "views": "the drawn views", "reports": "Reports", "dms": "Documents", "drawio": "draw.io"}
 
 
@@ -613,7 +627,10 @@ def _repeat_detailed(r: Run, p: dict, spec: dict, tokens: dict[str, str], test_t
         r.log("security: headers and cookies at the front door, Python dependencies")
         rec = r.recorder("security")
         security.front_door(rec)
+        security.key_vault(rec)
         security.python_dependencies(rec)
+    if "reports" in p["suites"]:                    # the reports suite runs as one (its test users, then every report)
+        _reports_suite(r, tokens, ids)
     if "backup" in p["suites"]:                     # the backup checks run as one (each needs the one before)
         _backup_suite(r, tokens, ids, r.id)
     sc = repeat.scans(p)
@@ -666,7 +683,7 @@ def cmd_run(args) -> int:
         fixtures.clean_leftovers(repo, run_id, by, r.log)   # earlier runs' test data goes first (D593)
         with repo.begin() as conn:
             tokens = fixtures.accounts(conn, run, by, roles, r.log)
-        services_ready(r, tokens.get("super-admin", ""))   # only what this run tests, never the sample data or packs
+        r.ready = services_ready(r, tokens.get("super-admin", ""))   # only what this run tests, never the sample data or packs
         ids = fixtures.models_and_project(repo, run, by, roles, r.log)
         with engine.begin() as conn:
             store.set_fixture_ids(conn, run_id, ids)
@@ -736,10 +753,13 @@ def cmd_run(args) -> int:
                 rec = r.recorder("security")
                 r.log("security: headers and cookies at the front door, Python dependencies")
                 security.front_door(rec)
+                security.key_vault(rec)
                 security.python_dependencies(rec)
                 keep_open = True
             if "api" in suites and not area:          # container alerts and their recovery (R2.19)
                 alert_check(API, tokens.get("super-admin", ""), r.recorder("api"), r.log)
+            if "reports" in suites:                   # every report in Reports, signed in as people (R4.1)
+                _reports_suite(r, tokens, ids)
             if "backup" in suites:                    # backups and trial restores (R2.45)
                 _backup_suite(r, tokens, ids, run_id)
             if "restore" in suites:                   # the very last: back up, change, restore, compare (R3.8)
@@ -781,7 +801,8 @@ def _close_access(engine, run_id: int, by: str, repo=None) -> None:
         conn.execute(text("UPDATE tests.test_runs SET browser = jsonb_build_object('done', true) WHERE id = :id"), {"id": run_id})
 
 
-SUITE_NAMES = {"smoke": "Smoke", "api": "API", "ui": "Pages and journeys", "db": "Database", "security": "Security"}
+SUITE_NAMES = {"smoke": "Smoke", "api": "API", "ui": "Pages and journeys", "db": "Database", "security": "Security", "reports": "Reports",
+               "backup": "Backups", "restore": "Restore"}
 
 
 def local_reader(root: Path):

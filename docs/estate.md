@@ -14,7 +14,7 @@ in draw.io); System Admin › Estate draws them for the running installation.
 | Front door (nginx) | https for everything; the only published ports | Edge |
 | Screens (React) | the pages people use | Application |
 | API and job runner | REST API, background jobs, the rules | Application |
-| MCP server | the tools an assistant may use, with the person's own rights | Application |
+| MCP server | the tools an assistant may use, with the person's own rights; running the installation (R4.22) | Application |
 | Library service | reference and enterprise libraries, documentation | Application |
 | Views service | drawn views and their versions | Application |
 | draw.io | the diagram editor | Application |

@@ -166,8 +166,18 @@ export function menuTree() {
       { label: "What EA Explorer does", href: "#/documentation/capabilities" },
       { label: "Release notes", href: "#/documentation?group=Release%20notes" },
       { label: "Command line (eax)", href: "#/documentation/command-line-help" },
-      { label: "Connect your AI assistant (MCP)", href: "#/mcp", ok: () => serviceOn("mcp") },
       { label: "API (Swagger) ↗", href: "/api/docs" },
+    ] },
+    // the AI (MCP) menu (R4.20; owner, 14 Nov 2026: "move mcp server as a top level menu and available to all users"):
+    // every signed-in person; while MCP is switched off it says so and where an admin turns it on
+    { key: "ai", label: "AI (MCP)", title: "Connect your own AI assistant to EA Explorer", items: serviceOn("mcp") ? [
+      { label: "Connect your AI assistant", href: "#/mcp" },
+      { label: "What it can do", href: "#/mcp/tools" },
+      { label: "My AI activity", href: "#/mcp/activity?who=me" },
+      { label: "Everyone's AI activity", href: "#/mcp/activity", ok: () => ops() || sup() },
+    ] : [
+      { label: "Switched off in this installation", href: "#/mcp",
+        note: "A Super Admin or IT Admin switches MCP on in System Admin › Settings › System settings (Services)." },
     ] },
     { key: "system", label: "System Admin", ok: () => ops() || can("settings.manage") || can("users.read"), items: [
       { label: "Wizards", href: "#/admin/wizards", items: systemWizards() },
@@ -202,7 +212,6 @@ export function menuTree() {
         { label: "Self-test", href: "#/admin/self-test" },
       ] },
       { label: "Machine access", href: "#/admin/machine-access" },
-      { label: "AI activity (MCP)", href: "#/mcp", ok: () => serviceOn("mcp") },
     ] },
     // the site picker (R2.0, R2.2): this site, my remote instances (each opens in a new tab, signed in there), my list
     { key: "farm", label: "Local", title: "The EA Explorer sites: this one is Local; yours open in a new tab", place: "left", items: [
@@ -253,7 +262,8 @@ export function menuAreaOf(route) {
   if (r.startsWith("#/model-admin") || (r.startsWith("#/library") && mayModelAdmin())) return "model";
   if (r.startsWith("#/project-admin") || /^#\/projects\/(new|[^/]+\/edit)/.test(r)) return "project";
   if (/^#\/(repository|reference-library|enterprise-library|maturity|principles)/.test(r)) return "repository";
-  if (r.startsWith("#/documentation") || r.startsWith("#/mcp")) return "help";
+  if (r.startsWith("#/mcp")) return "ai";                     // R4.20
+  if (r.startsWith("#/documentation")) return "help";
   if (r.startsWith("#/my-profile")) return "me";
   if (r.startsWith("#/farm")) return "farm";
   if (/^#\/(work|metamodel|projects|project-library|library|compare|change-log|merge-requests|change-documents)/.test(r)) return "work";

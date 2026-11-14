@@ -252,14 +252,11 @@ class Models(MethodView):
         return _start_copy(out, wait)
 
 
-@blp.route("/models/<uuid:model_id>/archive")
-class Archive(MethodView):
-    @blp.doc(security=SECURITY)
-    @blp.response(200, ModelOut)
-    @require_auth()
-    def post(self, model_id):
-        """Archive a model: read-only and hidden from lists by default (its Model Admin)"""
-        return _write(lambda conn: mo.set_lifecycle(conn, model_id, True, g.user.username), "model.archived", model_id)
+# R4.13 (the full self-test of 14 Nov 2026): POST /models/<id>/archive was here too, the phase-2 archive (read only and
+# hidden, no body). Registered before the archive's own route (eax/api/archive.py, R2.41: the model moves to the
+# archive, {state, note}), it took every call: the screens' Archive button only hid the model, and a body that was not
+# JSON archived it. The archive's own route is the only one now; the read-only flag stays for MCP and the wizards
+# (model_ops.set_lifecycle) and /reactivate brings such a model back.
 
 
 @blp.route("/models/<uuid:model_id>/reactivate")

@@ -36,19 +36,30 @@ SQL_TEXT = "x'); DROP TABLE core.models; --"
 GOOD = {400, 401, 403, 404, 405, 409, 413, 415, 422}
 UNKNOWN_GUID = "00000000-0000-4000-8000-00000000dead"
 WRITES = ("post", "put", "patch")
+# R4.13 (the full self-test of 14 Nov 2026: a bad body sent to /models/{m}/archive archived the run's model, and three
+# journeys after it failed): writes that archive, delete, restore, purge or discard are never sent a bad body, even
+# where it must be refused; their refusals are tested on their own (test_negative_api.py, test_archive.py)
+# a long or SQL name is only sent where it makes a plain record in the run's own model (R4.16), never where a name
+# changes what a model is (promote, framework-move); the fields such a record also needs, so the name itself is judged
+NAME_ONLY_IN = re.compile(r"/content/(entities|relationships)(/\{[^}]+\})?$|/tags(/\{[^}]+\})?$")
+NAME_WITH = {"/api/v1/models/{model_id}/content/entities": {"entity_type": "ApplicationComponent"}}
+NEVER = re.compile(r"/(archive|delete|restore|purge|discard|reset|revoke|clean|cleanup|rollback)(/|$)")
 
 
-def send(base: str, method: str, path: str, token: str, raw: bytes | None, timeout: int = 60) -> tuple[int, str]:
+def send(base: str, method: str, path: str, token: str, raw: bytes | None, timeout: int = 60,
+         limit: int | None = 800) -> tuple[int, str]:
+    """One call; the answer's first `limit` bytes (None: all of it; R4.16: the discovery checks read only 800 bytes of
+    answers they parse as JSON, so three passed calls were judged failed)."""
     from ..service_split import route
     req = urllib.request.Request(route(base, path) + path, data=raw, method=method.upper(),
                                  headers={"Content-Type": "application/json", "Accept": "application/json",
                                           "Authorization": f"Bearer {token}"})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
-            return r.status, r.read(800).decode("utf-8", "replace")
+            return r.status, (r.read(limit) if limit else r.read()).decode("utf-8", "replace")
     except urllib.error.HTTPError as exc:
         try:
-            return exc.code, exc.read(800).decode("utf-8", "replace")
+            return exc.code, (exc.read(limit) if limit else exc.read()).decode("utf-8", "replace")
         except Exception:  # noqa: BLE001
             return exc.code, ""
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
@@ -84,7 +95,7 @@ def unknown_path(path: str, ids: dict[str, str]) -> str | None:
 
 
 def _schema(spec: dict, body: dict) -> dict:
-    """The JSON body's schema, its $ref followed."""
+    """The JSON body's schema, its $ref followed (and an allOf's parts merged: R4.16)."""
     sch = ((body.get("content") or {}).get("application/json") or {}).get("schema") or {}
     for _ in range(5):
         ref = sch.get("$ref")
@@ -94,6 +105,9 @@ def _schema(spec: dict, body: dict) -> dict:
         for part in ref.lstrip("#/").split("/"):
             node = (node or {}).get(part) or {}
         sch = node
+    for part in sch.get("allOf") or []:
+        sub = _schema(spec, {"content": {"application/json": {"schema": part}}})
+        sch = {**sch, "properties": {**(sch.get("properties") or {}), **(sub.get("properties") or {})}}
     return sch
 
 
@@ -105,6 +119,8 @@ def checks(spec: dict, ids: dict[str, str]) -> list[tuple[str, str, str, bytes |
         for method in ops:
             m = method.lower()
             if m in WRITES:
+                if NEVER.search(path):
+                    continue        # never sent anything: it could change something that cannot be undone
                 body = ops[method].get("requestBody") or {}
                 if "application/json" not in (body.get("content") or {}):
                     continue        # no JSON body declared: the endpoint may act without reading one, so nothing is sent
@@ -113,9 +129,11 @@ def checks(spec: dict, ids: dict[str, str]) -> list[tuple[str, str, str, bytes |
                 if _schema(spec, body).get("type") != "array":     # an endpoint that takes a list is not sent one
                     out.append(("not an object", m, p, b"[1, 2, 3]", path))
                 # a long name could be accepted: only sent where the path is inside the run's own test data
-                if "{" in path and fill(path, ids) and "name" in (_schema(spec, body).get("properties") or {}):
-                    out.append(("too long", m, p, json.dumps({"name": "x" * 100_000}).encode(), path))
-                    out.append(("SQL text", m, p, json.dumps({"name": SQL_TEXT}).encode(), path))
+                if "{" in path and fill(path, ids) and NAME_ONLY_IN.search(path) \
+                        and "name" in (_schema(spec, body).get("properties") or {}):
+                    extra = NAME_WITH.get(path, {})
+                    out.append(("too long", m, p, json.dumps({**extra, "name": "x" * 100_000}).encode(), path))
+                    out.append(("SQL text", m, p, json.dumps({**extra, "name": SQL_TEXT}).encode(), path))
             elif m == "get":
                 u = unknown_path(path, ids)
                 if u:

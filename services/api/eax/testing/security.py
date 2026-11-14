@@ -138,6 +138,39 @@ def front_door(record: Record) -> None:
         record("front door reachable", "failed", f"the proxy did not answer: {exc}", 0)
 
 
+def key_vault(record: Record, fetch: Callable[[], dict] | None = None) -> None:
+    """The key vault (R4.19, D684), as the operations helper sees it: unsealed, its audit log on, a value for every
+    reference, no password left in the config file in clear. Which containers still hold one in their environment is
+    said (a warning): Docker secrets for every container is the story's second part."""
+    def ask() -> dict:
+        req = urllib.request.Request(os.environ.get("EAX_OPS_URL", "http://ops:8090") + "/vault",
+                                     headers={"X-Ops-Token": os.environ.get("EAX_OPS_TOKEN", "")})
+        with urllib.request.urlopen(req, timeout=60) as r:
+            return json.load(r)
+    try:
+        v = (fetch or ask)()
+    except (urllib.error.URLError, OSError, ValueError) as exc:
+        record("key vault", "failed", f"the operations helper did not answer: {exc}", 0)
+        return
+    if not v.get("used"):
+        record("key vault", "skipped", "not used: the passwords are in the config file (eax secrets migrate moves them)", 0)
+        return
+    if not v.get("unsealed"):
+        record("key vault unsealed", "failed", f"OpenBao could not be read: {v.get('error') or 'sealed'}", 0)
+        return
+    record("key vault unsealed", "passed", f"OpenBao ({v.get('where')}): {v.get('references')} references", 0)
+    record("key vault: every reference has a value", "failed" if v.get("missing") else "passed",
+           ("no value for " + ", ".join(v["missing"])) if v.get("missing") else "every one", 0)
+    record("key vault: no password in the config file in clear", "failed" if v.get("clear") else "passed",
+           ("in clear: " + ", ".join(v["clear"]) + " (eax secrets migrate)") if v.get("clear") else "references only", 0)
+    record("key vault: audit log on", "passed" if v.get("audit") else "warning",
+           "every read is in the vault's audit log" if v.get("audit") else "this OpenBao refused the audit log through its API", 0)
+    inside = v.get("in_environment") or []
+    record("key vault: no password in a container's environment", "warning" if inside else "passed",
+           ("still in the environment of: " + ", ".join(inside) + " (Docker secrets: R4.19's second part)") if inside
+           else "none", 0)
+
+
 def python_dependencies(record: Record) -> None:
     """pip-audit of the API's requirements (needs the internet to read the advisory database)."""
     req = Path("/app/requirements.txt")

@@ -21,6 +21,35 @@ x-logging: &logging
       max-size: "10m"
       max-file: "5"
 
+# Every password and key (each value the server template holds as change-me), for the services that read the config
+# file (env_file): taken here from docker compose's own environment, so with the key vault (R4.19, D684: OpenBao; the
+# config file holding references) each container gets the value eax read from the vault, and without it the config
+# file's own value as before. tests/test_vault.py keeps this list whole.
+x-secrets: &secrets
+  EAX_DB_SUPERUSER_PASSWORD: ${EAX_DB_SUPERUSER_PASSWORD:-}
+  EAX_DB_PASSWORD: ${EAX_DB_PASSWORD:-}
+  EAX_DB_REPORT_PASSWORD: ${EAX_DB_REPORT_PASSWORD:-}
+  EAX_DB_MIGRATOR_PASSWORD: ${EAX_DB_MIGRATOR_PASSWORD:-}
+  EAX_KEYCLOAK_DB_PASSWORD: ${EAX_KEYCLOAK_DB_PASSWORD:-}
+  EAX_SUPERSET_DB_PASSWORD: ${EAX_SUPERSET_DB_PASSWORD:-}
+  EAX_MAYAN_DB_PASSWORD: ${EAX_MAYAN_DB_PASSWORD:-}
+  EAX_LIBRARY_DB_PASSWORD: ${EAX_LIBRARY_DB_PASSWORD:-}
+  EAX_LIBRARY_KEY: ${EAX_LIBRARY_KEY:-}
+  EAX_VIEWS_DB_PASSWORD: ${EAX_VIEWS_DB_PASSWORD:-}
+  EAX_VIEWS_KEY: ${EAX_VIEWS_KEY:-}
+  EAX_OPS_TOKEN: ${EAX_OPS_TOKEN:-}
+  EAX_DMS_BROKER_PASSWORD: ${EAX_DMS_BROKER_PASSWORD:-}
+  EAX_DMS_BROKER_PASSWORD_URLENC: ${EAX_DMS_BROKER_PASSWORD_URLENC:-}
+  EAX_KC_ADMIN_PASSWORD: ${EAX_KC_ADMIN_PASSWORD:-}
+  EAX_FIRST_ADMIN_PASSWORD: ${EAX_FIRST_ADMIN_PASSWORD:-}
+  EAX_SUPERSET_OIDC_SECRET: ${EAX_SUPERSET_OIDC_SECRET:-}
+  EAX_MAYAN_OIDC_SECRET: ${EAX_MAYAN_OIDC_SECRET:-}
+  EAX_KC_SERVICE_SECRET: ${EAX_KC_SERVICE_SECRET:-}
+  EAX_BREAK_GLASS_PASSWORD: ${EAX_BREAK_GLASS_PASSWORD:-}
+  EAX_SUPERSET_SECRET_KEY: ${EAX_SUPERSET_SECRET_KEY:-}
+  EAX_SUPERSET_ADMIN_PASSWORD: ${EAX_SUPERSET_ADMIN_PASSWORD:-}
+  EAX_MAYAN_ADMIN_PASSWORD: ${EAX_MAYAN_ADMIN_PASSWORD:-}
+
 networks:
   frontend:
   backend:
@@ -50,6 +79,8 @@ services:
     command: ["python", "-m", "eax.setup"]
     user: "0"            # writes the certificate and rendered files into volumes owned by root
     env_file: work/eaexplorer.env
+    environment:
+      <<: *secrets
     volumes:
       - ${EAX_TLS_DIR:-eax-tls}:/tls
       - eax-rendered:/rendered
@@ -120,6 +151,7 @@ services:
     stop_grace_period: 2m
     env_file: work/eaexplorer.env
     environment:
+      <<: *secrets          # the passwords and keys (the vault's when it is used, R4.19)
       EAX_ROLE: api            # entrypoint runs migrations, then the web API and the job runner
       EAX_SERVE: ${EAX_API_SERVE:-all}   # everything, the operations and personal data parts too (D677, R3.5-M1b)
       EAX_OPS_URL: http://ops:8090                       # the operations helper (phase 10, D183)
@@ -167,6 +199,7 @@ services:
     <<: [*restart, *logging]
     env_file: work/eaexplorer.env
     environment:          # where the library's and the views' databases are (their own servers in production, D410)
+      <<: *secrets          # the passwords and keys (the vault's when it is used, R4.19)
       EAX_LIBRARY_DB_HOST: ${EAX_LIBRARY_DB_HOST:-db}
       EAX_VIEWS_DB_HOST: ${EAX_VIEWS_DB_HOST:-db}
     depends_on:
@@ -179,7 +212,7 @@ services:
       - eax-superset-home:/superset-home           # Superset's home: its secret key and uploads
       - ${EAX_IMPORT_DIR:-eax-imports}:/imports    # the API's import folder
       - ${EAX_EXPORT_DIR:-eax-exports}:/exports    # the API's export folder
-      - ${EAX_PERSIST_DIR:-./persist}:/persist     # the settings that survive resets (D558)
+      - ${EAX_PERSIST_DIR:-./persist}:/persist     # the settings that survive resets (D558), the vault's keys (R4.19)
     networks: [backend]
 
   # The library (phase 15.2, D346): the organisation's and the projects' libraries, a service of its own with its own
@@ -192,6 +225,7 @@ services:
     <<: [*restart, *logging]
     env_file: work/eaexplorer.env
     environment:
+      <<: *secrets          # the passwords and keys (the vault's when it is used, R4.19)
       EAX_API_INTERNAL_URL: http://api:8000
       EAX_LIBRARY_DB_HOST: ${EAX_LIBRARY_DB_HOST:-db}
     depends_on:
@@ -222,6 +256,7 @@ services:
     <<: [*restart, *logging]
     env_file: work/eaexplorer.env
     environment:
+      <<: *secrets          # the passwords and keys (the vault's when it is used, R4.19)
       EAX_API_INTERNAL_URL: http://api:8000
       EAX_VIEWS_DB_HOST: ${EAX_VIEWS_DB_HOST:-db}
     depends_on:
@@ -251,6 +286,7 @@ services:
     image: eaexplorer/testrunner:${EAX_VERSION:-dev}
     env_file: work/eaexplorer.env
     environment:
+      <<: *secrets          # the passwords and keys (the vault's when it is used, R4.19)
       EAX_TEST_RESULTS: /results
       EAX_TEST_DATA: /testdata                      # the test data, shared with the outside test bench (D580)
     volumes:
@@ -270,6 +306,7 @@ services:
     entrypoint: ["python", "-m", "eax.testing.waiter"]
     env_file: work/eaexplorer.env
     environment:
+      <<: *secrets          # the passwords and keys (the vault's when it is used, R4.19)
       EAX_PLATFORM: managed
       EAX_TEST_DATA: /testdata
     networks: [frontend, backend]
@@ -398,7 +435,7 @@ services:
     build:
       context: ./deploy/superset
       args:
-        SUPERSET_IMAGE: ${EAX_IMAGE_SUPERSET:-apache/superset:4.1.2}
+        SUPERSET_IMAGE: ${EAX_IMAGE_SUPERSET:-apache/superset:6.1.0}
     image: eaexplorer/superset:${EAX_VERSION:-dev}
     command: ["/bin/sh", "/app/eax/superset-init.sh"]
     # a one-shot set-up: the Superset image's own health check (its web server) never answers here, so the container
@@ -407,6 +444,7 @@ services:
       disable: true
     env_file: work/eaexplorer.env
     environment:
+      <<: *secrets          # the passwords and keys (the vault's when it is used, R4.19)
       SUPERSET_CONFIG_PATH: /app/eax/superset_config.py
     depends_on:
       db:
@@ -428,13 +466,14 @@ services:
     build:
       context: ./deploy/superset
       args:
-        SUPERSET_IMAGE: ${EAX_IMAGE_SUPERSET:-apache/superset:4.1.2}
+        SUPERSET_IMAGE: ${EAX_IMAGE_SUPERSET:-apache/superset:6.1.0}
     image: eaexplorer/superset:${EAX_VERSION:-dev}
     <<: [*restart, *logging]
     # the server starts at once; the report dashboards and datasets load in the background (R2.39)
     command: ["/bin/sh", "/app/eax/reports-start.sh"]
     env_file: work/eaexplorer.env
     environment:
+      <<: *secrets          # the passwords and keys (the vault's when it is used, R4.19)
       SUPERSET_CONFIG_PATH: /app/eax/superset_config.py
     depends_on:
       reports-init:

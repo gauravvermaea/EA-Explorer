@@ -77,7 +77,8 @@ def test_the_bench_takes_every_option_of_eax_test():
 def test_suites_are_the_self_tests():
     # but the backup checks (R2.45): they need the installation's own backup container, so they run inside only
     # and the restore test (R3.8): the command line only
-    assert set(SUITES) == set(INSIDE_SUITES) - {"backup", "restore"}
+    # and the reports (R4.1): Keycloak test users made with the installation's own administrator, inside only
+    assert set(SUITES) == set(INSIDE_SUITES) - {"backup", "restore", "reports"}
 
 
 def _calls(fn: ast.FunctionDef, modules: set[str]) -> set[str]:

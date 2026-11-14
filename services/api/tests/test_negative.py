@@ -19,6 +19,7 @@ SPEC = {
         "/api/v1/admin/backups/run": {"post": {}},                       # no body: acts without reading one
         "/api/v1/uploads": {"post": {"requestBody": {"content": {"multipart/form-data": {}}}}},
         "/api/v1/things/{thing_id}": {"get": {}, "post": {"requestBody": JSON_BODY}},
+        "/api/v1/models/{model_id}/content/entities": {"post": {"requestBody": JSON_BODY}},
     },
 }
 IDS = {"model": "test-model-guid"}
@@ -98,7 +99,8 @@ def test_a_list_endpoint_is_not_sent_a_list():
 
 def test_long_name_only_inside_test_data():
     long = [(p, d) for k, _, p, _, d in _jobs() if k == "too long"]
-    assert ("/api/v1/models/test-model-guid", "/api/v1/models/{model_id}") in long
+    # R4.16: only where it makes a plain record in the run's model (never the model's own name: the journeys use it)
+    assert long == [("/api/v1/models/test-model-guid/content/entities", "/api/v1/models/{model_id}/content/entities")]
     assert all(d != "/api/v1/models" for _, d in long)            # a create could keep it: never sent
     assert all(d != "/api/v1/things/{thing_id}" for _, d in long)  # no test data for it
 

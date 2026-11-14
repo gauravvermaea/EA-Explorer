@@ -756,6 +756,7 @@ function Wizard({ parent, editId, template, startAt }) {
       own_principles: d.own_principles.filter((p) => p.name.trim()), removed_principles: d.removed_principles,
       removed_steps: Object.entries(d.removed).map(([id, reason]) => ({ library_id: Number(id), reason })), removed: d.removed,
       own_steps: d.own_steps.filter((s) => s.name.trim()), own_steps_seen: d.own_steps_seen || [],
+      step_order: editId ? undefined : orderToSend(d),    // R4.21: the order of each phase's steps, as moved
       stakeholders: editId ? undefined : (d.stakeholders || []).filter((s) => (s.name || "").trim()),
       reference: editId ? undefined : d.reference || [],
       items: Object.entries(d.picks).filter(([, on]) => on).map(([id]) => id), picks: d.picks, kinds: d.kinds,
@@ -1558,24 +1559,32 @@ function PhaseByPhase({ d, set, lib, phase, setPhase }) {
           <div>
             <h4>Steps <span className="quiet small">keep, remove (it stays crossed out with your reason) or add your own</span></h4>
             {!steps.length && !own.length && <p className="quiet small">No steps in the library for this part of the cycle.</p>}
-            {steps.map((s) => {
+            {stepOrder(d, steps, own, phase).map((key, at, all) => {
+              const mover = <span className="step-move">
+                <button className="linkish small" disabled={at === 0} onClick={() => set("step_order", { ...(d.step_order || {}), [phase]: moved(all, at, -1) })}
+                  aria-label="Move up" title="Move this step up">▲</button>
+                <button className="linkish small" disabled={at === all.length - 1} onClick={() => set("step_order", { ...(d.step_order || {}), [phase]: moved(all, at, 1) })}
+                  aria-label="Move down" title="Move this step down">▼</button></span>;
+              if (key.startsWith("O")) {
+                const s = own[Number(key.slice(1))];
+                const i = d.own_steps.indexOf(s);
+                return (
+                  <div key={key} className="step-row own">
+                    <input value={s.name} placeholder="Your own step" onChange={(e) => set("own_steps", d.own_steps.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} />
+                    {mover}
+                    <button className="linkish" onClick={() => { set("own_steps", d.own_steps.filter((_x, j) => j !== i)); set("step_order", { ...(d.step_order || {}), [phase]: undefined }); }}>Remove</button>
+                  </div>
+                );
+              }
+              const s = steps.find((x) => `L${x.id}` === key);
               const off = s.id in d.removed;
               return (
                 <div key={s.id} className={`step-row${off ? " removed" : ""}`} title={s.note || ""}>
-                  <span className="step-name">{s.seq}. {s.name}</span>
+                  <span className="step-name">{at + 1}. {s.name}</span>{mover}
                   <span className="small quiet"> {s.source === "TOGAF 10" ? "TOGAF" : s.source}{s.marking && s.marking !== "Kept" ? ` · ${s.marking}` : ""}</span>
                   <button className="linkish" onClick={() => removeStep(s, !off)}>{off ? "Keep" : "Remove"}</button>
                   {off && <input className="why" aria-label="Why it is removed" placeholder="Why it is removed (required)" value={d.removed[s.id]}
                     onChange={(e) => set("removed", { ...d.removed, [s.id]: e.target.value })} />}
-                </div>
-              );
-            })}
-            {own.map((s) => {
-              const i = d.own_steps.indexOf(s);
-              return (
-                <div key={i} className="step-row own">
-                  <input value={s.name} placeholder="Your own step" onChange={(e) => set("own_steps", d.own_steps.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} />
-                  <button className="linkish" onClick={() => set("own_steps", d.own_steps.filter((_x, j) => j !== i))}>Remove</button>
                 </div>
               );
             })}
@@ -1587,6 +1596,33 @@ function PhaseByPhase({ d, set, lib, phase, setPhase }) {
       </div>
     </div>
   );
+}
+
+// R4.21: the order of a phase's steps in the new project wizard: "L<library step id>" and "O<n>" (the phase's n-th own
+// step), as moved; a step not in the saved order (a new own step) goes last
+export function stepOrder(d, steps, own, phase) {
+  const all = [...steps.map((s) => `L${s.id}`), ...own.map((_s, n) => `O${n}`)];
+  const kept = ((d.step_order || {})[phase] || []).filter((k) => all.includes(k));
+  return [...kept, ...all.filter((k) => !kept.includes(k))];
+}
+// what is sent: an own step without a name is not made, so the others' numbers close up
+export function orderToSend(d) {
+  const out = {};
+  for (const [phase, keys] of Object.entries(d.step_order || {})) {
+    if (!keys) continue;
+    const own = d.own_steps.filter((s) => s.phase === phase);
+    const named = own.map((s, n) => (s.name.trim() ? n : -1)).filter((n) => n >= 0);
+    out[phase] = keys.map((k) => (k.startsWith("O") ? (named.includes(Number(k.slice(1))) ? `O${named.indexOf(Number(k.slice(1)))}` : null) : k))
+      .filter(Boolean);
+  }
+  return out;
+}
+export function moved(keys, at, by) {
+  const out = [...keys];
+  const to = at + by;
+  if (to < 0 || to >= out.length) return out;
+  [out[at], out[to]] = [out[to], out[at]];
+  return out;
 }
 
 function KindBtn({ k, onChange }) {
@@ -3066,6 +3102,9 @@ function StepList({ p, list, phase }) {
     catch (e) { setMsg(e.message); return false; }
   }
   const mark = (st, done) => call(`/api/v1/projects/${p.id}/steps/${st.id}/done`, { done });
+  // R4.21: a step moves up or down in its phase; its sub steps go with it
+  const move = (st, to) => call(`/api/v1/projects/${p.id}/steps/${st.id}/move`, { to });
+  const live = top.filter((x) => !x.removed);
   return (
     <>
       <ol className="steps-list">
@@ -3086,6 +3125,11 @@ function StepList({ p, list, phase }) {
               {x.removed && <span className="small quiet"> removed: {x.removed_reason}</span>}
               {can && !x.removed && <button className="linkish small" title="Do this step again: open a sub step, to complete later"
                 onClick={() => setAdding({ parent: x })}>＋ sub step</button>}
+              {can && !x.removed && live.length > 1 && <span className="step-move">
+                <button className="linkish small" disabled={live[0] === x} onClick={() => move(x, "up")} title="Move this step up in its phase"
+                  aria-label={`Move ${x.name} up`}>▲</button>
+                <button className="linkish small" disabled={live[live.length - 1] === x} onClick={() => move(x, "down")}
+                  title="Move this step down in its phase" aria-label={`Move ${x.name} down`}>▼</button></span>}
               {subs.length > 0 && (
                 <ul className="sub-steps">
                   {subs.map((y) => (
@@ -3108,7 +3152,7 @@ function StepList({ p, list, phase }) {
       </ol>
       {can && phase && <button className="linkish small" onClick={() => setAdding({})}>＋ Add a step</button>}
       {msg && <p className="small status">{msg}</p>}
-      {adding && <StepDialog p={p} phase={phase} parent={adding.parent} onClose={() => setAdding(null)} call={call} />}
+      {adding && <StepDialog p={p} phase={phase} parent={adding.parent} steps={live} onClose={() => setAdding(null)} call={call} />}
     </>
   );
 }
@@ -3124,8 +3168,9 @@ function StepHistory({ events }) {
   );
 }
 
-function StepDialog({ p, phase, parent, onClose, call }) {
+function StepDialog({ p, phase, parent, steps = [], onClose, call }) {
   const [name, setName] = useState("");
+  const [where, setWhere] = useState("end");                 // R4.21: where a new step goes in its phase
   const [due, setDue] = useState("");
   const [opened, setOpened] = useState(() => new Date().toISOString().slice(0, 10));   // a sub step's open date (owner, 8 Nov 2026)
   const [note, setNote] = useState("");
@@ -3133,7 +3178,7 @@ function StepDialog({ p, phase, parent, onClose, call }) {
   async function save() {
     const ok = parent
       ? await call(`/api/v1/projects/${p.id}/steps/${parent.id}/sub`, { open_date: opened || null, due_date: due || null, note })
-      : await call(`/api/v1/projects/${p.id}/steps`, { phase: ph, name, due_date: due || null });
+      : await call(`/api/v1/projects/${p.id}/steps`, { phase: ph, name, due_date: due || null, where });
     if (ok) onClose();
   }
   return (
@@ -3144,6 +3189,9 @@ function StepDialog({ p, phase, parent, onClose, call }) {
           (who and when are kept); the step itself is ticked on its own when the whole step is done.</p> : <>
           <Field label="Phase"><select value={ph} onChange={(e) => setPh(e.target.value)}>{p.phases.map((x) => <option key={x.code} value={x.code}>{x.name}</option>)}</select></Field>
           <Field label="Step"><input value={name} onChange={(e) => setName(e.target.value)} autoFocus placeholder="e.g. Review the target with the Executive Committee" /></Field>
+          <Field label="Where it goes"><select value={where} onChange={(e) => setWhere(e.target.value)}>
+            <option value="end">Last in the phase</option><option value="start">First in the phase</option>
+            {ph === phase && steps.map((x) => <option key={x.id} value={String(x.id)}>After: {x.name}</option>)}</select></Field>
         </>}
         {parent && <Field label="Opened on"><input type="date" value={opened} onChange={(e) => setOpened(e.target.value)} /></Field>}
         <Field label="Due by" hint="(optional)"><input type="date" value={due} min={parent ? opened : undefined} onChange={(e) => setDue(e.target.value)} /></Field>

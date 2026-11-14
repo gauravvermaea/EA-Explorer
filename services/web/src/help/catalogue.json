@@ -3627,5 +3627,6 @@
   "field:kept": "Days the resource history is kept; older samples are deleted automatically.",
   "button:Back to every": "Ends the shorter interval now: back to the usual one.",
   "button:From ... to": "Chart a period of your own: choose from and to.",
-  "button:Sample now": "Takes a sample of the resource history now, as is done every few minutes."
+  "button:Sample now": "Takes a sample of the resource history now, as is done every few minutes.",
+  "field:Where it goes": "Where the new step goes in its phase: last, first, or after a step you choose. Steps can be moved up and down later with the arrows."
 }

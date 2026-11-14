@@ -120,7 +120,8 @@ def to_html(conn, run_id: int, files: dict | None = None, points: list[dict] | N
     e = html.escape
     from . import health as H
     hs = d["health"]
-    suite_names = {"smoke": "Smoke", "api": "API", "ui": "Pages and journeys", "db": "Database", "security": "Security"}
+    suite_names = {"smoke": "Smoke", "api": "API", "ui": "Pages and journeys", "db": "Database", "security": "Security",
+                   "reports": "Reports", "backup": "Backups", "restore": "Restore"}
     rings = "".join(
         f"<figure class='ring'>{H.ring_svg([('critical failed' if H.importance(s, '') == 'critical' else 'non-critical failed', n['failed']), ('warning', n['warning']), ('skipped', n['skipped']), ('passed', n['passed'])], 110, suite_names.get(s, s))}"
         f"<figcaption>{e(suite_names.get(s, s))}</figcaption></figure>" for s, n in hs["suites"].items())

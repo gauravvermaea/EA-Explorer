@@ -229,7 +229,29 @@ setting() {
   local v
   v=$(grep -E "^$1=" "$ENV_FILE" 2>/dev/null | head -n1 | cut -d= -f2- | tr -d '\r') || true
   v="${v#\'}"; v="${v%\'}"; v="${v#\"}"; v="${v%\"}"
+  case "$v" in openbao:*) vault_env >&2 || true; v=$(printenv "$1" || true) ;; esac   # a reference: the vault's value (R4.19)
   echo "${v:-${2:-}}"
+}
+# the key vault (R4.19, D684): with EAX_SECRETS_FROM=openbao:..., its container is in every compose command (profile
+# "vault") and, before containers are made, the values behind the config file's references are read into this shell's
+# own environment (eaxpy secrets env: over a pipe, never a file); docker compose takes them from there
+vault_profile() {
+  grep -q '^EAX_SECRETS_FROM=openbao:' "$ENV_FILE" 2>/dev/null || return 0
+  case ",${COMPOSE_PROFILES:-}," in *,vault,*) ;; *) export COMPOSE_PROFILES="${COMPOSE_PROFILES:+$COMPOSE_PROFILES,}vault" ;; esac
+}
+vault_env() {
+  [ -z "${EAX_VAULT_RESOLVED:-}" ] || return 0
+  grep -q '^EAX_SECRETS_FROM=openbao:' "$ENV_FILE" 2>/dev/null || return 0
+  grep -qE '^[A-Z0-9_]+=openbao:' "$ENV_FILE" || return 0
+  vault_profile
+  local lines line
+  lines=$("$ROOT/eaxpy.sh" secrets env) || { echo "ERROR: the key vault (OpenBao) could not be read: ./eaxpy.sh secrets"; return 1; }
+  while IFS= read -r line; do
+    [ -n "$line" ] && export "$line"
+  done <<EOF_VAULT
+$lines
+EOF_VAULT
+  export EAX_VAULT_RESOLVED=1
 }
 kind() { setting EAX_DEPLOYMENT laptop; }
 # the build shown with the release (R2.47): EAX_BUILD as CI sets it, else the commit's short id ("-changed" when files
@@ -246,6 +268,8 @@ compose() {
   EAX_BUILD=$(build_id); EAX_COMMIT=${EAX_COMMIT:-$(git rev-parse HEAD 2>/dev/null || true)}
   EAX_BUILT_AT=${EAX_BUILT_AT:-$(git log -1 --format=%cI 2>/dev/null || true)}
   export EAX_BUILD EAX_COMMIT EAX_BUILT_AT
+  vault_profile
+  case "${1:-}" in up|run|create) vault_env || return 1 ;; esac
   # plain progress and no colour codes, so the log reads cleanly
   # scale-out extra files (phase 36.3, D521): EAX_COMPOSE_EXTRA=standby,shared-storage... (deploy/compose/scale)
   set -- $(compose_extra) "$@"
@@ -547,6 +571,7 @@ trust() {
 }
 
 show_logins() {
+  vault_env || true            # once, in this shell: each setting below then reads its value (R4.19)
   if [ "$(kind)" != "laptop" ]; then
     echo "Logins are only printed for a laptop (development) installation. See $ENV_FILE."
     return 0
@@ -805,11 +830,26 @@ case "$CMD" in
     [ -f "$ENV_FILE" ] && { err "$ENV_FILE already exists; not overwriting. Use ./eax.sh cleanup to start again."; exit 1; }
     [ -f "deploy/templates/eaexplorer.$K.env" ] || { err "unknown deployment kind: $K"; exit 1; }
     mkdir -p work/logs work/backups work/proxy work/data/imports work/data/exports work/data/tls
-    # Plain copy with LF endings: no passwords are generated
-    tr -d '\r' < "deploy/templates/eaexplorer.$K.env" > "$ENV_FILE"
+    # LF endings. The key vault (R4.19, D684; the default, laptop and server alike): every password and key (each one
+    # the server template holds as change-me) a reference to OpenBao, made there at the first ./eax.sh up
+    NOVAULT=1   # R4.19: OpenBao switched off for now (owner, 14 Nov 2026); was: --no-vault only
+    if [ -z "$NOVAULT" ]; then
+      KEYS=$(grep -oE '^[A-Z0-9_]+=change-me' deploy/templates/eaexplorer.server.env | cut -d= -f1 | tr '\n' ' ')
+      tr -d '\r' < "deploy/templates/eaexplorer.$K.env" | awk -v keys="$KEYS" '
+        BEGIN { n = split(keys, a, " "); for (i = 1; i <= n; i++) k[a[i]] = 1 }
+        { split($0, p, "="); if ($0 ~ /^[A-Z0-9_]+=/ && (p[1] in k)) print p[1] "=openbao:" p[1]; else print }
+        END { print ""; print "# ---- The key vault (R4.19): every password and key in OpenBao, references above (eax secrets) ----";
+              print "EAX_SECRETS_FROM=openbao:eax/eaexplorer" }' > "$ENV_FILE"
+    else
+      tr -d '\r' < "deploy/templates/eaexplorer.$K.env" > "$ENV_FILE"
+    fi
     chmod 600 "$ENV_FILE"
     echo "Created $ENV_FILE ($K) from deploy/templates/eaexplorer.$K.env."
-    if [ "$K" = "laptop" ]; then show_logins
+    if [ -z "$NOVAULT" ]; then
+      echo "Every password and key is made in the key vault (OpenBao) at the first ./eax.sh up and kept there; $ENV_FILE holds references only. ./eax.sh logins shows them; the vault's keys: persist/vault/keys.json."
+    fi
+    if [ -z "$NOVAULT" ] && [ "$K" = "laptop" ]; then :
+    elif [ "$K" = "laptop" ]; then show_logins
     else
       # a server or platform keeps its backups in a mounted folder (R2.44, D635): no backups until it is set
       if [ -t 0 ]; then
@@ -818,7 +858,7 @@ case "$CMD" in
           sed -i "s|^EAX_BACKUP_DIR=\$|EAX_BACKUP_DIR=$BDIR|" "$ENV_FILE" && echo "Backups go to $BDIR (EAX_BACKUP_DIR)."
         else echo "No backups are taken until EAX_BACKUP_DIR is set in $ENV_FILE."; fi
       else echo "Set EAX_BACKUP_DIR in $ENV_FILE to the mounted folder for backups: no backups are taken until it is set."; fi
-      echo "Now replace every change-me value in $ENV_FILE with your own passwords before ./eax.sh up."
+      [ -n "$NOVAULT" ] && echo "Now replace every change-me value in $ENV_FILE with your own passwords before ./eax.sh up."
     fi
     ;;
   check)

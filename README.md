@@ -96,6 +96,7 @@ Windows (PowerShell or Command Prompt, in this folder):
 .\eax console        # SOMETHING WRONG? a numbered menu to get it back up (no technical knowledge needed)
 ```
 
+**Step by step, the first time and every time after** (laptop and server): [docs/starting.md](docs/starting.md).
 Every command and the console are described in detail in [docs/command-line-and-console.md](docs/command-line-and-console.md).
 The same commands also run as one Python program on every system: `.\eaxpy <command>` (Windows) or `./eaxpy.sh <command>`
 (it fetches uv into `work/tools` the first time; phase 13.9).

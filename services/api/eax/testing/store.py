@@ -87,7 +87,7 @@ def estimate_minutes(level: str, suites: list[str], watch: bool = False) -> tupl
     if level == "smoke":
         return (2, 5)
     lo, hi = 1, 2                                                   # its fixtures: models, a project, accounts
-    add = {"api": (3, 10), "ui": (2, 5), "db": (0, 1), "security": (5, 15), "backup": (3, 15), "restore": (20, 90)}
+    add = {"api": (3, 10), "ui": (2, 5), "db": (0, 1), "security": (5, 15), "reports": (5, 15), "backup": (3, 15), "restore": (20, 90)}
     for s in suites:
         lo, hi = lo + add[s][0], hi + add[s][1]
     if watch:

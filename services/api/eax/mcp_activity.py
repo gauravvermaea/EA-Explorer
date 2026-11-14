@@ -98,7 +98,9 @@ def listing(conn, user, who: str = "", kind: str = "", tool: str = "", days: int
     admin = is_admin(user)
     me = user.username.lower()
     who = (who or "").strip().lower()
-    if who in ("", "me"):
+    if who == "me":                  # R4.20: AI (MCP) › My AI activity: one's own, an admin's too
+        who = me
+    elif who == "":
         who = me if not admin else ""
     if who and who != me and not admin:
         raise PermissionError("Only Super Admins and IT Admins see other people's AI activity.")

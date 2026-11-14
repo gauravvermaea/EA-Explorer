@@ -28,6 +28,12 @@ from . import screen_model as sm
 from .core import ROOT
 
 TEXTUAL = "0.86.3"
+LOG = ROOT / "work" / "logs" / "eax-screen.log"
+# R4.11 (owner's Windows laptop, 14 Nov 2026: "the eax screen mode after doing anything just quits and defaults to command
+# prompt"): a command run in the window shares no console with the screen (on Windows it could change the console's
+# input mode under the screen); the screen comes back by itself if it ever closes without Exit, saying why in its log.
+DETACHED = {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)} if os.name == "nt" else {}
+REOPEN_LIMIT = 5             # closing again and again this soon (seconds apart) is a fault: the numbered menu instead
 PYLIB = ROOT / "work" / "tools" / "pylib"
 
 
@@ -225,7 +231,8 @@ def build_app(form: str, windows: bool, how: str):
             log = self.query_one("#output-log", RichLog)
             try:
                 p = subprocess.Popen(argv_for(self.line, form), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                     stdin=subprocess.DEVNULL, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT))
+                                     stdin=subprocess.DEVNULL, text=True, encoding="utf-8", errors="replace", cwd=str(ROOT),
+                                     **DETACHED)
                 for ln in p.stdout:
                     self.app.call_from_thread(log.write, ln.rstrip("\n"))
                 code = p.wait()
@@ -334,7 +341,20 @@ def build_app(form: str, windows: bool, how: str):
             else:
                 self.user_screen(line)
 
+        def action_quit(self) -> None:          # Alt+X and File > Exit: the only ways the screen ends (R4.11)
+            self.asked_to_leave = True
+            self.exit()
+
         def user_screen(self, line: list[str] | None) -> None:
+            try:
+                self._on_user_screen(line)
+            except Exception as exc:  # noqa: BLE001 - this console cannot hand the terminal over: the window instead
+                note(f"the user screen could not open ({type(exc).__name__}: {exc}); the command runs in the window")
+                if line:
+                    self.push_screen(Output(line))
+            self.action_refresh()
+
+        def _on_user_screen(self, line: list[str] | None) -> None:
             with self.suspend():
                 if line:
                     print(f"\n{sm.shown(line, how)}\n", flush=True)
@@ -350,7 +370,6 @@ def build_app(form: str, windows: bool, how: str):
                     input()
                 except EOFError:
                     pass
-            self.action_refresh()
 
         def action_user_screen(self) -> None:
             self.user_screen(None)
@@ -403,10 +422,44 @@ def main(argv: list[str] | None = None) -> int:
                   "into work/tools/pylib, the next time.")
         return menu_.main(argv or [])
     form, how, windows = menu_._form()
-    app = build_app(form, windows, how)
+    return run_screen(lambda: build_app(form, windows, how))
+
+
+def note(text_: str) -> None:
+    """A line in work/logs/eax-screen.log (never in the way: a log that cannot be written is left)."""
     try:
-        app.run(mouse=True)
-    except KeyboardInterrupt:
+        import time
+        LOG.parent.mkdir(parents=True, exist_ok=True)
+        with LOG.open("a", encoding="utf-8") as f:
+            f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {text_}\n")
+    except OSError:
         pass
-    return 0
+
+
+def run_screen(make, clock=None, say=print) -> int:
+    """Runs the screen until Exit (Alt+X, File > Exit) or Ctrl+C. If it ends any other way (an error inside it, a console
+    that dropped it after a command), why is written to work/logs/eax-screen.log, said, and the screen opens again; one
+    that closes again within seconds REOPEN_LIMIT times running is a fault: the numbered menu then (R4.11)."""
+    import time
+    clock = clock or time.monotonic
+    quick = 0
+    while True:
+        app = make()
+        t0 = clock()
+        try:
+            app.run(mouse=True)
+        except KeyboardInterrupt:
+            return 0
+        except Exception as exc:  # noqa: BLE001 - written down and said, then the screen comes back
+            why = f"{type(exc).__name__}: {exc}"
+        else:
+            if getattr(app, "asked_to_leave", False):
+                return 0
+            why = f"it ended without Exit (return code {getattr(app, 'return_code', None)})"
+        note(f"the screen closed: {why}")
+        quick = quick + 1 if clock() - t0 < 10 else 1
+        if quick >= REOPEN_LIMIT:
+            say(f"eax screen keeps closing ({why}); the numbered menu instead. The details: {LOG}")
+            return menu_.main([])
+        say(f"eax screen closed by itself ({why}); opening it again. Written in {LOG}.")
 

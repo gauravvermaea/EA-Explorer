@@ -197,6 +197,30 @@ def check_views() -> dict:
     return _http("Drawn views", "Views (ours)", host, 8110, "/api/views/v1/health")
 
 
+def check_vault() -> dict:
+    """The key vault (OpenBao, R4.19, D684): up when initialised and unsealed; off when the passwords are kept in the
+    config file (EAX_SECRETS_FROM not openbao:...)."""
+    if not os.environ.get("EAX_SECRETS_FROM", "").strip().strip("'\"").startswith("openbao:"):
+        return _result("Key vault", "OpenBao", "off", "not used: the passwords are in the config file", time.perf_counter())
+
+    def state(body: bytes) -> dict:
+        try:
+            return json.loads(body or b"{}")
+        except ValueError:
+            return {}
+
+    def ok(status: int, body: bytes) -> bool:
+        h = state(body)
+        return status < 400 and bool(h.get("initialized")) and h.get("sealed") is False
+
+    def describe(status: int, body: bytes) -> str:
+        return f"unsealed, OpenBao {state(body).get('version') or ''}".strip()
+    r = _http("Key vault", "OpenBao", "openbao", 8200, "/v1/sys/health?sealedcode=200&uninitcode=200", ok=ok, describe=describe)
+    if r["status"] == "down" and r["detail"].startswith("answered"):
+        r["detail"] = "sealed or not set up: eax up unseals it (its keys in persist/vault/keys.json)"
+    return r
+
+
 def _part_host(key: str) -> tuple[str, int]:
     """Host and port of the container serving a part: the API unless the part has its own (D677, R3.5-M1b)."""
     from urllib.parse import urlsplit
@@ -299,7 +323,7 @@ def check_break_glass() -> dict:
 
 CHECKS = [check_api, check_database, check_jobs, check_keycloak, check_web, check_proxy, check_reports,
           check_dms, check_dms_broker, check_drawio, check_mcp, check_backup, check_library, check_views,
-          check_operations, check_personal, check_break_glass]
+          check_operations, check_personal, check_break_glass, check_vault]
 
 
 def check_all() -> dict:

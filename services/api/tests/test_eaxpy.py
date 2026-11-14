@@ -59,7 +59,11 @@ def test_init_cleanup_keep_tools_and_certificate(copy):
     assert r.returncode == 0, r.stdout + r.stderr
     env = root / "work" / "eaexplorer.env"
     assert env.exists() and "\r" not in env.read_text(encoding="utf-8") and "DEVELOPMENT LOGINS" in r.stdout
+    # R4.19's key vault is switched off for now (owner, 14 Nov 2026): the passwords stay in the config file
+    assert "=openbao:EAX" not in env.read_text(encoding="utf-8") and "\nEAX_SECRETS_FROM=" not in env.read_text(encoding="utf-8")
     assert run("init", "laptop").returncode == 1                      # never overwritten
+    env.unlink()
+    run("init", "laptop")
     (root / "work" / "tools").mkdir()
     (root / "work" / "tools" / "uv").write_text("x")
     (root / "work" / "data" / "tls" / "ca.crt").write_text("x")

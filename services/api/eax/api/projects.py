@@ -1266,8 +1266,8 @@ class ProjectBackup(MethodView):
     def get(self, project, file):
         """Download a project backup file"""
         from .. import project_backup as pb
-        p = _run(lambda c: _admin_project(c, project))
-        f = pb.path_of(str(p["guid"]), file)
+        # R4.14: the file checked inside _run, so "No such backup" is a 404, not a server error
+        f = _run(lambda c: pb.path_of(str(_admin_project(c, project)["guid"]), file))
         return Response(f.read_bytes(), mimetype="application/zip", headers={"Content-Disposition": f'attachment; filename="{file}"'})
 
     @blp.doc(security=SECURITY)
@@ -1422,6 +1422,18 @@ class StepAdd(MethodView):
     def post(self, data, project):
         """Add a step of the project's own at any time: {phase, name, due_date}"""
         return _run(lambda c: pj.add_step(c, project, g.user, data or {}), write=True, action="project.step.added", obj=project)
+
+
+@blp.route("/projects/<string:project>/steps/<int:step>/move")
+class ProjectStepMove(MethodView):
+    @blp.doc(security=SECURITY)
+    @blp.arguments(FreeIn)
+    @blp.response(200, Free)
+    @require_auth()
+    def post(self, data, project, step):
+        """Move a step within its phase (R4.21): {to: up|down|start|end} or {after: another step's id}; its sub steps move
+        with it; recorded on the step (contributors; not in a frozen phase)"""
+        return _run(lambda c: pj.move_step(c, project, g.user, step, data or {}), write=True)
 
 
 @blp.route("/projects/<string:project>/steps/<int:step>/sub")

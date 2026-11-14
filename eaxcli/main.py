@@ -30,6 +30,7 @@ from .core import (
     setting,
     start_log,
     stop_log,
+    vault_keys_file,
     version,
 )
 
@@ -276,15 +277,42 @@ def init(rest: list[str]) -> None:
         raise Failure(f"Unknown deployment kind: {kind_}")
     for d in ("logs", "backups", "proxy", "data/imports", "data/exports", "data/tls"):
         (WORK / d).mkdir(parents=True, exist_ok=True)
-    # a plain copy, UTF-8 without BOM and LF endings (Docker Compose reads it cleanly); no passwords are generated
-    text = template.read_text(encoding="utf-8")
-    ENV_FILE.write_text("\n".join(text.splitlines()) + "\n", encoding="utf-8", newline="\n")
+    # UTF-8 without BOM and LF endings (Docker Compose reads it cleanly). With the key vault (R4.19, D684; the default,
+    # laptop and server alike): every password and key a reference to OpenBao, each value made there at the first eax up
+    text = "\n".join(template.read_text(encoding="utf-8").splitlines()) + "\n"
+    use_vault = vault_on() and "--no-vault" not in rest        # R4.19: switched off for now (vault.ALLOWED)
+    if use_vault:
+        text = with_vault(text)
+    ENV_FILE.write_text(text, encoding="utf-8", newline="\n")
     say(f"Created {ENV_REL} ({kind_}) from deploy/templates/eaexplorer.{kind_}.env.")
-    if kind_ == "laptop":
+    if kind_ != "laptop":
+        _ask_backup_folder()
+    if use_vault:
+        say(f"Every password and key is made in the key vault (OpenBao) at the first {EAX} up and kept there; {ENV_REL} "
+            f"holds references only. {EAX} logins shows them; the vault's keys: {_shown(vault_keys_file())}.")
+    elif kind_ == "laptop":
         info.show_logins()
     else:
-        _ask_backup_folder()
         say(f"Now replace every change-me value in {ENV_REL} with your own passwords before {EAX} up.")
+
+
+def vault_on() -> bool:
+    from . import vault
+    return vault.ALLOWED
+
+
+def _shown(p: Path) -> str:
+    return str(p.relative_to(ROOT)) if p.is_relative_to(ROOT) else str(p)
+
+
+def with_vault(text: str) -> str:
+    """The config file with every password and key (each the server template holds as change-me) a reference to the
+    key vault, and the vault named (EAX_SECRETS_FROM)."""
+    from . import vault
+    from .deploy import secret_values
+    text = vault.with_references(text, secret_values(text))
+    return text.rstrip("\n") + ("\n\n# ---- The key vault (R4.19): every password and key in OpenBao, references above "
+                                "(eax secrets) ----\n" f"EAX_SECRETS_FROM=openbao:{vault.DEFAULT_WHERE}\n")
 
 
 def _ask_backup_folder() -> None:

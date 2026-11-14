@@ -144,7 +144,7 @@ OVERRIDES = {
               "placeholder": "days"},                                     # with delete: runs older than DAYS (R2.43)
              {"key": "--smoke/--detailed", "type": "flags", "choices": ["--smoke", "--detailed"], "required": False},
              {"key": "--suite", "type": "flag-value", "flags": ["--suite"], "required": False,
-              "placeholder": "api|ui|db|security|backup|all", "choices": ["api", "ui", "db", "security", "backup", "all"]},
+              "placeholder": "api|ui|db|security|reports|backup|all", "choices": ["api", "ui", "db", "security", "reports", "backup", "all"]},
              {"key": "--role", "type": "flag-value", "flags": ["--role"], "required": False, "placeholder": "role"},
              {"key": "--area", "type": "flag-value", "flags": ["--area"], "required": False, "placeholder": "area"},
              {"key": "--status/--last/--report/--fixtures/--build", "type": "flags",

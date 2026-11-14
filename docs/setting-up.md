@@ -2,7 +2,7 @@
 
 Every EA Explorer installation has one config file, `work/eaexplorer.env`, made from a template for its kind of
 environment. This page gives the commands for each kind. The same is in the README; every command in detail:
-[command-line-and-console.md](command-line-and-console.md); deployments step by step: [deployment.md](deployment.md).
+[command-line-and-console.md](command-line-and-console.md); deployments step by step: [deployment.md](deployment.md); the first start and every start after, step by step: [starting.md](starting.md).
 
 **`clean-run` and `clean-restart` make it themselves** (they delete the old one first), for a **laptop** unless you
 name another kind. To make it on its own, without starting anything, use `init`; it never overwrites a config file

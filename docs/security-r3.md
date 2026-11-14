@@ -33,5 +33,5 @@ full test.
 
 | What | Why | Next |
 | --- | --- | --- |
-| Reports (Apache Superset 4.1.2): the image scan's findings | Most are in Superset itself and its Python packages; the fixed releases are Superset 5 and 6 (6.1.0 is current). Moving two major versions changes its configuration and the dashboards' import, which needs testing on an installation | R4.7: Superset 6.1, tested (the dashboards, the sign-in, reports-init). The Debian and Python fixes that apply to 4.1 are applied at build (R2.24) |
+| Reports (Apache Superset 4.1.2): the image scan's findings | Most are in Superset itself and its Python packages; the fixed releases are Superset 5 and 6 (6.1.0 is current). **Upgraded to 6.1.0 in Release 4 (R4.7, D680).** Moving two major versions changes its configuration and the dashboards' import, which needs testing on an installation | R4.7: Superset 6.1, tested (the dashboards, the sign-in, reports-init). The Debian and Python fixes that apply to 4.1 are applied at build (R2.24) |
 | Findings with no fix in the base images' current release | Nothing to install until the distribution ships one | The next clean rebuild fetches them when they come (D673); the self-test's image scan lists what remains |

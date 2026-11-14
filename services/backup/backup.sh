@@ -9,7 +9,7 @@
 #     files/documents.tar.gz  Mayan's document files;  files/tls.tar.gz  the site certificate and key
 #     files/reports.tar.gz    Superset's home (its secret key and uploads; its dashboards are in its database)
 #     files/imports.tar.gz, files/exports.tar.gz   the API's import and export folders (files uploaded and made)
-#     files/persist.tar.gz    persist/: the settings that survive resets (schedules, the banner; D558)
+#     files/persist.tar.gz    persist/: the settings that survive resets (schedules, the banner, the vault's keys; D558)
 #     SHA256SUMS              a checksum of every file in the folder (the helper's code/ and config/ included)
 # The helper writes code/, config/ and manifest.json around it. Nothing is deleted here (retention: the helper).
 set -eu

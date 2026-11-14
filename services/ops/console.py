@@ -21,6 +21,7 @@ import string
 import subprocess
 import sys
 import time
+from pathlib import Path
 
 import ops
 
@@ -148,8 +149,45 @@ def interactive(cid: str, *cmd: str, env: dict | None = None) -> int:
     return subprocess.run([*args, cid, *cmd], check=False).returncode
 
 
+def _vault():
+    """The key vault (R4.19, D684) from here: eaxcli/vault.py as mounted (/eax-repo/eaxcli), the keys in persist/
+    (/eax-persist), OpenBao on the backend network."""
+    if "/eax-repo" not in sys.path:
+        sys.path.insert(0, "/eax-repo")
+    from eaxcli import vault
+    return vault
+
+
+def _vault_client(text: str):
+    vault = _vault()
+    where_ = vault.where(text)
+    keys = vault.keys_path(Path("/"), os.environ.get("EAX_PERSIST_DIR", "/eax-persist"))
+    return vault, where_, vault.ready(keys, vault.url_for(inside=True), where_, None, wait=10)
+
+
 def config() -> dict[str, str]:
-    return ops._values(ops._read_config())
+    """The config file's values; those it holds as references to the key vault (R4.19), the vault's values."""
+    lines = ops._read_config()
+    values = ops._values(lines)
+    if _vault().ALLOWED and any(str(v).startswith("openbao:") for v in values.values()):
+        try:
+            vault, where_, c = _vault_client("\n".join(lines))
+            values.update(vault.resolve("\n".join(lines), c, where_))
+        except Exception as exc:  # noqa: BLE001 - shown; the rest of the console still works
+            say(f"  The key vault could not be read ({exc}): its values are not shown.")
+    return values
+
+
+def set_secret(key: str, value: str, why: str) -> str:
+    """A password: into the key vault when the config file holds it as a reference (R4.19), else into the config file."""
+    lines = ops._read_config()
+    if _vault().ALLOWED and str(ops._values(lines).get(key, "")).startswith("openbao:"):
+        vault, where_, c = _vault_client("\n".join(lines))
+        held = c.read(where_)
+        held[vault.references("\n".join(lines))[key]] = value
+        c.write(where_, held)
+        return "the key vault"
+    return set_config(key, value, why)
 
 
 def set_config(key: str, value: str, why: str) -> str:
@@ -387,7 +425,7 @@ def passwords() -> int:
         if tmp_user:
             for u in kc.json("get", "users", "-r", "master", "-q", f"username={tmp_user}"):
                 kc.run("delete", f"users/{u['id']}", "-r", "master")
-        set_config("EAX_KC_ADMIN_PASSWORD", pw, "kc-admin-password")
+        set_secret("EAX_KC_ADMIN_PASSWORD", pw, "kc-admin-password")
         note("password: Keycloak administrator")
         say(f"\n  Done. Keycloak's administrator {kc.admin} signs in with:  {pw}\n  It is in the config file (work/eaexplorer.env).")
     elif i == 2:
@@ -395,7 +433,7 @@ def passwords() -> int:
         if not pw or not confirm("Change the break-glass password? Everyone signed in with break-glass is signed out; "
                                  "the API is started again to take it (a minute)."):
             return 0
-        set_config("EAX_BREAK_GLASS_PASSWORD", pw, "break-glass-password")
+        set_secret("EAX_BREAK_GLASS_PASSWORD", pw, "break-glass-password")
         note("password: break-glass")
         say(f"\n  The break-glass account (user break-glass) signs in with:  {pw}\n  Starting the API again with it...")
         return START
@@ -420,7 +458,7 @@ def passwords() -> int:
             if r.returncode:
                 say(f"  {what}: not changed ({(r.stderr or r.stdout).strip()[:200]})")
                 continue
-            set_config(k, pw, f"password-{role}")
+            set_secret(k, pw, f"password-{role}")
             note(f"password: database login {role}")
             say(f"  {what}: changed")
         say("  Starting every service again so they use the new passwords...")

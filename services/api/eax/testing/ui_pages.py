@@ -152,8 +152,12 @@ def sweep(page, open_route: Callable[[str], None], ids: dict[str, str], record: 
         t0 = time.time()
         errors.clear()
         try:
-            if loaded % 25 == 0:
-                open_route(route)                                  # a fresh load now and then: nothing carries over
+            if loaded % 25 == 0:                                   # a fresh load now and then: nothing carries over
+                # R4.16: a page whose app died (a script error) and then failed took the next eleven with it: opening
+                # the same address with another #route is a move inside the page, never a load. A blank page first
+                # makes it a real load.
+                page.goto("about:blank")
+                open_route(route)
             else:
                 page.evaluate("r => { window.location.hash = r.slice(1); }", route)
             loaded += 1
@@ -189,7 +193,8 @@ def sweep(page, open_route: Callable[[str], None], ids: dict[str, str], record: 
                 shot = page.screenshot(full_page=False)
             except Exception:  # noqa: BLE001
                 shot = None
-            loaded = 0                                             # the next page loads fresh
+        if outcome == "failed" or any(e.startswith("script error") for e in errors):
+            loaded = 0                                             # the next page loads fresh (R4.16)
         record(f"page: {route}", outcome, f"{detail} (as {role})", int((time.time() - t0) * 1000), screenshot=shot)
     if queue:
         record("page sweep", "warning", f"stopped at {max_pages} pages; {len(queue)} more not opened", 0)

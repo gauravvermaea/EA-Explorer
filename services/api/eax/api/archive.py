@@ -48,6 +48,14 @@ class References(MethodView):
             return _guard(ar.references, conn, model_id)
 
 
+def _state(data) -> str:
+    """What the move is: said, never assumed (R4.13: a body read as nothing archived the model)."""
+    state = (data or {}).get("state") if isinstance(data, dict) else None
+    if state not in ("archived", "deleted"):
+        abort(422, message="Say what to do: {\"state\": \"archived\"} or {\"state\": \"deleted\"}.")
+    return state
+
+
 @blp.route("/models/<model_id>/archive")
 class Move(MethodView):
     @blp.doc(security=SECURITY)
@@ -57,8 +65,7 @@ class Move(MethodView):
     def post(self, data, model_id):
         """Archive {state: archived} (its Model Admin) or delete {state: deleted} (a Super Admin) the model: it leaves the
         working database for the archive, in the background (D273)"""
-        data = data or {}
-        state = data.get("state") if data.get("state") in ("archived", "deleted") else "archived"
+        state = _state(data)
         with get_engine().connect() as conn:                 # checked now, so the task is not even started when refused
             m = _guard(repo.get_model, conn, model_id)
             _guard(ar._may_move, conn, g.user, m, state)
@@ -92,8 +99,7 @@ class ProjectMove(MethodView):
         documents and the models only it uses, in the background"""
         from .. import project_backup as pb
         from .. import projects as pj
-        data = data or {}
-        state = data.get("state") if data.get("state") in ("archived", "deleted") else "archived"
+        state = _state(data)
         with pj.connections(write=False) as pc:
             p = _guard(pj.project_row, pc, project_id)
             if state == "deleted" and not ar._is_super(g.user):

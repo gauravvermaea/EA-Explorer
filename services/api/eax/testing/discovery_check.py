@@ -22,7 +22,11 @@ MAPPING = {"apps": {"entity_type": "ApplicationComponent", "key": "id", "name": 
                     "links": {}}}
 
 
-def run(base: str, tokens: dict[str, str], ids: dict[str, str], record: Callable[..., None], send=_send) -> dict[str, int]:
+def _whole(base: str, method: str, path: str, token: str, raw: bytes | None) -> tuple[int, str]:
+    return _send(base, method, path, token, raw, limit=None)      # parsed as JSON: the whole answer (R4.16)
+
+
+def run(base: str, tokens: dict[str, str], ids: dict[str, str], record: Callable[..., None], send=_whole) -> dict[str, int]:
     admin, model = tokens.get("super-admin", ""), ids.get("model", "")
     counts = {"passed": 0, "failed": 0, "skipped": 0}
 

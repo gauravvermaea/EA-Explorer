@@ -318,7 +318,7 @@ def test_coverage_counts_pages_journeys_and_writes_by_area():
 # ---------------------------------------------------------------- the command line a run equals (D578)
 RUNS = [
     {"level": "smoke", "suites": []},
-    {"level": "detailed", "suites": ["api", "ui", "db", "security", "backup"]},
+    {"level": "detailed", "suites": ["api", "ui", "db", "security", "reports", "backup"]},
     {"level": "detailed", "suites": ["api"], "role": "architect"},
     {"level": "detailed", "suites": ["ui"], "journeys": ["drawn view"], "role": "architect"},
     {"level": "detailed", "suites": ["ui"], "pages_only": True},
@@ -355,7 +355,7 @@ def test_eax_test_has_two_choices_and_clean():
     for scripts and CI."""
     text = (ROOT / "eaxcli" / "help.txt").read_text(encoding="utf-8")
     entry = store.test_entry(text)
-    assert entry["syntax"].startswith("test [smoke|full|backup|restore|ui-review|failed")   # restore: R3.8
+    assert entry["syntax"].startswith("test [smoke|full|reports|backup|restore|ui-review|failed")   # restore: R3.8
     names = [o["flag"].split()[0] for o in entry["options"]]
     assert names == ["smoke", "full", "backup", "restore", "ui-review", "failed", "watch", "stop", "api", "delete", "clean"], names   # restore: R3.8; watch, stop: R3.2   # ui-review: R2.12
     assert entry["examples"] == ["{eax} test", "{eax} test full", "{eax} test backup", "{eax} test restore", "{eax} test api GET /api/v1/models --as architect", "{eax} test watch", "{eax} test stop 12", "{eax} test ui-review", "{eax} test failed",

@@ -4,7 +4,8 @@
 #   restore.sh <folder> [--dbs a,b] [--files documents,tls] [--scratch]
 #     --dbs      the databases to restore (default: every dump in the backup; "-" for none)
 #     --files    the file sets to restore (documents: Mayan's files, tls: the certificate, reports: Superset's home,
-#                imports and exports: the API's folders); a set the backup does not have is left as it is
+#                imports and exports: the API's folders, persist); a set the backup does not have is left as
+#                it is
 # Each database goes to the server its service reads it from now: the library's and the views' to their own servers when
 # EAX_LIBRARY_DB_HOST or EAX_VIEWS_DB_HOST say so, every other one to the main server (D410). The roles a database needs
 # that the server does not have yet (a new server) are made from the backup's globals.sql first; roles that are there

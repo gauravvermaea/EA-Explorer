@@ -825,6 +825,7 @@ from . import (  # noqa: E402,F401
     mcp_build,
     mcp_iterations,
     mcp_more,
+    mcp_operations,
     mcp_ops,
     mcp_scenarios,
     mcp_tests,

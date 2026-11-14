@@ -14,6 +14,7 @@ AREAS = {  # the file a tool is in: what the tools there are about
     "mcp_server": "Reading the repository", "mcp_build": "Building models and projects", "mcp_ops": "Model operations",
     "mcp_analysis": "Analysis and clean-up", "mcp_more": "Reports, projects and the rest", "mcp_scenarios": "Scenario planning",
     "mcp_iterations": "A project's ADM iteration", "mcp_tests": "The platform's test results",
+    "mcp_operations": "Running the installation",
 }
 
 

@@ -354,7 +354,8 @@ def detail(conn, project: Any, user) -> dict:
                                          (SELECT coalesce(json_agg(json_build_object('at', e.at, 'by', e.by_user, 'action', e.action, 'note', e.note)
                                                                    ORDER BY e.at, e.id), '[]') FROM proj.step_events e WHERE e.step_id = proj.steps.id) AS events
                                     FROM proj.steps WHERE project_id = :p AND cycle = :c
-                                   ORDER BY phase, coalesce(parent_step_id, id), parent_step_id NULLS FIRST, seq, id""", p=p["id"], c=p["cycle"])
+                                   ORDER BY phase, coalesce((SELECT t.seq FROM proj.steps t WHERE t.id = proj.steps.parent_step_id), seq),
+                                            coalesce(parent_step_id, id), parent_step_id NULLS FIRST, seq, id""", p=p["id"], c=p["cycle"])
     out["items"] = _rows(conn, """SELECT i.guid::text AS id, i.phase, i.name, i.kind, i.type, i.library_id, i.chosen, i.folder,
                                          i.approved_folder, i.placeholder, i.templates, i.note, i.not_needed_reason, i.not_needed_by, i.content_area,
                                          i.not_needed_at, i.added_by, i.mayan_cabinet_id IS NOT NULL AS stored,
@@ -741,16 +742,100 @@ def _steps(conn, p: dict, d: dict) -> None:
                                 coalesce((CAST(:why AS jsonb) ->> s.id::text), '')
                            FROM proj.lib_steps s WHERE NOT s.retired"""),
                  {"p": p["id"], "ids": list(removed), "why": __import__("json").dumps({str(k): v for k, v in removed.items()})})
-    _steps_own(conn, p, d.get("own_steps") or [])
+    own = _steps_own(conn, p, d.get("own_steps") or [])
+    order_from_wizard(conn, p, d.get("step_order") or {}, own)
 
 
-def _steps_own(conn, p: dict, own: list[dict]) -> None:
+def _steps_own(conn, p: dict, own: list[dict]) -> dict[str, list[int]]:
+    """The wizard's own steps, each phase's last; returns their ids by phase, in the order given."""
+    out: dict[str, list[int]] = {}
     for s in own:
         if not (s.get("name") or "").strip():
             continue
-        conn.execute(text("""INSERT INTO proj.steps (project_id, phase, seq, name)
-                             SELECT :p, :ph, coalesce(max(seq), 0) + 1, :n FROM proj.steps WHERE project_id = :p AND phase = :ph"""),
-                     {"p": p["id"], "ph": s["phase"], "n": s["name"].strip()})
+        r = conn.execute(text("""INSERT INTO proj.steps (project_id, phase, seq, name)
+                                 SELECT :p, :ph, coalesce(max(seq), 0) + 1, :n FROM proj.steps WHERE project_id = :p AND phase = :ph
+                                 RETURNING id"""),
+                         {"p": p["id"], "ph": s["phase"], "n": s["name"].strip()}).first()
+        if r:
+            out.setdefault(s["phase"], []).append(int(r[0]))
+    return out
+
+
+# ---------------------------------------------------------------- the order of the steps (R4.21; owner, 14 Nov 2026: "ADM
+# Steps in each phase while creating a new project or while working on a project can change order. When adding new step we
+# should be able to change its order"). A phase's steps are numbered 1, 2, 3... again after each move; a step's sub steps
+# (its completions and repeats) stay under it and move with it.
+def _phase_ids(conn, p: dict, phase: str, cycle: Any = None, parent: Any = None) -> list[int]:
+    if parent:
+        rows = _rows(conn, "SELECT id FROM proj.steps WHERE parent_step_id = :s ORDER BY seq, id", s=parent)
+    else:
+        rows = _rows(conn, """SELECT id FROM proj.steps WHERE project_id = :p AND phase = :ph AND parent_step_id IS NULL
+                                 AND cycle = coalesce(CAST(:c AS integer), cycle) ORDER BY seq, id""",
+                     p=p["id"], ph=phase, c=cycle)
+    return [int(r["id"]) for r in rows]
+
+
+def _renumber(conn, ids: list[int]) -> None:
+    for n, sid in enumerate(ids, 1):
+        conn.execute(text("UPDATE proj.steps SET seq = :n WHERE id = :s AND seq IS DISTINCT FROM :n"), {"n": n, "s": sid})
+
+
+def placed(ids: list[int], step: int, where: Any) -> list[int]:
+    """The order with `step` put where asked: "up", "down", "start", "end"/"last", or after another step's id."""
+    rest = [x for x in ids if x != step]
+    at = ids.index(step) if step in ids else len(rest)
+    if where in ("up", "down"):
+        to = max(0, at - 1) if where == "up" else min(len(rest), at + 1)
+    elif where == "start":
+        to = 0
+    elif where in ("end", "last", None, ""):
+        to = len(rest)
+    else:
+        try:
+            after = int(where)
+        except (TypeError, ValueError) as exc:
+            raise EditError("Say where the step goes: up, down, start, end, or after which step.") from exc
+        if after not in rest:
+            raise EditError("The step to put it after is not in this phase.", 404)
+        to = rest.index(after) + 1
+    return rest[:to] + [step] + rest[to:]
+
+
+def move_step(conn, project: Any, user, step_id: int, d: dict) -> dict:
+    """A step moved within its phase (contributors; not in a phase the iteration leaves out); recorded on the step."""
+    p = project_row(conn, project)
+    _need(conn, p, user, "contribute")
+    s = _step(conn, p, step_id)
+    _iter.guard(conn, p, s["phase"])
+    where = d.get("after") if d.get("after") not in (None, "") else d.get("to")
+    ids = _phase_ids(conn, p, s["phase"], s.get("cycle"), s.get("parent_step_id"))
+    new = placed(ids, step_id, where)
+    if new == ids:
+        return {"step": step_id, "order": ids, "message": f"{s['name']} is already there."}
+    _renumber(conn, new)
+    n = new.index(step_id) + 1
+    _step_event(conn, step_id, user, "moved", f"to place {n} of {len(new)} in phase {s['phase']}")
+    return {"step": step_id, "order": new, "message": f"{s['name']} is now step {n} of {len(new)} in phase {s['phase']}."}
+
+
+def order_from_wizard(conn, p: dict, order: dict, own: dict[str, list[int]]) -> None:
+    """The order the new project wizard gave each phase: ["L<library step id>", "O<n: the phase's n-th own step>", ...];
+    steps it does not name keep their place after those it does."""
+    for phase, keys in (order or {}).items():
+        ids = _phase_ids(conn, p, phase)
+        lib = {int(r["library_id"]): int(r["id"]) for r in _rows(
+            conn, "SELECT id, library_id FROM proj.steps WHERE project_id = :p AND phase = :ph AND library_id IS NOT NULL",
+            p=p["id"], ph=phase)}
+        mine = own.get(phase, [])
+        want = []
+        for k in keys or []:
+            k = str(k)
+            sid = lib.get(int(k[1:])) if k[:1] == "L" and k[1:].isdigit() else \
+                mine[int(k[1:])] if k[:1] == "O" and k[1:].isdigit() and int(k[1:]) < len(mine) else None
+            if sid and sid in ids and sid not in want:
+                want.append(sid)
+        if want:
+            _renumber(conn, want + [x for x in ids if x not in want])
 
 
 def _items(conn, p: dict, d: dict) -> None:
@@ -1602,6 +1687,13 @@ def add_step(conn, project: Any, user, d: dict) -> dict:
                       VALUES (:p, :c, :ph, :q, :n, :u, now(), :due) RETURNING id""",
              p=p["id"], c=p["cycle"], ph=phase, q=seq, n=name, u=user.username, due=d.get("due_date") or None)
     _step_event(conn, r["id"], user, "opened")
+    where = d.get("after") if d.get("after") not in (None, "") else d.get("where")
+    if where not in (None, "", "end", "last"):      # R4.21: at the start, or after a chosen step
+        ids = _phase_ids(conn, p, phase, p["cycle"])
+        new = placed(ids, int(r["id"]), where)
+        _renumber(conn, new)
+        n = new.index(int(r["id"])) + 1
+        return {"step": r["id"], "message": f"Step added to phase {phase} as step {n} of {len(new)}: {name}."}
     return {"step": r["id"], "message": f"Step added to phase {phase}: {name}."}
 
 

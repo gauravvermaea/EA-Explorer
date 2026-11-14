@@ -24,7 +24,7 @@ LOGICAL = [  # id, name, what it does, group
     ("proxy", "Front door (nginx)", "https for everything; the only published ports", "Edge"),
     ("web", "Screens (React)", "the pages people use", "Application"),
     ("api", "API and job runner", "REST API, background jobs, the rules", "Application"),
-    ("mcp", "MCP server", "the tools an assistant may use, with the person's own rights", "Application"),
+    ("mcp", "MCP server", "the tools an assistant may use, with the person's own rights; running the installation (R4.22)", "Application"),
     ("library", "Library service", "reference and enterprise libraries, documentation", "Application"),
     ("views", "Views service", "drawn views and their versions", "Application"),
     ("drawio", "draw.io", "the diagram editor", "Application"),
@@ -47,10 +47,16 @@ FLOWS = [  # from, to, what
     ("views", "db", "SQL"), ("ops", "backup", "backups"), ("backup", "db", "dump, restore"), ("backup", "files", "archive"),
     ("ops", "testrunner", "runs"), ("testrunner", "proxy", "tests as people do"), ("dms", "files", "documents"),
 ]
+# what a compose profile means, said beside the container (the rest: started on demand)
+PROFILE_SAYS = {"vault": "with the key vault"}
 GROUP_ORDER = ["Users", "Edge", "Application", "Platform", "Operations", "Data"]
 FILL = {"Users": "#fff4e5", "Edge": "#fde2e4", "Application": "#e3f0ff", "Platform": "#e8f5e9", "Operations": "#f3e8ff",
         "Data": "#fff9c4", "frontend": "#e3f0ff", "backend": "#e8f5e9", "terminal": "#f3e8ff", "published": "#fde2e4",
         "volumes": "#fff9c4", "folders": "#fff4e5"}
+
+
+def _profile_says(it: dict) -> str:
+    return next((PROFILE_SAYS[p] for p in it["profiles"] if p in PROFILE_SAYS), "on demand")
 
 
 def logical() -> tuple[list[dict], list[dict]]:
@@ -405,7 +411,7 @@ def physical(items: list[dict]) -> tuple[list[dict], list[dict]]:
             for j, it in enumerate(members[i:i + PER]):
                 others = [n for n in it["networks"] if n != band]
                 sub = " · ".join(x for x in (it["image"], f"also on {', '.join(others)}" if others else "", it["state"],
-                                              "on demand" if it["profiles"] else "") if x)
+                                              _profile_says(it) if it["profiles"] else "") if x)
                 cells.append((box(f"c_{it['service']}", it["service"], sub, dashed=bool(it["profiles"])), j, 1))
             rows.append({"h": 62, "cells": cells})
         spans.append((f"net_{band}", f"Network: {band}" + (" (internal)" if band in ("backend", "terminal") else ""), first,
@@ -509,7 +515,7 @@ def markdown(items: list[dict]) -> str:
     lines += ["", "## Physical: the containers", "", "| Container | Image | Networks | Published | Mounted |", "|---|---|---|---|---|"]
     for it in items:
         mounts = ", ".join(f"{m['source']} → {m['target']}" for m in it["mounts"]) or "-"
-        lines.append(f"| {it['service']}{' (on demand)' if it['profiles'] else ''}{' (runs once at start)' if it.get('one_shot') else ''} | `{it['image']}` | {', '.join(it['networks'])} | "
+        lines.append(f"| {it['service']}{f' ({_profile_says(it)})' if it['profiles'] else ''}{' (runs once at start)' if it.get('one_shot') else ''} | `{it['image']}` | {', '.join(it['networks'])} | "
                      f"{', '.join(it['ports']) or '-'} | {mounts} |")
     lines += ["", "The backend and terminal networks are internal: nothing on them is reachable from outside but through the",
               "front door. Each database can live on a server of its own (docs/databases.md).", ""]

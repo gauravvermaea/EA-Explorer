@@ -3,6 +3,10 @@
 Sign-in: through Keycloak (OIDC). Users are created on first sign-in and their Superset role
 follows their Keycloak realm roles (AUTH_ROLES_MAPPING, re-checked at every sign-in).
 Break-glass: set EAX_SUPERSET_AUTH=db in eaexplorer.env to sign in with the local admin.
+
+Superset 6.1.0 (R4.7, D680), with Flask-AppBuilder 5: every setting here was checked against it (6.1's config.py
+and UPDATING.md for 5.0, 6.0 and 6.1): none of the removed or renamed settings is used, the charts are its current
+ECharts and v2 types, and the sign-in below works the same.
 """
 
 import os
@@ -88,8 +92,8 @@ class KeycloakSecurityManager(SupersetSecurityManager):
     """Reads the user and their realm roles from Keycloak's userinfo endpoint."""
 
     def oauth_user_info(self, provider, response=None):
-        if provider != "keycloak":
-            return super().oauth_user_info(provider, response)
+        if provider != "keycloak":   # Flask-AppBuilder's own (in 5.x oauth_user_info is only set when not overridden)
+            return self.get_oauth_user_info(provider, response)
         data = self.appbuilder.sm.oauth_remotes[provider].get("userinfo").json()
         return {
             "username": data.get("preferred_username", ""),
@@ -119,6 +123,10 @@ def FLASK_APP_MUTATOR(app):  # noqa: N802 - the name Superset looks for
             return None
 
     lm._user_callback = safe_loader
+
+# the roles list on Superset's Settings page is a screen of its own since Superset 6.0 and needs the security API
+# (Superset's UPDATING.md for 6.0); on by default in 6.1, said here so a change of default never hides it
+FAB_ADD_SECURITY_API = True
 
 # ---- Features
 # ENABLE_TEMPLATE_PROCESSING: model access uses {{ current_username() }} (D138)
