@@ -56,6 +56,7 @@ area by area: [docs/capabilities.md](docs/capabilities.md).
 | 5.5 | | Enterprise discovery | planned |
 | 5.6 | | Backup and restore, tested and fixed (nothing else) | planned |
 | 6 | | The key vault (OpenBao), once its details are agreed | planned |
+| 6.5 | | Syncing servers, once its details are agreed | planned |
 | 7 | | Help and videos | planned |
 
 ## Quick start (laptop)
