@@ -23,6 +23,7 @@ def _row(*cells):
 
 
 def sample(conn, data: dict) -> dict:
+    """Loads the sample library content."""
     said = []
     ana, lead, arch = _who("user_architect"), _who("user_lead_architect"), _who("user_project_admin")
     models = data.get("models") or []

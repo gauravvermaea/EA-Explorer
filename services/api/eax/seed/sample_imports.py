@@ -60,6 +60,7 @@ def csv_set(apps: list[list[str]], rels: list[list[str]] | None = None) -> bytes
 
 
 def run() -> list[str]:
+    """Loads the sample imports and deliveries."""
     from .. import permissions as perms
     from ..db import get_engine
     said: list[str] = []

@@ -13,6 +13,7 @@ OUTCOMES = ("passed", "failed", "skipped", "warning")
 
 @dataclass
 class Result:
+    """One check's result."""
     suite: str
     name: str
     outcome: str
@@ -49,6 +50,7 @@ class Run:
 
     # --- the shared code's Run interface (eax/testing/run.py: log, recorder, counts, dir) -------------------------
     def log(self, msg: str) -> None:
+        """A line in the run's log."""
         line = f"{datetime.now(UTC).strftime('%H:%M:%S')} {msg}"
         self.log_lines.append(line)
         if not self.quiet:
@@ -57,6 +59,7 @@ class Run:
             f.write(line + "\n")
 
     def recorder(self, suite: str, browser: str = ""):
+        """A function that records results in a suite."""
         def record(name: str, outcome: str, detail: str = "", ms: int = 0, screenshot: bytes | None = None, video: str = "",
                    request: str = "", response: str = "", browser: str = browser, **_kw) -> None:
             if outcome not in OUTCOMES:
@@ -70,6 +73,7 @@ class Run:
 
     # --- totals ----------------------------------------------------------------------------------------------------
     def tally(self) -> dict[str, int]:
+        """The results counted by outcome."""
         out = {o: 0 for o in OUTCOMES}
         for r in self.results:
             out[r.outcome] += 1
@@ -78,6 +82,7 @@ class Run:
 
     @property
     def failed(self) -> bool:
+        """Whether anything failed."""
         return any(r.outcome == "failed" for r in self.results) or bool(self.load.get("failed"))
 
     def coverage(self) -> list[tuple[str, str]]:

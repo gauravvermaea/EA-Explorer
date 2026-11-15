@@ -1,7 +1,10 @@
 # Notes for AI agents working on EA Explorer
 
 Read this first. It is enough to pick the work up with no earlier conversation. `CLAUDE.md` points
-here.
+here. Then run `eax dev check` (lint, tests, the documents' cross-checks) and read
+[docs/handover.md](docs/handover.md): what was just done, what is in progress, what comes next and the open questions.
+**Update docs/handover.md at the end of every working session** (R5.16). What each part does and where it lives:
+[docs/functional-description.md](docs/functional-description.md).
 
 ## What this is
 
@@ -58,6 +61,11 @@ draw.io, nginx, React screens. How it is built: [docs/architecture.md](docs/arch
 - **Bugs before features (owner, 12 Nov 2026: "Please fix the bugs we will only build new features after bugs are done unless
   requested")**: while any bug is open, fix bugs; a new feature or story is recorded (docs/build-phases.md), not built,
   unless the owner asks for that one to be built now.
+- **Every module, class and function says what it is for (R5.14, R5.15)**: a docstring in plain words (what it takes
+  and gives back, and why when that is not obvious; a decision number explained, never alone).
+  `tests/test_r5_15_code_comments.py` fails on one missing or unreadable.
+- **When a container is added or removed, the estate is updated** (`eaxcli/estate.py`, then
+  `python3 tools/build_estate_diagrams.py`).
 - **Avoid logic in the database where possible (D248)**: rules, calculations and checks go in Python; no new triggers or
   database functions for them. Heavy calculations run as background jobs and are stored; screens show the last result
   with its date (only a single entity is checked at once).

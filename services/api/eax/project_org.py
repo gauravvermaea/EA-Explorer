@@ -32,6 +32,7 @@ def _may(conn, p: dict, user) -> bool:
 
 
 def listing(conn, project: Any, user) -> dict:
+    """A project's organisation: its people, their roles and skills."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "read")
     rows = _rows(conn, """SELECT o.guid::text AS id, o.name, o.role, o.username, o.skills, s.guid::text AS stakeholder, o.modified_by,
@@ -63,6 +64,7 @@ def _clean(conn, p: dict, d: dict) -> dict:
 
 
 def add(conn, project: Any, user, d: dict) -> dict:
+    """Adds a person to the project's organisation."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
     v = _clean(conn, p, d)
@@ -81,6 +83,7 @@ def _row(conn, p: dict, pid: str) -> dict:
 
 
 def update(conn, project: Any, user, pid: str, d: dict) -> dict:
+    """Changes a person in the project's organisation."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
     r = _row(conn, p, pid)
@@ -92,6 +95,7 @@ def update(conn, project: Any, user, pid: str, d: dict) -> dict:
 
 
 def delete(conn, project: Any, user, pid: str) -> dict:
+    """Removes a person from the project's organisation."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
     r = _row(conn, p, pid)
@@ -117,6 +121,7 @@ def add_members(conn, project: Any, user) -> dict:
 
 
 def reorder(conn, project: Any, user, order: list[str]) -> dict:
+    """Puts the project's organisation in the order given."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
     for n, g in enumerate(order or []):

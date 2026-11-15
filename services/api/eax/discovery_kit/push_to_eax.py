@@ -82,6 +82,7 @@ def read_folder(folder):
 
 
 def main():
+    """Command line: pushes the CSV files in a folder to an EA Explorer model's push source."""
     parser = argparse.ArgumentParser(description="Push CSV files to an EA Explorer model's Push source.")
     parser.add_argument("--url", required=True, help="the Push address shown on the model's Discovery tab")
     parser.add_argument("--user", help="your EA Explorer user name (signing in with a password)")

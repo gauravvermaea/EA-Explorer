@@ -30,14 +30,17 @@ RECENT = timedelta(days=2)     # older ended restores are not announced again af
 
 
 def link(rid: str) -> str:
+    """The restore's page."""
     return f"#/admin/restores/{rid}"
 
 
 def everyone(conn) -> list[str]:
+    """Everyone known to EA Explorer, told when a restore starts and ends."""
     return [r["u"] for r in notify._rows(conn, "SELECT DISTINCT lower(username) AS u FROM core.known_users")]
 
 
 def announced(conn, kind: str, rid: str) -> bool:
+    """Whether a restore was already announced."""
     from . import personal as P
     try:
         return bool(P.one(conn, "SELECT 1 AS x FROM personal.notifications WHERE kind = :k AND link = :l LIMIT 1", k=kind, l=link(rid)))

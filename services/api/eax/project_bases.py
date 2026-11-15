@@ -44,6 +44,7 @@ S_FIELDS = ("name", "area", "description", "status", "source")
 
 
 def seed() -> dict:
+    """The base projects' starting content (seed/project_bases.json)."""
     return json.loads((Path(__file__).resolve().parent / "seed" / "project_bases.json").read_text(encoding="utf-8"))
 
 
@@ -134,6 +135,7 @@ def check_change(p: dict, user) -> None:
 
 
 def base_row(conn, p: dict) -> dict | None:
+    """The base project a project was made from, if any."""
     return _one(conn, "SELECT * FROM proj.projects WHERE id = :b", b=p["base_id"]) if p.get("base_id") else None
 
 
@@ -252,6 +254,7 @@ def _copy_charter(conn, p: dict, b: dict) -> None:
 
 # ---------------------------------------------------------------- what the screens call
 def view(conn, project: Any, user) -> dict:
+    """A project's base and what it took from it."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "read")
     b = base_row(conn, p)

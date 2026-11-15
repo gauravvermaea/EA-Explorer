@@ -19,6 +19,7 @@ SAMPLES = (("Retired 2024 baseline (sample archived model)", "archived", "The 20
 
 
 def run() -> list[str]:
+    """Loads the sample archive."""
     out = []
     eng = get_engine()
     with eng.connect() as conn:

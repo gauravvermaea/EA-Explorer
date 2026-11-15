@@ -73,6 +73,7 @@ PART_SIZE = 45 * 1024 * 1024
 
 # ---------------------------------------------------------------- reading a folder
 def industry_of(folder_name: str) -> str | None:
+    """The industry a pack's folder is for, by its name."""
     n = folder_name.strip().lower().replace("-", " ").replace("_", " ")
     for code, _name, names, _m in INDUSTRIES:
         if n in {x.replace("_", " ") for x in names} or n == code.replace("-", " "):
@@ -162,6 +163,7 @@ def split_file(path: Path) -> list[Path]:
 
 
 def join_parts(manifest: Path) -> tuple[str, bytes]:
+    """A large pack file put back together from its parts, its SHA-256 checked."""
     m = json.loads(manifest.read_text(encoding="utf-8"))
     data = b"".join((manifest.parent / p).read_bytes() for p in m["parts"])
     if hashlib.sha256(data).hexdigest() != m["sha256"]:
@@ -180,6 +182,7 @@ class PackFile(dict):
         return dict.__getitem__(self, key)
 
     def get(self, key, default=None):
+        """A pack file's field (its content read when asked for)."""
         return self[key] if key == "content" or key in self else default
 
 
@@ -389,6 +392,7 @@ STARTER_PACKS = {"banking", "healthcare", "insurance", "manufacturing", "pharmac
 
 
 def for_model(conn, model: Any) -> dict:
+    """The industry pack's files for a library model, as tiles."""
     code = _code_for_model(conn, model)
     if not code:
         return {"industry": None, "tiles": [], "message": "This library model has no industry pack."}
@@ -396,6 +400,7 @@ def for_model(conn, model: Any) -> dict:
 
 
 def listing(conn) -> list[dict]:
+    """The industries with packs loaded, with how many files and how large."""
     rows = conn.execute(text("""SELECT industry, count(*) AS files, sum(file_size) AS size FROM core.industry_pack_files
                                  GROUP BY industry""")).mappings().all()
     have = {r["industry"]: r for r in rows}
@@ -404,6 +409,7 @@ def listing(conn) -> list[dict]:
 
 
 def download(conn, file_id: str) -> tuple[bytes, str, str]:
+    """One pack file to download (from Documents, or the sample kept)."""
     from . import mayan
     row = conn.execute(text("""SELECT file_name, content_type, mayan_document_id, sample_content FROM core.industry_pack_files
                                 WHERE guid::text = :g"""), {"g": file_id}).mappings().first()

@@ -24,6 +24,7 @@ SECURITY = [{"bearerAuth": []}]
 
 @blp.route("")
 class DocList(MethodView):
+    """/api/v1/documentation: GET every document that ships with this version, grouped."""
     @blp.response(200, Free)
     @blp.doc(security=SECURITY)
     @require_auth()
@@ -34,6 +35,7 @@ class DocList(MethodView):
 
 @blp.route("/search")
 class DocSearch(MethodView):
+    """/api/v1/documentation/search: GET documents holding every word of q, best first, with a snippet."""
     @blp.response(200, Free)
     @blp.doc(security=SECURITY)
     @require_auth()
@@ -45,6 +47,7 @@ class DocSearch(MethodView):
 
 @blp.route("/<string:key>")
 class DocOne(MethodView):
+    """/api/v1/documentation/{key}: GET one document as HTML (escaped first, so nothing in it runs)."""
     @blp.response(200, Free)
     @blp.doc(security=SECURITY)
     @require_auth()
@@ -58,6 +61,7 @@ class DocOne(MethodView):
 
 @blp.route("/<string:key>/download")
 class DocDownload(MethodView):
+    """/api/v1/documentation/{key}/download: GET the document's own file."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self, key):

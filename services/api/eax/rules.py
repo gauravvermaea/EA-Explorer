@@ -137,6 +137,7 @@ def check(rule: dict, value: Any, values: dict[str, Any], duplicate: bool) -> bo
 
 
 def default_message(rule: dict, label: str) -> str:
+    """What a rule says when it is broken, when it has no message of its own."""
     kind, p1, p2 = rule["rule_type_code"], rule.get("param1"), rule.get("param2")
     return {
         "mandatory": f"{label} is required",
@@ -207,6 +208,7 @@ def evaluate(entity: dict, attributes: Iterable[dict], rules: Iterable[dict],
 
 
 def summary(warnings: list[dict]) -> dict:
+    """How many errors and warnings the rules found."""
     return {"errors": sum(1 for w in warnings if w["severity"] == "error"),
             "warnings": sum(1 for w in warnings if w["severity"] != "error")}
 

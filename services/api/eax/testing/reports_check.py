@@ -82,6 +82,7 @@ class Keycloak:
             return exc.code, {"error": exc.read().decode()[:300]}, dict(exc.headers or {})
 
     def sign_in(self) -> None:
+        """Signs in to Keycloak's admin API (the master realm)."""
         if not self.password:
             raise RuntimeError("EAX_KC_ADMIN_PASSWORD is not in the test runner's settings")
         s, d, _ = self._call("POST", f"{self.base}/realms/master/protocol/openid-connect/token",
@@ -112,6 +113,7 @@ class Keycloak:
         return uid
 
     def remove(self, uid: str) -> bool:
+        """Deletes a Keycloak user (gone already is fine)."""
         return self._call("DELETE", f"/users/{uid}")[0] in (204, 404)
 
     def stale(self, sid: str, now: float | None = None) -> list[str]:
@@ -156,10 +158,12 @@ def chart_answer(status: int, body: str) -> tuple[bool, str, list[dict]]:
 
 
 def models_in(rows: list[dict]) -> set[str]:
+    """The model names in a chart's rows."""
     return {str(r["model_name"]) for r in rows if r.get("model_name")}
 
 
 def names_in(rows: list[dict]) -> set[str]:
+    """Every text value in a chart's rows."""
     out = set()
     for r in rows:
         for v in r.values():
@@ -169,6 +173,7 @@ def names_in(rows: list[dict]) -> set[str]:
 
 
 def verdict(ms: int, errors: list[str], charts: int) -> tuple[str, str]:
+    """Judges a report dashboard: errors fail, no charts fail, slower than 30 seconds warns."""
     if errors:
         return "failed", "; ".join(errors[:5])
     if charts == 0:
@@ -187,6 +192,7 @@ def expected_dashboards() -> set[str]:
 
 
 def reports_url() -> str:
+    """The address of Reports for the test's browser."""
     host, port = os.environ.get("EAX_HOSTNAME", "localhost"), os.environ.get("EAX_HTTPS_PORT", "443")
     return f"https://reports.{host}" + ("" if port == "443" else f":{port}")
 
@@ -240,6 +246,7 @@ class Session:
             self.last = time.time()
 
     def sign_in(self) -> None:
+        """Signs in to Reports through Keycloak in the test's browser."""
         self.page.goto(f"{self.base}/login/keycloak?next=%2Fdashboard%2Flist%2F", wait_until="domcontentloaded", timeout=60000)
         self.page.wait_for_selector("#username", timeout=60000)
         self.page.fill("#username", self.user)
@@ -255,6 +262,7 @@ class Session:
         return int(status), str(text or "")
 
     def api(self, path: str) -> tuple[int, dict]:
+        """A call to Reports' own API as the signed-in person."""
         status, text = self.call("GET", path)
         try:
             return status, json.loads(text)
@@ -262,6 +270,7 @@ class Session:
             return status, {}
 
     def dashboards(self) -> list[dict]:
+        """The dashboards the signed-in person sees in Reports."""
         s, d = self.api("/api/v1/dashboard/?q=(page_size:500)")
         return [x for x in (d.get("result") or []) if isinstance(x, dict)] if s == 200 else []
 
@@ -284,12 +293,14 @@ class Session:
         return ms, list(self.answers)
 
     def shot(self) -> bytes | None:
+        """A screenshot of the page now (None when it cannot be taken)."""
         try:
             return self.page.screenshot(full_page=False)
         except Exception:  # noqa: BLE001
             return None
 
     def close(self) -> None:
+        """Closes the browser session."""
         try:
             self.ctx.close()
         except Exception:  # noqa: BLE001
@@ -299,6 +310,8 @@ class Session:
 # ---------------------------------------------------------------- the suite
 def run(base: str, tokens: dict[str, str], ids: dict[str, str], record: Record, log: Callable[[str], None] = print,
         send=_send, keycloak: Keycloak | None = None, playwright=None) -> dict[str, int]:
+    """The reports suite: test users sign in to Reports, every dashboard opens with its charts, and each sees only what
+    is theirs."""
     counts = {"passed": 0, "failed": 0, "warning": 0, "skipped": 0}
 
     def rec(name: str, outcome: str, detail: str, ms: int = 0, **kw) -> None:
@@ -444,6 +457,7 @@ def _from_screens(base: str, tokens: dict[str, str], model: str, viewer: Session
 
 
 def fetch(base: str, path: str, token: str, timeout: int = 120) -> tuple[int, bytes]:
+    """A call to the API as a test user, its status and body."""
     from ..service_split import route
     req = urllib.request.Request(route(base, path) + path, headers={"Authorization": f"Bearer {token}"})
     try:

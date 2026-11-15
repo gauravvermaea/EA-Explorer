@@ -39,6 +39,7 @@ class SqlConsoleError(Exception):
 
 
 def enabled() -> bool:
+    """Whether the SQL console is on (on a laptop by default, off on a server)."""
     default = "true" if get_settings().deployment == "laptop" else "false"
     return os.environ.get("EAX_SQL_CONSOLE_ENABLED", default).strip().lower() in ("1", "true", "yes", "on")
 

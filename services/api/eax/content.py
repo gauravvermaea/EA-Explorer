@@ -478,6 +478,7 @@ def carry_values(conn, m: dict, old: Any, new_id: int, rel_type_id: int) -> int:
 
 
 def delete_relationship(conn, model: Any, relationship: Any) -> dict:
+    """Deletes a relationship from a model."""
     m = _model(conn, model)
     guid = repo._as_guid(relationship)
     row = _one(conn, "SELECT id FROM core.relationships WHERE guid = :g AND model_id = :m AND NOT is_deleted",

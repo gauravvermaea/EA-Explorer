@@ -8,6 +8,7 @@ import zipfile
 
 
 def text_of(file_name: str, content: bytes, limit: int = 200_000) -> str:
+    """A file's text for search (PDF, Word, PowerPoint, Excel or plain)."""
     name = (file_name or "").lower()
     try:
         if name.endswith(".pdf"):

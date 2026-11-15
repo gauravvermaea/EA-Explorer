@@ -38,17 +38,20 @@ def _rows(conn, sql: str, **p) -> list[dict]:
 
 
 def local_url() -> str:
+    """This installation's own address."""
     from .config import get_settings
     return get_settings().public_base_url.rstrip("/")
 
 
 def ensure_local(conn) -> None:
+    """Adds this installation to the site list when it is not there."""
     if not _rows(conn, "SELECT id FROM farm.sites WHERE source = 'local'"):
         _db(conn).execute(text("""INSERT INTO farm.sites (name, url, source, note) VALUES ('Local', :u, 'local', 'This site')
                                    ON CONFLICT DO NOTHING"""), {"u": local_url()})
 
 
 def listing(conn) -> list[dict]:
+    """The sites (installations) known here, this one first."""
     ensure_local(conn)
     return _rows(conn, f"SELECT {FIELDS} FROM farm.sites ORDER BY source <> 'local', lower(name)")
 
@@ -83,6 +86,7 @@ def _one(conn, ident) -> dict:
 
 
 def create(conn, user, d: dict, source: str = "added", deployment: str | None = None) -> dict:
+    """Adds a site (a Super Admin, or a deployment made from here)."""
     if source == "added":
         _need_super(user)
     v = _clean(d)
@@ -96,6 +100,7 @@ def create(conn, user, d: dict, source: str = "added", deployment: str | None = 
 
 
 def update(conn, user, ident, d: dict) -> dict:
+    """Changes a site (a Super Admin)."""
     _need_super(user)
     cur = _one(conn, ident)
     v = _clean(d, partial=True)
@@ -109,6 +114,7 @@ def update(conn, user, ident, d: dict) -> dict:
 
 
 def delete(conn, user, ident) -> dict:
+    """Removes a site from the list (never this one)."""
     _need_super(user)
     cur = _one(conn, ident)
     if cur["source"] == "local":

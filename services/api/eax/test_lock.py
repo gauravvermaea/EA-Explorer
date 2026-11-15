@@ -39,6 +39,7 @@ def exempt(username: str, roles) -> bool:
 
 
 def refusal(run: dict[str, Any]) -> dict[str, Any]:
+    """What a refused change says while a self-test runs."""
     return {"message": f"An environment test is in progress (self-test {run['id']}, started {run['since']:%H:%M} by "
                        f"{run['by']}): changes wait until it ends. You can keep reading.",
             "test_in_progress": run}

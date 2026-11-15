@@ -144,5 +144,6 @@ def restore(z: zipfile.ZipFile, core, pc, actor: str) -> tuple[str, list[str]]:
 
 
 def about(path: Any) -> dict:
+    """What an organisation backup holds: rows per table."""
     with zipfile.ZipFile(path) as z:
         return {t: len(v) for t, v in (json.loads(z.read("organisation/organisation.json")).get("tables") or {}).items()}

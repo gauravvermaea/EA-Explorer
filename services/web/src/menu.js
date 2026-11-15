@@ -64,6 +64,11 @@ export function menuTree() {
         { label: "Background tasks", href: "#/notifications/tasks" },
         { label: "Merge requests", href: "#/merge-requests" },
       ] },
+      { label: "Service desk", items: [               // ask for things (R5.11)
+        { label: "Ask for something", href: "#/service-desk/ask" },
+        { label: "My requests", href: "#/service-desk/mine" },
+        { label: "To work on", href: "#/service-desk/queue" },
+      ] },
       { label: "Surveys to answer", href: "#/surveys" },
       { label: "Notifications", href: "#/notifications" },
       { label: "Recent and pinned", href: "#/work" },
@@ -188,12 +193,18 @@ export function menuTree() {
         { label: "Licences", href: "#/admin/licences" },
       ] },
       { label: "Users and roles", href: "#/admin/users", ok: () => can("users.read") },
+      { label: "Security", href: "#/admin/security", ok: ops },   // IP allow lists, multi-factor sign-in (R5.2, R5.3)
       { label: "Running", ok: ops, items: [
         { label: "Health", href: "#/admin/health" },
+        { label: "Alerts", href: "#/admin/alerts" },        // every check, the open alerts (R5.9)
         { label: "Containers", href: "#/admin/containers" },
+        { label: "Logs", href: "#/admin/logs" },            // every log, the web log (R5.6)
         { label: "Hosts", href: "#/admin/hosts" },          // the Docker engine (R2.16)
         { label: "Mounts", href: "#/admin/mounts" },        // volumes and bind mounts (R2.17)
         { label: "Databases", href: "#/admin/databases" },
+        { label: "Database maintenance", href: "#/admin/db-maintenance" },   // R5.12
+        { label: "Optimisation", href: "#/admin/optimisation" },             // R5.1
+        { label: "Sizing", href: "#/admin/sizing" },                         // R5.19
         { label: "Persist", href: "#/admin/persist" },
         { label: "Footprint", href: "#/admin/footprint" },
         { label: "Estate", href: "#/admin/estate" },

@@ -39,6 +39,7 @@ _lock = threading.Lock()
 
 
 def bind(ns: dict) -> None:
+    """Takes ops.py's helpers."""
     H.update(ns)
 
 
@@ -106,6 +107,7 @@ def offered(answers: dict) -> dict:
 
 
 def questions(answers: dict) -> dict:
+    """The deployment questions for the answers so far."""
     D = _D()
     a = {**_defaults(), **offered(answers), "aws_profile": ""}     # no AWS profiles here: an access key
     merged = {**{q.key: q.default_for(a) for q in D.visible(a) if q.key not in a}, **a}
@@ -149,6 +151,7 @@ def _split(answers: dict, given_secrets: dict) -> tuple[dict, dict]:
 
 
 def start(body: dict) -> dict:
+    """Starts a deployment (or its plan) in its own container."""
     D = _D()
     answers = offered({**_defaults(), **(body.get("answers") or {})})
     plan = bool(body.get("plan"))
@@ -212,6 +215,7 @@ def _plan_here(folder: str) -> None:
 
 
 def deployer_image() -> str:
+    """The deployer image for this version."""
     try:
         text = _text(f"{REPO}/services/api/version.toml")
         version = re.search(r'^version = "([^"]+)"', text, re.MULTILINE).group(1)
@@ -221,6 +225,7 @@ def deployer_image() -> str:
 
 
 def image_present(image: str) -> bool:
+    """Whether an image is there."""
     try:
         H["docker"]("image", "inspect", image)
         return True
@@ -298,6 +303,7 @@ def _read(folder: str) -> tuple[dict, dict]:
 
 
 def run(run_id: str, log_lines: int = 600) -> dict:
+    """One deployment's state and log."""
     folder = _run_dir(run_id)
     if not os.path.isdir(folder):
         raise ValueError("No such deployment.")
@@ -311,6 +317,7 @@ def run(run_id: str, log_lines: int = 600) -> dict:
 
 
 def runs(limit: int = 50) -> list[dict]:
+    """The deployments, newest first."""
     out = []
     try:
         names = sorted(os.listdir(RUNS), reverse=True)[:limit]
@@ -328,6 +335,7 @@ def runs(limit: int = 50) -> list[dict]:
 
 
 def kept() -> list[str]:
+    """The targets whose credentials are kept."""
     try:
         return sorted(os.listdir(KEEP))
     except OSError:
@@ -335,6 +343,7 @@ def kept() -> list[str]:
 
 
 def forget(target: str) -> dict:
+    """Deletes a target's kept credentials."""
     path = f"{KEEP}/{re.sub(r'[^A-Za-z0-9@._:-]', '-', target)}"
     if not os.path.isdir(path):
         raise ValueError("No credentials are kept for that target.")
@@ -343,6 +352,7 @@ def forget(target: str) -> dict:
 
 
 def decide(run_id: str, choice: str) -> dict:
+    """After a failed step: retry, go back or quit."""
     if choice not in ("retry", "back", "quit"):
         raise ValueError("Choose retry, back or quit.")
     folder = _run_dir(run_id)
@@ -355,6 +365,7 @@ def decide(run_id: str, choice: str) -> dict:
 
 
 def overview() -> dict:
+    """The deployments page: runs, kept credentials, the deployer image."""
     image = deployer_image()
     return {"runs": runs(), "kept": kept(), "image": image, "image_present": image_present(image) if H else False,
             "defaults": _defaults()}

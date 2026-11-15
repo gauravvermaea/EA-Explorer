@@ -91,6 +91,7 @@ def _add(args: list[str]) -> int:
 
 
 def main(args: list[str]) -> int:
+    """eax schedule: scheduled eax commands (list, add, on, off, remove, run)."""
     what = args[0] if args else "list"
     rest = args[1:]
     try:

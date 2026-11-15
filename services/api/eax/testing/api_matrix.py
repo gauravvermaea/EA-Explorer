@@ -97,6 +97,7 @@ def fill(path: str, ids: dict[str, str]) -> str | None:
 
 
 def judge_anonymous(status: int, public: bool) -> tuple[str, str]:
+    """Judges a call made without a token: refused passes, an answer fails unless the path is public."""
     if status >= 500 and status != 599:
         return ("warning" if status in (502, 503, 504) else "failed"), f"server error {status} without a token"
     if status == 599:
@@ -117,6 +118,7 @@ OWN_KEY = {
 
 
 def judge_role(status: int, own_key: str = "") -> tuple[str, str]:
+    """Judges a call made as a role: answered or refused, never a server error."""
     if own_key and status in (400, 401, 403):
         return "passed", f"refused: {status} (it takes {own_key}, not a token)"
     if status in (502, 503, 504):

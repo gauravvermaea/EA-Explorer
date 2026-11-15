@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { apiFetch, can, signedIn } from "./auth";
 import { fmtDateTime, fmtTime } from "./fmt";
 import { LastSelfTest } from "./TestRuns";
+import { AlertSummary } from "./AlertsPage";
 
 function Status({ ok, children }) {
   return <span className={ok ? "status ok" : "status bad"}>{children}</span>;
@@ -129,6 +130,7 @@ export default function Heartbeat() {
         </table>
       )}
       {signedIn() && <Services />}
+      <AlertSummary />
       <LastSelfTest />
       <Integrate />
       <h2>Background job</h2>

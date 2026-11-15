@@ -53,6 +53,7 @@ def _may(conn, p: dict, user, what: str = "contribute") -> bool:
 
 
 def kinds(conn, p: dict) -> list[dict]:
+    """The kinds of governance record a project uses: the standard ones and its own."""
     out = [{"name": k, "prefix": v[0], "statuses": v[1], "own": False} for k, v in KINDS.items()]
     for r in _rows(conn, "SELECT name, prefix, statuses FROM proj.gov_kinds WHERE project_id = :p ORDER BY sort_order, name", p=p["id"]):
         out.append({"name": r["name"], "prefix": r["prefix"], "statuses": list(r["statuses"] or []) or ["Open", "Closed"], "own": True})
@@ -60,6 +61,7 @@ def kinds(conn, p: dict) -> list[dict]:
 
 
 def listing(conn, project: Any, user) -> dict:
+    """A project's governance records."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "read")
     rows = _rows(conn, """SELECT g.guid::text AS id, g.kind, g.ref, g.title, g.html, g.status, g.owner, g.raised_on, g.expires_on,
@@ -123,6 +125,7 @@ def _vals(conn, p: dict, d: dict) -> dict:
 
 
 def add(conn, project: Any, user, d: dict) -> dict:
+    """Adds a governance record to a project."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
     v = _vals(conn, p, d)
@@ -149,6 +152,7 @@ def _row(conn, p: dict, rid: str) -> dict:
 
 
 def update(conn, project: Any, user, rid: str, d: dict) -> dict:
+    """Changes a governance record (its history kept)."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
     r = _row(conn, p, rid)
@@ -171,6 +175,7 @@ def update(conn, project: Any, user, rid: str, d: dict) -> dict:
 
 
 def delete(conn, project: Any, user, rid: str) -> dict:
+    """Deletes a governance record (a Project Admin)."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "admin")
     r = _row(conn, p, rid)
@@ -196,6 +201,7 @@ def add_kind(conn, project: Any, user, d: dict) -> dict:
 
 
 def delete_kind(conn, project: Any, user, name: str) -> dict:
+    """Removes one of the project's own kinds of record (not a standard one)."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
     if name in KINDS:
@@ -214,6 +220,7 @@ def _sections() -> list[dict]:
 
 
 def charter(conn, project: Any, user) -> dict:
+    """A project's charter."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "read")
     r = _one(conn, "SELECT * FROM proj.charters WHERE project_id = :p", p=p["id"])
@@ -286,6 +293,7 @@ APPROVAL = ("Draft", "Waiting for approval", "Approved", "Rejected")
 
 
 def pj_work():
+    """The project work module (imported late, to keep the two modules apart)."""
     from . import project_work as pw
     return pw
 
@@ -419,6 +427,7 @@ def approve_with_evidence(conn, project: Any, user, rid: str, reason: str = "", 
 
 
 def history(conn, project: Any, user, rid: str) -> dict:
+    """A governance record's earlier versions."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "read")
     r = _row(conn, p, rid)

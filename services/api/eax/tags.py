@@ -170,6 +170,7 @@ def _hold_views(conn, m: dict, row: dict) -> None:
 
 
 def list_tags(conn, model: Any) -> dict:
+    """A model's tags."""
     m = repo.get_model(conn, model)
     rows = _rows(conn, """SELECT id, guid, name, description, kind, is_locked, commit_number, metamodel_version, entity_count,
                                  relationship_count, created_by, created_at, locked_by, locked_at, restored_at, restored_by
@@ -325,6 +326,7 @@ def update_tag(conn, model: Any, user, tag: Any, name: str | None = None, descri
 
 
 def delete_tag(conn, model: Any, user, tag: Any) -> dict:
+    """Deletes a tag that is not locked."""
     m = repo.get_model(conn, model)
     _may_tag(conn, user, m)
     t = _tag_row(conn, m, tag)

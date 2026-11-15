@@ -95,6 +95,7 @@ def areas_of(v: Any) -> list[str]:
 
 
 def labels(v: Any) -> str:
+    """The content framework areas of a value, in words."""
     return ", ".join(LABEL.get(c, c) for c in areas_of(v))
 
 
@@ -124,6 +125,8 @@ PHASE_AREA = {"P": "prelim.principles", "A": "vision.architecture_vision", "B": 
 
 
 def area_of_item(name: str, chosen: str = "", library: str = "", phase: str = "") -> tuple[list[str], bool]:
+    """Which content framework areas an item is in (chosen, from its library, or guessed from its name and phase) and
+    whether that was chosen."""
     if areas_of(chosen):
         return areas_of(chosen), True
     if areas_of(library):
@@ -172,6 +175,7 @@ def _repo_map() -> dict:
 
 
 def clean_repo(v: Any) -> str:
+    """A repository area checked against the known ones."""
     v = (str(v or "")).strip()
     if v and v not in REPO_AREAS:
         raise EditError(f"The repository area is one of: {', '.join(REPO_AREAS)}.")
@@ -668,6 +672,7 @@ def _entity_rows(conn, p: dict, user, ids: list[str]) -> list[dict]:
 # Super Admins and Library Admins on Project admin › Template setup, also while uploading a template. Every project
 # starts from these (then its parent's choices, then its own).
 def template_setup(conn, user, library: str = "") -> dict:
+    """What the template set-up page shows: the template libraries and what may be added to each."""
     pj._need_library(user)
     libs = [{"id": str(lb["guid"]), "name": lb["name"], "kind": lb["kind"], "may_add": lb["kind"] != "ea-explorer"}
             for lb in _rows(conn, "SELECT guid, name, kind FROM proj.template_libraries ORDER BY kind <> 'ea-explorer', name")]

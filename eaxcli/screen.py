@@ -413,6 +413,7 @@ Dialog, Output, HelpWindow { align: center middle; background: rgba(0, 0, 0, 0.3
 
 
 def main(argv: list[str] | None = None) -> int:
+    """eax screen: the full-screen terminal view (when it can run here)."""
     why = why_not()
     if why or not load_textual():
         if why:

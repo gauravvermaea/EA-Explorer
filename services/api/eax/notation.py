@@ -100,6 +100,7 @@ def clean_colour(c: str | None) -> str:
 
 
 def clean_notation(n: str | None) -> str:
+    """A notation checked against ArchiMate 4's elements."""
     n = (n or "").strip()
     if n and n not in ELEMENTS and n != JUNCTION:
         raise ValueError(f"{n!r} is not an ArchiMate 4 element: choose one of {', '.join(NOTATIONS)}, or none.")

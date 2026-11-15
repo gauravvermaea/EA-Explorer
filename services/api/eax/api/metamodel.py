@@ -65,6 +65,8 @@ def _call(fn, *args, begin: bool = False, **kwargs):
 
 @blp.route("")
 class ModelList(MethodView):
+    """/api/v1/models: GET every model you may read: templates, reference models and project models With their
+    properties (owner, active or archived, industry and version for reference models)…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(ModelListQuery, location="query")
     @blp.response(200, ModelOut(many=True))
@@ -80,11 +82,14 @@ class ModelList(MethodView):
 
 
 class LibraryQuery(Schema):
+    """The shape of library query in the API's answers: withdrawn."""
     withdrawn = fields.Boolean(load_default=False, metadata={"description": "Also the withdrawn library models"})
 
 
 @blp.route("/library")
 class Library(MethodView):
+    """/api/v1/models/library: GET the model library: root metamodels and reference models, with what each is built
+    on and its counts by type Published library models are locked: nobody can change them…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(LibraryQuery, location="query")
     @blp.response(200, LibraryModelOut(many=True))
@@ -100,6 +105,7 @@ class Library(MethodView):
 
 @blp.route("/<uuid:model_id>")
 class ModelView(MethodView):
+    """/api/v1/models/{model_id}: GET one model and its counts."""
     @blp.doc(security=SECURITY)
     @blp.response(200, ModelOut)
     @require_auth()
@@ -110,6 +116,8 @@ class ModelView(MethodView):
 
 @blp.route("/<uuid:model_id>/metamodel")
 class ModelMetamodel(MethodView):
+    """/api/v1/models/{model_id}/metamodel: GET the model's metamodel: domains with their entity types, and the
+    relationship types."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Metamodel)
     @require_auth()
@@ -120,6 +128,8 @@ class ModelMetamodel(MethodView):
 
 @blp.route("/<uuid:model_id>/metamodel/diagram")
 class ModelMetamodelDiagram(MethodView):
+    """/api/v1/models/{model_id}/metamodel/diagram: GET data for the metamodel ER diagram: entity types with their
+    attributes, and the allowed relationships combined per source and target type."""
     @blp.doc(security=SECURITY)
     @blp.response(200, MetamodelDiagram)
     @require_auth()
@@ -131,6 +141,8 @@ class ModelMetamodelDiagram(MethodView):
 
 @blp.route("/<uuid:model_id>/metamodel/mermaid")
 class ModelMetamodelMermaid(MethodView):
+    """/api/v1/models/{model_id}/metamodel/mermaid: GET the metamodel, or part of it, as a Mermaid ER diagram (paste
+    into any Mermaid editor)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(MermaidQuery, location="query")
     @blp.response(200, MermaidOut)
@@ -144,6 +156,8 @@ class ModelMetamodelMermaid(MethodView):
 
 @blp.route("/<uuid:model_id>/entity-types/<uuid:type_id>")
 class EntityTypeView(MethodView):
+    """/api/v1/models/{model_id}/entity-types/{type_id}: GET one entity type: its attributes, validation rules and
+    allowed relationships."""
     @blp.doc(security=SECURITY)
     @blp.response(200, EntityTypeDetail)
     @require_auth()
@@ -154,6 +168,8 @@ class EntityTypeView(MethodView):
 
 @blp.route("/<uuid:model_id>/entity-list")
 class EntityListView(MethodView):
+    """/api/v1/models/{model_id}/entity-list: GET every entity of the model (or of one type): display ID, name, type,
+    domain, relationship count."""
     @blp.doc(security=SECURITY)
     @blp.arguments(EntityListQuery, location="query")
     @blp.response(200, EntitySummaryOut(many=True))
@@ -165,6 +181,8 @@ class EntityListView(MethodView):
 
 @blp.route("/<uuid:model_id>/entities/<uuid:entity_id>")
 class EntityDetailView(MethodView):
+    """/api/v1/models/{model_id}/entities/{entity_id}: GET one entity: every attribute of its type with its value and
+    rule results, the warnings, its relationships (each marked allowed or not), parent, children, and the…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, EntityDetailOut)
     @require_auth()
@@ -178,6 +196,8 @@ class EntityDetailView(MethodView):
 
 @blp.route("/<uuid:model_id>/entity-types/<uuid:type_id>/table")
 class TypeTableView(MethodView):
+    """/api/v1/models/{model_id}/entity-types/{type_id}/table: GET the entities of one type as a table: a column per
+    attribute, and per row its values, relationship count and validation results (errors and warnings)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, TypeTableOut)
     @require_auth()
@@ -189,6 +209,8 @@ class TypeTableView(MethodView):
 
 @blp.route("/<uuid:model_id>/entities/<uuid:entity_id>/history")
 class EntityHistoryView(MethodView):
+    """/api/v1/models/{model_id}/entities/{entity_id}/history: GET every recorded change to an entity, its attribute
+    values and its relationships, newest first."""
     @blp.doc(security=SECURITY)
     @blp.arguments(HistoryQuery, location="query")
     @blp.response(200, EntityHistoryOut)
@@ -200,6 +222,9 @@ class EntityHistoryView(MethodView):
 
 @blp.route("/<uuid:model_id>/entities/<uuid:entity_id>/rules")
 class EntityRulesView(MethodView):
+    """/api/v1/models/{model_id}/entities/{entity_id}/rules: GET every rule applied to an entity and its
+    relationships: passed, failed or not applicable The metamodel's required flags and pick lists, the validation
+    rules of its type…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, EntityRulesOut)
     @require_auth()
@@ -215,6 +240,8 @@ class EntityRulesView(MethodView):
 
 @blp.route("/<uuid:model_id>/entities/<uuid:entity_id>/as-of")
 class EntityAsOfView(MethodView):
+    """/api/v1/models/{model_id}/entities/{entity_id}/as-of: GET an entity as it was at one point in its history,
+    beside its values now Give `event` (a history event id from .../history) or `at` (a time)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(AsOfQuery, location="query")
     @blp.response(200, EntityAsOfOut)
@@ -232,6 +259,8 @@ class EntityAsOfView(MethodView):
 
 @blp.route("/<uuid:model_id>/entities/<uuid:entity_id>/paths")
 class EntityPathsView(MethodView):
+    """/api/v1/models/{model_id}/entities/{entity_id}/paths: GET the shortest chains connecting this entity to
+    another (`to`), through relationships either way and the parent hierarchy, as a graph and as lists of entities."""
     @blp.doc(security=SECURITY)
     @blp.arguments(PathQuery, location="query")
     @blp.response(200, EntityGraphOut)
@@ -244,6 +273,8 @@ class EntityPathsView(MethodView):
 
 @blp.route("/<uuid:model_id>/graph")
 class EntityGraphView(MethodView):
+    """/api/v1/models/{model_id}/graph: GET entities and the lines between them (relationships and the parent
+    hierarchy), for drawing Give `focus` (an entity and everything within `depth` steps) or `type` (every…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(GraphQuery, location="query")
     @blp.response(200, EntityGraphOut)
@@ -262,6 +293,8 @@ class EntityGraphView(MethodView):
 
 @blp.route("/<uuid:model_id>/relationship-types")
 class RelationshipTypeSummaryView(MethodView):
+    """/api/v1/models/{model_id}/relationship-types: GET every relationship type with how often the model uses it and
+    how many uses break the rules."""
     @blp.doc(security=SECURITY)
     @blp.response(200, RelationshipTypeSummaryOut(many=True))
     @require_auth()
@@ -272,6 +305,8 @@ class RelationshipTypeSummaryView(MethodView):
 
 @blp.route("/<uuid:model_id>/relationships")
 class RelationshipListView(MethodView):
+    """/api/v1/models/{model_id}/relationships: GET every relationship of the model (or of one type): source,
+    relationship type, target, and whether the metamodel allows it."""
     @blp.doc(security=SECURITY)
     @blp.arguments(RelationshipListQuery, location="query")
     @blp.response(200, RelationshipOut(many=True))
@@ -284,6 +319,8 @@ class RelationshipListView(MethodView):
 
 @blp.route("/<uuid:model_id>/entities")
 class EntitiesView(MethodView):
+    """/api/v1/models/{model_id}/entities: GET entities of one type in the model, one column per attribute (built by
+    eax.get_entity) Give `type` as the type's name, code or table name."""
     @blp.doc(security=SECURITY)
     @blp.arguments(EntitiesQuery, location="query")
     @blp.response(200, EntitiesOut)

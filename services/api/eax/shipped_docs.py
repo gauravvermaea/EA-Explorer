@@ -64,6 +64,7 @@ def _sources(base: Path) -> list[tuple[str, Path]]:
 
 
 def group_of(key: str) -> str:
+    """The group a shipped document shows under on the Documentation page."""
     k = key.lower()
     if k in ("readme", "index") or k.startswith(("getting-started", "quick-start")):
         return "Getting started"
@@ -91,6 +92,7 @@ def _title(text: str, key: str) -> str:
 
 
 def listing() -> dict:
+    """The documents shipped with EA Explorer, by group."""
     base = root()
     docs = []
     for key, p in _sources(base):
@@ -115,6 +117,7 @@ def _summary(text: str) -> str:
 
 
 def find(key: str) -> tuple[str, Path]:
+    """A shipped document by its key."""
     for k, p in _sources(root()):
         if k == key:
             return k, p
@@ -122,6 +125,7 @@ def find(key: str) -> tuple[str, Path]:
 
 
 def document(key: str) -> dict:
+    """A shipped document as HTML to show."""
     k, p = find(key)
     text = p.read_text(encoding="utf-8")
     body = ("<pre class=\"doc-help\">" + html.escape(text) + "</pre>") if k == "command-line-help" else render(text)
@@ -130,11 +134,13 @@ def document(key: str) -> dict:
 
 
 def raw(key: str) -> tuple[str, bytes]:
+    """A shipped document's file as it is."""
     _k, p = find(key)
     return p.name, p.read_bytes()
 
 
 def search(q: str, limit: int = 40) -> list[dict]:
+    """The shipped documents with every word searched for, the best first."""
     words = [w for w in re.split(r"\s+", (q or "").lower().strip()) if w]
     if not words:
         return []

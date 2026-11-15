@@ -39,6 +39,8 @@ def _run(fn):
 
 @blp.route("/projects/<string:project>/scenarios")
 class Scenarios(MethodView):
+    """/api/v1/projects/{project}/scenarios: GET the baseline and the scenario models compared with it, and the
+    assessments recorded."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -49,6 +51,7 @@ class Scenarios(MethodView):
 
 @blp.route("/projects/<string:project>/scenarios/<string:model>/compare")
 class ScenarioCompare(MethodView):
+    """/api/v1/projects/{project}/scenarios/{model}/compare: GET one scenario model against the baseline in full."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -59,6 +62,7 @@ class ScenarioCompare(MethodView):
 
 @blp.route("/projects/<string:project>/scenario-assessments/<string:aid>")
 class ScenarioAssessment(MethodView):
+    """/api/v1/projects/{project}/scenario-assessments/{aid}: GET one scenario assessment."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -69,6 +73,7 @@ class ScenarioAssessment(MethodView):
 
 @blp.route("/projects/<string:project>/scenario-assessments/<string:aid>/docx")
 class ScenarioAssessmentDocx(MethodView):
+    """/api/v1/projects/{project}/scenario-assessments/{aid}/docx: GET the scenario assessment as a Word document."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self, project, aid):

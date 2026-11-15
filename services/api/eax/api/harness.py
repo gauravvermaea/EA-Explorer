@@ -60,6 +60,8 @@ def _audit(action: str, ident: str, details: dict) -> None:
 
 @blp.route("/endpoints")
 class Endpoints(MethodView):
+    """/api/v1/admin/api-harness/endpoints: GET every endpoint of the API's own description: method, path, area,
+    summary, parameters, an example body."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -70,6 +72,8 @@ class Endpoints(MethodView):
 
 @blp.route("/sessions")
 class Sessions(MethodView):
+    """/api/v1/admin/api-harness/sessions: POST a harness session: test accounts for the roles asked for (one-day
+    tokens) and its own test data."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(201, Free)
@@ -84,6 +88,8 @@ class Sessions(MethodView):
 
 @blp.route("/sessions/<int:session_id>/end")
 class SessionEnd(MethodView):
+    """/api/v1/admin/api-harness/sessions/{session_id}/end: POST ends a session: its test data, accounts and tokens
+    removed."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -104,6 +110,8 @@ def _token_for(sess: dict | None, as_who: str) -> str:
 
 @blp.route("/call")
 class Call(MethodView):
+    """/api/v1/admin/api-harness/call: POST one call through the API, as yourself or a session's role: reads
+    anywhere; writes into test data only."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -125,6 +133,8 @@ class Call(MethodView):
 
 @blp.route("/cases")
 class Cases(MethodView):
+    """/api/v1/admin/api-harness/cases: GET the saved cases; POST saves a call as a case with the answer expected (a
+    case of the same name is replaced)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -149,6 +159,7 @@ class Cases(MethodView):
 
 @blp.route("/cases/<int:case_id>")
 class Case(MethodView):
+    """/api/v1/admin/api-harness/cases/{case_id}: DELETE deletes a saved case."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -164,6 +175,8 @@ class Case(MethodView):
 
 @blp.route("/cases/run")
 class CasesRun(MethodView):
+    """/api/v1/admin/api-harness/cases/run: POST runs the saved cases (all, or the ids given) in the session's test
+    data, each as its role."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)

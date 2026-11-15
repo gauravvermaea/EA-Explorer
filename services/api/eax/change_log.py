@@ -192,6 +192,7 @@ BATCH = 2000
 
 
 def schema() -> str:
+    """The change log's schema name (EAX_CHANGELOG_DB_SCHEMA), refused when it is not a plain lower-case name."""
     from .config import get_settings
     name = get_settings().changelog_db_schema or "changelog"
     if not re.fullmatch(r"[a-z_][a-z0-9_]{0,62}", name):

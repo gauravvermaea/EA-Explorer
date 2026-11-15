@@ -22,6 +22,7 @@ def _size(n: int) -> str:
 
 
 def main(rest: list[str], ask=input) -> int:
+    """eax persist: what persist/ holds (list), and deleting it (asked first)."""
     args = [a for a in rest if not a.startswith("--")]
     flags = {a for a in rest if a.startswith("--")}
     if not args or args[0] == "list":

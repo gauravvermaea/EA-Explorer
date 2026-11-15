@@ -22,6 +22,7 @@ COUNT_LIMIT = 10.0
 
 
 def count_rows(engine, clock=time.monotonic, budget: float = STATE_BUDGET) -> tuple[dict, list[str]]:
+    """Counts each table's rows within a time budget (the test bench compares before and after)."""
     counts: dict[str, int | None] = {}
     problems: list[str] = []
     end = clock() + budget

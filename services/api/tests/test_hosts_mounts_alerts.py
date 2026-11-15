@@ -311,7 +311,7 @@ def test_every_container_says_what_it_is_for():
     import yaml
     web = (WEB / "ContainerConsole.jsx").read_text()
     block = web[web.index("export const PURPOSE = {"):web.index("};", web.index("export const PURPOSE = {"))]
-    said = set(re.findall(r'^\s+"?([a-z-]+)"?:', block, re.M))
+    said = set(re.findall(r'^\s+"?([a-z0-9-]+)"?:', block, re.M))   # k6 (R5.18) has a digit
     services = set(yaml.safe_load((REPO / "docker-compose.yml").read_text())["services"])
     assert services <= said, services - said
     assert "<th>What it is for</th>" in web and "purposeOf(c)" in web

@@ -28,6 +28,7 @@ GROUPS = ["Getting started", "Using EA Explorer", "Administration and operations
 def root() -> Path:
     # EAX_SHIPPED_DOCS, not EAX_DOCS_DIR: that one is the document store's volume in eaexplorer.env ("eax-docs",
     # /srv/eax/documents), which every container gets, so the shipped documents were looked for there (R2.0.1)
+    """Where the shipped documents are."""
     env = os.environ.get("EAX_SHIPPED_DOCS")
     if env:
         return Path(env)
@@ -37,6 +38,7 @@ def root() -> Path:
 
 
 def version(base: Path) -> str:
+    """The version the documents are of."""
     for p in (base / "version.toml", base / "services" / "api" / "version.toml"):
         try:
             return tomllib.loads(p.read_text(encoding="utf-8"))["version"]
@@ -46,6 +48,7 @@ def version(base: Path) -> str:
 
 
 def sources(base: Path) -> list[tuple[str, Path]]:
+    """The shipped documents' files."""
     out: list[tuple[str, Path]] = []
     if (base / "README.md").is_file():
         out.append(("readme", base / "README.md"))
@@ -68,6 +71,7 @@ def sources(base: Path) -> list[tuple[str, Path]]:
 
 
 def group_of(key: str) -> str:
+    """The group a document shows under."""
     k = key.lower()
     if k in ("readme", "index") or k.startswith(("getting-started", "quick-start")):
         return "Getting started"
@@ -85,6 +89,7 @@ def group_of(key: str) -> str:
 
 
 def title_of(text: str, key: str) -> str:
+    """A document's title (its first heading)."""
     for line in text.splitlines():
         m = re.match(r"^#\s+(.+)", line)
         if m:
@@ -175,6 +180,7 @@ def sync(conn, base: Path | None = None) -> dict:
 
 
 def main() -> int:
+    """Loads the shipped documents into the library."""
     from .db import connect
     try:
         with connect() as conn:

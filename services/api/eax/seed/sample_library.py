@@ -15,6 +15,7 @@ EXTERNAL = ("Fynbos Board reporting pack (sample)", "https://intranet.example.or
 
 
 def gather(conn) -> dict:
+    """What the sample library is made of, from the project library."""
     from .. import projects as pj
     core = pj.core(conn)
     def short(s: str, n: int = 140) -> str:
@@ -46,6 +47,7 @@ def gather(conn) -> dict:
 
 
 def run() -> list[str]:
+    """Loads the sample reference library (when the library service is on)."""
     from .. import library_client as lc
     from .. import projects as pj
     if not lc.service_on():

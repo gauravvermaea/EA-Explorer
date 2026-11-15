@@ -37,10 +37,12 @@ class _Bands:
 
     @staticmethod
     def set(b: dict | None) -> None:
+        """Sets the score bands this PDF is drawn with."""
         _BANDS.set(dict(b) if b else None)
 
     @staticmethod
     def get() -> dict:
+        """The score bands this PDF is drawn with (the defaults when none set)."""
         return _BANDS.get() or DEFAULT_BANDS
 
 

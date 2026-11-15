@@ -23,6 +23,7 @@ def _lit(v) -> str:
 
 
 def catalog_sql() -> str:
+    """The report catalogue (audiences, views, reports) as SQL to load."""
     out = ["SELECT set_config('eax.actor', 'system:seed', true);\n"]
     rows = [f"({_lit(c)}, {_lit(n)}, {_lit(g)}, {i})" for i, (c, n, g) in enumerate(AUDIENCES, 1)]
     out.append("INSERT INTO core.report_audiences (code, name, audience_group, sort_order) VALUES\n    "
@@ -51,4 +52,5 @@ def catalog_sql() -> str:
 
 
 def catalog_summary() -> str:
+    """How many views, audiences and reports the catalogue has."""
     return json.dumps({"views": len(VIEWS), "audiences": len(AUDIENCES), "reports": len(REPORTS)})

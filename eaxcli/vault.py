@@ -44,6 +44,7 @@ DERIVED = {"EAX_DMS_BROKER_PASSWORD_URLENC": "EAX_DMS_BROKER_PASSWORD"}
 
 
 class VaultError(Exception):
+    """The key vault refused or could not be reached."""
     pass
 
 
@@ -63,6 +64,7 @@ def references(env_text: str) -> dict[str, str]:
 
 
 def is_reference(value: str) -> bool:
+    """Whether a setting's value points to the vault."""
     return (value or "").strip().strip("'\"").startswith(PREFIX)
 
 
@@ -98,6 +100,7 @@ def keys_path(root: Path, persist: str = "") -> Path:
 
 
 def save_keys(p: Path, data: dict) -> Path:
+    """Keeps the vault's keys, readable by the owner only."""
     p.parent.mkdir(parents=True, exist_ok=True)
     try:
         p.parent.chmod(stat.S_IRWXU)
@@ -116,6 +119,7 @@ def save_keys(p: Path, data: dict) -> Path:
 
 
 def load_keys(p: Path) -> dict:
+    """The vault's keys."""
     try:
         return json.loads(p.read_text(encoding="utf-8"))
     except FileNotFoundError:
@@ -126,12 +130,14 @@ def load_keys(p: Path) -> dict:
 
 # ---------------------------------------------------------------- OpenBao's API (the Vault API)
 class Client:
+    """A small client of the key vault's HTTP API."""
     def __init__(self, url: str, token: str = "", timeout: int = 10):
         self.url, self.token, self.timeout = url.rstrip("/"), token, timeout
         self.fresh = False          # made in this call (ready): its values are generated
         self.audited = False
 
     def call(self, method: str, path: str, body: dict | None = None, ok=(200, 204)) -> dict:
+        """One call to the vault."""
         data = json.dumps(body).encode() if body is not None else None
         headers = {"Content-Type": "application/json"}
         if self.token:
@@ -158,22 +164,26 @@ class Client:
         return self.call("GET", "sys/health?standbyok=true&sealedcode=200&uninitcode=200")
 
     def init(self) -> dict:
+        """Initialises the vault: one key and a root token."""
         got = self.call("PUT", "sys/init", {"secret_shares": 1, "secret_threshold": 1})
         if not got.get("root_token") or not (got.get("keys_base64") or got.get("keys")):
             raise VaultError("OpenBao's initialisation answered without a key or a root token.")
         return got
 
     def unseal(self, key: str) -> dict:
+        """Unseals the vault with its key."""
         got = self.call("PUT", "sys/unseal", {"key": key})
         if got.get("sealed"):
             raise VaultError("OpenBao is still sealed after the unseal key from persist/vault/keys.json: is it this vault's key?")
         return got
 
     def mounted(self, mount: str) -> bool:
+        """Whether a secrets engine is mounted."""
         got = self.call("GET", "sys/mounts")
         return f"{mount}/" in (got.get("data") or got)
 
     def mount_kv(self, mount: str) -> None:
+        """Mounts a key-value store when it is not there."""
         if not self.mounted(mount):
             self.call("POST", f"sys/mounts/{mount}", {"type": "kv", "options": {"version": "2"},
                                                        "description": "EA Explorer's passwords and keys"})
@@ -190,17 +200,20 @@ class Client:
             return False
 
     def read(self, where_: str) -> dict[str, str]:
+        """The values kept at a place in the vault."""
         mount, _, name = where_.partition("/")
         got = self.call("GET", f"{mount}/data/{name or 'eaexplorer'}", ok=(200, 404))
         return {k: str(v) for k, v in ((got.get("data") or {}).get("data") or {}).items()}
 
     def write(self, where_: str, values: dict[str, str]) -> None:
+        """Keeps values at a place in the vault."""
         mount, _, name = where_.partition("/")
         self.call("POST", f"{mount}/data/{name or 'eaexplorer'}", {"data": values})
 
 
 # ---------------------------------------------------------------- ready: running, initialised, unsealed
 def url_for(env_text: str = "", inside: bool = False) -> str:
+    """The vault's address (from outside or inside Docker)."""
     if os.environ.get("EAX_VAULT_URL"):
         return os.environ["EAX_VAULT_URL"]
     if inside:

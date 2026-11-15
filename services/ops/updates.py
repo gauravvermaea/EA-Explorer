@@ -67,6 +67,7 @@ def _write(name: str, data) -> None:
 
 # ---------------------------------------------------------------- settings (the config file)
 def settings() -> dict:
+    """The update settings in the config file (repository, channels)."""
     lines = hooks["read_config"]()
     vals = {}
     for line in lines:
@@ -78,6 +79,7 @@ def settings() -> dict:
 
 
 def save_settings(body: dict, by: str) -> dict:
+    """Saves the update settings (the repository link checked)."""
     url = str(body.get("git_url") or "").strip()
     if url and not re.match(r"^(https?://|ssh://|git@|git://|file://|/)", url):
         raise ValueError("The repository link must start with https:// (a public git repository).")
@@ -99,6 +101,7 @@ def save_settings(body: dict, by: str) -> dict:
 
 
 def channels() -> dict:
+    """The update channels and which are on."""
     s = settings()
     return {k: {"label": v["label"], "branch": v["branch"], "about": v["about"],
                 "enabled": k == "prod" or bool(s.get(k))} for k, v in (R.CHANNELS if R else {}).items()}
@@ -130,6 +133,7 @@ def host_path(path: str) -> str:
 
 
 def is_windows(path: str) -> bool:
+    """Whether a host path is a Windows one."""
     return bool(re.match(r"^[A-Za-z]:/", host_path(path)))
 
 
@@ -185,6 +189,7 @@ def _me() -> dict:
 
 
 def updater_running() -> dict | None:
+    """The updater's container while it runs."""
     try:
         me = _me()
         out = hooks["docker"]("ps", "-a", "--filter", f"label=eax.updater={me['project']}", "--format", "{{json .}}")
@@ -242,6 +247,7 @@ def _list_in_container(channel: str, installed: dict) -> dict:
 
 # ---------------------------------------------------------------- what the screens and eax ask
 def installed() -> dict:
+    """The version installed."""
     got = _read("installed.json")
     if got:
         return got
@@ -264,6 +270,7 @@ def _log_tail(uid: str, n: int = 200) -> list[str]:
 
 
 def status(tail: int = 200) -> dict:
+    """The update in progress (with its log's end), the installed version and the history."""
     cur = _read("current.json")
     if cur:
         cur["log"] = _log_tail(cur.get("id", ""), tail)
@@ -274,6 +281,7 @@ def status(tail: int = 200) -> dict:
 
 
 def versions(channel: str) -> dict:
+    """The versions a channel offers."""
     if R is None:
         raise RuntimeError("Updates need the eaxcli folder mounted in the operations helper: run eax clean-restart once.")
     ch = channels()
@@ -357,6 +365,7 @@ def _launch(channel: str, pick, by: str, run_id: str = "") -> dict:
 
 
 def decide(action: str, by: str) -> dict:
+    """After a failed update: retry or roll back."""
     cur = _read("current.json")
     if action == "retry":
         if not cur or cur.get("status") != "failed":
@@ -372,6 +381,7 @@ def decide(action: str, by: str) -> dict:
 
 
 def cancel_schedule(by: str) -> dict:
+    """Cancels a scheduled update."""
     s = _read("scheduled.json")
     if not s:
         raise RuntimeError("No update is scheduled.")
@@ -449,6 +459,7 @@ def _follow(uid: str) -> int:
 
 
 def print_status() -> int:
+    """eax update --status: the update state, printed."""
     st = status(30)
     inst = st["installed"]
     print(f"Installed: {inst.get('version') or 'unknown'} (channel {inst.get('channel')}, commit {str(inst.get('commit'))[:12] or '-'})")

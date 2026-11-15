@@ -16,6 +16,7 @@ UUID = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}
 
 
 class Refused(Exception):
+    """A drawn view refused, with the HTTP status to answer."""
     def __init__(self, message: str, status: int = 400, details: dict | None = None):
         super().__init__(message)
         self.status = status
@@ -23,6 +24,7 @@ class Refused(Exception):
 
 
 def is_guid(x) -> bool:
+    """Whether a value is a guid."""
     return bool(x) and bool(UUID.match(str(x)))
 
 
@@ -120,6 +122,7 @@ def rebind(xml: str, ent_map: dict[str, str], rel_map: dict[str, str]) -> str:
 
 
 def summary(parsed: dict) -> dict:
+    """What a drawn view holds: objects, elements, relationships, hidden ones and placeholders."""
     return {"objects": len(parsed["objects"]), "entities": len(parsed["entities"]), "relationships": len(parsed["relationships"]),
             "uncommitted_relationships": len([r for r in parsed["relationships"] if r["uncommitted"]]),
             "hidden_relationships": len(parsed["hidden"]), "placeholders": parsed["placeholders"]}

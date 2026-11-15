@@ -50,6 +50,8 @@ def _plain(m: dict | None) -> dict | None:
 
 # ---------------------------------------------------------------- merges
 def merge_analyse(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: matches another model (or an uploaded package) against this one and returns the merge plan to
+    review."""
     from . import merge as mg
     p, model = t["params"], str(t["model_guid"])
     tk.progress(None, "Matching the entities")
@@ -64,6 +66,7 @@ def merge_analyse(conn, t: dict, user) -> tuple[str, dict]:
 
 
 def merge_apply(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: applies a reviewed merge with the person's decisions, recorded and committed."""
     from . import merge as mg
     p = t["params"]
     tk.progress(None, "Recording and committing the merge")
@@ -73,6 +76,7 @@ def merge_apply(conn, t: dict, user) -> tuple[str, dict]:
 
 
 def merge_sample(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: a sample merge package of a model (zip or Excel) to fill in and merge back."""
     from . import merge as mg
     p = t["params"]
     data, name, ctype = mg.sample_package(conn, str(t["model_guid"]), p.get("format") or "zip", user.username,
@@ -94,6 +98,7 @@ def _package(conn, t: dict) -> dict:
 
 
 def package_analyse(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: checks an uploaded model package and says what is in it before it is imported."""
     from . import model_ops as mo
     out = mo.analyse_package(conn, _package(conn, t))
     model = (out.get("manifest") or {}).get("model", {}).get("name") or "The package"
@@ -101,6 +106,7 @@ def package_analyse(conn, t: dict, user) -> tuple[str, dict]:
 
 
 def package_import(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: imports a model package as a new model where the person placed it."""
     from . import model_ops as mo
     p = t["params"]
     pkg = _package(conn, t)
@@ -115,6 +121,7 @@ def package_import(conn, t: dict, user) -> tuple[str, dict]:
 
 
 def package_export(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: exports a model as a package (zip or Excel) to download."""
     from . import model_ops as mo
     p = t["params"]
     fmt = "xlsx" if p.get("format") == "xlsx" else "zip"
@@ -133,11 +140,13 @@ def _compare(conn, p: dict) -> dict:
 
 
 def compare_run(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: compares two models or versions and returns the differences."""
     res = _compare(conn, t["params"])
     return f"Compared {res['left']['label']} with {res['right']['label']}.", {**res, "_action": "-"}
 
 
 def compare_download(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: the same comparison as an Excel workbook to download."""
     from . import compare as cp
     res = _compare(conn, t["params"])
     name = f"Compare {res['left']['label']} with {res['right']['label']}"
@@ -145,6 +154,7 @@ def compare_download(conn, t: dict, user) -> tuple[str, dict]:
 
 
 def gap_create(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: makes a gap analysis between a baseline and a target."""
     from . import gaps as gp
     p = t["params"]
     tk.progress(None, "Comparing the baseline and the target")
@@ -154,6 +164,7 @@ def gap_create(conn, t: dict, user) -> tuple[str, dict]:
 
 
 def gap_refresh(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: compares a gap analysis's two sides again."""
     from . import gaps as gp
     p = t["params"]
     tk.progress(None, "Comparing the two sides again")
@@ -163,6 +174,7 @@ def gap_refresh(conn, t: dict, user) -> tuple[str, dict]:
 
 
 def gap_download(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: a gap analysis as a document (Word or Excel) to download."""
     from . import gaps as gp
     p = t["params"]
     a = gp.get(conn, gp.model_of(conn, p["analysis"]), p["analysis"])
@@ -173,6 +185,7 @@ def gap_download(conn, t: dict, user) -> tuple[str, dict]:
 
 
 def gap_runs_compare(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: two runs of a gap analysis compared (on screen or as CSV)."""
     from . import gaps as gp
     p = t["params"]
     res = gp.compare_runs(conn, p["a"], p["b"])
@@ -182,6 +195,7 @@ def gap_runs_compare(conn, t: dict, user) -> tuple[str, dict]:
 
 
 def tag_download(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: a tagged version of a model as a file to download."""
     from . import tags as tg
     p = t["params"]
     data, name, ctype = tg.download_tag(conn, str(t["model_guid"]), p["tag"], p.get("format") or "xlsx", user.username)
@@ -189,6 +203,7 @@ def tag_download(conn, t: dict, user) -> tuple[str, dict]:
 
 
 def tag_restore(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: makes a tagged version the latest again (the current one is tagged first)."""
     from . import tags as tg
     p = t["params"]
     tk.progress(None, "Tagging the current version, then restoring")
@@ -198,6 +213,7 @@ def tag_restore(conn, t: dict, user) -> tuple[str, dict]:
 
 # ---------------------------------------------------------------- metamodel and library moves
 def framework_move(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: moves a model onto another framework (metamodel), mapping its content across."""
     from . import model_ops as mo
     p = t["params"]
     tk.progress(None, "Mapping the content across")
@@ -208,6 +224,7 @@ def framework_move(conn, t: dict, user) -> tuple[str, dict]:
 
 
 def promote(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: promotes a model (for example a project model into the enterprise one) as the person chose."""
     from . import model_ops as mo
     p = t["params"]
     out = mo.promote(conn, str(t["model_guid"]), p, user.username)
@@ -220,6 +237,7 @@ def promote(conn, t: dict, user) -> tuple[str, dict]:
 
 
 def draft_apply(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: turns a model draft (from a wizard) into a model."""
     from . import model_ops as mo
     p = t["params"]
     out = mo.draft_apply(conn, user, p["draft"], user.username, p.get("data") or {})
@@ -231,6 +249,7 @@ def draft_apply(conn, t: dict, user) -> tuple[str, dict]:
 
 # ---------------------------------------------------------------- push-down
 def pushdown_push(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: pushes a parent model's changes down to its children (or passes them on further)."""
     from . import pushdown
     p = t["params"]
     fn = pushdown.pass_on if p.get("pass_on") else pushdown.push
@@ -240,6 +259,7 @@ def pushdown_push(conn, t: dict, user) -> tuple[str, dict]:
 
 
 def pushdown_decide(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: accepts or rejects a change pushed down from the parent model."""
     from . import pushdown
     p = t["params"]
     accept = bool(p.get("accept"))
@@ -251,6 +271,7 @@ def pushdown_decide(conn, t: dict, user) -> tuple[str, dict]:
 
 # ---------------------------------------------------------------- quality
 def quality_recheck_type(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: checks the quality of every element of one type again."""
     from . import quality as q
     from . import repository as repo
     from .metamodel_edit import EditError
@@ -271,6 +292,7 @@ def quality_recheck_type(conn, t: dict, user) -> tuple[str, dict]:
 
 # ---------------------------------------------------------------- the change log (its own database)
 def changelog_export(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: the change log (shipped first) as a file to download."""
     from . import change_log as cl
     from .db import get_changelog_engine
     p = t["params"]
@@ -285,6 +307,7 @@ def changelog_export(conn, t: dict, user) -> tuple[str, dict]:
 
 # ---------------------------------------------------------------- architecture projects (their own connection, D266)
 def project_create(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: creates a project with its models and starting content."""
     from . import model_ops as mo
     from . import projects as pj
     p = t["params"]
@@ -324,6 +347,7 @@ def project_create(conn, t: dict, user) -> tuple[str, dict]:
 
 
 def pw_pending(pc, project: str, user) -> str:
+    """Writes a project's pending goals (project_work.write_pending_goals) in the project's database."""
     from . import project_work as pw
     return pw.write_pending_goals(pc, project, user)
 
@@ -398,6 +422,7 @@ def _queue_repository(project_guid: str) -> bool:
 
 
 def project_library_zip(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: a project's library as a zip to download."""
     from . import projects as pj
     with pj.connections(False) as pc:
         data, name = pj.library_zip(pc, user, t["params"]["library"])
@@ -406,6 +431,7 @@ def project_library_zip(conn, t: dict, user) -> tuple[str, dict]:
 
 # ---------------------------------------------------------------- common analysis (D286)
 def common_create(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: makes a commons analysis (what several models have in common)."""
     from . import commons as co
     p = t["params"]
     tk.progress(None, "Matching the models")
@@ -414,6 +440,7 @@ def common_create(conn, t: dict, user) -> tuple[str, dict]:
 
 
 def common_refresh(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: matches a commons analysis's models again."""
     from . import commons as co
     p = t["params"]
     tk.progress(None, "Matching the models again")
@@ -422,6 +449,7 @@ def common_refresh(conn, t: dict, user) -> tuple[str, dict]:
 
 
 def common_suggestions(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: saves the person's decisions on suggested matches and compares again."""
     from . import commons as co
     p = t["params"]
     out = co.decide_suggestions(conn, co.model_of(conn, p["analysis"]), user, p["analysis"], p.get("confirm"), p.get("reject"))
@@ -429,6 +457,7 @@ def common_suggestions(conn, t: dict, user) -> tuple[str, dict]:
 
 
 def common_tag(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: tags the common elements of a commons analysis."""
     from . import commons as co
     p = t["params"]
     out = co.tag_common(conn, co.model_of(conn, p["analysis"]), user, p["analysis"], p.get("items"))
@@ -436,6 +465,7 @@ def common_tag(conn, t: dict, user) -> tuple[str, dict]:
 
 
 def common_make_model(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: makes a new model from what a commons analysis found in common."""
     from . import commons as co
     p = t["params"]
     out = co.make_model(conn, co.model_of(conn, p["analysis"]), user, p["analysis"], p)
@@ -443,6 +473,7 @@ def common_make_model(conn, t: dict, user) -> tuple[str, dict]:
 
 
 def common_download(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: a commons analysis as a document to download."""
     from . import commons as co
     p = t["params"]
     a = co.get(conn, co.model_of(conn, p["analysis"]), p["analysis"])
@@ -478,12 +509,14 @@ def wizard_merge(conn, t: dict, user) -> tuple[str, dict]:
 
 
 def wizard_split(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: splits a model in two with the model wizard."""
     from . import model_wizards as mw
     out = mw.split(conn, str(t["model_guid"]), user, t["params"])
     return out["message"], {**out, "_action": "model.split"}
 
 
 def wizard_extend(conn, t: dict, user) -> tuple[str, dict]:
+    """Background task: extends a model's metamodel from another with the model wizard."""
     from . import model_wizards as mw
     p = t["params"]
     out = mw.extend_metamodel(conn, str(t["model_guid"]), user, p.get("source"), p)

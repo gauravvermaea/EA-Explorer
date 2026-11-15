@@ -25,6 +25,7 @@ PLAN = [
 
 
 def run() -> list[str]:
+    """Sets the sample projects' iterations."""
     from .. import iterations as it
     from .. import projects as pj
     out = []

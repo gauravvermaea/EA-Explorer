@@ -44,13 +44,16 @@ class Target:
 
     @property
     def remote(self) -> bool:
+        """Whether the target is reached over SSH."""
         return bool(self.ssh)
 
     def where(self) -> str:
+        """The target in words."""
         return f"{self.ssh[-1]}:{self.folder}" if self.remote else str(ROOT)
 
 
 class Runs:
+    """The commands run on deployed installations, local and over SSH."""
     def __init__(self):
         self.lock = threading.Lock()
         self.remote_runs: dict[str, dict] = {}       # over SSH: kept in memory and in work/logs here
@@ -58,6 +61,7 @@ class Runs:
 
     # ---------------------------------------------------------------- one command
     def start(self, target: Target, argv: list[str], typed: str = "", understood: bool = False) -> dict:
+        """Starts a command on a target."""
         argv = C.check_argv(argv)
         kind = C.kind_of(argv[0])
         if kind == "interactive":
@@ -99,6 +103,7 @@ class Runs:
         return {"id": run_id, "argv": argv, "kind": kind, "command": rec["command"], "where": target.where()}
 
     def detail(self, run_id: str, start: int = 0) -> dict:
+        """A run's output from a byte on."""
         with self.lock:
             rec = self.remote_runs.get(run_id)
             if rec:
@@ -108,12 +113,14 @@ class Runs:
         return cmdrun.output(run_id, start, ROOT)
 
     def history(self) -> list[dict]:
+        """Every run, newest first."""
         with self.lock:
             remote = [{k: v for k, v in r.items() if k != "text"} for r in self.remote_runs.values()]
         return sorted(remote + cmdrun.history(ROOT), key=lambda r: r.get("started") or "", reverse=True)
 
     # ---------------------------------------------------------------- the Console: a session the page reads and writes
     def console_start(self, target: Target) -> dict:
+        """Starts a console session on a target."""
         sid = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime()) + "-" + secrets.token_hex(3)
         env = {**os.environ, "EAX_CONSOLE_LOCAL": "1", "EAX_CONSOLE_USER": _who(), "EAX_CONSOLE_SESSION": sid,
                "PYTHONUNBUFFERED": "1", "TERM": "dumb"}
@@ -163,6 +170,7 @@ class Runs:
         return {"session": sid}
 
     def console_read(self, sid: str, start: int = 0) -> dict:
+        """A console session's output from a byte on."""
         with self.lock:
             s = self.consoles.get(sid)
             if not s:
@@ -172,6 +180,7 @@ class Runs:
                     "ended": s["ended"] and s["proc"].poll() is not None}
 
     def console_write(self, sid: str, text: str) -> None:
+        """Types into a console session."""
         with self.lock:
             s = self.consoles.get(sid)
         if not s or s["ended"]:
@@ -179,6 +188,7 @@ class Runs:
         s["write"](text.encode("utf-8"))
 
     def console_end(self, sid: str) -> None:
+        """Ends a console session."""
         with self.lock:
             s = self.consoles.get(sid)
         if s and s["proc"].poll() is None:

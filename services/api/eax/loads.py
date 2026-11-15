@@ -75,6 +75,7 @@ def _may_manage(conn, user, m: dict, what: str) -> None:
 
 # ---------------------------------------------------------------- loads
 def create(conn, model: Any, user, file_name: str, content: bytes) -> dict:
+    """Takes an uploaded file to load into a model and reads its rows."""
     m = repo.get_model(conn, model)
     _may_load(conn, user, m)
     if not content:
@@ -128,6 +129,7 @@ def _out(r: dict, with_rows: bool = True, row_filter: str = "", limit: int = 200
 
 
 def get(conn, user, load: Any, with_rows: bool = True, row_filter: str = "") -> dict:
+    """One load with its rows (its maker, its owner, or those who may load into the model)."""
     r = _load(conn, load)
     if r["created_by"] != user.username.lower() and r["owner"] != user.username.lower() and perms.SUPER_ADMIN not in user.roles:
         roles = set(perms.model_roles(conn, user.username, str(r["model_guid"])))
@@ -137,6 +139,7 @@ def get(conn, user, load: Any, with_rows: bool = True, row_filter: str = "") -> 
 
 
 def list_loads(conn, user, model: Any) -> dict:
+    """A model's loads, newest first."""
     m = repo.get_model(conn, model)
     rows = _rows(conn, """SELECT l.id, l.guid, l.model_id, l.file_name, l.format, l.status, l.message, l.mapping, l.summary,
                                   l.change_ids, l.owner, l.created_by, l.created_at, l.added_at, l.undone_at, l.undone_by,
@@ -677,6 +680,7 @@ def undo(conn, user, load: Any, force: bool = False) -> dict:
 
 # ---------------------------------------------------------------- column mappings
 def list_mappings(conn, model: Any) -> dict:
+    """A model's saved column mappings."""
     m = repo.get_model(conn, model)
     rows = _rows(conn, """SELECT c.guid, c.name, c.columns, t.code AS entity_type, t.name AS entity_type_name, c.created_by, c.created_at
                             FROM core.column_mappings c LEFT JOIN core.entity_types t ON t.id = c.entity_type_id
@@ -687,6 +691,7 @@ def list_mappings(conn, model: Any) -> dict:
 
 
 def save_mapping(conn, user, model: Any, name: str, entity_type: str | None, columns: dict) -> dict:
+    """Saves a column mapping under a name, for the next load."""
     m = repo.get_model(conn, model)
     _may_load(conn, user, m)
     if not (name or "").strip():
@@ -700,6 +705,7 @@ def save_mapping(conn, user, model: Any, name: str, entity_type: str | None, col
 
 
 def delete_mapping(conn, user, model: Any, mapping: Any) -> dict:
+    """Deletes a saved column mapping."""
     m = repo.get_model(conn, model)
     _may_load(conn, user, m)
     g = repo._as_guid(mapping)

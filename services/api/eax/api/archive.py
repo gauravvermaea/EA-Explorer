@@ -39,6 +39,8 @@ def _guard(fn, *a, **kw):
 
 @blp.route("/models/<model_id>/archive/references")
 class References(MethodView):
+    """/api/v1/models/{model_id}/archive/references: GET what refers to the model (derived models, copies, projects,
+    open merge requests) and what stops it moving."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -58,6 +60,8 @@ def _state(data) -> str:
 
 @blp.route("/models/<model_id>/archive")
 class Move(MethodView):
+    """/api/v1/models/{model_id}/archive: POST archive {state: archived} (its Model Admin) or delete {state: deleted}
+    (a Super Admin) the model: it leaves the working database for the archive, in the background (D273)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(202, Free)
@@ -78,6 +82,8 @@ class Move(MethodView):
 
 @blp.route("/projects/<project_id>/archive/references")
 class ProjectReferences(MethodView):
+    """/api/v1/projects/{project_id}/archive/references: GET a project's models: those that move with it (only it
+    uses them) and those that stay."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -90,6 +96,8 @@ class ProjectReferences(MethodView):
 
 @blp.route("/projects/<project_id>/archive")
 class ProjectMove(MethodView):
+    """/api/v1/projects/{project_id}/archive: POST archive {state: archived} (its Project Admin) or delete {state:
+    deleted} (a Super Admin) the project with its documents and the models only it uses, in the background."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(202, Free)
@@ -111,6 +119,8 @@ class ProjectMove(MethodView):
 
 @blp.route("/archive")
 class Listing(MethodView):
+    """/api/v1/archive: GET the archive: archived models (their admins and Super Admins); ?deleted=1 adds the deleted
+    ones (Super Admins)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -124,6 +134,8 @@ class Listing(MethodView):
 
 @blp.route("/archive/<int:ident>/restore")
 class Restore(MethodView):
+    """/api/v1/archive/{ident}/restore: POST back to Active: the model made again from its file (its admins; a
+    deleted one: a Super Admin), in the background."""
     @blp.doc(security=SECURITY)
     @blp.response(202, Free)
     @require_auth()
@@ -136,6 +148,7 @@ class Restore(MethodView):
 
 @blp.route("/archive/<int:ident>/purge")
 class Purge(MethodView):
+    """/api/v1/archive/{ident}/purge: POST gone for good {confirm: "DELETE"}: a Super Admin."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -150,6 +163,8 @@ class Purge(MethodView):
 
 @blp.route("/archive/<int:ident>/download")
 class Download(MethodView):
+    """/api/v1/archive/{ident}/download: GET its backup file (.eaxbackup.zip): restore it elsewhere, or read its
+    workbook."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self, ident):

@@ -64,6 +64,7 @@ def _alias_map(cat: dict) -> dict[str, str]:
 
 
 def kind_of(name: str) -> str:
+    """What kind a command is: wipe, interactive, long or plain."""
     if name in WIPE:
         return "wipe"
     if name in INTERACTIVE:
@@ -137,14 +138,19 @@ PLACEHOLDERS = {"name", "tag", "run", "command", "source", "id", "words", "servi
 # syntax lines too rich for the reader above: their fields written out
 OVERRIDES = {
     "test": [{"key": "what", "type": "choice", "choices": ["smoke", "full", "backup", "ui-review", "failed", "delete", "clean"], "required": False,
-              "placeholder": "smoke|full|backup|ui-review|failed|delete|clean"},
+              "placeholder": "smoke|full|security|performance|backup|ui-review|failed|delete|clean"},
              {"key": "run", "type": "word", "required": False, "placeholder": "run (with failed: which run; the last if none)"},
              {"key": "--warnings", "type": "flag", "required": False},     # with failed: its warnings too (R2.36)
              {"key": "--older-than", "type": "flag-value", "flags": ["--older-than"], "required": False,
               "placeholder": "days"},                                     # with delete: runs older than DAYS (R2.43)
              {"key": "--smoke/--detailed", "type": "flags", "choices": ["--smoke", "--detailed"], "required": False},
              {"key": "--suite", "type": "flag-value", "flags": ["--suite"], "required": False,
-              "placeholder": "api|ui|db|security|reports|backup|all", "choices": ["api", "ui", "db", "security", "reports", "backup", "all"]},
+              "placeholder": "api|ui|db|security|reports|performance|backup|all",
+              "choices": ["api", "ui", "db", "security", "reports", "performance", "backup", "all"]},
+             {"key": "--size", "type": "flag-value", "flags": ["--size"], "required": False, "placeholder": "small|medium|large",
+              "choices": ["small", "medium", "large"]},                    # performance: the benchmark's data (R5.18)
+             {"key": "--users", "type": "flag-value", "flags": ["--users"], "required": False, "placeholder": "people at once"},
+             {"key": "--minutes", "type": "flag-value", "flags": ["--minutes"], "required": False, "placeholder": "load-test minutes"},
              {"key": "--role", "type": "flag-value", "flags": ["--role"], "required": False, "placeholder": "role"},
              {"key": "--area", "type": "flag-value", "flags": ["--area"], "required": False, "placeholder": "area"},
              {"key": "--status/--last/--report/--fixtures/--build", "type": "flags",
@@ -178,6 +184,7 @@ def catalogue(text: str | None = None) -> dict:
 
 
 def find(name: str, cat: dict | None = None) -> dict:
+    """A command in the catalogue, by its name or an alias."""
     cat = cat or catalogue()
     real = _alias_map(cat).get(name)
     if not real:

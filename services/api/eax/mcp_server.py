@@ -695,7 +695,7 @@ def _authenticate_machine(headers: dict) -> tuple[permissions.Principal, object]
         return None
     try:
         with get_engine().begin() as conn:
-            machine, roles = ma.authenticate(conn, *shown)
+            machine, roles = ma.authenticate(conn, *shown, headers.get("x-real-ip") or None)
             if machine.refusal("GET", "/mcp"):
                 return None
             ma.note_use(conn, machine, "POST", "/mcp", 200, headers.get("x-real-ip", ""), None)
@@ -793,8 +793,14 @@ class BearerAuth:
             await send({"type": "http.response.body", "body": body})
             return
         token, who, mach = _actor.set(user.username), permissions.current.set(user), _machine.set(machine)
+        actor = (f"{user.username} ({machine.name})" if machine is not None else user.username)[:120].encode()
+
+        async def send_with_actor(message):         # who made the call, for the front door's web log (R5.6)
+            if message.get("type") == "http.response.start":
+                message = {**message, "headers": [*message.get("headers", []), (b"x-eax-actor", actor)]}
+            await send(message)
         try:
-            return await self.app(scope, receive, send)
+            return await self.app(scope, receive, send_with_actor)
         finally:
             _machine.reset(mach)
             permissions.current.reset(who)
@@ -871,6 +877,8 @@ def _with_activity_log(manager) -> None:
         state: dict = {}
         token = _call.set(state)
         started = time.monotonic()
+        view = auditor_principal(user, name)        # R5.22: an Auditor's read tool answered as a Super Admin's
+        who = permissions.current.set(view) if view is not user else None
         try:
             result = await original(name, arguments, context, convert_result=convert_result, **kw)
         except Exception as exc:
@@ -879,10 +887,25 @@ def _with_activity_log(manager) -> None:
             raise
         finally:
             _call.reset(token)
+            if who is not None:
+                permissions.current.reset(who)
         if user is not None:
             await anyio.to_thread.run_sync(_log_call, user, name, arguments or {}, _plain(result), started, state)
         return result
     manager.call_tool = call_tool
+
+
+def auditor_principal(user, tool: str):
+    """The Auditor through MCP (R5.22, D693): a tool that changes nothing (the catalogue's own reading of each tool) is
+    answered as for a Super Admin; one that changes something keeps the person's own roles, so the Auditor's role
+    adds nothing to it."""
+    if user is None or permissions.AUDITOR not in user.roles or permissions.SUPER_ADMIN in user.roles:
+        return user
+    from .mcp_catalogue import tools
+    changes = next((t["changes"] for t in tools() if t["name"] == tool), True)
+    if changes:
+        return user
+    return permissions.Principal(user.username, (*user.roles, permissions.SUPER_ADMIN), user.break_glass)
 
 
 _with_activity_log(mcp._tool_manager)

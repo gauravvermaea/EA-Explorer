@@ -179,11 +179,11 @@ def test_wired_into_the_api_the_page_the_launchers_and_the_help():
     api = (REPO / "services/api/eax/api/platform_tests.py").read_text()
     assert '@blp.route("/tests/<int:run_id>/live")' in api and "live.file_log_reader(WORK_TESTS)" in api
     page = (REPO / "services/web/src/TestRuns.jsx").read_text()
-    assert page.count("<TestWatch runId=") == 2 and ">Watch</button>" in page
+    assert page.count("<TestWatch runId=") == 3   # R5.20: and #/admin/self-test/watch and ">Watch</button>" in page
     w = (REPO / "services/web/src/TestWatch.jsx").read_text()
     assert "/live?after=" in w and "Stop the run" in w and "/stop`" in w
     assert 'rest[:1] in (["watch"], ["stop"])' in (REPO / "eaxcli/main.py").read_text()
     assert '"${1:-}" = "watch" ] || [ "${1:-}" = "stop" ]' in (REPO / "eax.sh").read_text()
     assert '$RestArgs[0] -eq "watch" -or $RestArgs[0] -eq "stop"' in (REPO / "eax.ps1").read_text()
     h = (REPO / "eaxcli/help.txt").read_text()
-    assert "|watch [run] [--log]|stop [run]|" in h and "$ {eax} test watch" in h
+    assert "|watch [run] [--log|--browser]|stop [run]|" in h and "$ {eax} test watch" in h

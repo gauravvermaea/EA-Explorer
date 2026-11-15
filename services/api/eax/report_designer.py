@@ -223,6 +223,7 @@ def _out(r: dict) -> dict:
 
 
 def list_designs(conn, model: Any) -> dict:
+    """A model's designed reports."""
     m = repo.get_model(conn, model)
     rows = conn.execute(text("""SELECT guid::text AS guid, name, spec, sql, created_by, created_at, modified_at
                                   FROM core.report_designs WHERE model_id = :m AND NOT is_deleted ORDER BY lower(name)"""),
@@ -231,6 +232,7 @@ def list_designs(conn, model: Any) -> dict:
 
 
 def save_design(conn, model_id: int, name: str, spec: dict, actor: str, design: str | None = None) -> dict:
+    """Saves a designed report (its spec and the SQL made from it), new or changed."""
     name = (name or "").strip()
     if not name:
         raise EditError("Give the report a name, for example Applications and the capabilities they serve.")
@@ -265,11 +267,13 @@ def _may_change(conn, user, m: dict, design: str) -> None:
 
 
 def create(conn, model: Any, user, body: dict) -> dict:
+    """Makes a designed report in a model."""
     m = repo.get_model(conn, model)
     return save_design(conn, m["_id"], body.get("name") or "", body.get("spec") or {}, user.username)
 
 
 def update(conn, model: Any, user, design: str, body: dict) -> dict:
+    """Changes a designed report (its maker or the Model Admin)."""
     m = repo.get_model(conn, model)
     _may_change(conn, user, m, str(design))
     return save_design(conn, m["_id"], body.get("name") or "", body.get("spec") or {}, user.username, str(design))

@@ -27,7 +27,7 @@ def test_ship_writes_each_line_once_to_its_day_masked(tmp_path):
         return lines[cid]
     out = K.ship(tmp_path, [{"id": "c1", "service": "api"}], read_since, now=1794528000)
     assert out == {"api": 3}
-    day12 = (tmp_path / "containers/api/2026-11-12.log").read_text()
+    day12 = "".join(x for f in K._day_files(tmp_path / "containers/api", "2026-11-12") for x in K._lines(f))   # compressed
     day13 = (tmp_path / "containers/api/2026-11-13.log").read_text()
     assert "api started" in day12 and "password=****" in day13 and "s3cret" not in day13 and "Bearer ****" in day13
     assert K.ship(tmp_path, [{"id": "c1", "service": "api"}], read_since) == {"api": 0}     # nothing twice
@@ -79,15 +79,17 @@ def test_the_command_line(tmp_path, monkeypatch, capsys):
     assert logs_cli.main(["clean", "--older-than", "7"], ask=lambda _q: "no") == 1
     assert logs_cli.main(["clean", "--older-than", "7", "--yes"]) == 0
     assert not (tmp_path / "logs/containers/api/2020-01-01.log").exists()
-    assert K.default_keep_days("laptop") == 14 and K.default_keep_days("server") == 90
+    assert K.default_keep_days("laptop") == 7 and K.default_keep_days("server") == 7     # R5.6: 7 days everywhere
 
 
 def test_level_and_keep_days_default_by_deployment(monkeypatch):
+    """R5.6 changed R2.30's rule (owner, 14 Nov 2026: "We will by default keep it at an info level"; "Logs are deleted
+    once every 7 days"): the same on a laptop and a server."""
     from eax import settings as st
     monkeypatch.setenv("EAX_DEPLOYMENT", "laptop")
-    assert st.default_of("log_level") == "DEBUG" and st.default_of("logs_keep_days") == 14
+    assert st.default_of("log_level") == "INFO" and st.default_of("logs_keep_days") == 7
     monkeypatch.setenv("EAX_DEPLOYMENT", "server")
-    assert st.default_of("log_level") == "ERROR" and st.default_of("logs_keep_days") == 90
+    assert st.default_of("log_level") == "INFO" and st.default_of("logs_keep_days") == 7
     assert st.default_of("upload_max_mb") == st.REGISTRY["upload_max_mb"][3]
 
 

@@ -33,6 +33,7 @@ FIELDS = "guid AS id, name, url, note, ssh_host, ssh_port, ssh_user, (ssh_key_en
 
 
 def auth_mode() -> str:
+    """How remote installations' SSH sign-in is kept (EAX_REMOTE_SSH_AUTH: ask, keep or the rest)."""
     v = (os.environ.get("EAX_REMOTE_SSH_AUTH") or "ask").strip().lower()
     return v if v in MODES else "ask"
 
@@ -47,10 +48,12 @@ def _fernet():
 
 
 def encrypt(text_: str) -> bytes:
+    """Encrypts a secret for keeping in the database."""
     return _fernet().encrypt(text_.encode())
 
 
 def decrypt(blob: bytes) -> str:
+    """Decrypts a kept secret."""
     return _fernet().decrypt(bytes(blob)).decode()
 
 
@@ -90,6 +93,7 @@ def _clean(d: dict, partial: bool = False) -> dict:
 
 
 def listing(conn, username: str) -> dict:
+    """A person's remote installations and how SSH sign-in is kept."""
     return {"items": P.rows(conn, f"SELECT {FIELDS} FROM personal.remote_instances WHERE username = lower(:u) ORDER BY lower(name)",
                             u=username),
             "ssh_auth": auth_mode()}
@@ -104,6 +108,7 @@ def _mine(conn, username: str, ident) -> dict:
 
 
 def create(conn, username: str, d: dict) -> dict:
+    """Adds a remote installation for the person (its SSH details encrypted)."""
     v = _clean(d)
     v.update({k: x for k, x in _clean({k: d[k] for k in ("ssh_host", "ssh_port", "ssh_user", "note") if k in d}, True).items()})
     if P.one(conn, "SELECT 1 AS x FROM personal.remote_instances WHERE username = lower(:u) AND lower(name) = lower(:n)",
@@ -134,6 +139,7 @@ def _key_blob(d: dict):
 
 
 def get(conn, username: str, ident) -> dict:
+    """One of the person's remote installations."""
     r = P.one(conn, f"SELECT {FIELDS} FROM personal.remote_instances WHERE guid = CAST(:g AS uuid) AND username = lower(:u)",
               g=str(ident), u=username)
     if not r:
@@ -142,6 +148,7 @@ def get(conn, username: str, ident) -> dict:
 
 
 def update(conn, username: str, ident, d: dict) -> dict:
+    """Changes one of the person's remote installations."""
     cur = _mine(conn, username, ident)
     v = _clean(d, partial=True)
     key = _key_blob(d)
@@ -155,6 +162,7 @@ def update(conn, username: str, ident, d: dict) -> dict:
 
 
 def delete(conn, username: str, ident) -> dict:
+    """Removes one of the person's remote installations."""
     cur = _mine(conn, username, ident)
     P.run(conn, "DELETE FROM personal.remote_instances WHERE id = :i", i=cur["id"])
     return {"deleted": str(cur["guid"])}

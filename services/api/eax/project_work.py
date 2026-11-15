@@ -50,6 +50,7 @@ class _Clean(HTMLParser):
         self.skip = 0
 
     def handle_starttag(self, tag, attrs):
+        """Keeps a safe tag (its safe attributes only); skips scripts, styles and embedded objects."""
         if tag in ("script", "style", "iframe", "object", "embed"):
             self.skip += 1
             return
@@ -63,6 +64,7 @@ class _Clean(HTMLParser):
         self.out.append(f"<{tag}{extra}>")
 
     def handle_endtag(self, tag):
+        """Closes a kept tag."""
         if tag in ("script", "style", "iframe", "object", "embed"):
             self.skip = max(0, self.skip - 1)
             return
@@ -70,6 +72,7 @@ class _Clean(HTMLParser):
             self.out.append(f"</{tag}>")
 
     def handle_data(self, data):
+        """Keeps text, escaped, unless inside a skipped tag."""
         if not self.skip:
             self.out.append(_esc(data))
 
@@ -97,6 +100,7 @@ def _date(v: Any, what: str) -> date | None:
 
 
 def scope_fields(d: dict) -> dict:
+    """A project's scope fields checked (breadth, depth, domains, dates, horizon)."""
     s = d.get("scope") or {}
     depth = (s.get("depth") or "").strip().lower()
     if depth and depth not in DEPTHS:
@@ -117,6 +121,7 @@ def scope_fields(d: dict) -> dict:
 
 
 def save_fields(conn, project_id: int, f: dict) -> None:
+    """Saves a project's scope and sponsor fields."""
     conn.execute(text("""UPDATE proj.projects SET scope_breadth = :scope_breadth, scope_depth = :scope_depth,
                                 scope_domains = CAST(:scope_domains AS text[]), scope_start = :scope_start, scope_end = :scope_end,
                                 scope_horizon = :scope_horizon, scope_notes = :scope_notes, sponsor_name = :sponsor_name,
@@ -127,6 +132,7 @@ def save_fields(conn, project_id: int, f: dict) -> None:
 
 
 def fields_out(p: dict) -> dict:
+    """A project's scope and sponsor fields as the screens show them."""
     asks = p.get("sponsor_asks")
     asks = asks if isinstance(asks, list) else json.loads(asks or "[]")
     return {"scope": {"breadth": p["scope_breadth"], "depth": p["scope_depth"], "domains": list(p["scope_domains"] or []),
@@ -285,6 +291,7 @@ def check_goal_model(conn, d: dict) -> None:
 
 
 def write_pending_goals(conn, project: Any, user) -> str:
+    """Writes the goals waiting for the project's models into them."""
     p = pj.project_row(conn, project)
     pending = p.get("pending_goals")
     pending = pending if isinstance(pending, list) else json.loads(pending or "[]")
@@ -293,6 +300,7 @@ def write_pending_goals(conn, project: Any, user) -> str:
 
 # ---------------------------------------------------------------- views (D278)
 def model_types(conn, p: dict) -> list[str]:
+    """The element types of the project's models."""
     guids = [r["g"] for r in _rows(conn, "SELECT model_guid::text AS g FROM proj.project_models WHERE project_id = :p", p=p["id"])]
     if not guids:
         return []
@@ -388,6 +396,7 @@ def add_view(conn, project: Any, user, data: dict) -> dict:
 
 # ---------------------------------------------------------------- who may do what, frozen projects read only
 def need(conn, p: dict, user, what: str) -> set[str]:
+    """The person's roles on a project, refused when they may not do this (or the project is frozen)."""
     roles = pj._need(conn, p, user, what)
     if what != "read" and p.get("status") in FROZEN:
         raise EditError(f"{p['name']} is {p['status']}: it is read only.", 409)
@@ -570,6 +579,7 @@ def _store(conn, p: dict, user, folder: str, file_name: str, content: bytes, ite
 
 
 def upload_project_file(conn, project: Any, user, file_name: str, content: bytes) -> dict:
+    """Uploads a file to the project's own files."""
     p = pj.project_row(conn, project)
     need(conn, p, user, "contribute")
     return _store(conn, p, user, PROJECT_FILES, file_name, content, origin="project-file", kind="Artifact")
@@ -605,6 +615,7 @@ def _kind_of(conn, d: dict) -> str:
 
 
 def signers_for(conn, p: dict, d: dict) -> list[str]:
+    """Who signs off a document: its phase's signers, else the project's."""
     phase = ""
     if d.get("item_id"):
         phase = (_one(conn, "SELECT phase FROM proj.items WHERE id = :i", i=d["item_id"]) or {}).get("phase", "")
@@ -767,6 +778,7 @@ def withdraw_open(conn, doc_id: int, user) -> None:
 
 
 def signoffs(conn, p: dict, user) -> list[dict]:
+    """A project's sign-off requests."""
     rows = _rows(conn, """SELECT r.guid::text AS id, d.guid::text AS document, d.file_name, r.version, r.signers, r.note, r.state, r.quorum,
                                  r.raised_by, r.raised_at, r.closed_at, i.phase, i.name AS item
                             FROM proj.signoff_requests r JOIN proj.documents d ON d.id = r.document_id
@@ -990,6 +1002,7 @@ def _own_principle(conn, p: dict, pid: int) -> dict:
 
 
 def update_principle(conn, project: Any, user, pid: int, d: dict) -> dict:
+    """Changes one of the project's own principles."""
     p = pj.project_row(conn, project)
     need(conn, p, user, "contribute")
     r = _own_principle(conn, p, pid)
@@ -1006,6 +1019,7 @@ def update_principle(conn, project: Any, user, pid: int, d: dict) -> dict:
 
 
 def delete_principle(conn, project: Any, user, pid: int) -> dict:
+    """Deletes one of the project's own principles."""
     p = pj.project_row(conn, project)
     need(conn, p, user, "contribute")
     r = _own_principle(conn, p, pid)

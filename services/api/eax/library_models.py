@@ -95,6 +95,7 @@ _routed: contextvars.ContextVar[bool] = contextvars.ContextVar("eax_library_rout
 
 
 def routed() -> bool:
+    """Whether this request reads the shared library models' database."""
     return _routed.get()
 
 
@@ -114,6 +115,7 @@ def set_route(on: bool):
 
 
 def reset_route(token) -> None:
+    """Ends routing to the shared library models' database."""
     try:
         _routed.reset(token)
     except (ValueError, LookupError):

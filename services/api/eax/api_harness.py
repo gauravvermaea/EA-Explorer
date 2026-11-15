@@ -125,6 +125,7 @@ def session(repo, by: str, roles: list[str], log=lambda _m: None) -> dict[str, A
 
 
 def session_row(run_id: int) -> dict[str, Any]:
+    """The self-test run that holds an API harness session (R3.16), refused when it is not one."""
     from .testing import store
     with store.engine().connect() as tc:
         row = tc.execute(text("SELECT id, browser FROM tests.test_runs WHERE id = :id"), {"id": run_id}).mappings().first()
@@ -137,6 +138,7 @@ def session_row(run_id: int) -> dict[str, Any]:
 
 
 def latest_session() -> int | None:
+    """The newest API harness session started in the last 20 hours, if any."""
     from .testing import store
     with store.engine().connect() as tc:
         return tc.execute(text("""SELECT id FROM tests.test_runs WHERE browser ? 'harness' AND (browser ->> 'harness') = 'true'
@@ -166,6 +168,7 @@ def fill(path: str, ids: dict[str, str]) -> str:
 
 
 def curl_line(method: str, url: str, body: Any, as_who: str) -> str:
+    """The same call as a curl command line to copy, with the token left as a placeholder."""
     parts = ["curl", "-sk", "-X", method.upper(), shlex.quote(url), "-H", shlex.quote("Authorization: Bearer <token of " + as_who + ">")]
     if body is not None and method.lower() in WRITES:
         parts += ["-H", shlex.quote("Content-Type: application/json"), "--data", shlex.quote(json.dumps(body))]
@@ -231,6 +234,7 @@ def check(case: dict, answer: dict) -> tuple[bool, str]:
 
 
 def save_case(conn, by: str, c: dict) -> dict[str, Any]:
+    """Saves an API test case: its name, method, path, query, body, the role it runs as and what it expects back."""
     name = str(c.get("name") or "").strip()[:200]
     if not name:
         raise EditError("Give the case a name.", 400)
@@ -253,12 +257,14 @@ def save_case(conn, by: str, c: dict) -> dict[str, Any]:
 
 
 def cases(conn) -> list[dict[str, Any]]:
+    """Every saved API test case, by name."""
     rows = conn.execute(text("""SELECT id, name, method, path, query, body, as_role, expect_status, expect_fields,
                                        created_by, created_at FROM tests.api_cases ORDER BY name""")).mappings().all()
     return [dict(r) for r in rows]
 
 
 def delete_case(conn, case_id: int) -> bool:
+    """Deletes a saved API test case; true when it was there."""
     return bool(conn.execute(text("DELETE FROM tests.api_cases WHERE id = :i RETURNING id"), {"i": case_id}).first())
 
 

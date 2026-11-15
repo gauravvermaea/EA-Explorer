@@ -76,16 +76,18 @@ The same steps with `./eax.sh` (Docker Engine with Compose v2, or Docker Desktop
 
 ### The first time
 
-1. **Install Docker Engine and Compose v2**, and mount the disks or shares for the data and the backups (the database
-   folder `EAX_DATA_DIR`, the documents `EAX_DOCS_DIR`, the backups `EAX_BACKUP_DIR`; Release 5's R5.4 will check
-   these before every start).
+1. **Install Docker Engine and Compose v2**, and choose **one base folder for all the data** (`/srv/eax` unless you
+   say otherwise). Under it EA Explorer uses a folder for each kind: `databases`, `documents`, `logs`, `backups`,
+   `imports`, `exports`, `certificates`, `reports`. Mount whatever you want onto any of them first (for example the
+   logs and documents on a network share, the databases on the local disk); `./eax.sh folders` shows where each one is
+   and the space free, and every `./eax.sh up` checks them before it starts.
 2. **Get the release** (or use `eax deploy` from another machine, which makes every password for you:
    [deployment.md](deployment.md)).
 3. **Make the config file**:
    ```bash
    ./eax.sh init server
    ```
-   It asks for the backups folder (a mounted share or volume).
+   It asks for the base folder for all the data (`EAX_DATA_ROOT`).
 4. **Edit `work/eaexplorer.env`**: replace **every** `change-me` value with a long random password of your own, set
    `EAX_HOSTNAME` (the name people use) and the certificate (`EAX_TLS_DIR` with `tls.crt` and `tls.key`, or leave it
    for a self-signed one). The setup refuses to start while a `change-me` value is left. Keep the file readable by the

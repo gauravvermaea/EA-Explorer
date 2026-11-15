@@ -83,6 +83,7 @@ def _own_views(m: str) -> int:
 
 
 def run() -> list[str]:
+    """Loads the sample drawn views."""
     from .. import commits as cm
     from .. import drawn_views as dv
     from .. import notify

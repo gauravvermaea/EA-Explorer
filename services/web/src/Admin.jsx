@@ -14,6 +14,12 @@
 //   commands     the Command centre: every eax command with a guided form, the Console, the history (D554), schedules (D559)
 //   banner       the banner under the top bar (D558): nothing shows unless an admin sets one
 //   licences     the products and libraries and their licences
+//   db-maintenance  every database checked and tidied; compact, keep-for rules, locks (R5.12; DbMaintenance.jsx)
+//   alerts       every check, the open alerts first; acknowledge, silence, levels, email (R5.9; AlertsPage.jsx)
+//   logs         every log in one place: container logs, the web log, eax's own, deleting (R5.6, R5.7; Logs.jsx)
+//   sizing       the server sizing estimate: RAM, CPU and disk, per container too (R5.19; Sizing.jsx)
+//   optimisation the optimisation report: suggestions with evidence, applied per model or project (R5.1; Optimisation.jsx)
+//   security     who may reach EA Explorer (IP allow lists, R5.2) and multi-factor sign-in (R5.3) (Security.jsx)
 // #/admin/projects moved to #/project-admin/library. The old addresses #/users, #/heartbeat and #/sql are gone (R2.0.1):
 // #/admin/users, #/admin/health and #/admin/sql.
 import { lazy, Suspense, useEffect, useState } from "react";
@@ -44,6 +50,12 @@ const FootprintPage = lazy(() => import("./Footprint"));
 const EstatePage = lazy(() => import("./Estate"));
 const HostsPage = lazy(() => import("./Hosts").then((m) => ({ default: m.HostsPage })));
 const MountsPage = lazy(() => import("./Hosts").then((m) => ({ default: m.MountsPage })));
+const SecurityPage = lazy(() => import("./Security"));
+const LogsPage = lazy(() => import("./Logs"));
+const AlertsPage = lazy(() => import("./AlertsPage"));
+const DbMaintenancePage = lazy(() => import("./DbMaintenance"));
+const OptimisationPage = lazy(() => import("./Optimisation"));
+const SizingPage = lazy(() => import("./Sizing"));
 const QualityAdmin = lazy(() => import("./Quality").then((x) => ({ default: x.QualityAdmin })));
 
 const TABS = [
@@ -51,11 +63,17 @@ const TABS = [
   ["application", "Application settings", () => true, null],
   ["system", "System settings", () => can("system.operate") || can("settings.manage"), ["it-admin", "super-admin"]],
   ["users", "Users", () => can("users.read"), ["user-admin", "super-admin"]],
+  ["security", "Security", () => can("system.operate"), ["it-admin", "super-admin", "auditor"]],   // allow lists, MFA (R5.2, R5.3)
   ["health", "Health", () => true, null],
+  ["alerts", "Alerts", () => can("system.operate"), ["it-admin", "super-admin", "auditor"]],   // R5.9
   ["containers", "Containers", () => can("system.operate"), ["it-admin", "super-admin"]],
+  ["logs", "Logs", () => can("system.operate"), ["it-admin", "super-admin", "auditor"]],   // every log, the web log (R5.6)
   ["hosts", "Hosts", () => can("system.operate"), ["it-admin", "super-admin"]],           // the Docker engine (R2.16)
   ["mounts", "Mounts", () => can("system.operate"), ["it-admin", "super-admin"]],         // volumes and bind mounts (R2.17)
   ["databases", "Databases", () => can("system.operate"), ["it-admin", "super-admin"]],   // where each lives (R2.50)
+  ["db-maintenance", "Database maintenance", () => can("system.operate"), ["it-admin", "super-admin", "auditor"]],   // R5.12
+  ["optimisation", "Optimisation", () => true, null],
+  ["sizing", "Sizing", () => can("system.operate"), ["it-admin", "super-admin", "auditor"]],   // R5.19   // R5.1: a Model Admin sees what is theirs to decide
   ["persist", "Persist", () => can("system.operate"), ["it-admin", "super-admin"]],       // what survives resets (R2.26)
   ["footprint", "Footprint", () => can("system.operate"), ["it-admin", "super-admin"]],   // how much each takes (R2.22)
   ["estate", "Estate", () => can("system.operate"), ["it-admin", "super-admin"]],         // its own diagrams (R2.33)
@@ -97,11 +115,17 @@ export default function Admin({ route }) {
           {!t[2]() ? <p className="status bad">{needsRole(t[3])}</p>
             : t[0] === "wizards" ? <SystemWizards />
             : t[0] === "users" ? <Users route={inner} />
+            : t[0] === "security" ? <SecurityPage />
               : t[0] === "health" ? <Heartbeat />
+              : t[0] === "alerts" ? <AlertsPage />
                 : t[0] === "containers" ? <ContainerConsole />
+                : t[0] === "logs" ? <LogsPage />
                 : t[0] === "hosts" ? <HostsPage />
                 : t[0] === "mounts" ? <MountsPage />
                 : t[0] === "databases" ? <DatabasesPage />
+                : t[0] === "db-maintenance" ? <DbMaintenancePage />
+                : t[0] === "optimisation" ? <OptimisationPage />
+                : t[0] === "sizing" ? <SizingPage />
                 : t[0] === "persist" ? <PersistPage />
                 : t[0] === "footprint" ? <FootprintPage />
                 : t[0] === "estate" ? <EstatePage />

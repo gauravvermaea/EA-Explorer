@@ -535,3 +535,155 @@ def update_watch(timestamp: int) -> None:
     with get_engine().begin() as conn:
         up.tell_support(conn, (st.get("installed") or {}).get("version") or "", [r for r in releases if r])
 
+
+
+@app.periodic(cron="41 * * * *")
+@app.task(name="eax.keycloak_upkeep", queue="default", queueing_lock="keycloak_upkeep")
+def keycloak_upkeep(timestamp: int) -> None:
+    """Every hour (R5.3, R5.22): multi-factor sign-in applied to whoever the setting wants (new admins, new people)
+    and the Auditor role made when the realm lacks it. Nothing happens when Keycloak's administrator cannot sign in."""
+    import logging
+
+    from . import keycloak_upkeep as ku
+    from . import settings as st
+    try:
+        ku.ensure_audit_role()
+        mode = st.values().get("mfa_mode", "off")
+        if mode != "off":
+            ku.apply_mfa(mode)
+    except Exception as exc:  # noqa: BLE001
+        logging.getLogger("eax.keycloak_upkeep").info("Keycloak upkeep skipped: %s", exc)
+
+
+@app.periodic(cron="* * * * *")
+@app.task(name="eax.alerts_run", queue="default", queueing_lock="alerts_run")
+def alerts_run(timestamp: int) -> None:
+    """Every minute (R5.9): every alert check once; states kept, the history written, people told."""
+    import logging
+
+    from . import alerts
+    try:
+        with get_engine().begin() as conn:
+            alerts.run(conn)
+    except Exception:  # noqa: BLE001 - tried again next minute
+        logging.getLogger("eax.alerts").exception("the alert checks could not run")
+
+
+@app.periodic(cron="20 3 * * 0")
+@app.task(name="eax.security_weekly", queue="default", queueing_lock="security_weekly")
+def security_weekly(timestamp: int) -> None:
+    """Every Sunday at 03:20 (R5.17 (1)): the security suite, detailed, by itself (the setting security_test_weekly):
+    the scans, the attacks and the gate; nothing waits for a person. Not while another self-test runs."""
+    import logging
+
+    from . import settings as st
+    from .api.admin import _ops_raw
+    from .testing import store
+    lg = logging.getLogger("eax.security")
+    if not st.values().get("security_test_weekly", True):
+        return
+    with store.engine().begin() as tc:
+        busy = tc.execute(text("SELECT id FROM tests.test_runs WHERE state IN ('queued', 'running') "
+                               "AND queued_at > now() - interval '3 hours' LIMIT 1")).scalar()
+        if busy:
+            lg.info("weekly security test: self-test %s is going on: next week", busy)
+            return
+        run_id = store.create_run(tc, "schedule (weekly security test)", "eax", ["security"], level="detailed")
+    body = {"run_id": run_id, "level": "detailed", "suites": ["security"], "by": "schedule (weekly security test)"}
+    try:
+        _ops_raw("POST", "/tests/build", {"by": "schedule", "then": body}, timeout=60)
+    except Exception as exc:  # noqa: BLE001 - closed with the reason
+        with store.engine().begin() as tc:
+            store.set_state(tc, run_id, state="error", message=f"Could not start: {exc}")
+        lg.warning("weekly security test could not start: %s", exc)
+
+
+@app.periodic(cron="30 2 1 * *")
+@app.task(name="eax.optimise_report", queue="default", queueing_lock="optimise_report")
+def optimise_report(timestamp: int) -> None:
+    """The 1st of every month at 02:30 (R5.1, D697): the platform measured and a report of suggestions kept; the admins
+    (and each Model Admin, for their models) told. Nothing is changed: every suggestion waits for a person's yes."""
+    import logging
+
+    from . import optimise
+    try:
+        with get_engine().begin() as conn:
+            r = optimise.measure(conn)
+            optimise.save(conn, r, "schedule")
+            optimise.tell(conn, r)
+    except Exception:  # noqa: BLE001
+        logging.getLogger("eax.optimise").exception("the optimisation report failed")
+
+
+@app.periodic(cron="50 0 * * *")
+@app.task(name="eax.db_check", queue="default", queueing_lock="db_check")
+def db_check(timestamp: int) -> None:
+    """Every day at 00:50 (R5.12): every database checked, the findings kept (and the alert db_maintenance fed)."""
+    import logging
+
+    from . import dbmaint
+    try:
+        out = dbmaint.check()
+        with get_engine().begin() as conn:
+            dbmaint.record(conn, "check", "schedule", out["findings"])
+    except Exception:  # noqa: BLE001
+        logging.getLogger("eax.dbmaint").exception("the database check failed")
+
+
+@app.periodic(cron="*/15 * * * *")
+@app.task(name="eax.db_tidy", queue="default", queueing_lock="db_tidy")
+def db_tidy(timestamp: int) -> None:
+    """Every 15 minutes (R5.12): once a night, inside the window and when nothing must not be disturbed, the tables
+    and indexes that need it tidied (nothing locked)."""
+    import logging
+    from datetime import datetime
+
+    from . import backup_schedule as bs
+    from . import dbmaint
+    try:
+        with get_engine().connect() as conn:
+            due = dbmaint.tidy_due(conn, datetime.now(bs.zone(conn)))
+        if not due:
+            return
+        why = dbmaint.busy_reason()
+        if why:
+            logging.getLogger("eax.dbmaint").info("tonight's tidy waits: %s", why)
+            return
+        found = dbmaint.check()["findings"]
+        done = dbmaint.tidy(found)
+        with get_engine().begin() as conn:
+            dbmaint.record(conn, "tidy", "schedule", found, done)
+    except Exception:  # noqa: BLE001
+        logging.getLogger("eax.dbmaint").exception("the nightly tidy failed")
+
+
+@app.periodic(cron="*/5 * * * *")
+@app.task(name="eax.db_idle_sessions", queue="default", queueing_lock="db_idle_sessions")
+def db_idle_sessions(timestamp: int) -> None:
+    """Every 5 minutes (R5.12): sessions idle in a transaction longer than the setting ended, and recorded."""
+    import logging
+
+    from . import dbmaint
+    try:
+        with get_engine().connect() as conn:
+            minutes = dbmaint.settings_of(conn)["idle_tx_minutes"]
+        ended = dbmaint.end_idle(minutes)
+        if ended:
+            with get_engine().begin() as conn:
+                dbmaint.record(conn, "locks", "schedule", actions=[{"ended_idle": ended, "after_minutes": minutes}])
+    except Exception:  # noqa: BLE001
+        logging.getLogger("eax.dbmaint").info("idle sessions not looked at", exc_info=True)
+
+
+@app.periodic(cron="*/15 * * * *")
+@app.task(name="eax.servicedesk_overdue", queue="default", queueing_lock="servicedesk_overdue")
+def servicedesk_overdue(timestamp: int) -> None:
+    """Every 15 minutes (R5.11): open requests past their target time, told to their team once."""
+    import logging
+
+    from . import servicedesk
+    try:
+        with get_engine().begin() as conn:
+            servicedesk.overdue_reminders(conn)
+    except Exception:  # noqa: BLE001
+        logging.getLogger("eax.servicedesk").info("overdue requests not looked at", exc_info=True)

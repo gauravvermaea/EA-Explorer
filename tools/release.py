@@ -23,16 +23,19 @@ TAG = re.compile(r"^v?(\d+\.\d+\.\d+)(?:-rc\.(\d+))?$")
 
 
 def git(*args: str) -> str:
+    """Runs git (empty on an error)."""
     r = subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True)
     return r.stdout.strip() if r.returncode == 0 else ""
 
 
 def toml_version() -> str:
+    """The version in services/api/version.toml."""
     m = re.search(r'^version\s*=\s*"([^"]+)"', (ROOT / "services" / "api" / "version.toml").read_text(encoding="utf-8"), re.M)
     return m.group(1) if m else ""
 
 
 def split(v: str) -> tuple[str, str]:
+    """A version as its base and release candidate number."""
     m = TAG.match(v)
     if not m:
         raise SystemExit(f"{v} is not a version: 0.19.0 or 0.19.0-rc.1")
@@ -40,11 +43,13 @@ def split(v: str) -> tuple[str, str]:
 
 
 def last_tag() -> str:
+    """The newest version tag."""
     tags = [t for t in git("tag", "--list", "v*", "--sort=-v:refname").splitlines() if TAG.match(t)]
     return tags[0] if tags else ""
 
 
 def notes(v: str) -> Path:
+    """A release's notes file (made from the template when missing)."""
     base, rc = split(v)
     name = f"{base}-rc.{rc}" if rc else base
     path = ROOT / "releases" / f"{name}.md"
@@ -68,6 +73,7 @@ def notes(v: str) -> Path:
 
 
 def commands(v: str) -> None:
+    """Prints the git commands to tag and push a release."""
     base, rc = split(v)
     tag = f"v{base}-rc.{rc}" if rc else f"v{base}"
     branch = "rc" if rc else "release"
@@ -91,6 +97,7 @@ git checkout main
 
 
 def check(ref: str) -> int:
+    """Checks a release is consistent (version, notes, migration, tag)."""
     base, rc = split(ref)
     problems = []
     if toml_version() != base:
@@ -106,6 +113,7 @@ def check(ref: str) -> int:
 
 
 def main(argv: list[str]) -> int:
+    """python tools/release.py check|notes|commands <version>."""
     if len(argv) == 2 and argv[0] == "notes":
         notes(argv[1])
         return 0

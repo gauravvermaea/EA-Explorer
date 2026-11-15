@@ -34,6 +34,7 @@ PPTX_KINDS = {"Diagram"}
 
 
 def safe(name: str) -> str:
+    """A safe file name."""
     return re.sub(r"\s+", " ", re.sub(r"[^A-Za-z0-9 ()&,+-]+", " ", name)).strip()[:90]
 
 
@@ -62,6 +63,7 @@ DOC_SECTIONS = ["Document control", "Purpose", "Scope", "Context and drivers", "
 
 
 def starter_docx(item: dict, phase: str) -> bytes:
+    """A starter Word template for a deliverable."""
     import docx
     d = docx.Document()
     d.core_properties.title = item["name"]
@@ -88,6 +90,7 @@ def starter_docx(item: dict, phase: str) -> bytes:
 
 
 def starter_xlsx(item: dict, phase: str) -> bytes:
+    """A starter Excel template for a deliverable."""
     import openpyxl
     from openpyxl.styles import Font, PatternFill
     wb = openpyxl.Workbook()
@@ -119,6 +122,7 @@ def starter_xlsx(item: dict, phase: str) -> bytes:
 
 
 def starter_pptx(item: dict, phase: str) -> bytes:
+    """A starter PowerPoint template for a deliverable."""
     from pptx import Presentation
     from pptx.util import Inches, Pt
     p = Presentation()
@@ -140,6 +144,7 @@ def starter_pptx(item: dict, phase: str) -> bytes:
 
 
 def ext_for(item: dict) -> str:
+    """The file type a deliverable's template is."""
     t = item.get("type") or ""
     if t in XLSX_KINDS:
         return "xlsx"
@@ -149,6 +154,7 @@ def ext_for(item: dict) -> str:
 
 
 def main(samples: Path, picks_file: Path | None) -> None:
+    """Builds EA Explorer's own deliverable templates."""
     lib = json.loads(LIB.read_text(encoding="utf-8"))
     phases = {p["code"]: p["name"] for p in lib["phases"]}
     picks = json.loads(picks_file.read_text()) if picks_file else {}

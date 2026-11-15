@@ -20,6 +20,7 @@ def _say(msg: str) -> None:
 
 
 def ensure_database() -> None:
+    """Makes the views' database and login when they are not there."""
     s = get_settings()
     if not s.db_password:
         raise SystemExit("EA Explorer views: EAX_VIEWS_DB_PASSWORD is empty: set it in work/eaexplorer.env")
@@ -48,6 +49,7 @@ def ensure_database() -> None:
 
 
 def migrate() -> list[str]:
+    """Applies the views' migrations not yet applied."""
     s = get_settings()
     done: list[str] = []
     with psycopg.connect(s.dsn(), autocommit=False) as c:
@@ -65,6 +67,7 @@ def migrate() -> list[str]:
 
 
 def main() -> int:
+    """The views' set-up at its start: the database, then its migrations."""
     ensure_database()
     done = migrate()
     _say(f"migrated: {', '.join(done)}" if done else "database up to date")

@@ -79,6 +79,7 @@ def give_notation(conn) -> None:
 
 
 def main() -> int:
+    """Loads the built-in models and libraries at the first start (needs the migrations' login)."""
     settings = get_settings()
     if not settings.db_migrator_password:
         print("EA Explorer seed: EAX_DB_MIGRATOR_PASSWORD is not set; built-in models not loaded", file=sys.stderr)

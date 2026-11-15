@@ -81,6 +81,7 @@ def _download(path) -> Response:
 
 
 def services_on() -> bool:
+    """Whether the backups service is switched on (true when the switches cannot be read)."""
     from .. import services
     try:
         return services.enabled("backups")
@@ -110,6 +111,8 @@ def web_proven(conn) -> dict:
 
 @blp.route("/admin/backups")
 class Backups(MethodView):
+    """/api/v1/admin/backups: GET every backup: infrastructure (from the operations helper) and application, what is
+    running, maintenance."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -129,6 +132,8 @@ class Backups(MethodView):
 
 @blp.route("/admin/backups/projects")
 class ProjectBackupsAll(MethodView):
+    """/api/v1/admin/backups/projects: GET every project with its own backups (made on its page or here), newest
+    first; each holds the project, its models and the latest version of each document."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -143,6 +148,8 @@ class ProjectBackupsAll(MethodView):
 
 @blp.route("/admin/backups/schedules/<kind>")
 class Schedule(MethodView):
+    """/api/v1/admin/backups/schedules/{kind}: PUT when a kind of backup runs and how many are kept ({enabled, cron,
+    tag, keep, warn_after_hours}); IT and Super Admins."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -165,6 +172,8 @@ class Schedule(MethodView):
 
 @blp.route("/admin/backups/infrastructure")
 class InfraBackup(MethodView):
+    """/api/v1/admin/backups/infrastructure: POST an infrastructure backup now, tagged ({tag}): every database, the
+    files, the config file, the release and image versions."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(202, Free)
@@ -183,6 +192,9 @@ class InfraBackup(MethodView):
 
 @blp.route("/admin/backups/infrastructure/<name>/verify")
 class InfraVerify(MethodView):
+    """/api/v1/admin/backups/infrastructure/{name}/verify: POST checks an infrastructure backup can be restored,
+    touching nothing live (R2.45): its checksums, every file set readable, every database restored into a scratch
+    copy…"""
     @blp.doc(security=SECURITY)
     @blp.response(202, Free)
     @require_auth("system.operate")
@@ -194,6 +206,8 @@ class InfraVerify(MethodView):
 
 @blp.route("/admin/backups/infrastructure/<name>/pin")
 class InfraPin(MethodView):
+    """/api/v1/admin/backups/infrastructure/{name}/pin: POST pin a backup so the clean-up never removes it ({pinned:
+    true}), or unpin it."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -208,6 +222,8 @@ class InfraPin(MethodView):
 
 @blp.route("/admin/backups/infrastructure/<name>/restore")
 class InfraRestore(MethodView):
+    """/api/v1/admin/backups/infrastructure/{name}/restore: POST restore an infrastructure backup, whole or in part
+    ({what, confirm: "RESTORE"})."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(202, Free)
@@ -226,6 +242,8 @@ class InfraRestore(MethodView):
 
 @blp.route("/internal/restore-started")
 class RestoreStarted(MethodView):
+    """/api/v1/internal/restore-started: POST for the operations helper only (X-Ops-Token): an infrastructure restore
+    is starting, so everyone is told now and the webhooks are sent at once, before the database is…"""
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
     def post(self, data):
@@ -245,6 +263,8 @@ class RestoreStarted(MethodView):
 
 @blp.route("/admin/backups/restore")
 class RestoreState(MethodView):
+    """/api/v1/admin/backups/restore: GET the backup or restore running in the operations helper, or the last one
+    finished, with its log."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -255,6 +275,8 @@ class RestoreState(MethodView):
 
 @blp.route("/admin/backups/application")
 class AppBackup(MethodView):
+    """/api/v1/admin/backups/application: POST an application backup now ({tag, models}): every model (or the chosen
+    ones) as a model backup file."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(202, Free)
@@ -268,6 +290,8 @@ class AppBackup(MethodView):
 
 @blp.route("/admin/backups/application/<name>/download")
 class AppDownload(MethodView):
+    """/api/v1/admin/backups/application/{name}/download: GET every model of an application backup in one file
+    (<name>.eaxapp.zip), to keep or to upload elsewhere (D233)."""
     @blp.doc(security=SECURITY)
     @require_auth("system.operate")
     def get(self, name):
@@ -292,6 +316,9 @@ class AppDownload(MethodView):
 
 @blp.route("/admin/backups/application/<name>/restore-all")
 class AppRestoreAll(MethodView):
+    """/api/v1/admin/backups/application/{name}/restore-all: POST every model of an application backup put back over
+    itself; models no longer there are made again; models made since stay as they are ({confirm: "RESTORE"}; Super
+    Admins…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(202, Free)
@@ -314,6 +341,8 @@ class AppRestoreAll(MethodView):
 
 @blp.route("/admin/backups/override")
 class BackupsOverride(MethodView):
+    """/api/v1/admin/backups/override: POST use the backup and restore buttons before a self-test has proven them
+    (R2.62, owner, 13 Nov 2026: "dont hide these buttons diable them with reason."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -333,6 +362,8 @@ def record_override(why) -> dict:
 
 @blp.route("/admin/backups/stop")
 class StopBackups(MethodView):
+    """/api/v1/admin/backups/stop: POST stop the backups running (D231): an infrastructure backup is killed and its
+    partial folder deleted; an application backup stops after the model it is on and is deleted."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -354,11 +385,13 @@ class StopBackups(MethodView):
 
 @blp.route("/admin/backups/application/<name>/pin")
 class AppPin(MethodView):
+    """/api/v1/admin/backups/application/{name}/pin: POST app pin."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
     @require_auth("system.operate")
     def post(self, data, name):
+        """Pins or unpins an application backup so the keep-for rules never delete it"""
         pinned = bool((data or {}).get("pinned"))
         try:
             out = bk.pin("application", name, "", "", pinned)
@@ -370,6 +403,8 @@ class AppPin(MethodView):
 
 @blp.route("/admin/backups/application/<name>/<file>")
 class AppFile(MethodView):
+    """/api/v1/admin/backups/application/{name}/{file}: GET download one model's backup file from an application
+    backup."""
     @blp.doc(security=SECURITY)
     @require_auth("system.operate")
     def get(self, name, file):
@@ -382,9 +417,11 @@ class AppFile(MethodView):
 
 @blp.route("/admin/backups/uploaded/<file>")
 class UploadedFile(MethodView):
+    """/api/v1/admin/backups/uploaded/{file}: GET uploaded file."""
     @blp.doc(security=SECURITY)
     @require_auth("system.operate")
     def get(self, file):
+        """Downloads a backup file someone uploaded"""
         try:
             return _download(bk.path_of("uploaded", "", file))
         except EditError as exc:
@@ -393,6 +430,8 @@ class UploadedFile(MethodView):
 
 @blp.route("/admin/backups/upload")
 class Upload(MethodView):
+    """/api/v1/admin/backups/upload: POST a model backup file from another installation (multipart "file"), kept to
+    restore as a new model."""
     @blp.doc(security=SECURITY)
     @blp.response(201, Free)
     @require_auth("system.operate")
@@ -425,6 +464,8 @@ class Upload(MethodView):
 
 @blp.route("/admin/backups/restore-model")
 class RestoreModel(MethodView):
+    """/api/v1/admin/backups/restore-model: POST restore a model backup file ({where, name, file, model, mode:
+    new|over, new_name, target}) as a new model (Model Creators, Super Admins) or over the model it came from…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(202, Free)
@@ -464,6 +505,7 @@ class RestoreModel(MethodView):
 # ---------------------------------------------------------------- restores and deleting by hand (D227)
 @blp.route("/admin/restores")
 class Restores(MethodView):
+    """/api/v1/admin/restores: GET every restore, infrastructure and application, newest first, with the one running."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -477,6 +519,7 @@ class Restores(MethodView):
 
 @blp.route("/admin/restores/<rid>")
 class RestoreDetail(MethodView):
+    """/api/v1/admin/restores/{rid}: GET one restore with its whole log (the newest 5,000 lines)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -490,6 +533,7 @@ class RestoreDetail(MethodView):
 
 @blp.route("/admin/restores/<rid>/delete")
 class RestoreDelete(MethodView):
+    """/api/v1/admin/restores/{rid}/delete: POST forget a finished restore and its log."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -505,6 +549,8 @@ class RestoreDelete(MethodView):
 
 @blp.route("/admin/backups/infrastructure/<name>/delete")
 class InfraDelete(MethodView):
+    """/api/v1/admin/backups/infrastructure/{name}/delete: POST delete an infrastructure backup by hand (unpin it
+    first if it is pinned)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -517,6 +563,8 @@ class InfraDelete(MethodView):
 
 @blp.route("/admin/backups/application/<name>/delete")
 class AppDelete(MethodView):
+    """/api/v1/admin/backups/application/{name}/delete: POST delete an application backup by hand (unpin it first if
+    it is pinned)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -532,10 +580,12 @@ class AppDelete(MethodView):
 
 @blp.route("/admin/backups/uploaded/<file>/delete")
 class UploadedDelete(MethodView):
+    """/api/v1/admin/backups/uploaded/{file}/delete: POST uploaded delete."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
     def post(self, file):
+        """Deletes an uploaded backup file for good"""
         try:
             out = bk.delete_file("uploaded", file)
         except EditError as exc:
@@ -547,6 +597,8 @@ class UploadedDelete(MethodView):
 # ---------------------------------------------------------------- on the model page
 @blp.route("/models/<model>/backups")
 class ModelBackups(MethodView):
+    """/api/v1/models/{model}/backups: GET the model's backups (its Model Admins): its own and its files in the
+    application backups; POST back the model up now ({note}); kept with the application backups and downloadable."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -578,9 +630,11 @@ class ModelBackups(MethodView):
 
 @blp.route("/models/<model>/backups/<file>")
 class ModelBackupFile(MethodView):
+    """/api/v1/models/{model}/backups/{file}: GET model backup file."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self, model, file):
+        """Downloads one of a model's backup files (those who may back the model up)"""
         with get_engine().connect() as conn:
             try:
                 m = bk.may_back_up(conn, g.user, model)
@@ -591,6 +645,8 @@ class ModelBackupFile(MethodView):
 
 @blp.route("/models/<model>/backups/<file>/delete")
 class ModelBackupDelete(MethodView):
+    """/api/v1/models/{model}/backups/{file}/delete: POST delete one of the model's own backups (its Model Admins;
+    unpin it first)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -608,11 +664,13 @@ class ModelBackupDelete(MethodView):
 
 @blp.route("/models/<model>/backups/<file>/pin")
 class ModelBackupPin(MethodView):
+    """/api/v1/models/{model}/backups/{file}/pin: POST model backup pin."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
     @require_auth()
     def post(self, data, model, file):
+        """Pins or unpins one of a model's backups so the keep-for rules never delete it"""
         pinned = bool((data or {}).get("pinned"))
         with get_engine().connect() as conn:
             try:

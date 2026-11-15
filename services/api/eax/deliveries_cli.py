@@ -28,6 +28,7 @@ def _sources(conn) -> list[dict]:
 
 
 def main(argv: list[str]) -> int:
+    """python -m eax.deliveries_cli (eax import): takes the files dropped in the delivery folders."""
     who = "system:eax-import"
     if "--as" in argv:
         i = argv.index("--as")

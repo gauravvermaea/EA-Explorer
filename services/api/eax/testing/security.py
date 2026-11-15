@@ -74,10 +74,12 @@ def _get(url: str, host: str) -> tuple[int, dict[str, str], list[str]]:
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self, *a, **k):  # noqa: ANN002, ANN003
+        """Never follows a redirect (the headers of the first answer are checked)."""
         return None
 
 
 def check_headers(headers: dict[str, str], where: str, record: Record) -> None:
+    """Records whether the security headers are there and good (the CSP's weaknesses named)."""
     for name, want, bad in HEADERS:
         have = headers.get(name)
         if name == "content-security-policy" and have is None and headers.get("content-security-policy-report-only"):
@@ -105,6 +107,7 @@ def check_headers(headers: dict[str, str], where: str, record: Record) -> None:
 
 
 def check_cookies(cookies: list[str], where: str, record: Record) -> None:
+    """Records whether each cookie is Secure, HttpOnly and has SameSite."""
     if not cookies:
         record(f"{where}: cookies", "passed", "no cookie set", 0)
         return
@@ -171,8 +174,9 @@ def key_vault(record: Record, fetch: Callable[[], dict] | None = None) -> None:
            else "none", 0)
 
 
-def python_dependencies(record: Record) -> None:
-    """pip-audit of the API's requirements (needs the internet to read the advisory database)."""
+def python_dependencies(record: Record, accepted: list[dict] | None = None) -> None:
+    """pip-audit of the API's requirements (needs the internet to read the advisory database); a vulnerability accepted
+    until a date not yet past (security_accepted.json, R5.17) is listed, not failed."""
     req = Path("/app/requirements.txt")
     if not req.exists():
         record("Python dependencies (pip-audit)", "skipped", "no requirements.txt in the runner", 0)
@@ -185,6 +189,13 @@ def python_dependencies(record: Record) -> None:
         record("Python dependencies (pip-audit)", "skipped", f"pip-audit could not run: {(r.stderr or '')[-500:]}", 0)
         return
     found = [(d["name"], d["version"], v["id"]) for d in data.get("dependencies", []) for v in d.get("vulns", [])]
+    from datetime import date
+    ok = {a["id"] for a in accepted or [] if a.get("until", "") >= date.today().isoformat()}
+    kept = [f for f in found if f[2] in ok]
+    found = [f for f in found if f[2] not in ok]
+    if kept and not found:
+        record("Python dependencies (pip-audit)", "warning", "accepted for now: " + "; ".join(f"{n} {ver}: {vid}" for n, ver, vid in kept), 0)
+        return
     if found:
         record("Python dependencies (pip-audit)", "failed",
                "; ".join(f"{n} {ver}: {vid}" for n, ver, vid in found[:60]), 0)
@@ -192,27 +203,26 @@ def python_dependencies(record: Record) -> None:
         record("Python dependencies (pip-audit)", "passed", f"{len(data.get('dependencies', []))} packages, no known vulnerability", 0)
 
 
-def read_zap(path: Path, record: Record) -> None:
-    """The ZAP baseline report (zap.json): a High alert fails, Medium warns."""
+def read_zap(path: Path, record: Record, name: str = "OWASP ZAP baseline scan") -> None:
+    """A ZAP report (zap.json, the baseline; zap-api.json, the signed-in scan, R5.17): High and Medium alerts are listed
+    as a warning; the security gate (security_gate.py) fails the run on a High one that is not accepted."""
     if not path.exists():
-        record("OWASP ZAP baseline scan", "skipped", "no ZAP report (the scan did not run: see the run's log)", 0)
+        record(name, "skipped", "no ZAP report (the scan did not run: see the run's log)", 0)
         return
     data = json.loads(path.read_text(encoding="utf-8") or "{}")
     alerts = [a for s in data.get("site", []) for a in s.get("alerts", [])]
     risk = lambda a: int(str(a.get("riskcode", "0")) or 0)  # noqa: E731
     high = [a for a in alerts if risk(a) >= 3]
     medium = [a for a in alerts if risk(a) == 2]
-    if high:
-        record("OWASP ZAP baseline scan", "failed", "High: " + "; ".join(a.get("alert", "") for a in high), 0)
-    elif medium:
-        record("OWASP ZAP baseline scan", "warning", "Medium: " + "; ".join(a.get("alert", "") for a in medium), 0)
+    if high or medium:
+        record(name, "warning", "; ".join([f"High: {a.get('alert', '')}" for a in high] + [f"Medium: {a.get('alert', '')}" for a in medium]), 0)
     else:
-        record("OWASP ZAP baseline scan", "passed", f"{len(alerts)} low or informational alerts", 0)
+        record(name, "passed", f"{len(alerts)} low or informational alerts", 0)
 
 
 def read_trivy(folder: Path, record: Record) -> None:
-    """Every trivy-*.json in the run's folder: one result per image; a CRITICAL vulnerability with a fix fails,
-    HIGH warns."""
+    """Every trivy-*.json in the run's folder: one result per image, its high and critical findings listed as a warning
+    (the security gate fails the run on one with a fix that is not accepted, R5.17)."""
     files = sorted(folder.glob("trivy-*.json"))
     if not files:
         record("image and dependency scans (Trivy)", "skipped", "no Trivy report (the scan did not run: see the run's log)", 0)
@@ -230,7 +240,7 @@ def read_trivy(folder: Path, record: Record) -> None:
         show = lambda vs: "; ".join(f"{v.get('PkgName')} {v.get('InstalledVersion')}: {v.get('VulnerabilityID')}"  # noqa: E731
                                     + (f" (fixed in {v['FixedVersion']})" if v.get("FixedVersion") else "") for v in vs[:40])
         if crit:
-            record(f"image {image} (Trivy)", "failed", f"{len(crit)} critical with a fix: " + show(crit), 0)
+            record(f"image {image} (Trivy)", "warning", f"{len(crit)} critical with a fix: " + show(crit), 0)
         elif high:
             record(f"image {image} (Trivy)", "warning", f"{len(high)} high or critical: " + show(high), 0)
         else:

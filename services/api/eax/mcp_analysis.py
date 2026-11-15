@@ -71,6 +71,7 @@ def _brief(e: dict, link_model: str | None = None) -> dict:
 
 
 def edges(snap: dict) -> list[dict]:
+    """A snapshot's relationships as a list."""
     return list(snap["relationships"].values())
 
 
@@ -162,6 +163,8 @@ def time_suggestion(e: dict) -> tuple[str, str] | None:
 
 
 def rationalise(snap: dict, model: str | None = None) -> dict:
+    """Application rationalisation from a model snapshot: capabilities served by more than one application, and
+    applications serving none."""
     ents = snap["entities"]
     sup = _supporting_apps(snap)
     caps = []

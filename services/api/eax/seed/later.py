@@ -51,10 +51,12 @@ class Progress:
                                    updated_at = now()""", (PART, name, total))
 
     def step(self, label: str) -> None:
+        """Says what the sample loader is loading now."""
         self.conn.execute("UPDATE operations.startup_parts SET detail = %s, updated_at = now() WHERE part = %s",
                           (f"loading: {label}", PART))
 
     def finished(self, label: str, ok: bool, why: str = "") -> None:
+        """Counts a sample loaded (or failed, with why)."""
         self.done += 1
         if not ok:
             self.failed.append(f"{label}: {why}"[:300])
@@ -62,6 +64,7 @@ class Progress:
                           (self.done, f"done: {label}" if ok else f"failed: {label}", PART))
 
     def close(self) -> None:
+        """Says how the sample loading ended."""
         state = "down" if self.failed else "up"
         detail = ("; ".join(self.failed) + ". The next start tries again.") if self.failed else "everything loaded"
         self.conn.execute("""UPDATE operations.startup_parts SET state = %s, done = total, detail = %s, finished_at = now(),
@@ -394,6 +397,7 @@ def first_measurements() -> None:
 
 
 def main() -> int:
+    """Loads the sample content after the start, part by part, saying how far it is."""
     settings = get_settings()
     if not settings.db_migrator_password:
         _say("EAX_DB_MIGRATOR_PASSWORD is not set; nothing loaded")

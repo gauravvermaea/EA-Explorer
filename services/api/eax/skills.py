@@ -33,6 +33,7 @@ def clean(skills) -> list[str]:
 
 
 def of(conn, usernames) -> dict[str, list[str]]:
+    """The skills of several people, by name."""
     names = sorted({(u or "").lower() for u in usernames if u})
     if not names:
         return {}
@@ -52,6 +53,7 @@ def all_tags(conn) -> list[str]:
 
 
 def mine(conn, user) -> dict:
+    """The person's own skills."""
     r = P.one(conn, "SELECT skills, modified_at FROM personal.user_skills WHERE username = :u", u=user.username.lower())
     return {"username": user.username.lower(), "skills": list((r or {}).get("skills") or []),
             "modified_at": str(getattr(r["modified_at"], "isoformat", lambda: r["modified_at"])()) if r and r.get("modified_at") else None,
@@ -59,6 +61,7 @@ def mine(conn, user) -> dict:
 
 
 def set_mine(conn, user, skills) -> dict:
+    """Sets the person's own skills."""
     tags = clean(skills)
     P.run(conn, """INSERT INTO personal.user_skills (username, skills, modified_by) VALUES (:u, CAST(:s AS text[]), :u)
                     ON CONFLICT (username) DO UPDATE SET skills = EXCLUDED.skills, modified_by = EXCLUDED.modified_by,

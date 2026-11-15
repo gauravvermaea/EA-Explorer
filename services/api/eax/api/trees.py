@@ -35,6 +35,8 @@ def _read(fn):
 
 @blp.route("/models/<uuid:model_id>/tree/metamodel")
 class MetamodelTree(MethodView):
+    """/api/v1/models/{model_id}/tree/metamodel: GET the metamodel as a tree: entity types with their attributes and
+    the relations allowed both ways."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -45,6 +47,8 @@ class MetamodelTree(MethodView):
 
 @blp.route("/models/<uuid:model_id>/tree/types")
 class TypesTree(MethodView):
+    """/api/v1/models/{model_id}/tree/types: GET the entity types with how many entities each has and their data
+    quality as last calculated."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -55,6 +59,8 @@ class TypesTree(MethodView):
 
 @blp.route("/models/<uuid:model_id>/tree/types/<string:entity_type>")
 class TypeEntities(MethodView):
+    """/api/v1/models/{model_id}/tree/types/{entity_type}: GET a page of an entity type's entities (?offset=, limit=
+    up to 1000, q= to filter by name or ID)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -67,6 +73,8 @@ class TypeEntities(MethodView):
 
 @blp.route("/models/<uuid:model_id>/tree/entities/<string:entity>")
 class EntityTree(MethodView):
+    """/api/v1/models/{model_id}/tree/entities/{entity}: GET one entity in the tree: its filled values (key and
+    value), how many are empty, and its relationships."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -77,6 +85,8 @@ class EntityTree(MethodView):
 
 @blp.route("/models/<uuid:model_id>/tree/search")
 class TreeSearch(MethodView):
+    """/api/v1/models/{model_id}/tree/search: GET what matches the filter box (?q=): entity types, entities and
+    attribute values, with their path."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -87,6 +97,8 @@ class TreeSearch(MethodView):
 
 @blp.route("/models/<uuid:model_id>/tree/xlsx")
 class TreeXlsx(MethodView):
+    """/api/v1/models/{model_id}/tree/xlsx: GET the tree as an Excel outline: ?scope=metamodel, entities (&type= for
+    one entity type) or entity (&entity=)."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self, model_id):

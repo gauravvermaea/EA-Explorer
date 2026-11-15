@@ -24,6 +24,9 @@ SECURITY = [{"bearerAuth": []}]
 
 @blp.route("")
 class Deploys(MethodView):
+    """/api/v1/operations/deploys: GET the deployments (plans and real ones), the targets deployed to, the kept
+    credentials (names only); POST start: a plan ({plan: true}: runs nothing) or a deployment ({confirm: true}); the
+    SSH key and credentials go to the helper for this run only (kept there when keep is…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -60,6 +63,8 @@ class Deploys(MethodView):
 
 @blp.route("/questions")
 class Questions(MethodView):
+    """/api/v1/operations/deploys/questions: POST the questions that apply to these answers (defaults filled): the
+    same as eax deploy's, without the laptop."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -72,6 +77,8 @@ class Questions(MethodView):
 
 @blp.route("/<run_id>")
 class Deploy(MethodView):
+    """/api/v1/operations/deploys/{run_id}: GET one deployment: its steps, the failed step (waiting for Retry, Back
+    or Quit), the result and the log."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -85,6 +92,8 @@ class Deploy(MethodView):
 
 @blp.route("/<run_id>/decide")
 class Decide(MethodView):
+    """/api/v1/operations/deploys/{run_id}/decide: POST the answer to a failed step: retry, back (to the answers) or
+    quit."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -101,6 +110,7 @@ class Decide(MethodView):
 
 @blp.route("/kept/<path:target>")
 class Kept(MethodView):
+    """/api/v1/operations/deploys/kept/{target}: DELETE forget the credentials kept for a target."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")

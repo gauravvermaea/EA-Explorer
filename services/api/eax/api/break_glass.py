@@ -29,10 +29,12 @@ MAX_FAILURES, WINDOW_MINUTES = 5, 15
 
 
 class SignInIn(Schema):
+    """The shape of sign in sent to the API: password."""
     password = fields.String(required=True, load_only=True)
 
 
 class SignInOut(Schema):
+    """The shape of sign in in the API's answers: access_token, token_type, expires_in, username."""
     access_token = fields.String()
     token_type = fields.String()
     expires_in = fields.Integer(allow_none=True, metadata={"description": "Always null: the session lasts until sign-out or a password change"})
@@ -40,6 +42,7 @@ class SignInOut(Schema):
 
 
 class StatusOut(Schema):
+    """The shape of status in the API's answers: enabled, last_used_at, change_password."""
     enabled = fields.Boolean()
     last_used_at = fields.DateTime(allow_none=True)
     change_password = fields.Boolean(metadata={"description": "Used with the current password: change it"})
@@ -51,6 +54,8 @@ def fingerprint(password: str) -> str:
 
 
 def status(conn) -> dict:
+    """Whether the break-glass account is set up, when it was last used, and whether its password should now be changed
+    (it was used with this one)."""
     pw = get_settings().break_glass_password
     last = conn.execute(text("""SELECT at, details->>'fingerprint' AS fp FROM audit.events
                                 WHERE action = 'break-glass.sign-in' ORDER BY at DESC LIMIT 1""")).mappings().first()
@@ -60,6 +65,8 @@ def status(conn) -> dict:
 
 @blp.route("/status")
 class Status(MethodView):
+    """/api/v1/break-glass/status: GET whether break-glass sign-in is set up, when it was last used, and whether its
+    password must be changed (public: the sign-in page asks before Keycloak is reachable)."""
     @blp.response(200, StatusOut)
     def get(self):
         """Whether break-glass sign-in is set up, when it was last used, and whether its password must be
@@ -70,6 +77,8 @@ class Status(MethodView):
 
 @blp.route("/sign-in")
 class SignIn(MethodView):
+    """/api/v1/break-glass/sign-in: POST sign in with the break-glass password: a Super Admin token that does not
+    expire."""
     @blp.arguments(SignInIn)
     @blp.response(200, SignInOut)
     def post(self, body):

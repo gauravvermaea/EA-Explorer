@@ -30,6 +30,7 @@ _TSV = "to_tsvector('english', e.title || ' ' || e.description || ' ' || e.sourc
 
 
 def may_write(user) -> bool:
+    """Whether the person may change the enterprise reference library (Super Admins)."""
     return perms.SUPER_ADMIN in (user.roles or ())
 
 
@@ -39,6 +40,7 @@ def _need_write(user) -> None:
 
 
 def clean_folder(path: str) -> str:
+    """A folder path made safe."""
     parts = [re.sub(r"[^\w .()&,'-]+", "_", x).strip(" .")[:80] for x in str(path or "").replace("\\", "/").split("/")]
     return "/".join(x for x in parts if x)
 
@@ -118,6 +120,7 @@ def _entry(conn, eid: str) -> dict:
 
 
 def entry(conn, user, eid: str) -> dict:
+    """One entry of the reference library with its versions."""
     r = _entry(conn, eid)
     versions = _rows(conn, """SELECT version, file_name, size_bytes, note, by_user, at FROM proj.org_ref_versions
                                 WHERE entry_id = :e ORDER BY version DESC""", e=r["id"])
@@ -132,6 +135,7 @@ def _ensure_folder(conn, user, folder: str) -> None:
 
 
 def add_folder(conn, user, path: str, description: str = "") -> dict:
+    """Adds a folder to the reference library."""
     _need_write(user)
     path = clean_folder(path)
     if not path:
@@ -144,6 +148,7 @@ def add_folder(conn, user, path: str, description: str = "") -> dict:
 
 
 def delete_folder(conn, user, path: str) -> dict:
+    """Deletes an empty folder of the reference library."""
     _need_write(user)
     path = clean_folder(path)
     n = (_one(conn, "SELECT count(*) AS n FROM proj.org_ref_entries WHERE folder = :p OR folder LIKE :u", p=path, u=f"{path}/%") or {"n": 0})["n"]
@@ -163,6 +168,7 @@ def _meta(d: dict, base: dict | None = None) -> dict:
 
 
 def add_link(conn, user, d: dict) -> dict:
+    """Adds a link to the reference library."""
     _need_write(user)
     m = _meta(d)
     url = _url(d.get("url"))
@@ -174,6 +180,7 @@ def add_link(conn, user, d: dict) -> dict:
 
 
 def add_file(conn, user, d: dict, file_name: str, content: bytes) -> dict:
+    """Adds a file to the reference library (kept in Documents)."""
     from . import mayan
     _need_write(user)
     if not file_name or not content:
@@ -193,6 +200,7 @@ def add_file(conn, user, d: dict, file_name: str, content: bytes) -> dict:
 
 
 def new_version(conn, user, eid: str, file_name: str, content: bytes, note: str = "") -> dict:
+    """Adds a new version of a reference library file."""
     from . import mayan
     _need_write(user)
     r = _entry(conn, eid)
@@ -213,6 +221,7 @@ def new_version(conn, user, eid: str, file_name: str, content: bytes, note: str 
 
 
 def update(conn, user, eid: str, d: dict) -> dict:
+    """Changes a reference library entry's title, description, source, tags or folder."""
     _need_write(user)
     r = _entry(conn, eid)
     m = _meta(d, {k: r[k] for k in ("title", "description", "source", "tags", "folder")})
@@ -225,6 +234,7 @@ def update(conn, user, eid: str, d: dict) -> dict:
 
 
 def delete(conn, user, eid: str) -> dict:
+    """Deletes a reference library entry (its file from Documents too)."""
     from . import mayan
     _need_write(user)
     r = _entry(conn, eid)
@@ -239,6 +249,7 @@ def delete(conn, user, eid: str) -> dict:
 
 
 def file_of(conn, user, eid: str, version: int | None = None) -> tuple[bytes, str, str]:
+    """A reference library file (its newest version, or the one asked for)."""
     from . import mayan
     r = _entry(conn, eid)
     if r["kind"] != "file":

@@ -28,6 +28,7 @@ CA_NAME = "EA Explorer local CA"
 
 
 def show_urls() -> None:
+    """Prints the addresses of EA Explorer's pages."""
     h, p = setting("EAX_HOSTNAME", "localhost"), setting("EAX_HTTPS_PORT", "443")
     s = "" if p == "443" else f":{p}"
     say(f"Start page:  https://{h}{s}/")
@@ -63,6 +64,7 @@ def templates_hint() -> None:
 
 # ---------------------------------------------------------------- the local certificate (D107)
 def ca_path() -> Path:
+    """The certificate authority's file, to trust."""
     d = setting("EAX_TLS_DIR", "./work/data/tls")
     if "/" not in d and "\\" not in d:
         raise Failure(f"EAX_TLS_DIR is the Docker volume '{d}', not a folder: copy ca.crt out with docker compose cp setup:/tls/ca.crt .")
@@ -81,6 +83,7 @@ def _windows_trusted(ca: Path) -> bool:
 
 
 def trust_hint() -> None:
+    """On Windows: says how to trust the certificate when it is not trusted yet."""
     if not WINDOWS:
         return
     try:
@@ -93,6 +96,7 @@ def trust_hint() -> None:
 
 
 def trust(options: list[str]) -> None:
+    """eax trust: trusts this installation's certificate on the machine (or removes it)."""
     ca = ca_path()
     remove = "--remove" in options
     if WINDOWS:
@@ -160,6 +164,7 @@ TEST_USERS = [
 
 
 def show_logins() -> None:
+    """Prints the laptop's test logins."""
     if kind() != "laptop":
         say(f"Logins are only printed for a laptop (development) installation. See {ENV_REL}.")
         return
@@ -195,6 +200,7 @@ def show_logins() -> None:
 
 
 def show_part_urls(services: list[str]) -> None:
+    """After starting some parts: what started and their addresses."""
     say("")
     say(f"Started: {', '.join(services)} (and what they depend on). The rest stays stopped.")
     if "api" in services:

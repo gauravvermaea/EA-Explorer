@@ -30,6 +30,7 @@ def testing():
 
 
 def module(name: str):
+    """One of the self-test's modules, shared with the bench."""
     _path()
     import importlib  # noqa: PLC0415
     return importlib.import_module(f"eax.testing.{name}")

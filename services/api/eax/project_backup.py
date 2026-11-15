@@ -104,6 +104,7 @@ NEW_GUID = {"projects", "items", "documents", "signoff_requests", "steps", "stak
 
 
 def folder() -> Path:
+    """Where project backups are kept."""
     return bk.app_dir() / "projects"
 
 
@@ -126,11 +127,13 @@ def may_manage(pc, p: dict, user) -> bool:
 
 
 def need_manage(pc, p: dict, user) -> None:
+    """Refuses a person who may not back the project up or restore it."""
     if not may_manage(pc, p, user):
         raise EditError(f"Not allowed on {p['name']}: backing it up needs its Project Admin or Lead Architect, IT or a Super Admin.", 403)
 
 
 def may_restore_new(user) -> bool:
+    """Whether the person may restore a backup as a new project."""
     from . import permissions as perms
     return pj.may_create(user) or perms.allowed(user.roles, "system.operate")
 
@@ -303,6 +306,7 @@ def _links(pc, rows: dict) -> dict:
     }
 
 def list_backups(pc, user, project: Any) -> dict:
+    """A project's backups."""
     p = pj.project_row(pc, project)
     pj._need(pc, p, user, "read")
     d = folder() / str(p["guid"])
@@ -338,6 +342,7 @@ def list_all(pc) -> list[dict]:
 
 
 def path_of(project_guid: str, file: str) -> Path:
+    """A project backup's file, refused when the name is not one of ours."""
     if "/" in file or "\\" in file or not file.endswith(SUFFIX):
         raise EditError("No such backup.", 404)
     f = folder() / project_guid / file
@@ -347,6 +352,7 @@ def path_of(project_guid: str, file: str) -> Path:
 
 
 def delete_backup(pc, user, project: Any, file: str) -> dict:
+    """Deletes one of a project's backups."""
     p = pj.project_row(pc, project)
     need_manage(pc, p, user)
     f = path_of(str(p["guid"]), file)

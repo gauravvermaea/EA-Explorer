@@ -164,6 +164,8 @@ export default function Deploy() {
         it is missing), or a machine in AWS, Azure or DigitalOcean, created from your credentials or one you already have. The same
         steps as <code>eax deploy</code>; see the plan first. This installation is not changed. (Managing many installations
         together comes in release 2.)</p>
+      <p className="small">How big should the server be? <a href="#/admin/sizing">Estimate its RAM, CPU and disk</a> first (System Admin › Sizing,
+        or <code>eax estimate</code>; R5.19).</p>
       {data.helper_down && <p className="status bad">The operations helper is not running: deployments cannot start. The history below is kept.</p>}
       {runId ? <Run id={runId} onBack={() => { setRunId(""); ov.reload(); }} /> : (
         <section className="deploy-form" aria-labelledby="deploy-where">

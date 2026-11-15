@@ -24,6 +24,8 @@ SECURITY = [{"bearerAuth": []}]
 
 @blp.route("/startup")
 class Startup(MethodView):
+    """/api/v1/startup: GET what is up, starting or down after the start (D255); kept a few seconds; ?fresh=1 checks
+    again."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()

@@ -90,6 +90,7 @@ def cpu_percent(stat_text: str | None = None) -> float | None:
 
 
 def meminfo(text_: str | None = None) -> dict:
+    """The host's memory from /proc/meminfo."""
     out = {}
     for line in (text_ if text_ is not None else _read("/proc/meminfo")).splitlines():
         k, _, rest = line.partition(":")
@@ -100,12 +101,14 @@ def meminfo(text_: str | None = None) -> dict:
 
 
 def level(value: float | None, warn: int, alert: int) -> str:
+    """green, amber or red for a value against its levels."""
     if value is None:
         return "unknown"
     return "red" if value >= alert else "amber" if value >= warn else "green"
 
 
 def thresholds() -> dict:
+    """The host's warning and alert levels (EAX_HOST_WARN_*, EAX_HOST_ALERT_*)."""
     return {k: {"warn": _int(f"EAX_HOST_WARN_{k.upper()}", w), "alert": _int(f"EAX_HOST_ALERT_{k.upper()}", a)}
             for k, w, a in (("cpu", 80, 90), ("memory", 85, 95), ("disk", 80, 90))}
 
@@ -196,6 +199,7 @@ def _mid(source: str) -> str:
 
 
 def mounts() -> dict:
+    """Every volume and bind mount of the installation, with sizes."""
     d = hooks["docker"]
     rows = hooks["containers"]()
     try:
@@ -332,6 +336,7 @@ def _need_console() -> None:
 
 
 def hidden(path: str) -> bool:
+    """Whether a path is one never shown (secrets, keys)."""
     return bool(HIDDEN.search(path))
 
 
@@ -453,6 +458,7 @@ def _one_file(tar_bytes: bytes) -> tuple[str, bytes] | None:
 
 
 def files_content(service: str, path: str) -> dict:
+    """A container's file, to show."""
     _need_console()
     p = _clean(path)
     if hidden(p):
@@ -468,6 +474,7 @@ def files_content(service: str, path: str) -> dict:
 
 
 def files_download(service: str, path: str) -> dict:
+    """A container's file, to download."""
     _need_console()
     p = _clean(path)
     if hidden(p):
@@ -638,6 +645,7 @@ def _save(s: dict) -> None:
 
 
 def text_of(e: dict) -> str:
+    """A container or host alert in words."""
     what = WORDS.get(e["kind"], e["kind"])
     who = "The host's" if e["service"] == "host" and e["kind"] != "host-disk" else "The host" if e["service"] == "host" \
         else f"Container {e['service']}"
@@ -734,6 +742,7 @@ def watch_once(now: float | None = None) -> list[dict]:
 
 
 def alerts() -> dict:
+    """The open container and host alerts, and their history."""
     s = _load()
     opened = [{**o, "text": text_of({**o, "event": "alert"})} for o in s["open"].values()]
     return {"open": sorted(opened, key=lambda o: o["since"]), "history": s["history"][-200:][::-1],
@@ -742,6 +751,7 @@ def alerts() -> dict:
 
 
 def test_alert(service: str) -> dict:
+    """Raises a test alert for a container."""
     with _lock:
         s = _load()
         s["tests"][service or "api"] = time.time()
@@ -750,6 +760,7 @@ def test_alert(service: str) -> dict:
 
 
 def loop(pause: int = 60) -> None:
+    """Watches the containers and the host every minute."""
     time.sleep(90)                       # let the stack come up first
     while True:
         try:

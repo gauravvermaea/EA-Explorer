@@ -42,6 +42,7 @@ def _cert(common_name: str) -> tuple[str, str, datetime]:
 
 
 def run() -> list[str]:
+    """Loads the sample machine credentials and operations history."""
     from .. import machine_access as ma
     from .. import operations as ops
     from ..db import get_engine

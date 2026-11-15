@@ -33,6 +33,7 @@ def _connect() -> psycopg.Connection:
 
 
 def serial(cmd: list[str]) -> int:
+    """Runs a start-up command one server at a time (a database lock)."""
     with _connect() as conn:
         print("EA Explorer: waiting for the start-up lock (one server at a time)", flush=True)
         conn.execute("SELECT pg_advisory_lock(%s)", (_key("startup"),))
@@ -43,6 +44,7 @@ def serial(cmd: list[str]) -> int:
 
 
 def single(name: str, cmd: list[str]) -> int:
+    """Runs a command on one server only, another taking over if it stops."""
     conn = _connect()
     while not conn.execute("SELECT pg_try_advisory_lock(%s)", (_key(name),)).fetchone()[0]:
         time.sleep(15)        # another server runs it; take over if it stops
@@ -54,6 +56,7 @@ def single(name: str, cmd: list[str]) -> int:
 
 
 def once(name: str, cmd: list[str]) -> int:
+    """Runs a command on one server, the others skipping it."""
     conn = _connect()
     try:
         if not conn.execute("SELECT pg_try_advisory_lock(%s)", (_key(name),)).fetchone()[0]:
@@ -65,6 +68,7 @@ def once(name: str, cmd: list[str]) -> int:
 
 
 def main(argv: list[str]) -> int:
+    """python -m eax.startup serial|single|once NAME -- command."""
     if "--" not in argv or not argv:
         print(__doc__)
         return 2

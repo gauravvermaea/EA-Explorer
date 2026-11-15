@@ -47,6 +47,7 @@ REL_COLUMNS = [("Id", "Edm.Guid"), ("RelationshipType", "Edm.String"), ("Verb", 
 
 
 class ODataError(EditError):
+    """An OData request that cannot be answered."""
     pass
 
 
@@ -93,6 +94,7 @@ def schema(conn, m: dict) -> dict[str, dict]:
 
 
 def service_document(conn, model: Any, base: str) -> dict:
+    """A model's OData service document: its tables."""
     m = repo.get_model(conn, model)
     tables = schema(conn, m)
     return {"@odata.context": f"{base}$metadata",
@@ -100,6 +102,7 @@ def service_document(conn, model: Any, base: str) -> dict:
 
 
 def metadata(conn, model: Any) -> str:
+    """A model's OData $metadata as XML."""
     m = repo.get_model(conn, model)
     tables = schema(conn, m)
     out = ['<?xml version="1.0" encoding="utf-8"?>',
@@ -217,9 +220,11 @@ class _Parser:
         self.t, self.i, self.columns = tokens, 0, columns
 
     def peek(self):
+        """The next token, not taken."""
         return self.t[self.i] if self.i < len(self.t) else (None, None)
 
     def take(self, value=None):
+        """Takes the next token (the one expected, when given)."""
         tok = self.peek()
         if tok[0] is None or (value is not None and tok[1].lower() != value):
             raise ODataError(f"$filter: expected {value or 'more'} near '{tok[1] or 'the end'}'.", 400)
@@ -227,12 +232,14 @@ class _Parser:
         return tok
 
     def parse(self):
+        """A whole $filter expression parsed into a tree."""
         node = self.or_()
         if self.peek()[0] is not None:
             raise ODataError(f"$filter: unexpected '{self.peek()[1]}'.", 400)
         return node
 
     def or_(self):
+        """Parses terms joined by or."""
         node = self.and_()
         while self.peek()[0] == "word" and self.peek()[1].lower() == "or":
             self.take()
@@ -240,6 +247,7 @@ class _Parser:
         return node
 
     def and_(self):
+        """Parses terms joined by and."""
         node = self.not_()
         while self.peek()[0] == "word" and self.peek()[1].lower() == "and":
             self.take()
@@ -247,12 +255,14 @@ class _Parser:
         return node
 
     def not_(self):
+        """Parses a term with not before it."""
         if self.peek()[0] == "word" and self.peek()[1].lower() == "not":
             self.take()
             return ("not", self.not_())
         return self.compare()
 
     def operand(self):
+        """Parses a value or a column name."""
         kind, value = self.take()
         if kind == "str":
             return ("lit", value[1:-1].replace("''", "'"))
@@ -274,6 +284,7 @@ class _Parser:
         raise ODataError(f"$filter: unexpected '{value}'.", 400)
 
     def compare(self):
+        """Parses a comparison, a function call or a bracketed expression."""
         kind, value = self.peek()
         if kind == "punct" and value == "(":
             self.take("(")
@@ -314,6 +325,7 @@ def _norm(a, b):
 
 
 def evaluate(node, row) -> bool:
+    """Whether a row meets a parsed $filter."""
     kind = node[0]
     if kind == "and":
         return evaluate(node[1], row) and evaluate(node[2], row)
@@ -348,6 +360,7 @@ def evaluate(node, row) -> bool:
 
 
 def parse_filter(expr: str, columns: set[str]):
+    """A $filter parsed against the table's columns (None when empty)."""
     return _Parser(_tokens(expr), columns).parse() if (expr or "").strip() else None
 
 

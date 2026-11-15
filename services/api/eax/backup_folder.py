@@ -10,6 +10,7 @@ from __future__ import annotations
 
 
 def folder() -> str:
+    """The backup folder set in the config file (EAX_BACKUP_DIR), empty when it is the default."""
     from .config import _env
     return _env("EAX_BACKUP_DIR", "")
 

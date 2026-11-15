@@ -103,6 +103,9 @@ def _upload():
 # ---------------------------------------------------------------- sheets
 @blp.route("/models/<uuid:model_id>/sheets")
 class Sheets(MethodView):
+    """/api/v1/models/{model_id}/sheets: GET the entity types to choose from, by domain, with how many entities each
+    has; POST builds the sheets for the chosen entity types {types: [codes], format: xlsx|xlsm|zip}, with their data
+    and the relationships between them (built now, D197)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -139,6 +142,9 @@ class Sheets(MethodView):
 
 @blp.route("/models/<uuid:model_id>/collect")
 class Collect(MethodView):
+    """/api/v1/models/{model_id}/collect: GET people on the model and whether each may load data into it (the collect
+    data wizard, WIZ-018); POST {types, people, note, due}: ask people to fill in those entity types (each told, with
+    a link to the sheet); their uploads become their changes, reviewed as commit…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -161,6 +167,8 @@ class Collect(MethodView):
 
 @blp.route("/models/<uuid:model_id>/sheets/fields")
 class SheetFields(MethodView):
+    """/api/v1/models/{model_id}/sheets/fields: GET the fields of entity types (comma-separated codes), for mapping a
+    sheet's columns."""
     @blp.doc(security=SECURITY, parameters=[{"in": "query", "name": "types", "schema": {"type": "string"}}])
     @blp.response(200, Free)
     @require_auth()
@@ -174,6 +182,7 @@ class SheetFields(MethodView):
 
 @blp.route("/tasks/<task_id>/file")
 class TaskFile(MethodView):
+    """/api/v1/tasks/{task_id}/file: GET the file a background task made (for example built sheets)."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self, task_id):
@@ -185,6 +194,8 @@ class TaskFile(MethodView):
 # ---------------------------------------------------------------- loads
 @blp.route("/models/<uuid:model_id>/loads")
 class Loads(MethodView):
+    """/api/v1/models/{model_id}/loads: GET the model's loads you may see: yours, and everyone's for committers and
+    Model Admins; POST uploads a sheet (multipart field file): kept as a load and previewed in the background."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -205,6 +216,8 @@ class Loads(MethodView):
 
 @blp.route("/loads/<load_id>")
 class Load(MethodView):
+    """/api/v1/loads/{load_id}: GET a load: status, summary and its preview rows (filter by action); DELETE forgets a
+    load that was not added."""
     @blp.doc(security=SECURITY, parameters=[{"in": "query", "name": "action", "schema": {"type": "string"}}])
     @blp.response(200, Free)
     @require_auth()
@@ -231,6 +244,8 @@ class Load(MethodView):
 
 @blp.route("/loads/<load_id>/mapping")
 class LoadMapping(MethodView):
+    """/api/v1/loads/{load_id}/mapping: POST maps the columns of sheets EA Explorer does not know {mapping: {sheet:
+    {entity_type, columns {header: code}}}, save_as} or uses a saved one {saved, sheet}; then previews…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(202, Free)
@@ -248,6 +263,8 @@ class LoadMapping(MethodView):
 
 @blp.route("/loads/<load_id>/rows/<int:n>")
 class LoadRow(MethodView):
+    """/api/v1/loads/{load_id}/rows/{n}: PATCH corrects one row of the preview {values: {code: value}}; the preview
+    is worked out again."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -259,6 +276,8 @@ class LoadRow(MethodView):
 
 @blp.route("/loads/<load_id>/add")
 class LoadAdd(MethodView):
+    """/api/v1/loads/{load_id}/add: POST the previewed rows become your uncommitted changes (a task); commit them on
+    the Changes tab."""
     @blp.doc(security=SECURITY)
     @blp.response(202, Free)
     @require_auth()
@@ -277,6 +296,8 @@ class LoadAdd(MethodView):
 
 @blp.route("/loads/<load_id>/undo")
 class LoadUndo(MethodView):
+    """/api/v1/loads/{load_id}/undo: POST undoes an added load: uncommitted changes discarded, committed ones rolled
+    back as a new commit {force}."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -290,6 +311,8 @@ class LoadUndo(MethodView):
 # ---------------------------------------------------------------- column mappings
 @blp.route("/models/<uuid:model_id>/column-mappings")
 class Mappings(MethodView):
+    """/api/v1/models/{model_id}/column-mappings: GET saved column mappings for sheets from other systems; POST saves
+    a mapping {name, entity_type, columns {header: code}}."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -309,6 +332,7 @@ class Mappings(MethodView):
 
 @blp.route("/models/<uuid:model_id>/column-mappings/<mapping_id>")
 class Mapping(MethodView):
+    """/api/v1/models/{model_id}/column-mappings/{mapping_id}: DELETE deletes a saved mapping."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()

@@ -124,6 +124,7 @@ OPTIONS = {"exact": "B-tree index on the column (or hash for very long values)",
 
 
 def report(code: list[dict], db: list[dict]) -> str:
+    """The text comparison measurements as a report."""
     lines = ["Text comparisons (R2.52): measured, nothing changed. Discuss each kind, then add indexes and measure again.", "",
              "In the database:", f"  {'table.column':<34}{'kind':<10}{'rows':>8}{'ms':>9}  index used?  indexes on it / what uses it"]
     for r in db:
@@ -141,6 +142,7 @@ def report(code: list[dict], db: list[dict]) -> str:
 
 
 def main() -> int:
+    """python -m eax.databases speed: measures how text is compared, changing nothing."""
     from .db import get_engine
     with get_engine().begin() as conn:
         db = measure(conn)

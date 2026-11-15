@@ -32,6 +32,7 @@ def _now() -> str:
 
 
 class Runner:
+    """Runs a deployment in the background for the web page: its state, log and the decision after a failed step."""
     def __init__(self, folder: Path, plan: bool):
         self.folder = folder
         self.plan = plan
@@ -39,15 +40,18 @@ class Runner:
                             "started": _now(), "finished": None}
 
     def save(self) -> None:
+        """Writes the deployment's state (whole)."""
         tmp = self.folder / "state.json.tmp"
         tmp.write_text(json.dumps(self.state), encoding="utf-8")
         os.replace(tmp, self.folder / "state.json")
 
     def out(self, text: str) -> None:
+        """A line in the deployment's log."""
         with open(self.folder / "log.txt", "a", encoding="utf-8") as f:
             f.write(text + "\n")
 
     def progress(self, i: int, n: int, title: str, status: str) -> None:
+        """Records a step's progress."""
         steps = self.state["steps"]
         while len(steps) < n:
             steps.append({"title": "", "status": "waiting"})
@@ -55,6 +59,7 @@ class Runner:
         self.save()
 
     def on_fail(self, step: D.Step, why: str) -> str:
+        """After a failed step: waits for the person's decision (retry, skip or stop)."""
         decision = self.folder / "decision.json"
         decision.unlink(missing_ok=True)
         self.state.update(status="failed", failed={"step": step.title, "why": why})
@@ -72,6 +77,7 @@ class Runner:
                 return choice
 
     def answers(self) -> dict:
+        """The deployment's answers with its secrets."""
         a = json.loads((self.folder / "answers.json").read_text(encoding="utf-8"))
         try:
             a.update(json.loads((self.folder / "secrets.json").read_text(encoding="utf-8")))
@@ -91,6 +97,7 @@ class Runner:
         return a
 
     def go(self) -> int:
+        """Runs the deployment's steps."""
         self.save()
         result: dict = {}
         try:
@@ -112,6 +119,7 @@ class Runner:
 
 
 def main(argv: list[str]) -> int:
+    """python -m eaxcli.deploy_runner <folder> [--plan]: one deployment."""
     if not argv:
         print(__doc__)
         return 2

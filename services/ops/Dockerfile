@@ -17,6 +17,8 @@ COPY logsops.py /app/logsops.py
 COPY footprint.py /app/footprint.py
 COPY estate_ops.py /app/estate_ops.py
 COPY hostwatch.py /app/hostwatch.py
+COPY allowlist.py /app/allowlist.py
+COPY benchmark.js /app/benchmark.js
 USER root
 EXPOSE 8090 8091
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD python3 -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8090/health').status==200 else 1)"

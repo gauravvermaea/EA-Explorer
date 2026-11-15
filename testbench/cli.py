@@ -28,6 +28,7 @@ REPORTS = shared.ROOT / "testbench" / "reports"            # one folder a run: r
 
 
 def parser() -> argparse.ArgumentParser:
+    """eax testbench's options."""
     p = argparse.ArgumentParser(prog="eax testbench", description="EA Explorer's test bench, run from outside the "
                                 "installation (docs/testbench.md).")
     sub = p.add_subparsers(dest="command")
@@ -124,6 +125,7 @@ def level_and_suites(args, store) -> tuple[str, list[str]]:
 
 
 def sign_in(args, target: str) -> str:
+    """A token for the target: given, from a credentials file, or by signing in."""
     c = credentials(args.credentials) if args.credentials else {}
     token = args.token or c.get("token", "")
     user, password = args.user or c.get("user", ""), args.password or c.get("password", "")
@@ -135,12 +137,14 @@ def sign_in(args, target: str) -> str:
 
 
 def folder_for(args) -> Path:
+    """Where a run's reports go."""
     if args.out:
         return Path(args.out)
     return REPORTS / datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
 
 
 def finish(run: Run, extra: dict | None = None) -> int:
+    """Writes the run's reports and returns its exit code."""
     from . import report  # noqa: PLC0415
     out = report.write(run, extra)
     t = run.tally()
@@ -153,12 +157,14 @@ def finish(run: Run, extra: dict | None = None) -> int:
 
 
 def latest_report(base: Path | None = None) -> Path | None:
+    """The newest report."""
     base = base or REPORTS
     reports = sorted(base.glob("*/report.json")) if base.is_dir() else []
     return reports[-1] if reports else None
 
 
 def cmd_suites() -> int:
+    """eax testbench suites: what each suite checks."""
     from . import suites  # noqa: PLC0415
     flows, matrix = shared.module("ui_flows"), shared.module("api_matrix")
     store = shared.module("store")
@@ -174,6 +180,7 @@ def cmd_suites() -> int:
 
 
 def cmd_setup(args) -> int:
+    """eax testbench setup: the browsers the bench needs."""
     from .ui import clean_browsers  # noqa: PLC0415
     names = clean_browsers(args.browsers)
     have = []
@@ -195,6 +202,7 @@ def cmd_setup(args) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """eax testbench: the outside test bench."""
     argv = list(sys.argv[1:] if argv is None else argv)
     if not argv or argv[0].startswith("-"):
         argv = ["run", *argv]
@@ -295,6 +303,7 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def cmd_platform(args, client: Client) -> int:
+    """eax testbench platform: the installation's own self-test from outside."""
     from . import suites  # noqa: PLC0415
     if args.status:
         s, a = client.get("/api/v1/admin/tests")
@@ -323,6 +332,7 @@ def cmd_platform(args, client: Client) -> int:
 
 
 def cmd_reset(args, client: Client, target: str) -> int:
+    """eax testbench reset: the reset-survival test (the installation's name typed)."""
     from . import reset  # noqa: PLC0415
     s, a = client.get("/api/v1/admin/commands")
     name = a.get("installation", "") if isinstance(a, dict) else ""
@@ -339,6 +349,7 @@ def cmd_reset(args, client: Client, target: str) -> int:
 
 
 def cmd_load(args, client: Client, target: str) -> int:
+    """eax testbench load: the load test with k6."""
     from . import load, suites  # noqa: PLC0415
     run = Run(target, folder_for(args), level="load", suites=["load"], quiet=args.quiet)
     sess = suites.start_session(client, "", run) if client.token else suites.Session(why="no token")

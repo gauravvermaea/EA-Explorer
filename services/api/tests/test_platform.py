@@ -100,5 +100,5 @@ def test_backups_need_a_folder_on_a_server(monkeypatch):
     assert "backup_folder.ready()" in (REPO / "services/api/eax/jobs.py").read_text()
     compose = (REPO / "docker-compose.yml").read_text()
     assert compose.count("${EAX_BACKUP_DIR:-./work/backups}") == 3
-    for cli in ("eax.sh", "eax.ps1", "eaxcli/main.py"):
-        assert "EAX_BACKUP_DIR" in (REPO / cli).read_text(), cli
+    for cli in ("eax.sh", "eax.ps1", "eaxcli/main.py"):   # init asks for the base folder; backups go under it (R5.4)
+        assert "EAX_DATA_ROOT" in (REPO / cli).read_text(), cli

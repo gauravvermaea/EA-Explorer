@@ -63,6 +63,7 @@ def _guid_of(conn, m: dict, name: str) -> str | None:
 
 
 def run() -> list[str]:
+    """Loads the sample merges and duplicates."""
     from .. import permissions as perms
     from ..db import get_engine
     said: list[str] = []

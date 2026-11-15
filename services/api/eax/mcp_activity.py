@@ -90,6 +90,7 @@ def record(conn, *, username: str, tool: str, arguments: dict, result: Any, ms: 
 
 
 def is_admin(user) -> bool:
+    """Whether the person sees everyone's AI activity (Super Admins, IT Admins, Auditors)."""
     return bool(ADMINS & set(getattr(user, "roles", ()) or ()))
 
 

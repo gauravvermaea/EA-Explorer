@@ -34,6 +34,7 @@ BOLD, DIM, RED, YELLOW, OFF = "\x1b[1m", "\x1b[2m", "\x1b[31m", "\x1b[33m", "\x1
 
 
 class Session:
+    """A web console session: who, their roles, the commands typed, kept as a transcript."""
     def __init__(self, who: str, roles: list[str], local: bool, root: Path = ROOT, session: str = ""):
         self.who, self.roles, self.local, self.root = who, roles, local, root
         self.id = session or time.strftime("%Y%m%dT%H%M%SZ", time.gmtime()) + "-" + secrets.token_hex(3)
@@ -47,11 +48,13 @@ class Session:
             "argv": [], "ended": None, "exit_code": None}, indent=2), encoding="utf-8")
 
     def write(self, text: str) -> None:
+        """Writes to the console and its transcript."""
         sys.stdout.write(text)
         sys.stdout.flush()
         self.transcript.write(text.encode("utf-8", "replace"))
 
     def ask(self, prompt: str) -> str:
+        """Asks a question in the console."""
         self.write(prompt)
         line = sys.stdin.readline()
         if not line:
@@ -60,12 +63,14 @@ class Session:
         return line.rstrip("\r\n")
 
     def note(self, argv: list[str], code: int | None, refused: str = "") -> None:
+        """Records a command typed, its exit code or why it was refused."""
         with open(self.home / "commands.jsonl", "a", encoding="utf-8") as f:
             f.write(json.dumps({"at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "by": self.who,
                                 "command": " ".join(["eax", *argv]) if argv else "", "exit_code": code,
                                 "refused": refused}) + "\n")
 
     def spawn(self, argv: list[str]) -> int:
+        """Runs an eax command in a terminal of its own, its output shown."""
         def read(fd: int) -> bytes:
             data = os.read(fd, 65536)
             self.transcript.write(data)
@@ -83,6 +88,7 @@ class Session:
         return os.waitstatus_to_exitcode(status) if hasattr(os, "waitstatus_to_exitcode") else status >> 8
 
     def confirm_wipe(self, argv: list[str]) -> bool:
+        """Before a command that deletes everything: the installation's name typed again."""
         plan = C.wipe_plan(argv)
         name = C.installation_name(self.root)
         self.write(f"\n{RED}{BOLD}{plan['command']} deletes everything:{OFF}\n")
@@ -142,6 +148,7 @@ class Session:
         return True
 
     def loop(self) -> int:
+        """The console's loop: read a command, run it, until exit."""
         self.write(f"{BOLD}EA Explorer console{OFF}: type eax commands as on the machine itself (eax is optional): "
                    f"status, backup nightly, help restore. {BOLD}console{OFF} opens the numbered menu; "
                    f"{BOLD}help{OFF} lists every command; {BOLD}exit{OFF} ends.\n"
@@ -160,6 +167,7 @@ class Session:
 
 
 def main() -> int:
+    """The web console's process (started by the operations helper)."""
     who = os.environ.get("EAX_CONSOLE_USER", "") or os.environ.get("USER", "") or "?"
     roles = [r for r in os.environ.get("EAX_CONSOLE_ROLES", "").split(",") if r]
     local = os.environ.get("EAX_CONSOLE_LOCAL", "") == "1"

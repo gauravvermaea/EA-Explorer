@@ -19,6 +19,8 @@ SECURITY = [{"bearerAuth": []}]
 
 @blp.route("/activity")
 class Activity(MethodView):
+    """/api/v1/mcp/activity: GET MCP calls, newest first: yours, or anyone's for Super Admins and IT Admins (who=,
+    kind=, tool=, days=)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -37,6 +39,8 @@ class Activity(MethodView):
 
 @blp.route("/tools")
 class McpTools(MethodView):
+    """/api/v1/mcp/tools: GET every MCP tool and what it does (R2.54): area, name, description, parameters, whether
+    it changes anything; read from the tools' own code."""
     @blp.doc(security=[{"bearerAuth": []}])
     @blp.response(200, Free)
     @require_auth()
@@ -50,6 +54,8 @@ class McpTools(MethodView):
 
 @blp.route("/connector")
 class Connector(MethodView):
+    """/api/v1/mcp/connector: GET what to give an AI app to add EA Explorer as a remote connector (OAuth through
+    Keycloak, D483)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()

@@ -87,6 +87,7 @@ def _exec(conn, sql: str, **p):
 
 
 def templates() -> dict:
+    """The gap analysis templates, the resolutions an item can have, and the TOGAF cells."""
     return {"templates": TEMPLATES, "resolutions": RESOLUTIONS, "cells": TOGAF_CELLS}
 
 
@@ -256,6 +257,7 @@ def model_of(conn, analysis: Any) -> str:
 
 
 def get(conn, model: Any, analysis: Any) -> dict:
+    """One gap analysis with its items."""
     m = repo.get_model(conn, model)
     a = _analysis(conn, m, analysis)
     items = _rows(conn, """SELECT i.guid AS id, i.entity_type, i.entity_type_name, i.layer AS domain, i.name, i.status, i.baseline_guid,
@@ -316,6 +318,7 @@ def item_detail(conn, model: Any, analysis: Any, item: Any) -> dict:
 
 def update_item(conn, model: Any, user, analysis: Any, item: Any, note: str | None = None, resolution: str | None = None,
                 work_packages: list | None = None) -> dict:
+    """Sets a gap item's note, resolution and work packages."""
     m = repo.get_model(conn, model)
     _may(conn, user, m)
     a = _analysis(conn, m, analysis)
@@ -557,6 +560,7 @@ def runs_to_csv(res: dict) -> bytes:
 
 
 def runs_to_xlsx(res: dict) -> bytes:
+    """Two runs of a gap analysis compared, as an Excel workbook."""
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill
     wb = Workbook()
@@ -831,6 +835,7 @@ def suggest_packages(conn, model: Any, analysis: Any, by: str = "domain") -> dic
 
 # ---------------------------------------------------------------- downloads
 def to_xlsx(data: dict) -> bytes:
+    """A gap analysis as an Excel workbook."""
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill
     wb = Workbook()

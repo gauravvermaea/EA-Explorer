@@ -34,6 +34,7 @@ def write(run: Run, extra: dict | None = None) -> dict[str, Path]:
 
 
 def as_dict(run: Run, extra: dict | None = None) -> dict:
+    """A run's report as a dict."""
     t = run.tally()
     return {"tool": "EA Explorer test bench", "target": run.target, "version": run.version, "started": run.started,
             "level": run.level, "suites": run.suites, "browsers": run.browsers, "platform_run": run.platform_run,
@@ -45,6 +46,7 @@ def as_dict(run: Run, extra: dict | None = None) -> dict:
 
 
 def junit(run: Run) -> str:
+    """A run's results as JUnit XML (for CI)."""
     suites = ET.Element("testsuites", name="EA Explorer test bench")
     by: dict[str, list] = {}
     for r in run.results:
@@ -74,6 +76,7 @@ def junit(run: Run) -> str:
 
 
 def as_html(run: Run, extra: dict | None = None) -> str:
+    """A run's report as HTML."""
     e = html.escape
     t = run.tally()
     verdict = "failed" if run.failed else "passed"

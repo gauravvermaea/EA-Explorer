@@ -31,6 +31,7 @@ def _clean(name: str) -> str:
 
 
 def listing(conn, project: Any, user) -> dict:
+    """A project's repository tags."""
     p = pj.project_row(conn, project)
     roles = pj._need(conn, p, user, "read")
     tags = _rows(conn, """SELECT t.guid::text AS id, t.name, t.note, t.auto, t.created_by, t.created_at,
@@ -66,6 +67,7 @@ def add(conn, project: Any, user, name: str, note: str = "") -> dict:
 
 
 def delete(conn, project: Any, user, tag: str) -> dict:
+    """Deletes a repository tag (a Project Admin)."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "admin")
     t = _tag(conn, p, tag)

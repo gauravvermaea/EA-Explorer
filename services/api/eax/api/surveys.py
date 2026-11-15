@@ -73,6 +73,8 @@ def _title(out) -> dict:
 
 @blp.route("/surveys")
 class Surveys(MethodView):
+    """/api/v1/surveys: GET surveys to answer, answered, the ones I run (and every one for a Super Admin); POST a new
+    survey, as a draft."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -91,6 +93,8 @@ class Surveys(MethodView):
 
 @blp.route("/surveys/people")
 class SurveyPeople(MethodView):
+    """/api/v1/surveys/people: GET who a survey can go to: people, global roles, models (with their roles) and
+    projects."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -103,6 +107,8 @@ class SurveyPeople(MethodView):
 
 @blp.route("/surveys/<string:sid>")
 class Survey(MethodView):
+    """/api/v1/surveys/{sid}: GET one survey and its questions; PATCH change a survey (the questions, recipients and
+    anonymity only while it is a draft); DELETE delete a draft."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -154,6 +160,8 @@ _action("reopen", sv.reopen, "Open a closed survey again", "survey.reopen")
 
 @blp.route("/surveys/<string:sid>/answer")
 class SurveyAnswer(MethodView):
+    """/api/v1/surveys/{sid}/answer: GET the survey to answer, with my saved answers (none kept in an anonymous
+    survey); PUT save my answers {answers}, or send them {answers, submit: true}."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -175,6 +183,7 @@ class SurveyAnswer(MethodView):
 
 @blp.route("/surveys/<string:sid>/results")
 class SurveyResults(MethodView):
+    """/api/v1/surveys/{sid}/results: GET results by question, progress and (not anonymous) who has answered."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -185,6 +194,7 @@ class SurveyResults(MethodView):
 
 @blp.route("/surveys/<string:sid>/xlsx")
 class SurveyXlsx(MethodView):
+    """/api/v1/surveys/{sid}/xlsx: GET the results by question and every response, as an Excel workbook."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self, sid):
@@ -197,6 +207,8 @@ class SurveyXlsx(MethodView):
 # ---------------------------------------------------------------- EA capability maturity (phase 40)
 @blp.route("/maturity")
 class Maturity(MethodView):
+    """/api/v1/maturity: GET every maturity assessment, the trend over closed ones and the evidence EA Explorer
+    measures now; POST a new assessment (a draft survey with the starting questions), sent at once with send: true."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -215,6 +227,7 @@ class Maturity(MethodView):
 
 @blp.route("/maturity/questions")
 class MaturityQuestions(MethodView):
+    """/api/v1/maturity/questions: GET the starting questions: nine architecture elements, six levels."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -228,6 +241,8 @@ class MaturityQuestions(MethodView):
 
 @blp.route("/maturity/<string:sid>")
 class MaturityResult(MethodView):
+    """/api/v1/maturity/{sid}: GET an assessment's scores by element (mean level, target, gap, share at each level),
+    the evidence and the one before."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()

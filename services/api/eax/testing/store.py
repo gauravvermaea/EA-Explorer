@@ -87,7 +87,7 @@ def estimate_minutes(level: str, suites: list[str], watch: bool = False) -> tupl
     if level == "smoke":
         return (2, 5)
     lo, hi = 1, 2                                                   # its fixtures: models, a project, accounts
-    add = {"api": (3, 10), "ui": (2, 5), "db": (0, 1), "security": (5, 15), "reports": (5, 15), "backup": (3, 15), "restore": (20, 90)}
+    add = {"api": (3, 10), "ui": (2, 5), "db": (0, 1), "security": (5, 15), "reports": (5, 15), "performance": (5, 20), "backup": (3, 15), "restore": (20, 90)}
     for s in suites:
         lo, hi = lo + add[s][0], hi + add[s][1]
     if watch:
@@ -98,6 +98,7 @@ def estimate_minutes(level: str, suites: list[str], watch: bool = False) -> tupl
 def create_run(conn, by: str, trigger: str, suites: list[str], folder: str = "", version: str = "", level: str = "smoke",
                role: str = "", area: str = "", watch: bool = False, journeys: list[str] | None = None,
                pages_only: bool = False, repeat_of: int | None = None, repeat_warnings: bool = False) -> int:
+    """Records a new self-test run; returns its number."""
     return int(conn.execute(text("""
         INSERT INTO tests.test_runs (started_by, trigger, suites, folder, version, level, role, area, watch, journeys, pages_only,
                                     repeat_of, repeat_warnings)
@@ -167,7 +168,9 @@ def command_line(run: dict[str, Any], eax: str = ".\\eax") -> str:
         bits += [f'--journey "{j}"' if " " in j else f"--journey {j}" for j in journeys]
     elif run.get("level") == "detailed":
         bits.append("--detailed")
-        if suites and set(suites) not in (set(SUITES), set(WEB_SUITES)):   # full: every suite, or every one the web runs
+        # full: every suite, or every one the web runs; a full run from before the performance suite (R5.18) too
+        fulls = (set(SUITES), set(WEB_SUITES), set(SUITES) - {"performance"}, set(WEB_SUITES) - {"performance"})
+        if suites and set(suites) not in fulls:
             bits += [f"--suite {x}" for x in suites]
     else:
         bits.append("--smoke")
@@ -184,6 +187,7 @@ def short(run_guid: str) -> str:
 
 
 def add_fixture(conn, run_id: int, kind: str, ident: str, name: str) -> None:
+    """Records a piece of test data a run made (to remove later)."""
     conn.execute(text("INSERT INTO tests.test_fixtures (run_id, kind, ident, name) VALUES (:r, :k, :i, :n) "
                       "ON CONFLICT (kind, ident) DO NOTHING"), {"r": run_id, "k": kind, "i": str(ident), "n": name})
 
@@ -213,6 +217,7 @@ def fixtures(conn, run_id: int | None = None, include_purged: bool = False) -> l
 
 def set_state(conn, run_id: int, state: str | None = None, step: str | None = None, message: str | None = None,
               folder: str | None = None, version: str | None = None) -> None:
+    """Sets a run's state, step or message."""
     sets, params = [], {"id": run_id}
     if state is not None:
         if state not in STATES:
@@ -232,11 +237,13 @@ def set_state(conn, run_id: int, state: str | None = None, step: str | None = No
 
 
 def set_browser(conn, run_id: int, data: dict) -> None:
+    """Adds to what a run tells the admin's own browser (ticket, pages, journeys)."""
     conn.execute(text("UPDATE tests.test_runs SET browser = browser || CAST(:b AS jsonb) WHERE id = :id"),
                  {"b": json.dumps(data), "id": run_id})
 
 
 def ask_stop(conn, run_id: int, by: str) -> bool:
+    """Asks a running run to stop; true when it was running."""
     return bool(conn.execute(text("UPDATE tests.test_runs SET stop_asked = :by WHERE id = :id AND state IN ('queued', 'running') "
                                   "RETURNING id"), {"by": by or "unknown", "id": run_id}).first())
 
@@ -244,6 +251,7 @@ def ask_stop(conn, run_id: int, by: str) -> bool:
 def add_result(conn, run_id: int, suite: str, name: str, outcome: str, detail: str = "", duration_ms: int = 0,
                screenshot: bytes | None = None, video: str = "", request: str = "", response: str = "",
                browser: str = "") -> None:
+    """Records one check's result."""
     if outcome not in OUTCOMES:
         raise ValueError(outcome)
     conn.execute(text("""
@@ -256,6 +264,7 @@ def add_result(conn, run_id: int, suite: str, name: str, outcome: str, detail: s
 
 
 def tally(conn, run_id: int) -> dict[str, int]:
+    """A run's results counted by outcome."""
     rows = conn.execute(text("SELECT outcome, count(*) AS n FROM tests.test_results WHERE run_id = :id GROUP BY outcome"),
                         {"id": run_id}).mappings().all()
     out = {o: 0 for o in OUTCOMES}
@@ -336,17 +345,20 @@ _RUN_COLS = ("r.id, r.run_guid::text AS run_guid, r.started_by, r.trigger, r.sui
 
 
 def runs(conn, limit: int = 30) -> list[dict[str, Any]]:
+    """The newest runs, each with the command that repeats it."""
     rows = conn.execute(text(f"SELECT {_RUN_COLS} FROM tests.test_runs r ORDER BY r.queued_at DESC, r.id DESC LIMIT :n"),
                         {"n": max(1, min(200, limit))}).mappings().all()
     return [{**dict(r), "command": command_line(dict(r))} for r in rows]
 
 
 def run_row(conn, run_id: int) -> dict[str, Any] | None:
+    """One run."""
     row = conn.execute(text(f"SELECT {_RUN_COLS}, r.browser FROM tests.test_runs r WHERE r.id = :id"), {"id": run_id}).mappings().first()
     return dict(row) if row else None
 
 
 def run_detail(conn, run_id: int, outcome: str = "", suite: str = "") -> dict[str, Any] | None:
+    """One run with its results (of one outcome or suite), its health and coverage."""
     run = run_row(conn, run_id)
     if not run:
         return None
@@ -375,6 +387,7 @@ def run_detail(conn, run_id: int, outcome: str = "", suite: str = "") -> dict[st
 
 
 def screenshot(conn, result_id: int) -> bytes | None:
+    """A result's screenshot."""
     row = conn.execute(text("SELECT screenshot FROM tests.test_results WHERE id = :id"), {"id": result_id}).first()
     return bytes(row[0]) if row and row[0] is not None else None
 

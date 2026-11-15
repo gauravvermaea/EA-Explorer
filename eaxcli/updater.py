@@ -44,6 +44,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from eaxcli import releases as R  # noqa: E402
+from eaxcli import signing as S  # noqa: E402
 
 KEEP = ("work/", ".git/", "library/templates/")       # never written or removed by an update or a rollback
 SKIP = ("node_modules/", "__pycache__/", ".pytest_cache/", ".ruff_cache/")
@@ -51,10 +52,12 @@ HEALTH_MINUTES = int(os.environ.get("EAX_UPDATE_HEALTH_MINUTES", "20"))
 
 
 def now() -> str:
+    """Now, in UTC, as text."""
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def read_json(p: Path, default=None):
+    """A JSON file (the default when it cannot be read)."""
     try:
         return json.loads(p.read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -62,6 +65,7 @@ def read_json(p: Path, default=None):
 
 
 def write_json(p: Path, data) -> None:
+    """Writes a JSON file whole."""
     p.parent.mkdir(parents=True, exist_ok=True)
     tmp = p.with_suffix(".tmp")
     tmp.write_text(json.dumps(data, indent=2, default=str), encoding="utf-8")
@@ -69,6 +73,7 @@ def write_json(p: Path, data) -> None:
 
 
 class UpdateError(RuntimeError):
+    """An update that cannot go on, said plainly."""
     pass
 
 
@@ -82,6 +87,7 @@ class Env:
 
     # -- config file
     def setting(self, name: str, default: str = "") -> str:
+        """A setting from the config file."""
         f = self.work / "eaexplorer.env"
         if f.exists():
             for line in f.read_text(encoding="utf-8").splitlines():
@@ -92,6 +98,7 @@ class Env:
 
     # -- commands
     def run(self, cmd: list[str], timeout: int = 3600, log=None) -> int:
+        """Runs a command, its output logged as it comes."""
         p = subprocess.Popen(cmd, cwd=self.root, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         t0 = time.time()
         for line in p.stdout:              # type: ignore[union-attr]
@@ -103,9 +110,11 @@ class Env:
         return p.wait()
 
     def git(self, *args: str) -> str:
+        """Runs git in the installation's folder."""
         return R.git(*args, cwd=self.root)
 
     def compose(self, args: list[str], log=None, timeout: int = 3600) -> None:
+        """Runs docker compose for this installation."""
         kind = self.setting("EAX_DEPLOYMENT", "laptop")
         cmd = ["docker", "compose", "--ansi", "never", "--progress", "plain", "--env-file", "work/eaexplorer.env",
                *(["-p", self.project] if self.project else []),
@@ -116,6 +125,7 @@ class Env:
 
     # -- the operations helper and the API (on the backend network)
     def ops(self, method: str, path: str, body: dict | None = None, timeout: int = 30) -> dict:
+        """A call to the operations helper."""
         url = os.environ.get("EAX_OPS_URL", "http://ops:8090") + path
         token = os.environ.get("EAX_OPS_TOKEN") or self.setting("EAX_OPS_TOKEN", "eax-ops-laptop")
         data = json.dumps(body).encode() if body is not None else (b"" if method == "POST" else None)
@@ -134,6 +144,7 @@ class Env:
             raise UpdateError(f"the operations helper is not reachable ({exc})") from exc
 
     def heartbeat(self) -> dict:
+        """The API's heartbeat (version and state)."""
         url = os.environ.get("EAX_API_URL", "http://api:8000") + "/api/v1/heartbeat"
         try:
             with urllib.request.urlopen(url, timeout=10) as r:  # noqa: S310 - this installation's API
@@ -142,11 +153,14 @@ class Env:
             return {}
 
     def sleep(self, s: float) -> None:
+        """Waits (a test replaces it)."""
         time.sleep(s)
 
 
 # ---------------------------------------------------------------- state
 class Updater:
+    """Updates the installation to another version from git: backup, checkout, build, migrate, check, and roll back when
+    it fails."""
     def __init__(self, env: Env):
         self.env = env
         self.dir = env.work / "updates"
@@ -156,9 +170,11 @@ class Updater:
     # files
     @property
     def current_path(self) -> Path:
+        """The update in progress's state file."""
         return self.dir / "current.json"
 
     def installed(self) -> dict:
+        """The version installed."""
         got = read_json(self.dir / "installed.json")
         if got:
             return got
@@ -177,6 +193,7 @@ class Updater:
         return {"version": v, "channel": "prod", "commit": commit, "ref": f"v{v}" if v else "", "at": ""}
 
     def log(self, msg: str, step: str = "") -> None:
+        """A line in the update's log."""
         line = f"{now()} {msg}"
         if self.state.get("id"):
             with open(self.dir / self.state["id"] / "update.log", "a", encoding="utf-8") as f:
@@ -189,21 +206,25 @@ class Updater:
         print(line, flush=True)
 
     def save(self) -> None:
+        """Writes the update's state."""
         self.state["updated"] = now()
         write_json(self.current_path, self.state)
 
     def history_add(self, entry: dict) -> None:
+        """Adds an update to the history."""
         hist = read_json(self.dir / "history.json", []) or []
         hist = [h for h in hist if h.get("id") != entry.get("id")] + [entry]
         write_json(self.dir / "history.json", hist)
 
     def summary(self) -> dict:
+        """The update in a few fields."""
         s = self.state
         return {k: s.get(k) for k in ("id", "kind", "by", "channel", "from", "to", "steps", "status", "backup", "error",
                                       "started", "finished", "notes", "failed_version", "rollback_backup")}
 
     # maintenance page (the same files the operations helper writes, D230)
     def maintenance(self, on: bool, what: str = "") -> None:
+        """The maintenance page on or off during an update."""
         m, flag = self.env.work / "maintenance.json", self.env.work / "proxy" / "maintenance"
         if on:
             write_json(m, {"since": now(), "what": what, "by": self.state.get("by", "")})
@@ -269,11 +290,19 @@ class Updater:
                 branch = R.CHANNELS["latest"]["branch"]
                 self.env.git("fetch", "--quiet", "--no-tags", url, f"+refs/heads/{branch}:refs/remotes/eax-updates/{branch}")
                 sha = self.env.git("rev-parse", f"{ref}^{{commit}}").strip()
+            if S.trusted_keys(self.env.root):            # signed deployments (R5.10): checked before anything changes
+                tmp = S.version_files(sha, self.env.root)
+                try:
+                    self._signed(ref, sha, Path(tmp.name))
+                finally:
+                    tmp.cleanup()
             self.env.git("checkout", "--force", "--detach", sha)
             return sha
         staging = self.dir / self.state["id"] / "staging"
         shutil.rmtree(staging, ignore_errors=True)
         sha = R.export(url, ref, staging, cache=self.dir / "cache.git")
+        if S.trusted_keys(self.env.root):                # signed deployments (R5.10): checked before anything changes
+            self._signed(ref, sha, staging)
         new = {p.relative_to(staging).as_posix() for p in staging.rglob("*") if p.is_file()}
         for f in self._files():
             if f not in new:
@@ -286,7 +315,17 @@ class Updater:
         shutil.rmtree(staging, ignore_errors=True)
         return sha
 
+    def _signed(self, ref: str, sha: str, folder: Path) -> None:
+        """R5.10 (D685): with a trusted key on this installation, only a version the organisation signed goes in: its
+        signature verifies and every file is as signed. Otherwise the step stops here, nothing changed."""
+        name = ref if R.TAG.match(ref) else sha
+        ok, why = S.verify(name, folder, self.env.root)
+        self.log(f"  signature: {why}")
+        if not ok:
+            raise RuntimeError(f"not installed: {why}. Sign it (eax sign) or remove the trusted key (persist/keys/trusted).")
+
     def version_here(self) -> str:
+        """The version in the folder now."""
         import re
         toml = self.env.root / "services" / "api" / "version.toml"
         m = re.search(r'^version\s*=\s*"([^"]+)"', toml.read_text(encoding="utf-8"), re.M) if toml.exists() else None
@@ -310,6 +349,7 @@ class Updater:
                 raise UpdateError("the backup took longer than 6 hours")
 
     def restore(self, name: str, version: str) -> None:
+        """Restores the backup taken before the update (rolling back)."""
         r = self.env.ops("POST", "/backups/restore", {"name": name, "what": "full", "by": self.state.get("by", "updater"),
                                                        "version": version})
         rid = r.get("restore")
@@ -414,6 +454,7 @@ class Updater:
         return self.summary()
 
     def retry(self, by: str = "") -> dict:
+        """Tries a failed update again."""
         self.state = read_json(self.current_path) or {}
         if self.state.get("status") != "failed":
             raise UpdateError("No failed update to retry.")
@@ -474,6 +515,7 @@ class Updater:
 
 
 def main(argv: list[str]) -> int:
+    """python -m eaxcli.updater: update, retry, roll back, status."""
     cmd = argv[0] if argv else ""
     uid = argv[argv.index("--id") + 1] if "--id" in argv else ""
     by = argv[argv.index("--by") + 1] if "--by" in argv else ""

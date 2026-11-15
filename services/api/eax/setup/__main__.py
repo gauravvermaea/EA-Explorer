@@ -46,6 +46,7 @@ DEV_PASSWORD = "P^55w0rd1234&"
 
 
 def env(name: str, default: str = "") -> str:
+    """A setting from the environment, trimmed."""
     return os.environ.get(name, default).strip()
 
 
@@ -96,6 +97,7 @@ def check_config() -> list[str]:
 
 
 def derived_values() -> dict[str, str]:
+    """The values the set-up writes into templates (the settings and those worked out from them)."""
     host, port = env("EAX_HOSTNAME", "localhost"), env("EAX_HTTPS_PORT", "443")
     values = {k: v for k, v in os.environ.items() if k.startswith("EAX_")}
     values.update(
@@ -173,7 +175,43 @@ def print_logins(values: dict[str, str]) -> None:
         print(f"  {account:<46} {user:<22} {password}")
 
 
+# the places of the IP allow lists (R5.2, D686), as services/ops/allowlist.py PLACES (tests keep them the same)
+ALLOW_PLACES = ("site", "signin", "admin", "mcp", "machine")
+
+
+def ensure_web_log_folder(folder: Path) -> None:
+    """logs/web, where the front door writes the web log and the API its debug lines (R5.6): made, and writable by
+    their own users (nginx and the API do not run as root)."""
+    try:
+        folder.mkdir(parents=True, exist_ok=True)
+        folder.chmod(0o777)
+    except OSError as exc:
+        print(f"EA Explorer setup WARNING: the web log's folder {folder} could not be made ({exc})", file=sys.stderr)
+
+
+def ensure_allow_files(folder: Path) -> bool:
+    """The files the proxy reads for the IP allow lists (R5.2): one per place and the trusted load balancers. Missing
+    ones are made empty (everyone may come in), so nginx always starts; System Admin › Security writes them."""
+    made = False
+    try:
+        folder.mkdir(parents=True, exist_ok=True)
+        for p in ALLOW_PLACES:
+            f = folder / f"{p}.geo"
+            if not f.exists():
+                f.write_text(f"# {p}: no list, everyone may come in (R5.2)\ndefault 0;\n", encoding="utf-8")
+                made = True
+        f = folder / "realip.conf"
+        if not f.exists():
+            f.write_text("# no load balancer is trusted to say who the caller is (R5.2)\n", encoding="utf-8")
+            made = True
+    except OSError as exc:
+        print(f"EA Explorer setup WARNING: the IP allow lists' folder {folder} could not be written ({exc})", file=sys.stderr)
+    return made
+
+
 def main() -> int:
+    """The set-up at each start: checks the config, writes the certificate, the realm, the report bundles and the allow
+    lists' files."""
     problems = check_config()
     if problems:
         for p in problems:
@@ -185,6 +223,10 @@ def main() -> int:
     host = values["EAX_HOSTNAME"]
     created = ensure_certificate(TLS_DIR, host)
     print(f"EA Explorer setup: TLS certificate {'created (self-signed)' if created else 'present'}")
+
+    ensure_web_log_folder(Path(env("EAX_LOGS_MOUNT", "/eax-logs")) / "web")
+    made = ensure_allow_files(Path(env("EAX_PROXY_DIR", "/eax-proxy")) / "allow")
+    print(f"EA Explorer setup: IP allow lists {'made (everyone may come in)' if made else 'present'}")
 
     realm = render_realm(values)
     print(f"EA Explorer setup: Keycloak realm rendered to {realm}")

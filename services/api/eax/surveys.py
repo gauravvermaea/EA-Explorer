@@ -60,6 +60,7 @@ def _user(user) -> tuple[str, set[str]]:
 
 
 def may_create(user) -> bool:
+    """Whether the person may make surveys."""
     return perms.allowed(_user(user)[1], "surveys.create")
 
 
@@ -298,6 +299,7 @@ def check_answers(spec: dict, answers: Any, final: bool) -> dict:
 
 # ---------------------------------------------------------------- who it is for
 def clean_recipients(spec: Any) -> list[dict]:
+    """A survey's recipients checked (people, groups, roles), each once."""
     if not isinstance(spec, list):
         raise EditError("Recipients are a list.")
     out, seen = [], set()
@@ -473,6 +475,7 @@ def listing(conn, user) -> dict:
 
 
 def get(conn, user, guid: Any) -> dict:
+    """One survey, for those who run it, were asked, or may answer by its open link."""
     s = _survey(conn, guid)
     out = _out(conn, s, user)
     if not (out["runs"] or out["asked_me"] or (s["open_link"] and s["status"] != "draft")):
@@ -489,6 +492,7 @@ def _need_run(s: dict, user) -> None:
 
 
 def create(conn, user, d: dict, kind: str = "survey") -> dict:
+    """Makes a survey (or maturity assessment) as a draft."""
     if not may_create(user):
         raise EditError("Making surveys needs the Super Admin, Model Creator or Library Admin role.", 403)
     name, _roles = _user(user)
@@ -568,6 +572,7 @@ def update(conn, user, guid: Any, d: dict) -> dict:
 
 
 def delete(conn, user, guid: Any) -> dict:
+    """Deletes a draft survey."""
     s = _survey(conn, guid, lock=True)
     _need_run(s, user)
     if s["status"] != "draft":
@@ -668,6 +673,7 @@ def _resolve_open(conn, s: dict, note: str, username: str | None = None) -> int:
 
 
 def close(conn, user, guid: Any, by: str | None = None) -> dict:
+    """Closes a survey (no more answers)."""
     s = _survey(conn, guid, lock=True)
     if user is not None:
         _need_run(s, user)
@@ -696,6 +702,7 @@ def _close(conn, s: dict, by: str) -> None:
 
 
 def reopen(conn, user, guid: Any) -> dict:
+    """Opens a closed survey again."""
     s = _survey(conn, guid, lock=True)
     _need_run(s, user)
     if s["status"] != "closed":
@@ -851,6 +858,7 @@ def summarise(spec: dict, responses: list[dict]) -> list[dict]:
 
 
 def results(conn, user, guid: Any) -> dict:
+    """A survey's results, for those who run it."""
     s = _survey(conn, guid)
     _need_run(s, user)
     if s["kind"] == "maturity" and not perms.allowed(_user(user)[1], "maturity.manage"):

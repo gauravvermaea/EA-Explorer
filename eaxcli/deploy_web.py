@@ -22,6 +22,7 @@ PAGE = Path(__file__).with_name("deploy.html")
 
 
 class State:
+    """The web deployment wizard's state: answers, plan, log lines, steps and the decision after a failure."""
     def __init__(self, answers: dict, plan: bool):
         self.answers = {**D.kept_credentials(), **answers}
         self.plan = plan
@@ -35,22 +36,26 @@ class State:
         self.runs = DC.Runs()             # the Commands and Console tabs (D554)
 
     def target(self) -> DC.Target:
+        """The deployed target, for running commands on it."""
         with self.lock:
             return DC.Target.from_answers(self.answers, self.status == "done" and not self.plan)
 
     def out(self, text: str) -> None:
+        """A line in the wizard's log (the last 2,000 kept)."""
         with self.lock:
             self.lines.append(text)
             del self.lines[:-2000]
         log_only(text)
 
     def progress(self, i: int, n: int, title: str, status: str) -> None:
+        """Records a step's progress."""
         with self.lock:
             while len(self.steps) < n:
                 self.steps.append({"title": "", "status": "waiting"})
             self.steps[i] = {"title": title, "status": status}
 
     def on_fail(self, step: D.Step, why: str) -> str:
+        """After a failed step: waits for the decision from the page."""
         with self.lock:
             self.status, self.failed = "failed", {"step": step.title, "why": why}
         self.decision.clear()
@@ -60,6 +65,7 @@ class State:
         return self.choice
 
     def start(self, answers: dict, plan: bool) -> None:
+        """Starts the deployment in the background."""
         a = D.complete(answers)
         with self.lock:
             self.answers, self.lines, self.steps, self.status = a, [], [], "running"
@@ -78,6 +84,7 @@ class State:
 
 
 def make_handler(state: State, key: str, stop: threading.Event):
+    """The wizard's web server's handler (every call needs the page's key)."""
     class H(BaseHTTPRequestHandler):
         def log_message(self, *a):
             pass
@@ -192,6 +199,7 @@ def make_handler(state: State, key: str, stop: threading.Event):
 
 
 def serve(answers: dict, plan: bool, open_browser: bool = True, port: int = 0) -> int:
+    """eax deploy --web: the wizard as a web page on this machine."""
     state = State(answers, plan)
     key = secrets.token_urlsafe(24)
     stop = threading.Event()

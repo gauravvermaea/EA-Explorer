@@ -1,3 +1,5 @@
+"""python -m testbench.data build|check: the test data, made and checked against its manifest."""
+
 import sys
 
 from . import manifest

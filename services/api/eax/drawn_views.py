@@ -353,6 +353,7 @@ STENCIL_DOMAINS = ["Motivation", "Strategy", "Common", "Business", "Data", "Appl
 
 
 def stencil_domain_key(domain: str) -> tuple:
+    """Sorts the stencil's domains in their fixed order, the rest after them by name."""
     return (STENCIL_DOMAINS.index(domain), "") if domain in STENCIL_DOMAINS else (len(STENCIL_DOMAINS), (domain or "").lower())
 
 
@@ -594,6 +595,7 @@ def _entity_row(conn, m: dict, entity: Any) -> dict:
 
 
 def set_icon(conn, model: Any, user, entity: Any, content: bytes, file_name: str = "", content_type: str = "") -> dict:
+    """Sets an element's own icon (an uploaded picture) for drawn views."""
     m = repo.get_model(conn, model)
     _writable(m)
     e = _entity_row(conn, m, entity)
@@ -606,6 +608,7 @@ def set_icon(conn, model: Any, user, entity: Any, content: bytes, file_name: str
 
 
 def remove_icon(conn, model: Any, user, entity: Any) -> dict:
+    """Removes an element's own icon (it is drawn with its type's again)."""
     m = repo.get_model(conn, model)
     _writable(m)
     e = _entity_row(conn, m, entity)
@@ -614,6 +617,7 @@ def remove_icon(conn, model: Any, user, entity: Any) -> dict:
 
 
 def get_icon(conn, model: Any, entity: Any) -> tuple[str, bytes] | None:
+    """An element's own icon (type and bytes), or None."""
     m = repo.get_model(conn, model)
     e = _entity_row(conn, m, entity)
     r = _one(conn, "SELECT content_type, content FROM core.entity_icons WHERE entity_id = :e", e=e["id"])
@@ -627,6 +631,7 @@ SCALE = ["E57373", "F4A261", "90C2F0", "A8DBA8", "66BB6A"]       # low to high: 
 
 
 def bands(lo: float, hi: float, n: int = 5) -> list[tuple[float, float]]:
+    """Splits a range of values into n equal bands (for a heat map's legend)."""
     if hi <= lo:
         return [(lo, hi)]
     step = (hi - lo) / n
@@ -766,6 +771,7 @@ def evidence(conn, project: Any, user) -> dict:
 
 
 def remove_evidence(conn, project: Any, user, evidence_id: str) -> dict:
+    """Removes a drawn view kept as a project's evidence."""
     from . import projects as pj
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
@@ -800,6 +806,7 @@ DRAWN_MESSAGES = {"relationship.create": "Drawn on view", "relationship.rename":
 
 
 def default_message(op: str, view_name: str = "") -> str:
+    """The commit message a drawn-view change gets when the person gives none."""
     return f"{DRAWN_MESSAGES.get(op, 'Changed on drawn view')} {(view_name or '').strip()}".strip()
 
 

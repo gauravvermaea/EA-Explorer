@@ -52,7 +52,7 @@ def test_who_sees_every_model():
 
 
 def test_test_users_cover_every_role():
-    keycloak = {role.removeprefix("eax-") for _u, role, _m in p.TEST_USERS}
+    keycloak = {"auditor" if role == "eax-audit" else role.removeprefix("eax-") for _u, role, _m in p.TEST_USERS}   # R5.22
     on_models = {r for _u, _r, models in p.TEST_USERS for roles in models.values() for r in roles}
     assert keycloak == set(p.GLOBAL_ROLES) and on_models == set(p.MODEL_ROLES)
 

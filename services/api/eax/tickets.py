@@ -15,6 +15,7 @@ LABEL = {"open": "Open", "in_progress": "In progress", "done": "Done", "declined
 
 
 class RequestError(Exception):
+    """A request between people refused, with the HTTP status to answer."""
     def __init__(self, message: str, status: int = 400):
         super().__init__(message)
         self.status = status
@@ -61,6 +62,7 @@ def _notify(conn, r: dict, to: str, actor: str, title: str, body: str = "", need
 
 
 def send(conn, me: str, receiver: str, subject: str, body: str, via: str = "screen") -> dict:
+    """Sends a request to someone (they are told)."""
     me, receiver = me.lower(), (receiver or "").strip().lower()
     if not receiver:
         raise RequestError("Choose who the request is for.")
@@ -100,6 +102,7 @@ def listing(conn, me: str, box: str = "received", status: str = "active", q: str
 
 
 def get(conn, me: str, guid) -> dict:
+    """One request with its comments, for its sender or receiver."""
     r = _get(conn, guid, me.lower())
     comments = P.rows(conn, "SELECT author, body, status, created_at FROM personal.request_comments WHERE request_id = :r ORDER BY id",
                      r=r["id"])
@@ -107,6 +110,7 @@ def get(conn, me: str, guid) -> dict:
 
 
 def comment(conn, me: str, guid, body: str) -> dict:
+    """Adds a comment to a request."""
     me = me.lower()
     r = _get(conn, guid, me)
     body = (body or "").strip()

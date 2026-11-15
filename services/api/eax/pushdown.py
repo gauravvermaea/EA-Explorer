@@ -30,6 +30,7 @@ TABLES = ("entity_types", "relationship_types", "attribute_types", "item_attribu
 
 
 class PushError(Exception):
+    """A push-down refused, with the HTTP status to answer."""
     def __init__(self, message: str, status: int = 400):
         super().__init__(message)
         self.status = status
@@ -110,6 +111,7 @@ def _bypass(conn, on: bool) -> None:
 
 
 def children(conn, model_id: int) -> list[dict]:
+    """The models directly below a model."""
     _bypass(conn, True)
     try:
         return _rows(conn, """SELECT id, guid, name, kind_code, is_locked, lifecycle = 'archived' AS is_archived FROM core.models
@@ -179,6 +181,7 @@ def overview(conn, model) -> dict:
 # ---------------------------------------------------------------- pushing and deciding
 
 def push(conn, model, actor: str, mode: str, fill_defaults: bool = True, note: str = "", came_from: int | None = None) -> dict:
+    """Pushes a model's metamodel down to its children: forced (made at once) or offered (each accepts or rejects)."""
     if mode not in ("forced", "offered"):
         raise PushError("Push forced (made at once) or offered (each model below accepts or rejects it).")
     m = _model(conn, model)

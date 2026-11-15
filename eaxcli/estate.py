@@ -34,6 +34,7 @@ LOGICAL = [  # id, name, what it does, group
     ("ops", "Operations helper", "backups, restores, updates, logs, the Command centre, the self-test", "Operations"),
     ("backup", "Backup service", "dumps and restores every database and file set", "Operations"),
     ("testrunner", "Test runner", "the self-test: API, browser, database, security, backups", "Operations"),
+    ("k6", "Load test (k6)", "the benchmark's people at once (R5.18), started by the helper", "Operations"),
     ("db", "PostgreSQL", "one database: the repository and its schemas (tests, operations, archive, personal, library_models, D630)", "Data"),
     ("files", "Files and folders", "documents, imports, exports, backups, logs, persist/", "Data"),
 ]
@@ -45,8 +46,17 @@ FLOWS = [  # from, to, what
     ("api", "keycloak", "tokens"), ("api", "dms", "REST"), ("api", "ops", "operations, updates"), ("mcp", "db", "SQL"),
     ("reports", "db", "report views"), ("dms", "db", "SQL"), ("keycloak", "db", "SQL"), ("library", "db", "SQL"),
     ("views", "db", "SQL"), ("ops", "backup", "backups"), ("backup", "db", "dump, restore"), ("backup", "files", "archive"),
-    ("ops", "testrunner", "runs"), ("testrunner", "proxy", "tests as people do"), ("dms", "files", "documents"),
+    ("ops", "testrunner", "runs"), ("testrunner", "proxy", "tests as people do"), ("ops", "k6", "runs"), ("k6", "proxy", "many people at once"), ("dms", "files", "documents"),
+    ("proxy", "files", "web log (R5.6)"), ("ops", "files", "container logs"),
 ]
+# the containers of docker-compose.yml that are not drawn on their own, and why (R5.8: every other one must be in
+# LOGICAL, and a test fails when one is missing): one-shot set-ups and the helpers of a component that is drawn
+NOT_DRAWN = {
+    "setup": "one-shot: makes the certificate, the realm, the report bundles and the allow lists' files at each start",
+    "reports-init": "one-shot: Reports' database and its sign-in, part of Reports",
+    "dms-broker": "Documents' message broker, part of Documents",
+    "testrunner-service": "the test runner kept running for the web, part of the Test runner",
+}
 # what a compose profile means, said beside the container (the rest: started on demand)
 PROFILE_SAYS = {"vault": "with the key vault"}
 GROUP_ORDER = ["Users", "Edge", "Application", "Platform", "Operations", "Data"]
@@ -108,6 +118,7 @@ CHAR = {12: 6.9, 11: 6.3, 10: 5.8, 9: 5.2}      # about how wide a character is 
 
 
 def text_width(text: str, size: int = 10) -> float:
+    """About how wide a text is drawn."""
     return len(str(text)) * CHAR.get(size, size * 0.58)
 
 
@@ -137,6 +148,7 @@ def wrap(text: str, width: float, size: int = 10, most: int = 2) -> list[str]:
 
 
 def box(ident: str, label: str, sub: str = "", fill: str = "#ffffff", size: int = 12, sub_lines: int = 2, **extra) -> dict:
+    """A box of the estate diagrams."""
     inner = W_BOX - 12
     return {"id": ident, "label": label, "sub": sub, "fill": fill, "fontSize": size, "keepSize": True,
             "lines": wrap(label, inner, min(12, size), 2 if not sub else 1),

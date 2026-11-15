@@ -47,10 +47,12 @@ def argv_for(line: list[str]) -> list[str]:
 
 
 def deployment() -> str:
+    """The installation's kind (laptop or server)."""
     return (setting("EAX_DEPLOYMENT", "laptop") or "laptop").lower()
 
 
 def address() -> str:
+    """The installation's start page address."""
     h, p = setting("EAX_HOSTNAME", "localhost"), setting("EAX_HTTPS_PORT", "443")
     return f"https://{h}{'' if p == '443' else ':' + p}/"
 
@@ -108,6 +110,7 @@ def plan(o: dict, kind: str) -> list[dict]:
 
 
 def newest_run(after: float) -> Path | None:
+    """The newest self-test run's folder made after a time."""
     runs = [p for p in TESTS.glob("*") if p.is_dir() and p.stat().st_mtime >= after] if TESTS.is_dir() else []
     return max(runs, key=lambda p: p.name) if runs else None
 
@@ -131,6 +134,7 @@ def watches(after: float) -> list[dict]:
 
 
 def situation(label: str) -> str:
+    """What a memory measurement was taken during, in words."""
     lab = label.lower()
     for key, name in (("start-up", "Starting up"), ("at-rest", "At rest"), ("using-it", "In use"), ("smoke", "Smoke test"),
                       ("detailed", "Full test"), ("full", "Full test")):
@@ -197,11 +201,13 @@ def resume(args: list[str], n: int) -> str:
 
 
 def save_progress(state: dict) -> None:
+    """Keeps how far the measuring has gone."""
     FOOT.mkdir(parents=True, exist_ok=True)
     PROGRESS.write_text(json.dumps(state, indent=1), encoding="utf-8")
 
 
 def load_progress() -> dict:
+    """How far the measuring had gone."""
     try:
         return json.loads(PROGRESS.read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -209,6 +215,7 @@ def load_progress() -> dict:
 
 
 def main(args: list[str], run=subprocess.call, ask=input, open_browser=webbrowser.open, out=print, now=time.time) -> int:
+    """eax measure: memory measured in each situation (start-up, at rest, in use, under the full test), step by step."""
     try:
         o = parse(args)
         kind = deployment()

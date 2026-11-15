@@ -118,6 +118,7 @@ def _out(r: dict, items_by_id: dict[int, dict], last: dict[int, Any]) -> dict:
 
 
 def listing(conn, project: Any, user) -> dict:
+    """A project's stakeholders."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "read")
     _ids, by_id = _items(conn, p)
@@ -171,6 +172,7 @@ def _write(conn, p: dict, user, vals: dict, sid: int | None = None) -> int:
 
 
 def add(conn, project: Any, user, d: dict) -> dict:
+    """Adds a stakeholder to a project."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
     ids, _ = _items(conn, p)
@@ -180,6 +182,7 @@ def add(conn, project: Any, user, d: dict) -> dict:
 
 
 def update(conn, project: Any, user, sid: str, d: dict) -> dict:
+    """Changes a stakeholder."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
     r = _row(conn, p, sid)
@@ -193,6 +196,7 @@ def update(conn, project: Any, user, sid: str, d: dict) -> dict:
 
 
 def delete(conn, project: Any, user, sid: str) -> dict:
+    """Removes a stakeholder."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
     r = _row(conn, p, sid)
@@ -201,6 +205,7 @@ def delete(conn, project: Any, user, sid: str) -> dict:
 
 
 def reorder(conn, project: Any, user, order: list[str]) -> dict:
+    """Puts the stakeholders in the order given."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
     for n, g in enumerate(order or []):
@@ -211,6 +216,7 @@ def reorder(conn, project: Any, user, order: list[str]) -> dict:
 
 # ---------------------------------------------------------------- discussion notes
 def notes(conn, project: Any, user, sid: str) -> dict:
+    """A stakeholder's notes."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "read")
     r = _row(conn, p, sid)
@@ -233,6 +239,7 @@ def _note_vals(d: dict) -> dict:
 
 
 def add_note(conn, project: Any, user, sid: str, d: dict) -> dict:
+    """Adds a note to a stakeholder."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
     r = _row(conn, p, sid)
@@ -251,6 +258,7 @@ def _note(conn, p: dict, nid: str) -> dict:
 
 
 def update_note(conn, project: Any, user, nid: str, d: dict) -> dict:
+    """Changes a stakeholder's note."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
     n = _note(conn, p, nid)
@@ -261,6 +269,7 @@ def update_note(conn, project: Any, user, nid: str, d: dict) -> dict:
 
 
 def delete_note(conn, project: Any, user, nid: str) -> dict:
+    """Deletes a stakeholder's note."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
     n = _note(conn, p, nid)
@@ -294,6 +303,7 @@ def suggestions(spec: dict | None) -> list[dict]:
 
 
 def to_csv(conn, project: Any, user) -> tuple[str, bytes]:
+    """A project's stakeholders as CSV, with the file name."""
     data = listing(conn, project, user)
     p = pj.project_row(conn, project)
     buf = io.StringIO()

@@ -314,6 +314,7 @@ def canonical(name: str, data: bytes) -> bytes:
 
 
 def manifest(built: dict[str, tuple[bytes, str, list[str]]]) -> dict:
+    """The test data's manifest, from what was built."""
     return {"_comment": "The test data (D580): made by python -m testbench.data build; read by the outside test bench "
                         "(testbench/) and the inside self-test (EAX_TEST_DATA, /testdata in the test runner).",
             "load": "testbench/load/data.json (the load test's search words)",
@@ -322,6 +323,7 @@ def manifest(built: dict[str, tuple[bytes, str, list[str]]]) -> dict:
 
 
 def build(folder: Path = HERE) -> list[str]:
+    """Builds the test data files."""
     built = files()
     written = []
     for name, (data, _w, _u) in built.items():

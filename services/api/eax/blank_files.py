@@ -22,6 +22,7 @@ TYPES = {
 
 
 def file_name(name: str, file_type: str) -> str:
+    """A safe file name for a placeholder file from its name and type."""
     stem = re.sub(r"[^\w\- .()]+", "", name or "").strip()[:80] or "Placeholder"
     return f"{stem}.{file_type}"
 

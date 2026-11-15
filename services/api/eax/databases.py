@@ -42,6 +42,7 @@ from sqlalchemy.engine import Engine
 
 @dataclass(frozen=True)
 class Db:
+    """One of EA Explorer's databases: its name, its setting, what it holds and where it lives by default."""
     key: str            # the name used in code and on the screens
     setting: str        # its setting in eaexplorer.env
     what: str           # what it holds
@@ -104,6 +105,7 @@ SCHEMAS: dict[str, str] = {"tests": "tests", "operations": "operations", "archiv
 
 
 def sqlalchemy_url(url: str) -> str:
+    """A PostgreSQL address in the form SQLAlchemy with psycopg wants."""
     for prefix in ("postgresql+psycopg://", "postgresql://", "postgres://"):
         if url.startswith(prefix):
             return "postgresql+psycopg://" + url[len(prefix):]
@@ -111,6 +113,7 @@ def sqlalchemy_url(url: str) -> str:
 
 
 def setting(db: Db) -> str:
+    """A database's own address from its setting (empty: it shares the main database)."""
     return os.environ.get(db.setting, "").strip()
 
 
@@ -186,9 +189,11 @@ class _Done:
         self.rowcount = rowcount
 
     def scalar(self):
+        """Nothing (a write's result has no rows)."""
         return None
 
     def first(self):
+        """Nothing (a write's result has no rows)."""
         return None
 
 
@@ -199,6 +204,7 @@ class _Apart:
         self.key = key
 
     def execute(self, stmt, params=None):
+        """Runs a statement on the database's own server in its own transaction, as a connection would."""
         with engine_for(self.key).begin() as c:
             r = c.execute(stmt, params or {})
             return r.freeze()() if r.returns_rows else _Done(r.rowcount)
@@ -404,6 +410,7 @@ def copy(key: str, say=print) -> dict[str, int]:
 
 
 def main(argv: list[str]) -> int:
+    """python -m eax.databases: where each database lives, or the text speed test (speed)."""
     if argv[:1] == ["speed"]:                         # text comparisons measured (R2.52)
         from . import textspeed
         return textspeed.main()

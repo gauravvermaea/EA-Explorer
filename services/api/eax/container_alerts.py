@@ -13,15 +13,18 @@ LINK = "#/admin/containers"
 
 
 def admins(conn) -> list[str]:
+    """The Super Admins and IT Admins, told of container alerts."""
     return [r[0] for r in conn.execute(text("""SELECT lower(username) FROM core.known_users
                                                  WHERE 'super-admin' = ANY (roles) OR 'it-admin' = ANY (roles)"""))]
 
 
 def title_of(e: dict) -> str:
+    """A container alert's title in words."""
     return str(e.get("text") or f"Container {e.get('service')}: {e.get('event')} ({e.get('kind')})")[:300]
 
 
 def tell(conn, events: list[dict]) -> int:
+    """Tells the admins of container events (down, unhealthy, recovered); returns how many notifications were made."""
     people, n = admins(conn), 0
     for e in events:
         ev = str(e.get("event") or "")

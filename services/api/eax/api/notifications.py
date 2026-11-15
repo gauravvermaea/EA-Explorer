@@ -87,6 +87,8 @@ def _write(fn, action: str | None = None, object_type: str = "", object_id: str 
 # ---------------------------------------------------------------- notifications
 @personal_blp.route("/notifications")
 class Notifications(MethodView):
+    """/notifications: GET my notifications: open (action ones not resolved, information ones not dismissed),
+    actions, resolved or all."""
     @personal_blp.doc(security=SECURITY)
     @personal_blp.response(200, Free)
     @require_auth()
@@ -100,6 +102,7 @@ class Notifications(MethodView):
 
 @personal_blp.route("/notifications/counts")
 class NotificationCounts(MethodView):
+    """/notifications/counts: GET the bell: unread notifications, open actions and open requests sent to me."""
     @personal_blp.doc(security=SECURITY)
     @personal_blp.response(200, Free)
     @require_auth()
@@ -110,6 +113,7 @@ class NotificationCounts(MethodView):
 
 @personal_blp.route("/notifications/read")
 class NotificationsRead(MethodView):
+    """/notifications/read: POST mark some ({ids}) or all of my notifications read."""
     @personal_blp.doc(security=SECURITY)
     @personal_blp.arguments(FreeIn)
     @personal_blp.response(200, Free)
@@ -121,6 +125,8 @@ class NotificationsRead(MethodView):
 
 @personal_blp.route("/notifications/dismiss-all")
 class NotificationDismissAll(MethodView):
+    """/notifications/dismiss-all: POST put away every information notification of mine, ?category= one kind only
+    (those needing action stay open)."""
     @personal_blp.doc(security=SECURITY)
     @personal_blp.response(200, Free)
     @require_auth()
@@ -131,6 +137,7 @@ class NotificationDismissAll(MethodView):
 
 @personal_blp.route("/notifications/<uuid:nid>/dismiss")
 class NotificationDismiss(MethodView):
+    """/notifications/{nid}/dismiss: POST put away an information notification (only for me)."""
     @personal_blp.doc(security=SECURITY)
     @personal_blp.response(200, Free)
     @require_auth()
@@ -141,6 +148,8 @@ class NotificationDismiss(MethodView):
 
 @personal_blp.route("/notifications/<uuid:nid>/resolve")
 class NotificationResolve(MethodView):
+    """/notifications/{nid}/resolve: POST resolve a notification that needs action, with a note of what was done:
+    resolved for everyone who got it."""
     @personal_blp.doc(security=SECURITY)
     @personal_blp.arguments(FreeIn)
     @personal_blp.response(200, Free)
@@ -154,6 +163,8 @@ class NotificationResolve(MethodView):
 # ---------------------------------------------------------------- requests
 @personal_blp.route("/requests")
 class Requests(MethodView):
+    """/requests: GET requests sent to me (box=received) or by me (box=sent): status active, closed, all or one
+    status; POST send a request to another person {to, subject, body}: private to the two of you."""
     @personal_blp.doc(security=SECURITY)
     @personal_blp.response(200, Free)
     @require_auth()
@@ -192,6 +203,7 @@ class Requests(MethodView):
 
 @personal_blp.route("/requests/people")
 class RequestPeople(MethodView):
+    """/requests/people: GET people a request can be sent to (?q= part of a username)."""
     @personal_blp.doc(security=SECURITY)
     @personal_blp.response(200, Free)
     @require_auth()
@@ -203,6 +215,7 @@ class RequestPeople(MethodView):
 
 @personal_blp.route("/requests/<rid>")
 class RequestOne(MethodView):
+    """/requests/{rid}: GET one request (by number or id) with its comments: its sender and receiver only."""
     @personal_blp.doc(security=SECURITY)
     @personal_blp.response(200, Free)
     @require_auth()
@@ -213,6 +226,7 @@ class RequestOne(MethodView):
 
 @personal_blp.route("/requests/<rid>/comments")
 class RequestComment(MethodView):
+    """/requests/{rid}/comments: POST comment on a request {body}."""
     @personal_blp.doc(security=SECURITY)
     @personal_blp.arguments(FreeIn)
     @personal_blp.response(200, Free)
@@ -224,6 +238,8 @@ class RequestComment(MethodView):
 
 @personal_blp.route("/requests/<rid>/status")
 class RequestStatus(MethodView):
+    """/requests/{rid}/status: POST move a request along {status, note}: the receiver to in progress, done or
+    declined (a note for the last two); the sender may open a closed one again."""
     @personal_blp.doc(security=SECURITY)
     @personal_blp.arguments(FreeIn)
     @personal_blp.response(200, Free)
@@ -239,6 +255,9 @@ class RequestStatus(MethodView):
 # ---------------------------------------------------------------- metamodel push-down
 @blp.route("/models/<uuid:model_id>/pushdown")
 class PushDown(MethodView):
+    """/api/v1/models/{model_id}/pushdown: GET what this model can push down and to whom, the pushes it made, and the
+    packages that arrived from above; POST push the metamodel versions made since the last push to the models
+    directly below {mode: forced|offered, fill_defaults, note}: forced makes them at once, offered asks…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("model.read")
@@ -266,6 +285,8 @@ class PushDown(MethodView):
 
 @blp.route("/models/<uuid:model_id>/pushdown/<int:target_id>/decide")
 class PushDecide(MethodView):
+    """/api/v1/models/{model_id}/pushdown/{target_id}/decide: POST accept (made at once) or reject (the model
+    diverges from its parent; a note is needed) an offered package."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -286,6 +307,7 @@ class PushDecide(MethodView):
 # ---------------------------------------------------------------- change documents
 @blp.route("/models/<uuid:model_id>/change-documents")
 class ChangeDocuments(MethodView):
+    """/api/v1/models/{model_id}/change-documents: GET the model's change documents, newest first."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("model.read")
@@ -296,6 +318,7 @@ class ChangeDocuments(MethodView):
 
 @blp.route("/change-documents/<ref>")
 class ChangeDocument(MethodView):
+    """/api/v1/change-documents/{ref}: GET one change document (by number or id): for anyone who may read its model."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -315,6 +338,8 @@ class ChangeDocument(MethodView):
 # ---------------------------------------------------------------- webhooks (IT and Super Admins)
 @blp.route("/admin/webhooks")
 class Webhooks(MethodView):
+    """/api/v1/admin/webhooks: GET the installation's webhooks with their delivery counts; POST add a webhook {name,
+    url, kinds}: a secret is made to sign its messages."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -334,6 +359,8 @@ class Webhooks(MethodView):
 
 @blp.route("/admin/webhooks/<uuid:hook_id>")
 class Webhook(MethodView):
+    """/api/v1/admin/webhooks/{hook_id}: PATCH change a webhook {name, url, kinds, enabled, new_secret}; DELETE
+    delete a webhook and its delivery log."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -353,6 +380,7 @@ class Webhook(MethodView):
 
 @blp.route("/admin/webhooks/<uuid:hook_id>/deliveries")
 class WebhookDeliveries(MethodView):
+    """/api/v1/admin/webhooks/{hook_id}/deliveries: GET the last deliveries of a webhook."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -363,6 +391,7 @@ class WebhookDeliveries(MethodView):
 
 @blp.route("/admin/webhooks/<uuid:hook_id>/test")
 class WebhookTest(MethodView):
+    """/api/v1/admin/webhooks/{hook_id}/test: POST send a test message now and say what the receiver answered."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")

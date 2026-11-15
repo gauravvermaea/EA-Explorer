@@ -51,6 +51,7 @@ def search(conn, q: str = "", model: Any = None, entity_type: str = "", attribut
 
 
 def out_limit(limit) -> int:
+    """A list's limit kept between 1 and 500."""
     return max(1, min(int(limit or 100), 500))
 
 
@@ -149,6 +150,7 @@ def list_views(conn, username: str, model: Any = None, view_kind: str = "", targ
 
 
 def save_view(conn, username: str, data: dict) -> dict:
+    """Saves a grid view for the person."""
     name = (data.get("name") or "").strip()
     if not name:
         raise EditError("Give the view a name.")
@@ -174,6 +176,7 @@ def save_view(conn, username: str, data: dict) -> dict:
 
 
 def delete_view(conn, username: str, view: str) -> dict:
+    """Deletes one of the person's saved views."""
     cur = P.one(conn, "SELECT id, owner FROM personal.saved_views WHERE guid = CAST(:g AS uuid)", g=str(view))
     if not cur:
         raise EditError("No such view.", 404)
@@ -226,6 +229,7 @@ def list_favourites(conn, username: str) -> list[dict]:
 
 
 def set_favourite(conn, username: str, kind: str, target: str, on: bool, label: str = "") -> dict:
+    """Marks an element, model, view or project as a favourite, or not."""
     if kind not in ("entity", "model", "view", "project"):
         raise EditError("A favourite is an entity, a model, a view or a project.")
     if on:

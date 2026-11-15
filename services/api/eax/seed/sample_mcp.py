@@ -42,10 +42,12 @@ def _audit(conn, actor: str, tool: str, model: str, why: str) -> None:
 
 
 def link(m: dict) -> str:
+    """A model's metamodel page."""
     return f"/#/metamodel/{m['id']}"
 
 
 def run() -> list[str]:
+    """Loads the sample AI (MCP) activity."""
     from .. import permissions as perms
     from ..db import get_engine
     said: list[str] = []

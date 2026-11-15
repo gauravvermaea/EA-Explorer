@@ -77,6 +77,7 @@ def _file_values() -> dict[str, str]:
 
 
 def raw(key: str) -> str:
+    """An optional service's switch as set (the config file first, then the environment)."""
     setting = SERVICES[key][0]
     file = _file_values()
     if setting in file:
@@ -87,19 +88,23 @@ def raw(key: str) -> str:
 
 
 def enabled(key: str) -> bool:
+    """Whether an optional service is switched on."""
     return raw(key).strip().lower() not in OFF
 
 
 def switches() -> dict[str, bool]:
+    """Every optional service's switch."""
     return {k: enabled(k) for k in SERVICES}
 
 
 def describe() -> list[dict]:
+    """The optional services, each with its setting, product, containers and state."""
     return [{"key": k, "setting": s[0], "name": s[1], "product": s[2], "containers": s[3], "when_off": s[4], "on": enabled(k)}
             for k, s in SERVICES.items()]
 
 
 def describe_core() -> list[dict]:
+    """The core services, which are always on."""
     return [{"key": k, "name": c[0], "product": c[1], "containers": c[2], "about": c[3], "on": True, "core": True}
             for k, c in CORE.items()]
 

@@ -34,6 +34,7 @@ def _run(fn, write=False):
 
 @blp.route("/model-icons")
 class Library(MethodView):
+    """/api/v1/model-icons: GET the built-in icon library's names, and the icon each kind of model starts with."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -44,6 +45,9 @@ class Library(MethodView):
 
 @blp.route("/models/<uuid:model_id>/icon")
 class ModelIcon(MethodView):
+    """/api/v1/models/{model_id}/icon: GET the model's uploaded icon image; PUT pick a library icon {library: name},
+    or remove the icon {library: null}; POST upload an icon for this model alone: a multipart file "file", or the
+    image as the body."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self, model_id):

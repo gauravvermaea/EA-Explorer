@@ -63,6 +63,7 @@ def base(version: str) -> str:
 
 
 def is_rc(version: str) -> bool:
+    """Whether a version is a release candidate."""
     return "-rc." in version
 
 
@@ -73,6 +74,7 @@ def newer(a: str, b: str) -> bool:
 
 
 def name_of(tag: str) -> str:
+    """A version from its tag."""
     return tag.lstrip("v")
 
 
@@ -89,11 +91,13 @@ class Version:
     steps: list[str] = field(default_factory=list)   # filled by plan(): the versions gone through, in order
 
     def as_dict(self) -> dict:
+        """The version as a dict."""
         return asdict(self)
 
 
 # ---------------------------------------------------------------- git
 def git(*args: str, cwd: str | os.PathLike | None = None, timeout: int = 300, check: bool = True) -> str:
+    """Runs git (never asking for a password)."""
     env = dict(os.environ, GIT_TERMINAL_PROMPT="0", GIT_ASKPASS="echo")
     try:
         r = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True, timeout=timeout, env=env)
@@ -154,6 +158,7 @@ def fetch(cache: str | os.PathLike, url: str, ref: str, depth: int = 1) -> str:
 
 
 def show(cache: str | os.PathLike, commit: str, path: str) -> str | None:
+    """A file as it is at a commit (None when it is not there)."""
     r = subprocess.run(["git", "show", f"{commit}:{path}"], cwd=cache, capture_output=True, text=True)
     return r.stdout if r.returncode == 0 else None
 

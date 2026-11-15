@@ -72,6 +72,7 @@ Get = Callable[[str, dict], Any]
 
 # ---------------------------------------------------------------- reading a feed
 def allowed_hosts() -> set[str]:
+    """The internal hosts IT allows discovery to read (EAX_DISCOVERY_ALLOWED_HOSTS)."""
     return {h.strip().lower() for h in os.environ.get("EAX_DISCOVERY_ALLOWED_HOSTS", "").split(",") if h.strip()}
 
 
@@ -108,6 +109,7 @@ class _Checked(urllib.request.HTTPRedirectHandler):
     """Every redirect is checked as the first address was."""
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):
+        """Follows a redirect only to an address discovery may read (R3.12)."""
         why = check_url(newurl)
         if why:
             raise EditError(f"The feed redirected to {newurl}, which is not read: {why}.", 403)
@@ -115,6 +117,7 @@ class _Checked(urllib.request.HTTPRedirectHandler):
 
 
 def http_get(url: str, headers: dict, timeout: int = 60) -> Any:
+    """Reads a feed's page as JSON after checking its address, every redirect checked too, at most MAX_BYTES."""
     why = check_url(url)
     if why:
         raise EditError(f"{url} is not read: {why}.", 403)
@@ -169,6 +172,7 @@ def _records(url: str, headers: dict, get: Get) -> list[dict]:
 
 
 def is_service_document(doc: Any) -> bool:
+    """Whether an OData answer is a service document (the list of its sets)."""
     rows = doc.get("value") if isinstance(doc, dict) else None
     return isinstance(rows, list) and bool(rows) and all(isinstance(r, dict) and "url" in r and "name" in r and
                                                          set(r) <= {"name", "url", "kind", "title"} for r in rows)
@@ -224,6 +228,7 @@ def _pick(fields: list[str], wanted: tuple[str, ...], set_name: str = "") -> str
 
 
 def singular(word: str) -> str:
+    """A set's name made singular for an entity type (Applications to Application), leaving words like Status alone."""
     w = str(word or "")
     if w.lower().endswith(("ss", "us", "is")):          # Business Process, Status, Analysis: already one
         return w
@@ -309,6 +314,7 @@ def suggest(found: list[dict], types: list[dict], rel_types: list[dict], old: di
 
 # ---------------------------------------------------------------- the delivery
 def fingerprint(values: dict) -> str:
+    """A record's values as one SHA-256, to tell what changed since the last run."""
     return hashlib.sha256(json.dumps(values, sort_keys=True, default=str).encode()).hexdigest()
 
 
@@ -588,6 +594,7 @@ def remove(conn, user, source: Any) -> dict:
 
 
 def describe(conn, src: dict) -> dict:
+    """A discovery source as the screens show it: kind, address, sign-in setting's name, schedule, mapping and last run."""
     return {"id": str(src["guid"]), "name": src["name"], "kind": src["kind"], "url": src["url"], "auth_ref": src["auth_ref"],
             "schedule": src["schedule"], "next_run_at": src["next_run_at"], "mapping": src["mapping"] or {},
             "last_run": src["last_run"] or {}, "active": src["active"], "values_win": src["values_win"],
@@ -671,6 +678,7 @@ def push(conn, user, source: Any, payload: Any) -> dict:
 
 
 def due(conn, now: dt.datetime | None = None) -> list[dict]:
+    """The scheduled discovery sources whose next run is due (at most 20 at a time)."""
     return repo._rows(conn, """SELECT s.guid::text AS id, s.contact FROM core.import_sources s
                                 WHERE s.schedule <> 'off' AND s.active AND s.kind IN ('odata', 'ai')
                                   AND s.next_run_at IS NOT NULL AND s.next_run_at <= :now ORDER BY s.next_run_at LIMIT 20""",
@@ -707,12 +715,14 @@ def run_due(engine, now: dt.datetime | None = None, get: Get = http_get, post=No
 
 # ---------------------------------------------------------------- the AI engine (Super Admins; off until switched on)
 def ai_settings(conn) -> dict:
+    """The AI engine discovery uses (off, or its address, model and sign-in setting's name)."""
     v = conn.execute(text("SELECT value FROM core.settings WHERE key = :k"), {"k": AI_SETTING}).scalar()
     v = v if isinstance(v, dict) else json.loads(v) if v else {}
     return {"mode": v.get("mode", "off"), "url": v.get("url", ""), "model": v.get("model", ""), "key_ref": v.get("key_ref", "")}
 
 
 def save_ai_settings(conn, user, data: dict) -> dict:
+    """Sets the AI engine for discovery (a Super Admin): checked like any address discovery reads."""
     if perms.SUPER_ADMIN not in user.roles:
         raise EditError("The AI engine is chosen by a Super Admin.", 403)
     mode = str(data.get("mode") or "off")
@@ -734,6 +744,7 @@ def save_ai_settings(conn, user, data: dict) -> dict:
 
 
 def http_post(url: str, body: dict, headers: dict, timeout: int = 180) -> Any:
+    """Sends a JSON request to the AI engine and reads its JSON answer."""
     req = urllib.request.Request(url, data=json.dumps(body).encode(), method="POST",
                                  headers={"Content-Type": "application/json", "Accept": "application/json", **headers})
     try:

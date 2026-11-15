@@ -17,6 +17,7 @@ hooks: dict = {}       # set by ops.py: containers, docker
 
 
 def live() -> dict:
+    """The estate as it runs now (containers, networks, volumes)."""
     if E is None:
         raise RuntimeError("The estate needs eaxcli mounted into the operations helper (docker-compose.yml).")
     ids = [c["id"] for c in hooks["containers"]()]

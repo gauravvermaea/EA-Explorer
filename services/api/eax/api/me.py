@@ -14,6 +14,8 @@ blp = Blueprint("me", __name__, url_prefix="/api/v1/me", description="The signed
 
 @blp.route("")
 class MeView(MethodView):
+    """/api/v1/me: GET the signed-in user: EA Explorer roles (mapped from Keycloak's), what they allow, and the
+    models assigned to them."""
     @blp.response(200, Me)
     @blp.doc(security=[{"bearerAuth": []}])
     @require_auth()
@@ -23,9 +25,12 @@ class MeView(MethodView):
         u = g.user
         with get_engine().connect() as conn:
             models = permissions.assigned_models(conn, u.username)
-        return {"username": u.username, "email": u.email, "name": u.name, "roles": u.roles,
+        real = u.real_roles or u.roles
+        return {"username": u.username, "email": u.email, "name": u.name, "roles": real,
                 "keycloak_roles": u.keycloak_roles, "permissions": permissions.describe(u.roles),
                 "sees_every_model": permissions.sees_every_model(u.roles), "models": models,
+                # the Auditor (R5.22): sees as a Super Admin, changes nothing unless another role allows it
+                "auditor": permissions.AUDITOR in real, "view_only": permissions.view_only(real),
                 "break_glass": u.break_glass, "parts": _parts(), "library": _library()}
 
 

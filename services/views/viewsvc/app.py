@@ -36,6 +36,7 @@ P = "/api/views/v1"
 
 
 def create_app() -> Flask:
+    """The views service's Flask application."""
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = 12 * 1024 * 1024
     logging.basicConfig(level=logging.INFO)

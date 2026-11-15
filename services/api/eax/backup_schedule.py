@@ -58,6 +58,7 @@ def parse(cron: str) -> list[set[int]]:
 
 
 def matches(cron: str, at: datetime) -> bool:
+    """Whether a cron expression fires at this minute (with cron's rule for day of month and day of week both set)."""
     minute, hour, day, month, weekday = parse(cron)
     dow = (at.weekday() + 1) % 7      # Python: Monday 0; cron: Sunday 0
     day_ok = at.day in day
@@ -81,6 +82,7 @@ def describe(cron: str) -> str:
 
 
 def zone(conn=None) -> zoneinfo.ZoneInfo:
+    """The installation's time zone (the application setting), UTC when it is not valid."""
     from . import settings as app_settings
     try:
         return zoneinfo.ZoneInfo(app_settings.values(conn).get("time_zone") or "UTC")
@@ -89,6 +91,7 @@ def zone(conn=None) -> zoneinfo.ZoneInfo:
 
 
 def get_all(conn) -> list[dict]:
+    """Every backup schedule, each with its cron expression in words."""
     rows = [dict(r) for r in databases.on("operations", conn).execute(text("SELECT * FROM operations.backup_schedules ORDER BY kind DESC")).mappings().all()]
     for r in rows:
         r["in_words"] = describe(r["cron"])
@@ -96,6 +99,7 @@ def get_all(conn) -> list[dict]:
 
 
 def get(conn, kind: str) -> dict:
+    """One kind of backup's schedule, or the default (off, 01:00 daily, keep 7) when none is saved."""
     r = databases.on("operations", conn).execute(text("SELECT * FROM operations.backup_schedules WHERE kind = :k"), {"k": kind}).mappings().first()
     if not r:
         return {"kind": kind, "enabled": False, "cron": "0 1 * * *", "tag": "scheduled", "keep": 7, "warn_after_hours": 36}
@@ -103,6 +107,7 @@ def get(conn, kind: str) -> dict:
 
 
 def keep(conn, kind: str) -> int:
+    """How many scheduled backups of a kind are kept (7 before the schedules' table exists)."""
     try:
         return int(get(conn, kind)["keep"])
     except Exception:  # noqa: BLE001 - before the migration ran
@@ -158,4 +163,5 @@ def due(conn, now: datetime | None = None) -> list[dict]:
 
 
 def set_status(conn, kind: str, status: str) -> None:
+    """Records how a kind's last scheduled backup went."""
     databases.on("operations", conn).execute(text("UPDATE operations.backup_schedules SET last_status = :s WHERE kind = :k"), {"s": status[:300], "k": kind})

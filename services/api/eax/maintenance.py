@@ -11,10 +11,12 @@ import os
 
 
 def path() -> str:
+    """Where the maintenance flag is kept (work/maintenance.json)."""
     return os.path.join(os.environ.get("EAX_WORK_MOUNT", "/eax-work"), "maintenance.json")
 
 
 def state() -> dict | None:
+    """The maintenance in progress (what and since when), or None."""
     try:
         with open(path(), encoding="utf-8") as f:
             return json.load(f)

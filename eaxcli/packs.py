@@ -45,6 +45,7 @@ WANTED = (".pdf", ".xlsx", ".xlsm", ".pptx")
 
 
 def default_sources() -> list[Path]:
+    """Where industry packs are looked for by default."""
     home = Path.home() / "Enterprise_Architecture"
     return [home / "Industry Specific Guidance", home / "Sample_Repo" / "Metamodels_And_Views_by_Industry",
             home / "Sample_Repo" / "MetaModel_And_Views"]
@@ -69,6 +70,7 @@ def clean_name(name: str, industry: str) -> str:
 
 
 def text_of(name: str, data: bytes) -> str:
+    """A pack file's text, for its search index."""
     ext = name.lower().rpartition(".")[2]
     try:
         if ext in ("xlsx", "xlsm", "pptx", "docx"):
@@ -208,6 +210,7 @@ def auto(root: Path = ROOT, dest: Path | None = None, quiet: bool = False) -> di
 
 
 def set_sources(folders: list[str], clear: bool = False, root: Path = ROOT) -> list[str]:
+    """Sets the folders industry packs are taken from (persist)."""
     from . import persist as P
     path = P.folder(root) / SETTINGS
     data, _w = P.read_json(path, {})
@@ -221,6 +224,7 @@ def set_sources(folders: list[str], clear: bool = False, root: Path = ROOT) -> l
 
 
 def main(args: list[str]) -> int:
+    """eax packs: the industry packs (status, sources, load)."""
     from . import stack
     sub = args[0] if args else "status"
     rest = args[1:]

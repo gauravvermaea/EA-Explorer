@@ -67,6 +67,7 @@ def sync(conn, ops_status: dict) -> int:
 
 
 def history(conn, limit: int = 100) -> list[dict]:
+    """The update history, newest first."""
     out = databases.on("operations", conn).execute(text("""SELECT id, kind, status, channel, from_version, from_commit, to_version, failed_version, by_user,
                                       started_at, finished_at, backup, error, notes, steps, sample
                                  FROM operations.update_history ORDER BY started_at DESC NULLS LAST, recorded_at DESC LIMIT :n"""),

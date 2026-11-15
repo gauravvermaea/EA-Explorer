@@ -32,6 +32,8 @@ SECURITY = [{"bearerAuth": []}]
 
 
 class EntityIn(Schema):
+    """The shape of entity sent to the API: entity_type, name, description, parent, tags, display_id, content_areas,
+    values, row_version."""
     class Meta:
         unknown = INCLUDE
     entity_type = fields.String(metadata={"description": "The entity type (guid, code or name); new entities only"})
@@ -46,6 +48,7 @@ class EntityIn(Schema):
 
 
 class RelationshipIn(Schema):
+    """The shape of relationship sent to the API: source, target, relationship_type, name, values, allow_outside."""
     source = fields.String(required=True)
     target = fields.String(required=True)
     relationship_type = fields.String(required=True)
@@ -56,11 +59,13 @@ class RelationshipIn(Schema):
 
 
 class RelationshipChangeIn(Schema):
+    """The shape of relationship change sent to the API: name, values."""
     name = fields.String(metadata={"description": "The label; the type and ends stay"})
     values = fields.Dict(metadata={"description": "Attribute values by code or name; an empty value clears it (D563)"})
 
 
 class RollBackIn(Schema):
+    """The shape of roll back sent to the API: event."""
     event = fields.Integer(required=True, metadata={"description": "A history event id (GET .../history)"})
 
 
@@ -104,6 +109,8 @@ def _write(fn, action: str, model_id, details=None, status: int = 200):
 
 @blp.route("/<uuid:model_id>/forms/<string:entity_type>")
 class Form(MethodView):
+    """/api/v1/models/{model_id}/forms/{entity_type}: GET the form for one entity type: built-in fields, attributes
+    by section (data type, unit, required, pick-list values) and the type's rules."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -115,6 +122,8 @@ class Form(MethodView):
 
 @blp.route("/<uuid:model_id>/entry/<string:entity_type>")
 class Entry(MethodView):
+    """/api/v1/models/{model_id}/entry/{entity_type}: GET the data entry page for one type (D79): its columns and
+    every entity with values, tags and warnings."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -125,6 +134,8 @@ class Entry(MethodView):
 
 @blp.route("/<uuid:model_id>/entity-picker")
 class Picker(MethodView):
+    """/api/v1/models/{model_id}/entity-picker: GET existing entities to relate to or pick as a parent:
+    ?q=text&type=<entity type>&type=."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -136,6 +147,8 @@ class Picker(MethodView):
 
 @blp.route("/<uuid:model_id>/content/entities")
 class Entities(MethodView):
+    """/api/v1/models/{model_id}/content/entities: POST create an entity: entity_type, name, description, parent,
+    tags, values."""
     @blp.doc(security=SECURITY)
     @blp.arguments(EntityIn)
     @blp.response(201, Free)
@@ -149,6 +162,8 @@ class Entities(MethodView):
 
 @blp.route("/<uuid:model_id>/content/entities/check")
 class EntityCheck(MethodView):
+    """/api/v1/models/{model_id}/content/entities/check: POST the rules an entity would fail with these values,
+    before saving (D194): {entity_type, entity (to change one), name, description, values {code: value}}."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -163,6 +178,8 @@ class EntityCheck(MethodView):
 
 @blp.route("/<uuid:model_id>/content/entities/<string:entity_id>")
 class Entity(MethodView):
+    """/api/v1/models/{model_id}/content/entities/{entity_id}: PATCH change an entity's fields, tags and values (only
+    those given); DELETE delete an entity with its values and relationships (kept in its history)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(EntityIn)
     @blp.response(200, Free)
@@ -185,6 +202,8 @@ class Entity(MethodView):
 
 @blp.route("/<uuid:model_id>/content/entities/<string:entity_id>/<any(retire,restore):action>")
 class Status(MethodView):
+    """/api/v1/models/{model_id}/content/entities/{entity_id}/{action}: POST retire an entity (kept, marked retired)
+    or restore it."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("model.content")
@@ -198,6 +217,8 @@ class Status(MethodView):
 
 @blp.route("/<uuid:model_id>/content/entities/<string:entity_id>/roll-back")
 class RollBack(MethodView):
+    """/api/v1/models/{model_id}/content/entities/{entity_id}/roll-back: POST set an entity back to a point in its
+    history (a new version; the history keeps everything)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(RollBackIn)
     @blp.response(200, Free)
@@ -211,6 +232,8 @@ class RollBack(MethodView):
 
 @blp.route("/<uuid:model_id>/content/entities/<string:entity_id>/relationship-options")
 class Options(MethodView):
+    """/api/v1/models/{model_id}/content/entities/{entity_id}/relationship-options: GET what this entity may be
+    related to (allowed by the metamodel), and every relationship and entity type."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -221,6 +244,7 @@ class Options(MethodView):
 
 @blp.route("/<uuid:model_id>/content/relationships")
 class Relationships(MethodView):
+    """/api/v1/models/{model_id}/content/relationships: POST relate two existing entities."""
     @blp.doc(security=SECURITY)
     @blp.arguments(RelationshipIn)
     @blp.response(201, Free)
@@ -233,6 +257,10 @@ class Relationships(MethodView):
 
 @blp.route("/<uuid:model_id>/content/relationships/<string:relationship_id>")
 class Relationship(MethodView):
+    """/api/v1/models/{model_id}/content/relationships/{relationship_id}: GET a relationship's name, type, ends,
+    attribute values, the attributes it may carry and what is wrong (D563); PATCH change a relationship's name and
+    attribute values (D563); kept as an uncommitted change in a working model; DELETE remove a relationship (kept in
+    history)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("model.read")

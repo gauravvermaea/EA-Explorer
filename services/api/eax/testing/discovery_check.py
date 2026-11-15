@@ -27,6 +27,7 @@ def _whole(base: str, method: str, path: str, token: str, raw: bytes | None) -> 
 
 
 def run(base: str, tokens: dict[str, str], ids: dict[str, str], record: Callable[..., None], send=_whole) -> dict[str, int]:
+    """The discovery checks, black-box: a push source in the run's test model, only what changed, a near name."""
     admin, model = tokens.get("super-admin", ""), ids.get("model", "")
     counts = {"passed": 0, "failed": 0, "skipped": 0}
 

@@ -21,6 +21,7 @@ E: list[tuple[str, str, str, str, dict]] = []
 
 
 def ent(t: str, name: str, desc: str = "", parent: str = "", **attrs) -> None:
+    """Adds an element to the demo estate."""
     E.append((t, name, desc, parent, attrs))
 
 
@@ -373,6 +374,7 @@ R: list[tuple[str, str, str]] = []
 
 
 def rel(src: str, kind: str, *targets: str) -> None:
+    """Adds relationships from one element of the demo estate to others."""
     for t in targets:
         R.append((src, kind, t))
 

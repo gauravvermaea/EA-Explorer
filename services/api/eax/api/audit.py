@@ -13,6 +13,7 @@ blp = Blueprint("audit", __name__, url_prefix="/api/v1/audit", description="Audi
 
 @blp.route("")
 class AuditList(MethodView):
+    """/api/v1/audit: GET latest audit events (system administrators)."""
     @blp.arguments(AuditQuery, location="query")
     @blp.response(200, AuditEvent(many=True))
     @blp.doc(security=[{"bearerAuth": []}])

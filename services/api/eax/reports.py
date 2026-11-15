@@ -105,6 +105,7 @@ def catalogue(conn, model_id: int) -> dict[str, Any]:
 
 
 def reports_base_url() -> str:
+    """The address of Reports (reports.<host>)."""
     from .config import get_settings, public_url
     s = get_settings()
     return public_url(s.hostname, s.https_port, prefix="reports.")

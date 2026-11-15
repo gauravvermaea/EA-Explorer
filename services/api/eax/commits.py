@@ -77,12 +77,14 @@ def uses_commits(m: dict) -> bool:
 
 
 def may_commit(conn, user, m: dict) -> bool:
+    """Whether the person may commit changes in this model."""
     if user is None or perms.SUPER_ADMIN in user.roles:
         return True
     return bool(set(perms.model_roles(conn, user.username, m["id"])) & perms.MODEL_PERMISSIONS["model.commit"])
 
 
 def sees_history(conn, user, m: dict) -> bool:
+    """Whether the person may see this model's history."""
     if user is None or perms.SUPER_ADMIN in user.roles:
         return True
     return bool(set(perms.model_roles(conn, user.username, m["id"])) & perms.MODEL_PERMISSIONS["model.history"])
@@ -108,6 +110,7 @@ def _canon(r: dict) -> str | None:
 
 
 def snap_entity(conn, m: dict, guid: Any) -> dict | None:
+    """An element as it is now, for a commit's record: its fields, type, parent and attribute values."""
     g = repo._as_guid(guid)
     if not g:
         return None
@@ -136,6 +139,7 @@ def snap_entity(conn, m: dict, guid: Any) -> dict | None:
 
 
 def snap_relationship(conn, m: dict, guid: Any) -> dict | None:
+    """A relationship as it is now, for a commit's record: its type, source and target, and attribute values."""
     g = repo._as_guid(guid)
     if not g:
         return None
@@ -291,6 +295,7 @@ def _replay(conn, m: dict, author: str, changes: list[dict] | None = None) -> in
 
 
 def has_pending(conn, model: Any, author: str) -> bool:
+    """Whether this person has changes in the model not yet committed."""
     m = _model(conn, model)
     return bool(_one(conn, "SELECT 1 AS x FROM core.pending_changes WHERE model_id = :m AND author = :a AND status = 'pending' LIMIT 1",
                      m=m["_id"], a=author.lower()))
@@ -326,6 +331,7 @@ def overlay(conn, model: Any, author: str, fn):
 
 
 def pending_marks(conn, m: dict, author: str) -> dict:
+    """What each of the person's uncommitted changes did to each item (added, changed, removed), for the grids' marks."""
     by: dict[str, str] = {}
     rows = _rows(conn, """SELECT op, target FROM core.pending_changes WHERE model_id = :m AND author = :a AND status = 'pending'
                            ORDER BY id""", m=m["_id"], a=author.lower())
@@ -497,6 +503,7 @@ def record_many(conn, model: Any, author: str, items: list[tuple[str, dict]]) ->
 
 # ---------------------------------------------------------------- grids record row by row (phase 7 grids, D165)
 def record_entity_rows(conn, model: Any, entity_type: Any, rows: list[dict], author: str) -> dict:
+    """Records a grid's edited element rows (at most 5,000) as the person's pending changes."""
     if len(rows) > 5000:
         raise EditError("Save at most 5,000 rows at a time.")
     m = _model(conn, model)
@@ -526,6 +533,7 @@ def record_entity_rows(conn, model: Any, entity_type: Any, rows: list[dict], aut
 
 
 def record_relationship_rows(conn, model: Any, rows: list[dict], author: str) -> dict:
+    """Records a grid's edited relationship rows (at most 5,000) as the person's pending changes."""
     if len(rows) > 5000:
         raise EditError("Save at most 5,000 rows at a time.")
     m = _model(conn, model)
@@ -724,6 +732,7 @@ def request_commit(conn, model: Any, user, set_id: Any = None, note: str = "", c
 
 
 def withdraw_request(conn, model: Any, user, set_id: Any) -> dict:
+    """Takes back the person's own commit request before it is decided."""
     m = _model(conn, model)
     s = _set_row(conn, m, set_id)
     if s["author"] != user.username.lower() or s["status"] != "requested":
@@ -1133,6 +1142,7 @@ def roll_back_commit(conn, model: Any, user, commit_id: Any, item_ids: list | No
 
 # ---------------------------------------------------------------- commit history (D151: mine, or everyone's)
 def commits(conn, model: Any, user, person: str = "", limit: int = 200) -> dict:
+    """A model's commits (everyone's to those who see the history, else the person's own), newest first."""
     m = _model(conn, model)
     me = user.username.lower()
     everyone = sees_history(conn, user, m)
@@ -1157,6 +1167,7 @@ def commits(conn, model: Any, user, person: str = "", limit: int = 200) -> dict:
 
 
 def commit_detail(conn, model: Any, user, commit_id: Any) -> dict:
+    """One commit with every change it made and the commit it rolled back, if any."""
     m = _model(conn, model)
     g = repo._as_guid(commit_id)
     c = _one(conn, """SELECT c.*, r.number AS rolls_back_number FROM core.commits c LEFT JOIN core.commits r ON r.id = c.rolls_back

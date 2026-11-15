@@ -22,6 +22,7 @@ QUERY_DOC = [{"in": "query", "name": k, "schema": {"type": "string"}} for k in F
 
 
 class DeleteIn(Schema):
+    """The shape of delete sent to the API: q, model, user, kind, action, item_type, to, mine, confirm."""
     q = fields.String(load_default=None)
     model = fields.String(load_default=None)
     user = fields.String(load_default=None)
@@ -61,6 +62,8 @@ def _run(fn, write: bool = False):
 
 @blp.route("")
 class ChangeLog(MethodView):
+    """/api/v1/change-log: GET the change log as you may see it (your own; every change of models you administer;
+    Super Admin: all), newest first."""
     @blp.doc(security=SECURITY, parameters=[*QUERY_DOC, {"in": "query", "name": "limit", "schema": {"type": "integer"}},
                                             {"in": "query", "name": "offset", "schema": {"type": "integer"}}])
     @blp.response(200, Free)
@@ -73,6 +76,7 @@ class ChangeLog(MethodView):
 
 @blp.route("/export")
 class ChangeLogExport(MethodView):
+    """/api/v1/change-log/export: GET every change log row the filters select, as CSV or Excel (Super Admin)."""
     @blp.doc(security=SECURITY, parameters=[*QUERY_DOC, {"in": "query", "name": "format", "schema": {"type": "string", "enum": ["csv", "xlsx"]}}])
     @require_auth()
     def get(self):
@@ -89,6 +93,8 @@ class ChangeLogExport(MethodView):
 
 @blp.route("/delete")
 class ChangeLogDelete(MethodView):
+    """/api/v1/change-log/delete: POST deletes the change log rows the filters select, or every row (Super Admin;
+    confirm = DELETE)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(DeleteIn)
     @blp.response(200, Free)

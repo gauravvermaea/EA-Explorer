@@ -28,10 +28,12 @@ _cov: dict = {"c": None}
 
 
 def enabled() -> bool:
+    """Whether code coverage is measured (EAX_COVERAGE on)."""
     return (os.environ.get("EAX_COVERAGE") or "off").strip().lower() in ON
 
 
 def folder() -> Path:
+    """Where coverage data is written."""
     return Path(os.environ.get("EAX_COVERAGE_DIR") or "/tmp/eax-coverage")
 
 
@@ -59,6 +61,7 @@ def start() -> bool:
 
 
 def save() -> None:
+    """Writes the coverage measured so far."""
     c = _cov["c"]
     if c is not None:
         try:

@@ -41,6 +41,7 @@ def _run(fn, write: bool = False):
 
 @blp.route("/settings")
 class Settings(MethodView):
+    """/api/v1/me/settings: GET my own settings, by key."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -51,6 +52,8 @@ class Settings(MethodView):
 
 @blp.route("/settings/<string:key>")
 class Setting(MethodView):
+    """/api/v1/me/settings/{key}: PUT {value}: one of my settings, kept (any JSON, at most 64 KB); DELETE one of my
+    settings, gone."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)

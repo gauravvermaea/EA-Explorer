@@ -1,0 +1,12 @@
+{
+  "about": "Security findings accepted for now (R5.17): each with its reason and the date after which it fails the security gate again. Kept with the code and reviewed like it; one installation may add its own in persist/security-accepted.json.",
+  "accepted": [
+    {
+      "id": "zap:10055",
+      "where": "",
+      "reason": "Content-Security-Policy style-src 'unsafe-inline' (ZAP medium, 14 Nov 2026): the screens, draw.io and Swagger set styles on elements; scripts stay strict (D672). To be looked at again by the date.",
+      "until": "2027-02-15",
+      "by": "R5.17"
+    }
+  ]
+}

@@ -11,6 +11,7 @@ from .config import get_settings
 
 
 def main(timeout_seconds: int = 120) -> int:
+    """Waits for the database to answer (up to the timeout); 1 when it does not."""
     settings = get_settings()
     deadline = time.monotonic() + timeout_seconds
     while True:

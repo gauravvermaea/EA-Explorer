@@ -37,6 +37,7 @@ P = "/api/library/v1"
 
 
 def create_app() -> Flask:
+    """The library service's Flask application: its routes, the file size limit and the error handlers."""
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = (get_settings().max_file_mb + 2) * 1024 * 1024
     logging.basicConfig(level=logging.INFO)

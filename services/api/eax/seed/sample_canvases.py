@@ -52,6 +52,7 @@ def _find(cv, conn, pg, who, cid, words):
 
 
 def run() -> list[str]:
+    """Loads the sample canvases."""
     from .. import canvases as cv
     from .. import notify
     from .. import permissions as perms

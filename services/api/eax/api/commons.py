@@ -36,6 +36,8 @@ def _w(analysis_id, fn, action, details=None):
 
 @blp.route("/commons/preview")
 class Preview(MethodView):
+    """/api/v1/commons/preview: POST the set-up screen for the sides chosen: every entity type with its fields and
+    relationships, the counts per side."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -47,6 +49,8 @@ class Preview(MethodView):
 
 @blp.route("/commons")
 class Commons(MethodView):
+    """/api/v1/commons: GET the common analyses you may see (stored in models you may read); POST a new common
+    analysis, stored in the model given (store_in)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -69,21 +73,26 @@ class Commons(MethodView):
 
 @blp.route("/commons/<string:analysis_id>")
 class Common(MethodView):
+    """/api/v1/commons/{analysis_id}: GET common; DELETE common."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
     def get(self, analysis_id):
+        """One commons analysis"""
         return _read(lambda c: co.get(c, co.model_of(c, analysis_id), analysis_id))
 
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
     def delete(self, analysis_id):
+        """Deletes a commons analysis"""
         return _w(analysis_id, lambda c, m: co.delete(c, m, g.user, analysis_id), "common.delete")
 
 
 @blp.route("/commons/<string:analysis_id>/refresh")
 class Refresh(MethodView):
+    """/api/v1/commons/{analysis_id}/refresh: POST compare the sides again (with changed settings, if given); notes
+    and decisions are kept."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -99,6 +108,8 @@ class Refresh(MethodView):
 
 @blp.route("/commons/<string:analysis_id>/suggestions")
 class Suggestions(MethodView):
+    """/api/v1/commons/{analysis_id}/suggestions: POST confirm suggested matches (kept for the next run) or reject
+    them (not suggested again); compared again (background)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -115,6 +126,7 @@ class Suggestions(MethodView):
 
 @blp.route("/commons/<string:analysis_id>/items")
 class Items(MethodView):
+    """/api/v1/commons/{analysis_id}/items: POST a decision or a note for one or many elements."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -128,6 +140,8 @@ class Items(MethodView):
 
 @blp.route("/commons/<string:analysis_id>/tag")
 class Tag(MethodView):
+    """/api/v1/commons/{analysis_id}/tag: POST tag the common elements (all, or items) in each side's model: one
+    commit per model (background)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -143,6 +157,8 @@ class Tag(MethodView):
 
 @blp.route("/commons/<string:analysis_id>/make-model")
 class MakeModel(MethodView):
+    """/api/v1/commons/{analysis_id}/make-model: POST a new model holding the common elements, copied from one side's
+    model (background)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -159,6 +175,8 @@ class MakeModel(MethodView):
 
 @blp.route("/commons/<string:analysis_id>/download")
 class Download(MethodView):
+    """/api/v1/commons/{analysis_id}/download: GET the common analysis as an Excel workbook or a Word document
+    (?background=true: as a task)."""
     @blp.doc(security=SECURITY, parameters=[{"in": "query", "name": "format", "schema": {"type": "string", "enum": ["xlsx", "docx"]}}])
     @require_auth()
     def get(self, analysis_id):

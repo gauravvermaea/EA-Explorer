@@ -165,6 +165,7 @@ DEFAULT_TARGET = 3
 
 
 def may_manage(user) -> bool:
+    """Whether the person may manage maturity assessments."""
     return perms.allowed(set(getattr(user, "roles", ()) or ()), "maturity.manage")
 
 
@@ -272,6 +273,7 @@ def evidence(conn) -> list[dict]:
 
 
 def on_open(conn, s: dict) -> None:
+    """When a maturity survey opens: the evidence as it stands is kept with it."""
     m = clean_settings(s["maturity"] or {})
     m["opened_evidence"] = evidence(conn)
     conn.execute(text("UPDATE core.surveys SET maturity = CAST(:m AS jsonb) WHERE guid = :g"), {"m": json.dumps(m), "g": s["guid"]})
@@ -362,6 +364,7 @@ def create(conn, user, d: dict) -> dict:
 
 
 def result(conn, user, guid: Any) -> dict:
+    """A maturity assessment's results, scored by dimension."""
     _need(user)
     out = sv.results(conn, user, guid)
     if out["kind"] != "maturity":

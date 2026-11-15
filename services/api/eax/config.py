@@ -44,6 +44,8 @@ def public_url(host: str, port: str, prefix: str = "") -> str:
 
 @dataclass(frozen=True)
 class Settings:
+    """The API's settings from the environment (the config file): the deployment, host names, database and Keycloak
+    addresses and the rest."""
     version: str = field(default_factory=lambda: _env("EAX_VERSION", "dev"))
     deployment: str = field(default_factory=lambda: _env("EAX_DEPLOYMENT", "laptop"))
     hostname: str = field(default_factory=lambda: _env("EAX_HOSTNAME", "localhost"))
@@ -77,10 +79,12 @@ class Settings:
 
     @property
     def public_base_url(self) -> str:
+        """The address people use to reach EA Explorer (https and the port when it is not 443)."""
         return public_url(self.hostname, self.https_port)
 
     @property
     def sqlalchemy_url(self) -> str:
+        """The database's address for SQLAlchemy, as the application's own login."""
         return (
             # user and password are URL-encoded: passwords may hold characters such as ^ & @ $
             f"postgresql+psycopg://{quote(self.db_user, safe='')}:{quote(self.db_password, safe='')}"
@@ -120,6 +124,7 @@ class Settings:
 
     @property
     def libpq_conninfo(self) -> str:
+        """The database's connection string for psycopg, as the application's own login."""
         return (
             f"host={self.db_host} port={self.db_port} dbname={self.db_name} "
             f"user={_conninfo_quote(self.db_user)} password={_conninfo_quote(self.db_password)}"
@@ -127,6 +132,7 @@ class Settings:
 
     @property
     def migrator_conninfo(self) -> str:
+        """The database's connection string as the migrations' login (which may change the schema)."""
         return (
             f"host={self.db_host} port={self.db_port} dbname={self.db_name} "
             f"user={_conninfo_quote(self.db_migrator_user)} password={_conninfo_quote(self.db_migrator_password)}"
@@ -134,6 +140,7 @@ class Settings:
 
     @property
     def jwks_url(self) -> str:
+        """Where Keycloak publishes the keys that sign its tokens."""
         return f"{self.keycloak_internal_url}/realms/{self.realm}/protocol/openid-connect/certs"
 
     @property
@@ -148,4 +155,5 @@ class Settings:
 
 
 def get_settings() -> Settings:
+    """The settings, read from the environment now."""
     return Settings()

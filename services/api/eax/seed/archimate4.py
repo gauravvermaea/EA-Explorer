@@ -139,6 +139,7 @@ G["DYNAMIC"] = ["Service", "Process", "Function", "Event"]
 # Tokens: TypeCode | '*' (any) | 'SAME' (target same type as source) | 'G:<group>'
 R = []
 def allow(src, rel, tgt, note=""):
+    """Records one relationship ArchiMate 4 allows."""
     R.append((src, rel, tgt, note))
 
 # structural: aggregation and composition (composition wherever aggregation is; mirrored at the end)

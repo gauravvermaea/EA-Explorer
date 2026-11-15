@@ -257,6 +257,7 @@ class Recorder:
         self.host: dict = {}
 
     def add(self, s: dict) -> None:
+        """Adds a memory sample."""
         self.samples += 1
         total = 0.0
         for k, mb in s["containers"].items():
@@ -278,6 +279,7 @@ class Recorder:
             m["most_swap_used_mb"] = max(m.get("most_swap_used_mb", h["swap_used_mb"]), h["swap_used_mb"])
 
     def result(self) -> dict:
+        """The memory watched: each container's lowest, average and peak, and the whole's."""
         when = lambda t: datetime.fromtimestamp(t, UTC).isoformat(timespec="seconds")  # noqa: E731
         rows = [{"container": k, "lowest_mb": round(r["min"], 1), "average_mb": round(r["sum"] / r["n"], 1),
                  "peak_mb": round(r["max"], 1), "peak_at": when(r["max_at"])}
@@ -366,10 +368,12 @@ class Stopper:
         self.stop, self.thread, self.wait = stop, thread, wait
 
     def set(self) -> None:
+        """Stops the watch and waits for its result to be written."""
         self.stop.set()
         self.thread.join(self.wait)
 
     def is_set(self) -> bool:
+        """Whether the watch was stopped."""
         return self.stop.is_set()
 
 
@@ -385,6 +389,7 @@ def watch_in_background(label: str, folder: Path, wait: float = 90) -> Stopper:
 
 
 def latest_memory() -> dict | None:
+    """The newest memory watch."""
     d = WORK / "footprint"
     files = sorted(d.glob("*-memory.json")) if d.is_dir() else []
     for f in reversed(files):
@@ -396,6 +401,7 @@ def latest_memory() -> dict | None:
 
 
 def history() -> list[dict]:
+    """Every footprint measurement, oldest first."""
     d = WORK / "footprint"
     out = []
     for f in sorted(d.glob("*.json")) if d.is_dir() else []:
@@ -413,11 +419,13 @@ def history() -> list[dict]:
 
 
 def previous(before: str) -> dict | None:
+    """The measurement before one."""
     older = [h for h in history() if h["name"] < before]
     return older[-1] if older else None
 
 
 def latest() -> dict:
+    """The newest measurement, the one before and the newest memory watch."""
     h = history()
     return {"latest": h[-1] if h else None, "before": h[-2] if len(h) > 1 else None, "count": len(h),
             "memory": latest_memory(), "target_mb": target_mb()}
@@ -449,6 +457,7 @@ def to_markdown(m: dict, before: dict | None = None) -> str:
 
 
 def cli(args: list[str]) -> int:
+    """eax footprint [--watch minutes label]."""
     if "--watch" in args:                  # eax footprint --watch [minutes] [label]
         i = args.index("--watch")
         rest = [a for a in args[:i] + args[i + 1:] if not a.startswith("--")]

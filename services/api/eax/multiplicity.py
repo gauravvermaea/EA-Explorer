@@ -49,6 +49,7 @@ def clean(text: str | None) -> str:
 
 
 def fits(text: str | None, count: int) -> bool:
+    """Whether a count fits a multiplicity (such as 0..1 or 1..*); anything fits none."""
     b = parse(text)
     if b is None:
         return True

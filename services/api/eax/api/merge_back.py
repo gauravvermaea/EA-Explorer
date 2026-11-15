@@ -76,6 +76,9 @@ def _request_models(rid) -> tuple[str, str, int]:
 # ---------------------------------------------------------------- merge requests
 @blp.route("/models/<uuid:model_id>/merge-requests")
 class MergeRequests(MethodView):
+    """/api/v1/models/{model_id}/merge-requests: GET the model's merge requests: those it sent as a child and those
+    sent to it as a parent; POST send the child for merge into its parent (its Model Admin): the changes are worked
+    out three-way and the parent's reviewers are told."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -98,6 +101,8 @@ class MergeRequests(MethodView):
 
 @blp.route("/models/<uuid:model_id>/merge-requests/preview")
 class MergePreview(MethodView):
+    """/api/v1/models/{model_id}/merge-requests/preview: GET what sending the child would ask its parent's reviewers:
+    the changes found, three-way; nothing is kept."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -108,6 +113,8 @@ class MergePreview(MethodView):
 
 @blp.route("/merge-requests/waiting")
 class MergeWaiting(MethodView):
+    """/api/v1/merge-requests/waiting: GET merge requests waiting for me: to review, or to freeze or refresh the
+    child after the merge."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -118,6 +125,7 @@ class MergeWaiting(MethodView):
 
 @blp.route("/merge-requests/<uuid:request_id>")
 class MergeRequest(MethodView):
+    """/api/v1/merge-requests/{request_id}: GET one merge request: the changes found, each decision and the report."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -128,6 +136,8 @@ class MergeRequest(MethodView):
 
 @blp.route("/merge-requests/<uuid:request_id>/decisions")
 class MergeDecisions(MethodView):
+    """/api/v1/merge-requests/{request_id}/decisions: POST the parent's reviewers accept or reject changes ({change
+    id: {accept, reason}}; a rejection needs a reason; accept null takes a decision back)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -142,6 +152,8 @@ class MergeDecisions(MethodView):
 
 @blp.route("/merge-requests/<uuid:request_id>/merge")
 class MergeDo(MethodView):
+    """/api/v1/merge-requests/{request_id}/merge: POST merge everything accepted into the parent: tagged first, one
+    commit, the report kept."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -157,6 +169,8 @@ class MergeDo(MethodView):
 
 @blp.route("/merge-requests/<uuid:request_id>/withdraw")
 class MergeWithdraw(MethodView):
+    """/api/v1/merge-requests/{request_id}/withdraw: POST the sender takes the request back while it waits for
+    review."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -169,6 +183,8 @@ class MergeWithdraw(MethodView):
 
 @blp.route("/merge-requests/<uuid:request_id>/finish")
 class MergeFinish(MethodView):
+    """/api/v1/merge-requests/{request_id}/finish: POST after the merge, the child's Model Admin: freeze the child,
+    or refresh it from the parent and carry on."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -186,6 +202,8 @@ class MergeFinish(MethodView):
 
 @blp.route("/merge-requests/<uuid:request_id>/report")
 class MergeReport(MethodView):
+    """/api/v1/merge-requests/{request_id}/report: GET the merge report as a Word document: accepted, rejected with
+    the reasons, anything not applied."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self, request_id):
@@ -198,6 +216,8 @@ class MergeReport(MethodView):
 # ---------------------------------------------------------------- dedupe
 @blp.route("/models/<uuid:model_id>/duplicates/compare")
 class DuplicatesCompare(MethodView):
+    """/api/v1/models/{model_id}/duplicates/compare: POST a pair or group of likely duplicates side by side, and what
+    merging them into one would move."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -210,6 +230,8 @@ class DuplicatesCompare(MethodView):
 
 @blp.route("/models/<uuid:model_id>/content/similar")
 class SimilarNames(MethodView):
+    """/api/v1/models/{model_id}/content/similar: GET entities of a type whose names look like this one (data entry
+    warns before a duplicate is made)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -224,6 +246,7 @@ class SimilarNames(MethodView):
 # ---------------------------------------------------------------- other views and documents
 @blp.route("/sample-documents")
 class SampleDocuments(MethodView):
+    """/api/v1/sample-documents: GET sample document templates for views and documents outside TOGAF and ArchiMate."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -234,6 +257,7 @@ class SampleDocuments(MethodView):
 
 @blp.route("/sample-documents/<string:code>")
 class SampleDocument(MethodView):
+    """/api/v1/sample-documents/{code}: GET one sample template, made as it is downloaded."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self, code):

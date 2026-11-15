@@ -27,6 +27,7 @@ def results_root() -> Path:
 
 
 def beat(folder: Path) -> None:
+    """Says the run is being run (a heartbeat file in its folder)."""
     try:
         folder.mkdir(parents=True, exist_ok=True)
         (folder / BEAT_FILE).write_text(str(int(time.time())), encoding="utf-8")
@@ -47,6 +48,7 @@ def keep_beating(folder: Path, stop: threading.Event | None = None) -> threading
 
 
 def last_beat(folder: Path) -> float | None:
+    """When a run's folder last had a heartbeat."""
     try:
         return (folder / BEAT_FILE).stat().st_mtime
     except OSError:

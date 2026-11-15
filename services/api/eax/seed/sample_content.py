@@ -27,6 +27,7 @@ def _p(name, roles=("user",)):
 
 
 def run() -> list[str]:
+    """Loads the sample project content (calendar, governance and the rest)."""
     from .. import calendars as cl
     from .. import content_framework as cf
     from .. import governance as gv

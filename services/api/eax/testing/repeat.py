@@ -37,6 +37,7 @@ def latest(conn) -> int | None:
 
 
 def outcomes(with_warnings: bool) -> tuple[str, ...]:
+    """Which outcomes a repeat runs again (failed, and warnings when asked)."""
     return ("failed", "warning") if with_warnings else ("failed",)
 
 

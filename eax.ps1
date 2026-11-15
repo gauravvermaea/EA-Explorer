@@ -189,6 +189,38 @@ function Use-VaultEnv {
     $env:EAX_VAULT_RESOLVED = "1"
 }
 
+# where the data lives (R5.4, D687): with one base folder (EAX_DATA_ROOT), each folder is made and checked and its
+# value put in this session's environment before containers are made (eaxpy folders env); docker compose takes them
+# a server or platform keeps all its data under one base folder (R5.4, D687; it replaced the backups question, R2.44):
+# asked by init, kept as EAX_DATA_ROOT (the template's /srv/eax when nothing is typed)
+function Set-BaseFolder {
+    $path = Join-Path $PSScriptRoot $EnvFile
+    $content = [System.IO.File]::ReadAllText($path)
+    $default = "/srv/eax"
+    $m = [regex]::Match($content, "(?m)^EAX_DATA_ROOT=(.*)$")
+    if ($m.Success -and $m.Groups[1].Value.Trim()) { $default = $m.Groups[1].Value.Trim() }
+    $bdir = ""
+    try { $bdir = Read-Host "Base folder for all the data (databases, documents, logs, backups, imports, exports, certificates, reports); mount what you want onto its folders later [$default]" } catch { $bdir = "" }
+    if (-not $bdir) { $bdir = $default }
+    if ($m.Success) { $content = [regex]::Replace($content, "(?m)^EAX_DATA_ROOT=.*$", "EAX_DATA_ROOT=$bdir") }
+    else { $content = $content.TrimEnd("`n") + "`nEAX_DATA_ROOT=$bdir`n" }
+    [System.IO.File]::WriteAllText($path, $content, $Utf8)
+    Write-Log "All the data goes under $bdir (EAX_DATA_ROOT), a folder for each kind, made at the first .\eax up; .\eax folders shows them."
+}
+
+function Use-DataFolders {
+    if ($env:EAX_FOLDERS_RESOLVED) { return }
+    if (-not (Test-Path $EnvFile)) { return }
+    if (-not $env:EAX_DATA_ROOT -and -not (Select-String -Path $EnvFile -Pattern "^EAX_DATA_ROOT=.+" -Quiet)) { return }
+    $lines = & (Join-Path $PSScriptRoot "eaxpy.ps1") folders env
+    if ($LASTEXITCODE -ne 0) { throw "A data folder cannot be used (above): nothing was started. .\eax folders shows them." }
+    foreach ($line in @($lines)) {
+        $i = "$line".IndexOf("=")
+        if ($i -gt 0 -and "$line" -match "^EAX_[A-Z_]+=") { [Environment]::SetEnvironmentVariable("$line".Substring(0, $i), "$line".Substring($i + 1)) }
+    }
+    $env:EAX_FOLDERS_RESOLVED = "1"
+}
+
 # the build shown with the release (R2.47): EAX_BUILD as CI sets it, else the commit's short id ("-changed" when files
 # differ from it), "dev" outside git; the commit and its time, so the API container is made again only when they change
 function Get-BuildId {
@@ -210,7 +242,7 @@ function Get-ComposeArgs([string[]]$Arguments) {
     if (-not $env:EAX_COMMIT) { $env:EAX_COMMIT = "$(& git rev-parse HEAD 2>$null)".Trim() }
     if (-not $env:EAX_BUILT_AT) { $env:EAX_BUILT_AT = "$(& git log -1 --format=%cI 2>$null)".Trim() }
     Use-VaultProfile
-    if ($Arguments.Count -gt 0 -and @("up", "run", "create") -contains $Arguments[0]) { Use-VaultEnv }
+    if ($Arguments.Count -gt 0 -and @("up", "run", "create") -contains $Arguments[0]) { Use-VaultEnv; Use-DataFolders }
     $kind = Get-Setting "EAX_DEPLOYMENT" "laptop"
     # plain progress and no colour codes, so the log reads cleanly
     # scale-out extra files (phase 36.3, D521): EAX_COMPOSE_EXTRA=standby,shared-storage... (deploy/compose/scale)
@@ -827,7 +859,7 @@ function Invoke-Cleanup([string[]]$Options) {
         if ($answer -ne "yes") { Write-Host "Nothing deleted."; return }
     }
     # the logs first, where no reset deletes them (R2.30); a log backup never stops the cleanup
-    try { & (Join-Path $PSScriptRoot "eaxpy.ps1") logs backup before-cleanup --outside-work } catch { Write-Host "The logs could not be backed up first." }
+    try { & (Join-Path $PSScriptRoot "eaxpy.ps1") logs backup before-cleanup --outside-work --then-clear } catch { Write-Host "The logs could not be backed up first." }
     if (Test-Path $EnvFile) {
         $down = if ($all) { @("down", "-v", "--remove-orphans") } else { @("down", "--remove-orphans") }
         Invoke-Logged "docker" (Get-ComposeArgs $down) | Out-Null
@@ -976,7 +1008,7 @@ if ($Command -eq "menu") {   # the numbered menu (R2.29): one Python program for
     & (Join-Path $PSScriptRoot "eaxpy.ps1") menu
     exit $LASTEXITCODE
 }
-if (($Command -in @("deploy", "secrets", "packs", "schedule", "persist")) -or ($Command -eq "logs" -and $RestArgs.Count -gt 0 -and $RestArgs[0] -in @("backup", "clean")) -or ($Command -eq "test" -and $RestArgs -contains "--reset-survival")) {   # packs (D546); schedule (D559); test --reset-survival (D561)
+if (($Command -in @("deploy", "secrets", "packs", "schedule", "persist", "folders", "allow", "sign", "verify", "db", "ticket", "optimise", "estimate", "dev")) -or ($Command -eq "logs" -and $RestArgs.Count -gt 0 -and $RestArgs[0] -in @("backup", "clean")) -or ($Command -eq "test" -and $RestArgs -contains "--reset-survival")) {   # packs (D546); schedule (D559); test --reset-survival (D561)
     # phase 36 (D498, D504): one Python program for every form (D500); eaxpy.ps1 fetches uv and Python into work\tools
     & (Join-Path $PSScriptRoot "eaxpy.ps1") $Command @RestArgs
     exit $LASTEXITCODE
@@ -1020,26 +1052,11 @@ try {
             Write-Log "Created $EnvFile ($kind) from $template."
             if ($useVault) {
                 Write-Log "Every password and key is made in the key vault (OpenBao) at the first .\eax up and kept there; $EnvFile holds references only. .\eax logins shows them; the vault's keys: persist\vault\keys.json."
-                if ($kind -ne "laptop") {
-                    $bdir = Read-Host "Folder for backups: a mounted network share or volume (empty: set EAX_BACKUP_DIR later)"
-                    if ($bdir) {
-                        $path = Join-Path $PSScriptRoot $EnvFile
-                        $content = [System.IO.File]::ReadAllText($path) -replace "(?m)^EAX_BACKUP_DIR=$", "EAX_BACKUP_DIR=$bdir"
-                        [System.IO.File]::WriteAllText($path, $content, $Utf8)
-                        Write-Log "Backups go to $bdir (EAX_BACKUP_DIR)."
-                    } else { Write-Log "No backups are taken until EAX_BACKUP_DIR is set in $EnvFile." }
-                }
+                if ($kind -ne "laptop") { Set-BaseFolder }
             }
             elseif ($kind -eq "laptop") { Show-Logins }
             else {
-                # a server or platform keeps its backups in a mounted folder (R2.44, D635): no backups until it is set
-                $bdir = Read-Host "Folder for backups: a mounted network share or volume (empty: set EAX_BACKUP_DIR later)"
-                if ($bdir) {
-                    $path = Join-Path $PSScriptRoot $EnvFile
-                    $content = [System.IO.File]::ReadAllText($path) -replace "(?m)^EAX_BACKUP_DIR=$", "EAX_BACKUP_DIR=$bdir"
-                    [System.IO.File]::WriteAllText($path, $content, $Utf8)
-                    Write-Log "Backups go to $bdir (EAX_BACKUP_DIR)."
-                } else { Write-Log "No backups are taken until EAX_BACKUP_DIR is set in $EnvFile." }
+                Set-BaseFolder
                 Write-Log "Now replace every change-me value in $EnvFile with your own passwords before .\eax up."
             }
         }
@@ -1123,6 +1140,12 @@ try {
                 Invoke-Interactive @("api", "python", "-m", "eax.testing.cli", "delete") @($RestArgs | Select-Object -Skip 1)
             } elseif ($RestArgs.Count -gt 0 -and $RestArgs[0] -eq "api") {   # the API test harness: one call (R3.16)
                 Invoke-Interactive @("api", "python", "-m", "eax.testing.cli", "api") @($RestArgs | Select-Object -Skip 1)
+            } elseif ($RestArgs.Count -gt 0 -and $RestArgs[0] -eq "watch" -and $RestArgs -contains "--browser") {   # the live view (R5.20)
+                $run = @($RestArgs | Where-Object { $_ -match '^\d+$' } | Select-Object -First 1)
+                $port = Get-Setting "EAX_HTTPS_PORT" "443"
+                $url = "https://" + (Get-Setting "EAX_HOSTNAME" "localhost") + $(if ($port -eq "443") { "" } else { ":$port" }) + "/#/admin/self-test/watch" + $(if ($run) { "/$run" } else { "" })
+                Write-Host "The live view: $url"
+                if (-not $env:EAX_NO_BROWSER) { Start-Process $url }
             } elseif ($RestArgs.Count -gt 0 -and ($RestArgs[0] -eq "watch" -or $RestArgs[0] -eq "stop")) {   # follow a run live, or stop it (R3.2)
                 Invoke-Interactive @("api", "python", "-m", "eax.testing.cli", $RestArgs[0]) @($RestArgs | Select-Object -Skip 1)
             } elseif ($RestArgs -contains "--build") {      # only build the runner image (D570; the Self-test page's button)

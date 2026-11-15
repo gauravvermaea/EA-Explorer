@@ -75,6 +75,7 @@ def _row_out(v: dict, ver: dict | None, marker: Any) -> dict:
 
 
 def list_views(conn, model: str, marker: Any = None) -> dict:
+    """A model's drawn views with their newest versions."""
     out = []
     for v in rows(conn, "SELECT * FROM views.drawn_views WHERE model_guid::text = %(m)s AND NOT is_deleted ORDER BY lower(name)", m=str(model)):
         ver = _latest(conn, v["id"])
@@ -88,6 +89,7 @@ def list_views(conn, model: str, marker: Any = None) -> dict:
 
 
 def get_view(conn, model: str, view: Any, version: int | None = None, with_xml: bool = True, marker: Any = None) -> dict:
+    """A drawn view (a version of it, with its XML when asked)."""
     v = _view(conn, model, view)
     ver = _version(conn, v["id"], version) if version else _latest(conn, v["id"])
     if version and not ver:
@@ -102,6 +104,7 @@ def get_view(conn, model: str, view: Any, version: int | None = None, with_xml: 
 
 
 def versions(conn, model: str, view: Any) -> dict:
+    """A drawn view's versions (those held for tags marked)."""
     v = _view(conn, model, view)
     held = {r["version_no"] for r in rows(conn, "SELECT DISTINCT version_no FROM views.tag_holds WHERE view_id = %(v)s", v=v["id"])}
     vs = rows(conn, """SELECT version_no AS version, note, saved_by, saved_at, length(xml) AS size
@@ -200,6 +203,7 @@ def prune(conn, view_id: int) -> int:
 
 
 def change(conn, model: str, actor: str, view: Any, data: dict) -> dict:
+    """Renames a drawn view or changes its description."""
     v = _view(conn, model, view)
     name = _name(conn, model, data["name"], v["id"]) if data.get("name") is not None else v["name"]
     desc = (data.get("description") if data.get("description") is not None else v["description"])[:2000]
@@ -209,6 +213,7 @@ def change(conn, model: str, actor: str, view: Any, data: dict) -> dict:
 
 
 def delete(conn, model: str, actor: str, view: Any) -> dict:
+    """Deletes a drawn view."""
     v = _view(conn, model, view)
     conn.execute("UPDATE views.drawn_views SET is_deleted = true, modified_by = %(u)s, modified_at = now() WHERE id = %(v)s",
                  {"u": actor, "v": v["id"]})
@@ -257,12 +262,14 @@ def _clean_definition(data: dict, partial: bool = False) -> dict:
 
 
 def own_views(conn, model: str) -> dict:
+    """A model's own view definitions."""
     return {"model": str(model), "views": [_own_out(v) for v in rows(conn, """SELECT * FROM views.model_views
                                                                               WHERE model_guid::text = %(m)s AND NOT is_deleted
                                                                               ORDER BY lower(name)""", m=str(model))]}
 
 
 def own_view(conn, model: str, view: Any) -> dict:
+    """One of a model's own view definitions."""
     return _own_out(_own(conn, model, view))
 
 
@@ -279,6 +286,7 @@ def add_own(conn, model: str, actor: str, data: dict) -> dict:
 
 
 def change_own(conn, model: str, actor: str, view: Any, data: dict) -> dict:
+    """Changes a model's own view definition."""
     v = _own(conn, model, view)
     d = _clean_definition(data, partial=True)
     if "name" in d:
@@ -291,6 +299,7 @@ def change_own(conn, model: str, actor: str, view: Any, data: dict) -> dict:
 
 
 def delete_own(conn, model: str, actor: str, view: Any) -> dict:
+    """Deletes a model's own view definition."""
     v = _own(conn, model, view)
     conn.execute("UPDATE views.model_views SET is_deleted = true, modified_by = %(u)s, modified_at = now() WHERE id = %(i)s",
                  {"u": actor, "i": v["id"]})
@@ -315,6 +324,7 @@ def hold_for_tag(conn, model: str, tag: str) -> list[dict]:
 
 
 def tag_view(conn, model: str, tag: str, view: Any) -> dict:
+    """A drawn view as it was at a tag."""
     by = "v.guid::text = %(v)s" if drawio.is_guid(view) else "lower(v.name) = lower(%(v)s)"
     r = one(conn, f"""SELECT v.guid, v.name, x.version_no, x.xml, x.saved_by, x.saved_at
                         FROM views.tag_holds h JOIN views.drawn_views v ON v.id = h.view_id
@@ -395,6 +405,7 @@ def copy_model(conn, src: str, dst: str, actor: str, ent_map: dict, rel_map: dic
 
 
 def delete_model(conn, model: str, actor: str) -> dict:
+    """Deletes a model's drawn views and view definitions."""
     n = conn.execute("""UPDATE views.drawn_views SET is_deleted = true, modified_by = %(u)s, modified_at = now()
                          WHERE model_guid::text = %(m)s AND NOT is_deleted""", {"m": str(model), "u": actor}).rowcount
     k = conn.execute("""UPDATE views.model_views SET is_deleted = true, modified_by = %(u)s, modified_at = now()

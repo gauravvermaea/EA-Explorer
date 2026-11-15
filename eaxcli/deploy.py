@@ -50,6 +50,7 @@ SECRET_KEYS = ("aws_secret_access_key", "do_token", "spaces_secret", "az_client_
 # ---------------------------------------------------------------- the questions
 @dataclass
 class Question:
+    """One question of the deployment wizard, with its default, choices and help."""
     key: str
     text: str
     default: str | Callable[[dict], str] = ""
@@ -60,9 +61,11 @@ class Question:
     required: bool = True
 
     def default_for(self, answers: dict) -> str:
+        """The question's default for the answers so far."""
         return self.default(answers) if callable(self.default) else self.default
 
     def as_dict(self, answers: dict) -> dict:
+        """The question for the web wizard."""
         return {"key": self.key, "text": self.text, "default": self.default_for(answers), "choices": self.choices,
                 "help": self.help, "secret": self.secret, "required": self.required}
 
@@ -174,7 +177,7 @@ QUESTIONS: list[Question] = [
               "own": "My organisation's certificate (a folder here with tls.crt and tls.key)"}, when=_server_like),
     Question("tls_dir", "Folder (on this computer) holding tls.crt and tls.key", "", when=lambda a: _server_like(a) and a.get("tls") == "own"),
     Question("install_dir", "Installation folder on the server", "/opt/eaexplorer", when=_server_like),
-    Question("data_dir", "Data folder on the server (databases, documents, imports, exports, certificate)", "/srv/eax", when=_server_like),
+    Question("data_dir", "Base folder for all the data on the server (databases, documents, logs, backups, imports, exports, certificates, reports)", "/srv/eax", when=_server_like),
     Question("repo", "Repository link (the public git URL EA Explorer comes from)", lambda a: _installed().get("repo", "") or "https://github.com/gauravvermaea/EA-Enterpise",
              when=_remote, help="The same link the installer used; the server downloads the release from there."),
     Question("ref", "Version to install (a tag such as v0.19.0, or a branch)", lambda a: _installed().get("ref", "release"),
@@ -242,8 +245,7 @@ def server_config(answers: dict, template: Path | None = None) -> tuple[str, dic
         "EAX_HOSTNAME": answers["hostname"],
         "EAX_ORG_NAME": answers.get("org_name", "My organisation"),
         "EAX_FIRST_ADMIN_EMAIL": answers.get("admin_email", f"eaadmin@{answers['hostname']}"),
-        "EAX_DATA_DIR": f"{data}/postgres", "EAX_DOCS_DIR": f"{data}/documents",
-        "EAX_IMPORT_DIR": f"{data}/imports", "EAX_EXPORT_DIR": f"{data}/exports", "EAX_TLS_DIR": f"{data}/tls",
+        "EAX_DATA_ROOT": data,                 # one base folder, a folder per kind under it (R5.4, D687)
         "EAX_DEPLOYMENT": "server",
     }
     if answers.get("vault", "none") != "none":
@@ -319,11 +321,13 @@ def fetch_script(repo: str, ref: str, folder: str) -> str:
 
 # ---------------------------------------------------------------- running steps
 class StepFailed(Exception):
+    """A deployment step failed."""
     pass
 
 
 @dataclass
 class Ctx:
+    """What a deployment's steps share: the answers, plan or real, what earlier steps found out and the secrets to mask."""
     answers: dict
     plan: bool = False
     values: dict = field(default_factory=dict)          # what earlier steps found out (an instance ID, an address)
@@ -334,12 +338,14 @@ class Ctx:
     reveal: bool = True                                  # the first password shown once on screen (never from the page)
 
     def hide(self, text: str) -> str:
+        """Text with the secrets masked."""
         for m in sorted(self.mask, key=len, reverse=True):
             if m and len(m) >= 4:
                 text = text.replace(m, "********")
         return text
 
     def note(self, text: str) -> None:
+        """Says a line of the deployment (kept for the plan)."""
         text = self.hide(text)
         if self.plan:
             self.printed.append(text)
@@ -347,6 +353,7 @@ class Ctx:
         log_only(text)
 
     def get(self, key: str, placeholder: str = "") -> str:
+        """A value an earlier step found out (a placeholder in a plan)."""
         return self.values.get(key) or placeholder or f"<{key}>"
 
     def run(self, argv: list[str], what: str = "", input_text: str | None = None, ok_codes: tuple = (0,),
@@ -372,6 +379,7 @@ class Ctx:
         return out if capture else ""
 
     def ssh_argv(self) -> list[str]:
+        """ssh to the target machine, without asking and with a timeout."""
         a = self.answers
         target = self.values.get("ssh_target") or a.get("ssh_target") or "<user@address>"
         return ["ssh", "-o", "StrictHostKeyChecking=accept-new", "-o", "BatchMode=yes", "-o", "ConnectTimeout=15",
@@ -384,6 +392,7 @@ class Ctx:
         return self.run([*self.ssh_argv(), script], what, input_text)
 
     def upload(self, local: Path | str, remote_path: str, what: str = "") -> None:
+        """Copies a file to the target (locally, or over SSH)."""
         if not _remote(self.answers):
             self.run(["sudo", "cp", str(local), remote_path], what)
             return
@@ -393,6 +402,7 @@ class Ctx:
                   "-P", str(a.get("ssh_port", "22")), str(local), f"{target}:{remote_path}"], what)
 
     def wait(self, what: str, test: Callable[[], bool], minutes: float = 10, every: float = 10) -> None:
+        """Waits until a test passes (at most some minutes)."""
         self.note(f"    (wait until {what}, at most {minutes:g} minutes)")
         if self.plan:
             return
@@ -409,6 +419,7 @@ class Ctx:
 
 @dataclass
 class Step:
+    """One step of a deployment: its title and what it does."""
     title: str
     fn: Callable[[Ctx], None]
 
@@ -426,6 +437,7 @@ def jget(text: str, *path, default: str = "") -> str:
 
 # ---------------------------------------------------------------- the steps of each kind
 def steps_for(a: dict) -> list[Step]:
+    """A deployment's steps by its kind (laptop, server over SSH, or a cloud)."""
     kind = a["kind"]
     if kind == "laptop":
         return laptop_steps(a)
@@ -441,6 +453,7 @@ def steps_for(a: dict) -> list[Step]:
 
 
 def laptop_steps(a: dict) -> list[Step]:
+    """The steps of a laptop installation."""
     from .main import run_self
 
     def docker(ctx: Ctx):
@@ -583,7 +596,7 @@ def server_steps(a: dict) -> list[Step]:
             _owner_only(tmp)
         ctx.upload(tmp, "/tmp/eaexplorer.env", "the config file")
         ctx.remote(f"sudo mkdir -p {q(where)}/work/logs {q(where)}/work/backups {q(where)}/work/proxy && "
-                   f"for d in postgres documents imports exports tls; do sudo mkdir -p {q(data)}/$d; done && "
+                   f"for d in databases documents logs backups imports exports certificates reports; do sudo mkdir -p {q(data)}/$d; done && "
                    f"sudo install -m 600 /tmp/eaexplorer.env {q(where)}/work/eaexplorer.env && rm -f /tmp/eaexplorer.env",
                    "put it in place, readable by its owner only")
         if not ctx.plan:
@@ -718,6 +731,7 @@ def _dns_names(a: dict) -> list[str]:
 
 # --- AWS: a key pair, a security group, an EC2 machine with a data disk, an Elastic IP, an S3 bucket, Route 53
 def aws_steps(a: dict) -> list[Step]:
+    """The steps of a deployment to AWS (a machine made or used, then EA Explorer on it)."""
     n, region = _suffix(a), a["aws_region"]
 
     def cli(ctx: Ctx, args: list[str], what: str = "") -> str:
@@ -805,6 +819,7 @@ def aws_steps(a: dict) -> list[Step]:
 
 # --- Azure: a resource group, a VM with a data disk and a DNS label, the ports, a storage account, Azure DNS
 def azure_steps(a: dict) -> list[Step]:
+    """The steps of a deployment to Azure."""
     n, group, loc = _suffix(a), a["az_group"], a["az_location"]
 
     def az(ctx: Ctx, args: list[str], what: str = "") -> str:
@@ -868,6 +883,7 @@ def azure_steps(a: dict) -> list[Step]:
 
 # --- DigitalOcean: an SSH key, a Droplet, a volume, a cloud firewall, a Spaces bucket, DNS, a load balancer
 def do_steps(a: dict) -> list[Step]:
+    """The steps of a deployment to DigitalOcean."""
     n, region = _suffix(a), a["do_region"]
 
     def doctl(ctx: Ctx, args: list[str], what: str = "") -> str:
@@ -955,6 +971,7 @@ def _spaces_key_step(a: dict) -> Step:
 
 
 def all_steps(a: dict) -> list[Step]:
+    """Every step of a deployment, the off-site backups' step added when asked."""
     steps = steps_for(a)
     if a.get("kind") == "digitalocean" and _create(a) and a.get("offsite_backups") == "yes" and a.get("spaces_key"):
         i = next(i for i, s in enumerate(steps) if s.title.startswith("Copy the backups"))
@@ -1021,6 +1038,7 @@ def keep_credentials(a: dict) -> None:
 
 
 def kept_credentials() -> dict:
+    """The cloud credentials kept from earlier deployments."""
     out = {}
     try:
         for line in CREDENTIALS_FILE.read_text(encoding="utf-8").splitlines():
@@ -1034,6 +1052,7 @@ def kept_credentials() -> dict:
 
 # ---------------------------------------------------------------- the console wizard
 def ask(q: Question, answers: dict) -> str:
+    """Asks one question in the terminal."""
     default = q.default_for(answers)
     if q.help:
         print(f"  ({q.help})")
@@ -1062,6 +1081,7 @@ def ask(q: Question, answers: dict) -> str:
 
 
 def console(answers: dict, plan: bool, yes: bool) -> int:
+    """The deployment wizard in the terminal: the questions, the plan, then the steps."""
     say("")
     say("EA Explorer deployment (eax deploy, D498). Enter keeps the [default]; Ctrl+C stops.", "cyan")
     answers = {**kept_credentials(), **answers}
@@ -1117,6 +1137,7 @@ def console(answers: dict, plan: bool, yes: bool) -> int:
 
 # ---------------------------------------------------------------- the command
 def parse(options: list[str]) -> tuple[str, dict, bool, bool]:
+    """eax deploy's options: the mode, answers, plan and yes."""
     mode, answers, plan, yes = "", {}, False, False
     it = iter(options)
     for o in it:
@@ -1149,6 +1170,7 @@ def parse(options: list[str]) -> tuple[str, dict, bool, bool]:
 
 
 def main(options: list[str]) -> int:
+    """eax deploy: in the terminal or as a web page."""
     from .core import start_log, stop_log
     mode, answers, plan, yes = parse(options)
     if not mode:

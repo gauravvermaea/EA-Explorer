@@ -20,7 +20,7 @@ from eax import mcp_server as ms  # noqa: E402
 from eax import permissions as perms  # noqa: E402
 from eax.metamodel_edit import EditError  # noqa: E402
 
-READING = {"ops_status", "ops_resources", "ops_find_slow", "ops_logs", "ops_backups", "ops_unused"}
+READING = {"ops_status", "ops_resources", "ops_find_slow", "ops_logs", "ops_backups", "ops_unused", "ops_alerts"}
 CHANGING = {"ops_backup", "ops_restore", "ops_scale", "ops_archive"}
 
 

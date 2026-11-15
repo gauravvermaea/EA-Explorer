@@ -17,6 +17,7 @@ require_auth() takes them, the OData feed and reports included; the MCP server c
 from __future__ import annotations
 
 import hashlib
+import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -37,6 +38,8 @@ BREAK_GLASS_USER = "break-glass"
 
 @dataclass
 class User:
+    """The person (or machine) making a call: their name, email, global roles as EA Explorer maps them and as Keycloak
+    gave them, and how they signed in."""
     username: str
     email: str | None = None
     name: str | None = None
@@ -44,11 +47,16 @@ class User:
     keycloak_roles: list[str] = field(default_factory=list)   # as Keycloak gave them
     break_glass: bool = False
     machine: object | None = None                              # the machine credential that signed the call in (phase 25)
+    auditor_view: bool = False                                 # an Auditor's read, answered as a Super Admin's (R5.22)
+    real_roles: list[str] = field(default_factory=list)        # the roles as mapped, before the Auditor's view
 
     def has_role(self, role: str) -> bool:
+        """Whether the person has this global role."""
         return role in self.roles
 
     def can(self, permission: str, model_roles=None) -> bool:
+        """Whether the person may do this (a permission name), by their global roles and their roles on the model in
+        question."""
         return permissions.allowed(self.roles, permission, model_roles)
 
 
@@ -67,6 +75,7 @@ def break_glass_key() -> bytes | None:
 
 
 def make_break_glass_token() -> str:
+    """A signed token for the break-glass account (when Keycloak is down), refused when no break-glass password is set."""
     key = break_glass_key()
     if not key:
         raise RuntimeError("no break-glass password set")
@@ -78,6 +87,8 @@ def make_break_glass_token() -> str:
 
 
 def decode_token(token: str, *, key=None) -> dict:
+    """Checks a bearer token and returns its claims: a break-glass token (HS256) by the break-glass key, any other by
+    Keycloak's published keys, the audience and the issuer."""
     settings = get_settings()
     if jwt.get_unverified_header(token).get("alg") == "HS256":
         bg = break_glass_key()
@@ -100,6 +111,8 @@ def decode_token(token: str, *, key=None) -> dict:
 
 
 def user_from_claims(claims: dict, mapping: dict[str, set[str]] | None = None) -> User:
+    """The person a token's claims describe: the break-glass account, or a Keycloak user with their realm roles and
+    groups mapped to EA Explorer's global roles."""
     if claims.get("eax_break_glass") and claims.get("iss") == BREAK_GLASS_ISSUER:
         return User(username=BREAK_GLASS_USER, name="Break-glass account", roles=[permissions.SUPER_ADMIN],
                     break_glass=True)
@@ -122,7 +135,7 @@ def machine_user(kind: str, value: str) -> User:
     from .db import get_engine
     try:
         with get_engine().connect() as conn:
-            machine, roles = ma.authenticate(conn, kind, value)
+            machine, roles = ma.authenticate(conn, kind, value, request.headers.get("X-Real-IP") or request.remote_addr)
     except ma.Refused as exc:
         abort(exc.status, message=exc.message)
     why = machine.refusal(request.method, request.path)
@@ -135,6 +148,8 @@ def machine_user(kind: str, value: str) -> User:
 
 
 def current_user() -> User:
+    """The person making this request: from a machine credential (API key or client certificate) when one is shown, else
+    from the bearer token; 401 when neither is good."""
     header = request.headers.get("Authorization", "")
     bearer = header.split(" ", 1)[1].strip() if header.lower().startswith("bearer ") else None
     from . import machine_access as ma
@@ -178,6 +193,32 @@ def _test_lock(user: User) -> None:
         abort(423, **test_lock.refusal(run))
 
 
+_SECRET_KEY = re.compile(r"(PASSWORD|SECRET|TOKEN|_KEY$|PRIVATE|PASSPHRASE)", re.I)
+_SECRET_LINE = re.compile(r"^(\s*([A-Z0-9_]*(PASSWORD|SECRET|TOKEN|_KEY|PRIVATE|PASSPHRASE)[A-Z0-9_]*)\s*[=:]\s*)(.+)$", re.I | re.M)
+
+
+def _shown(value) -> str:
+    return "(set)" if value not in (None, "") else "(not set)"
+
+
+def hide_secrets(obj):
+    """An answer as the Auditor may see it (R5.22, D693: "No secrets"): every password, key and token shown only as
+    set or not set: in mappings ({"PASSWORD": x}, {"key": K, "value": x}) and in text (KEY=x lines: config files,
+    container environments)."""
+    if isinstance(obj, dict):
+        if isinstance(obj.get("key"), str) and "value" in obj and _SECRET_KEY.search(obj["key"]):
+            return {**obj, "value": _shown(obj["value"])}
+        return {k: (_shown(v) if isinstance(k, str) and _SECRET_KEY.search(k) and not isinstance(v, (dict, list, bool))
+                    else hide_secrets(v)) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [hide_secrets(v) for v in obj]
+    if isinstance(obj, tuple):
+        return tuple(hide_secrets(v) for v in obj)
+    if isinstance(obj, str) and "=" in obj or isinstance(obj, str) and ":" in obj:
+        return _SECRET_LINE.sub(lambda m: m.group(1) + "(set)", obj)
+    return obj
+
+
 def require_auth(permission: str | None = None) -> Callable:
     """Decorator: the caller must be signed in and, when `permission` is given, allowed it: a global
     permission by their global roles; a model permission (model.*) by their role on the model in the
@@ -190,6 +231,8 @@ def require_auth(permission: str | None = None) -> Callable:
             user = current_user()
             g.user = user
             reports.note_user(user.username, user.roles)   # who is who, for the reports' model access (D138)
+            user.real_roles = list(user.roles)
+            user.roles, user.auditor_view = permissions.auditor_roles(user.roles, request.method, request.path)   # R5.22
             token = permissions.current.set(permissions.Principal(user.username, tuple(user.roles), user.break_glass))
             try:
                 if permission:
@@ -199,6 +242,10 @@ def require_auth(permission: str | None = None) -> Callable:
                         from .db import get_engine
                         with get_engine().connect() as conn:
                             mine = permissions.model_roles(conn, user.username, kwargs["model_id"])
+                    if not user.can(permission, mine) and permissions.AUDITOR in user.real_roles \
+                            and not permissions.is_read(request.method, request.path):
+                        abort(403, message="Auditor: view only. Your role lets you see everything but change nothing "
+                                           f"('{permission}' needs another role).")
                     if not user.can(permission, mine):
                         abort(403, message=f"Not allowed: '{permission}' needs "
                                            + ("a role on this model that gives it "
@@ -209,7 +256,8 @@ def require_auth(permission: str | None = None) -> Callable:
                     _audit_break_glass(user)
                 if request.method not in ("GET", "HEAD", "OPTIONS"):
                     _test_lock(user)
-                return view(*args, **kwargs)
+                out = view(*args, **kwargs)
+                return hide_secrets(out) if user.auditor_view else out   # the Auditor sees no secret (R5.22, D693)
             finally:
                 permissions.current.reset(token)
 

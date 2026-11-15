@@ -71,6 +71,7 @@ def _check_file(name: str, content: bytes) -> str:
 
 
 def listing(conn, project: Any, user) -> dict:
+    """A project's other uploads (files that are not deliverables)."""
     p = pj.project_row(conn, project)
     roles = _member(conn, p, user, False)
     rows = pj._rows(conn, """SELECT guid::text AS id, file_name, title, description, file_size, versions, created_by, created_at,
@@ -133,6 +134,7 @@ def replace(conn, project: Any, user, doc: str, file_name: str, content: bytes, 
 
 
 def update(conn, project: Any, user, doc: str, title: Any = None, description: Any = None) -> dict:
+    """Changes an upload's title or description."""
     p = pj.project_row(conn, project)
     roles = _member(conn, p, user, True)
     d = _upload_doc(conn, p, doc)
@@ -148,6 +150,7 @@ def update(conn, project: Any, user, doc: str, title: Any = None, description: A
 
 
 def delete(conn, project: Any, user, doc: str) -> dict:
+    """Deletes an upload."""
     p = pj.project_row(conn, project)
     roles = _member(conn, p, user, True)
     d = _upload_doc(conn, p, doc)
@@ -177,6 +180,7 @@ def versions(conn, project: Any, user, doc: str) -> list[dict]:
 
 
 def download(conn, project: Any, user, doc: str, version: int | None = None) -> tuple[bytes, str, str]:
+    """An upload's file (its newest version, or the one asked for)."""
     from . import mayan
     d = _need_upload(conn, project, user, doc)
     if version is None or int(version) == d["versions"]:

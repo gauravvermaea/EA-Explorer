@@ -28,6 +28,7 @@ Record = Callable[..., None]
 
 
 def base_url() -> str:
+    """The address the test's browser opens (EAX_TEST_BASE_URL, else the installation's)."""
     explicit = os.environ.get("EAX_TEST_BASE_URL", "").strip()
     if explicit:
         return explicit.rstrip("/")
@@ -59,6 +60,7 @@ def journeys(ids: dict[str, str], role: str = "") -> list[dict]:
 
 
 def run(ids: dict[str, str], ticket: str, folder: Path, record: Record, role: str = "", only: list[str] | None = None) -> None:
+    """The simple journeys: each opens its pages as its role, in a browser of its own."""
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:
@@ -122,11 +124,13 @@ def run(ids: dict[str, str], ticket: str, folder: Path, record: Record, role: st
 
 def run_all(ids: dict[str, str], ticket: str, folder: Path, record: Record, role: str = "", smoke: bool = False,
             journeys: list[str] | None = None, pages_only: bool = False, routes: list[str] | None = None,
-            names: set[str] | None = None) -> dict[str, int]:
+            names: set[str] | None = None, live: dict | None = None) -> dict[str, int]:
     """The browser suite (D575, D576): the page sweep (every page, group, tab and sub-tab, as Super Admin) and the journeys
     that click, type and save (each as the roles allowed, and refused to one that is not), headless. Returns the counts
     for the report's coverage summary. A repeat (R2.36) gives names (the "journey: …" results to run again) and routes
-    (the pages to open again, no crawl): only those run."""
+    (the pages to open again, no crawl): only those run. live (R5.20): {engine, run_id, slow, keep}: every page can be
+    watched on Self-test > Watch > Live browser (streamed only while someone watches, screencast.py); slow: Playwright's
+    slow motion and pause after each step; keep: every journey's video and Playwright trace kept, passed or not."""
     repeat = names is not None
     from . import ui_flows, ui_pages
     try:
@@ -140,16 +144,33 @@ def run_all(ids: dict[str, str], ticket: str, folder: Path, record: Record, role
     videos = folder / "videos"
     videos.mkdir(parents=True, exist_ok=True)
     counts: dict[str, int] = {}
+    live = live or {}
+    from . import screencast
+    n_browser = [0]
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(args=[f"--host-resolver-rules=MAP {host} {proxy}, MAP *.{host} {proxy}"])
+        browser = pw.chromium.launch(args=[f"--host-resolver-rules=MAP {host} {proxy}, MAP *.{host} {proxy}"],
+                                     **({"slow_mo": screencast.SLOW_MS} if live.get("slow") else {}))
         version = f"Chromium {browser.version} (headless, on the server)"
 
-        def context(as_role: str, video: bool = True):
+        def context(as_role: str, video: bool = True, label: str = ""):
             ctx = browser.new_context(ignore_https_errors=True, viewport={"width": 1400, "height": 900},
                                       **({"record_video_dir": str(videos)} if video else {}))
             page = ctx.new_page()
             page.on("dialog", lambda d: d.accept())
+            caster = None
+            if live.get("engine") is not None:          # watchable live (R5.20): nothing is captured unless watched
+                n_browser[0] += 1
+                try:
+                    caster = screencast.Caster(live["engine"], live["run_id"], f"{n_browser[0]:03d}",
+                                               label or f"as {as_role}", page)
+                    caster.hold = lambda: _hold(live, caster)
+                except Exception:  # noqa: BLE001 - no live view: the run goes on as before
+                    caster = None
+            page._eax_caster = caster                    # ui_flows ticks it at each step
+
             def open_route(route: str, r=as_role) -> None:
+                if caster is not None:
+                    caster.tick(f"open {route}")
                 page.goto(f"{base}/?eaxselftest={ticket}&eaxrole={r}{route}", wait_until="domcontentloaded", timeout=60000)
             return ctx, page, open_route
 
@@ -157,27 +178,40 @@ def run_all(ids: dict[str, str], ticket: str, folder: Path, record: Record, role
             record(name, outcome, detail, ms, browser=version, **kw)
 
         if (not repeat and not journeys) or (repeat and routes):          # the page sweep (or the failed pages again)
-            ctx, page, open_route = context(role if role else "super-admin", video=False)
+            ctx, page, open_route = context(role if role else "super-admin", video=False, label="the page sweep")
             counts.update({f"pages_{k}" if k != "pages" else k: v
                            for k, v in ui_pages.sweep(page, open_route, ids, rec, role=role or "super-admin",
                                                       routes=list(routes) if repeat else None).items()})
+            _close_caster(page)
             ctx.close()
             if not repeat or "#/break-glass" in (routes or []):        # in a browser of its own (R3.13)
                 alone = browser.new_context(ignore_https_errors=True, viewport={"width": 1400, "height": 900})
                 ui_pages.break_glass_page(alone.new_page(), base, rec)
                 alone.close()
         if not pages_only and (not repeat or names):                      # the journeys
-            def factory(as_role: str):
-                ctx, page, open_route = context(as_role)
+            def factory(as_role: str, name: str = ""):
+                ctx, page, open_route = context(as_role, label=f"journey: {name}" if name else "")
+                if live.get("keep"):                     # a run started to be watched: its trace too (R5.20 (4))
+                    try:
+                        ctx.tracing.start(screenshots=True, snapshots=True)
+                    except Exception:  # noqa: BLE001
+                        pass
 
                 def close(outcome: str, c=ctx, p=page) -> str:
+                    _close_caster(p)
+                    stem = f"journey-{int(time.time() * 1000)}"
+                    if live.get("keep"):
+                        try:
+                            c.tracing.stop(path=str(videos / f"{stem}.trace.zip"))
+                        except Exception:  # noqa: BLE001
+                            pass
                     video = p.video.path() if p.video else None
                     c.close()
                     if not video:
                         return ""
                     v = Path(video)
-                    if outcome == "failed":
-                        kept = f"journey-{int(time.time() * 1000)}.webm"
+                    if outcome == "failed" or live.get("keep"):   # kept: every journey of a watched run (R5.20)
+                        kept = f"{stem}.webm"
                         v.rename(videos / kept)
                         return f"videos/{kept}"
                     v.unlink(missing_ok=True)
@@ -190,3 +224,23 @@ def run_all(ids: dict[str, str], ticket: str, folder: Path, record: Record, role
             counts.update({f"journeys_{k}" if k != "journeys" else k: v for k, v in jc.items()})
         browser.close()
     return counts
+
+
+def _close_caster(page) -> None:
+    caster = getattr(page, "_eax_caster", None)
+    if caster is not None:
+        try:
+            caster.close()
+        except Exception:  # noqa: BLE001
+            pass
+
+
+def _hold(live: dict, caster) -> None:
+    """After a step of a run started to be watched (R5.20 (3)): while someone watches and it is paused, wait for Step
+    or Continue."""
+    from . import screencast
+    if not (live.get("slow") and caster.watched):
+        return
+    if screencast.controls(live["engine"], live["run_id"]).get("paused"):
+        caster.tick("paused: Step or Continue on the Live browser panel")
+        screencast.hold(live["engine"], live["run_id"])

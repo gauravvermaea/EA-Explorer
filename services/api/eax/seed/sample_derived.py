@@ -16,6 +16,7 @@ ACTOR = "user_super_admin"
 
 
 def run() -> list[str]:
+    """Loads the sample derived models."""
     eng = get_engine()
     with eng.begin() as conn:
         conn.execute(text("SELECT set_config('eax.actor', :a, true), set_config('eax.user_roles', 'super-admin', true)"), {"a": ACTOR})

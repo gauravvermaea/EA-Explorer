@@ -40,6 +40,7 @@ disabled, so the save can never be made from the screen (the API matrix checks t
 from __future__ import annotations
 
 import base64
+import inspect
 import os
 import re
 import time
@@ -362,6 +363,7 @@ def data_bytes(name: str) -> bytes:
 
 
 def fill_text(s: str, ids: dict[str, str], role: str) -> str:
+    """A journey's text with the run's ids filled in."""
     vals = {"sid": ids.get("sid", ""), "m": ids.get("model", ""), "p": ids.get("project", ""), "other": ids.get("other_model", ""),
             "other_name": ids.get("other_name", ""), "view": ids.get("view", ""), "view_name": ids.get("view_name", ""),
             "entity": ids.get("entity", ""), "model_name": ids.get("model_name", ""), "project_name": ids.get("project_name", ""),
@@ -886,11 +888,16 @@ def run_one(page, j: dict, open_route: Callable[..., None]) -> tuple[str, str]:
     done, skipped = 0, []
     state: dict = {"vars": {}}
     try:
+        caster = getattr(page, "_eax_caster", None)     # the live view (R5.20): streamed only while watched
         for s in j["steps"]:
+            if caster is not None:
+                caster.tick(f"step {done + len(skipped) + 1}: {_say(s)}")
             try:
                 why = step(page, s, open_route, state)
             except Exception as exc:  # noqa: BLE001 - a step that times out is a failed step
                 why = str(exc).splitlines()[0][:200]
+            if caster is not None and not why:
+                caster.hold()                          # paused after each step, when asked (a run started to be watched)
             if why:
                 if s.get("optional"):
                     skipped.append(why)
@@ -938,7 +945,8 @@ def run(page_factory: Callable[[str], tuple], js: list[dict], record: Record) ->
     for j in js:
         t0 = time.time()
         _LAST_SHOT.clear()
-        page, open_route, close = page_factory(j["role"])
+        named = len(inspect.signature(page_factory).parameters) > 1   # named for the live view (R5.20)
+        page, open_route, close = page_factory(j["role"], j["name"]) if named else page_factory(j["role"])
         errors: list[str] = []
         page.on("pageerror", lambda e, errs=errors: errs.append(f"script error: {str(e)[:200]}"))
         page.on("response", lambda r, errs=errors: errs.append(f"{r.request.method} {r.url.split('?')[0]}: {r.status}")

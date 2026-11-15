@@ -25,12 +25,15 @@ AREAS = ("tests", "exports")
 
 
 def mode() -> str:
+    """Where files are kept: in folders (the default) or in the database (EAX_FILE_STORE=database, for platforms without
+    volumes)."""
     from .config import _env
     v = _env("EAX_FILE_STORE", "folder").lower()
     return "database" if v == "database" else "folder"
 
 
 def in_database() -> bool:
+    """Whether files are kept in the database."""
     return mode() == "database"
 
 
@@ -47,6 +50,7 @@ def _check(area: str, name: str) -> None:
 
 
 def put(area: str, name: str, content: bytes) -> int:
+    """Keeps a file in the database's file store (replacing one of the same name); returns its size."""
     _check(area, name)
     with _engine().begin() as c:
         c.execute(text("""INSERT INTO files.store (area, name, content, bytes) VALUES (:a, :n, :c, :b)
@@ -57,6 +61,7 @@ def put(area: str, name: str, content: bytes) -> int:
 
 
 def get(area: str, name: str) -> bytes | None:
+    """A file from the database's file store, or None."""
     _check(area, name)
     with _engine().connect() as c:
         v = c.execute(text("SELECT content FROM files.store WHERE area = :a AND name = :n"), {"a": area, "n": name}).scalar()
@@ -64,6 +69,7 @@ def get(area: str, name: str) -> bytes | None:
 
 
 def listing(area: str, prefix: str = "") -> list[dict]:
+    """The files of an area of the file store (under a prefix)."""
     if area not in AREAS:
         raise ValueError(f"No file area {area!r}.")
     with _engine().connect() as c:
@@ -92,6 +98,7 @@ def put_folder(area: str, folder: Path, under: str) -> int:
 
 
 def kind_of(name: str) -> str:
+    """A file's media type from its name."""
     return mimetypes.guess_type(name)[0] or "application/octet-stream"
 
 

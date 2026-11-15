@@ -34,12 +34,15 @@ from . import (
     alive,
     api_matrix,
     api_writes,
+    attacks,
+    codescan,
     db_checks,
     fixtures,
     negative,
     repeat,
     report,
     security,
+    security_gate,
     store,
     ui_journeys,
 )
@@ -54,6 +57,7 @@ def _version() -> str:
 
 
 class Stopped(Exception):
+    """Someone stopped the run."""
     pass
 
 
@@ -80,6 +84,7 @@ class Run:
         return f"[{p['done']} of about {p['total']}, {p['left']} left]" if p.get("total") else f"[{p['done']} so far]"
 
     def log(self, msg: str) -> None:
+        """A line in the run's log and on screen, with how far the run is."""
         try:
             msg = f"{msg}  {self.where()}"
         except Exception:  # noqa: BLE001 - only a hint
@@ -95,6 +100,7 @@ class Run:
             raise Stopped(asked)
 
     def recorder(self, suite: str):
+        """A function that records results in a suite (a repeat records only what it repeats)."""
         def record(name: str, outcome: str, detail: str = "", ms: int = 0, screenshot: bytes | None = None, video: str = "",
                    request: str = "", response: str = "", browser: str = "") -> None:
             if self.only is not None and (suite, repeat.canon(name, self.ids)) not in self.only:
@@ -142,11 +148,11 @@ def smoke(r: Run, spec: dict, tokens: dict[str, str], ids: dict[str, str], ticke
         routes = [x for x in (repeat.fill(rt, ids) for rt in rp["routes"]) if x]
         if routes or rp["journeys"]:
             r.log("the failed pages and journeys again, in a headless browser")
-            r.counts.update(ui_journeys.run_all(ids, ticket, r.dir, r.recorder("ui"), smoke=True, routes=routes,
+            r.counts.update(ui_journeys.run_all(ids, ticket, r.dir, r.recorder("ui"), smoke=True, routes=routes, live=_live(r),
                                                 names=set(rp["journeys"])))
         return
     r.log("every page opens (as Super Admin) and the key journeys, in a headless browser")
-    r.counts.update(ui_journeys.run_all(ids, ticket, r.dir, r.recorder("ui"), smoke=True))
+    r.counts.update(ui_journeys.run_all(ids, ticket, r.dir, r.recorder("ui"), smoke=True, live=_live(r)))
 
 
 def _admin_journey(journeys: list[str] | None, role: str, pages_only: bool, names: set[str] | None = None) -> bool:
@@ -407,6 +413,7 @@ def _restore_suite(r: Run, tokens: dict[str, str], ids: dict[str, str], run_id: 
 
 
 def coverage_html(c: dict) -> str:
+    """The code coverage by area as an HTML table for the report."""
     import html as _h
     rows = "".join(f"<tr><td>{_h.escape(a['area'])}</td><td>{a['run']}</td><td>{a['lines']}</td><td>{a['percent']}%</td></tr>"
                    for a in c.get("areas") or [])
@@ -426,6 +433,7 @@ DROP = 2.0           # an area that falls by more than this since the last run o
 
 
 def coverage_goal() -> float:
+    """The code coverage goal (EAX_COVERAGE_GOAL, else the default)."""
     try:
         return float(os.environ.get("EAX_COVERAGE_GOAL") or GOAL)
     except ValueError:
@@ -597,6 +605,58 @@ def alert_check(api: str, token: str, rec, log, wait: int = 150, pause: int = 10
         "" if "recovered" in seen else "no recovery notice in time", ms)
 
 
+def _live(r: Run) -> dict:
+    """The live view of this run's browsers (R5.20): always watchable (streamed only while someone watches); slowed and
+    paused after each step only for a run started to be watched, never one from CI or a schedule."""
+    slow = bool(getattr(r, "live_slow", False))
+    if getattr(r, "engine", None) is None:
+        return {}
+    return {"engine": r.engine, "run_id": r.id, "slow": slow, "keep": slow}
+
+
+def _security_suite(r: Run, spec: dict, tokens: dict[str, str], ids: dict[str, str]) -> None:
+    """The security suite in the runner (R3.9, R5.17): the front door's headers and cookies, the key vault, the Python
+    dependencies, the code and secrets scans, the attacks of Release 3 as tests, and the signed-in ZAP scan's scope
+    (the operations helper runs ZAP and Trivy next; the gate is judged when it collects)."""
+    rec = r.recorder("security")
+    r.log("security: headers and cookies at the front door, Python dependencies")
+    security.front_door(rec)
+    security.key_vault(rec)
+    security.python_dependencies(rec, security_gate.accepted())
+    r.log("security: the code (static analysis), secrets committed by mistake, the dependencies' licences")
+    codescan.run(Path("/app"), r.dir, rec)
+    r.log("security: the attacks Release 3 was reviewed against (SSRF, secrets, leaks, cross-model, identity, uploads)")
+    attacks.run(API, tokens, ids, rec)
+    token = tokens.get("architect") or tokens.get("report-viewer") or ""
+    if token and spec:
+        n = security_gate.prepare_zap(r.dir, spec, ids, token, api_matrix.fill)
+        r.log(f"security: the signed-in ZAP scan will read {n} paths of the run's test data as its Architect")
+
+
+def _performance_suite(r: Run, tokens: dict[str, str], ids: dict[str, str], args) -> None:
+    """The benchmark (R5.18, D695): the run's test model filled to a fixed size and the writes timed, every read that
+    matters timed one person at a time, then the plan for k6 (the helper runs it next; judged at collect)."""
+    import json as _json
+
+    from .. import permissions as perms
+    from . import benchmark
+    size = getattr(args, "bench_size", "") or "small"
+    users, minutes = int(getattr(args, "bench_users", 0) or 20), float(getattr(args, "bench_minutes", 0) or 2)
+    rec = r.recorder("performance")
+    n_el, n_rel = benchmark.SIZES[size]
+    r.log(f"performance: the test model filled to {size} ({n_el} elements, {n_rel} relationships), the writes timed")
+    me = fixtures._principal(f"svc-self-test-{ids.get('sid')}-super-admin", (perms.SUPER_ADMIN,))
+    ops = benchmark.fill_data(me, ids["model"], size, fixtures._as, r.log)
+    token = tokens.get("architect") or tokens.get("super-admin", "")
+    r.log(f"performance: every read that matters, {benchmark.REPEATS} times each, one person at a time")
+    ops.update(benchmark.time_reads(API, token, ids, api_matrix.call))
+    (r.dir / benchmark.SINGLE).write_text(_json.dumps({"size": size, "operations": ops}), encoding="utf-8")
+    users_tokens = [t for k, t in tokens.items() if k in ("architect", "report-viewer", "committer", "model-admin")] or [token]
+    benchmark.plan(r.dir, "https://proxy", ids, users_tokens, users, minutes, size)
+    rec("performance: the benchmark's data and timings", "passed", f"{size}: {len(ops)} operations timed; k6 next "
+        f"({users} people for {minutes:g} minutes)", 0)
+
+
 def _repeat_detailed(r: Run, p: dict, spec: dict, tokens: dict[str, str], test_tokens: dict[str, str], ids: dict[str, str],
                      ticket: str, role: str, area: str) -> bool:
     """A detailed repeat (R2.36): each suite only as far as its failed checks need. Returns whether ZAP or Trivy run
@@ -619,16 +679,13 @@ def _repeat_detailed(r: Run, p: dict, spec: dict, tokens: dict[str, str], test_t
         before = _admin_guard(tokens, "before", r.log) if guarded else None
         try:
             r.log(f"browser: {len(routes)} page(s) and {len(names)} journey(s) again (Chromium, headless)")
-            r.counts.update(ui_journeys.run_all(ids, ticket, r.dir, r.recorder("ui"), role=role, routes=routes, names=names))
+            r.counts.update(ui_journeys.run_all(ids, ticket, r.dir, r.recorder("ui"), role=role, routes=routes, names=names,
+                                                live=_live(r)))
         finally:
             if guarded:
                 _admin_guard(tokens, before, r.log, sid=ids.get("sid", ""))
     if p["front_door"]:
-        r.log("security: headers and cookies at the front door, Python dependencies")
-        rec = r.recorder("security")
-        security.front_door(rec)
-        security.key_vault(rec)
-        security.python_dependencies(rec)
+        _security_suite(r, spec, tokens, ids)
     if "reports" in p["suites"]:                    # the reports suite runs as one (its test users, then every report)
         _reports_suite(r, tokens, ids)
     if "backup" in p["suites"]:                     # the backup checks run as one (each needs the one before)
@@ -641,6 +698,8 @@ def _repeat_detailed(r: Run, p: dict, spec: dict, tokens: dict[str, str], test_t
 
 
 def cmd_run(args) -> int:
+    """python -m eax.testing run: the whole run, its test data, the suites asked for, then the report (or SCANS_NEXT for
+    the helper)."""
     from ..db import get_engine
     engine, repo = store.engine(), get_engine()      # the run's record, and the architecture its fixtures live in
     level, role, area = store.clean_options(args.level, args.role, args.area)
@@ -673,6 +732,12 @@ def cmd_run(args) -> int:
     r = Run(engine, run_id, folder, repo)
     alive.keep_beating(r.dir)                        # "being run" for as long as this process lives (R2.64)
     by = run["started_by"]
+    # slow motion and pause after each step, for a run started to be watched; never one from CI or a schedule (R5.20)
+    r.live_slow = bool(getattr(args, "live_slow", False)) and args.trigger != "ci" and not str(by).startswith("schedule")
+    if r.live_slow:
+        from . import screencast
+        with engine.begin() as conn:
+            screencast.set_controls(conn, run_id, "slow", by)
     error, stopped, keep_open = "", "", False
     try:
         r.log(f"self-test {run_id} ({store.short(run['run_guid'])}): {level}"
@@ -738,7 +803,7 @@ def cmd_run(args) -> int:
                 elif "ui" in suites and not args.watch:
                     r.log("browser: every page, then the journeys (Chromium, headless)" if not (journeys or args.pages_only)
                           else "browser: the page sweep" if args.pages_only else f"browser: journey {', '.join(journeys)}")
-                    r.counts.update(ui_journeys.run_all(ids, ticket, r.dir, r.recorder("ui"), role=role, journeys=journeys,
+                    r.counts.update(ui_journeys.run_all(ids, ticket, r.dir, r.recorder("ui"), role=role, journeys=journeys, live=_live(r),
                                                         pages_only=args.pages_only))
                 if "ui" in suites and args.watch:
                     _wait_for_browser(engine, run_id, r)
@@ -750,16 +815,15 @@ def cmd_run(args) -> int:
                     name, _, reason = why.partition(": ")
                     r.recorder("ui")(f"journey: {name}", "skipped", f"headless only: {reason}", 0)
             if "security" in suites:
-                rec = r.recorder("security")
-                r.log("security: headers and cookies at the front door, Python dependencies")
-                security.front_door(rec)
-                security.key_vault(rec)
-                security.python_dependencies(rec)
+                _security_suite(r, spec, tokens, ids)
                 keep_open = True
             if "api" in suites and not area:          # container alerts and their recovery (R2.19)
                 alert_check(API, tokens.get("super-admin", ""), r.recorder("api"), r.log)
             if "reports" in suites:                   # every report in Reports, signed in as people (R4.1)
                 _reports_suite(r, tokens, ids)
+            if "performance" in suites:              # the benchmark (R5.18): the data, the reads, then k6 by the helper
+                _performance_suite(r, tokens, ids, args)
+                keep_open = True
             if "backup" in suites:                    # backups and trial restores (R2.45)
                 _backup_suite(r, tokens, ids, run_id)
             if "restore" in suites:                   # the very last: back up, change, restore, compare (R3.8)
@@ -773,12 +837,13 @@ def cmd_run(args) -> int:
         print(f"ERROR: {exc}", flush=True)
         with open(r.dir / "run.log", "a", encoding="utf-8") as f:
             f.write(traceback.format_exc())
-    _close_access(engine, run_id, by, repo)
     if keep_open and not (error or stopped):
+        # the run's test users keep their access until `collect` (R5.17, R5.18): the signed-in ZAP scan and k6 use them
         with engine.begin() as conn:
-            store.set_state(conn, run_id, step="waiting for the ZAP baseline scan and the Trivy image scans")
-        print("SCANS_NEXT", flush=True)  # the operations helper runs ZAP and Trivy (scans.json), then `collect` closes the run
+            store.set_state(conn, run_id, step="waiting for the helper's scans (ZAP, Trivy) and load test (k6)")
+        print("SCANS_NEXT", flush=True)  # the operations helper runs ZAP, Trivy and k6, then `collect` closes the run
         return 0
+    _close_access(engine, run_id, by, repo)
     return _close(engine, r, error, stopped)
 
 
@@ -802,7 +867,7 @@ def _close_access(engine, run_id: int, by: str, repo=None) -> None:
 
 
 SUITE_NAMES = {"smoke": "Smoke", "api": "API", "ui": "Pages and journeys", "db": "Database", "security": "Security", "reports": "Reports",
-               "backup": "Backups", "restore": "Restore"}
+               "performance": "Performance", "backup": "Backups", "restore": "Restore"}
 
 
 def local_reader(root: Path):
@@ -898,10 +963,11 @@ def _close(engine, r: Run, error: str = "", stopped: str = "") -> int:
 
 
 def cmd_collect(args) -> int:
+    """python -m eax.testing collect: after the helper's scans and load test, the run is judged and closed."""
     from ..db import get_engine
     engine, repo = store.engine(), get_engine()
     with engine.begin() as conn:
-        row = conn.execute(text("SELECT folder, state, started_by FROM tests.test_runs WHERE id = :id"), {"id": args.run_id}).first()
+        row = conn.execute(text("SELECT folder, state, started_by, suites FROM tests.test_runs WHERE id = :id"), {"id": args.run_id}).first()
     if not row:
         print(f"No self-test run {args.run_id}.")
         return 2
@@ -918,15 +984,27 @@ def cmd_collect(args) -> int:
         if rp and rp[0]:
             r.only = repeat.plan(repeat.wanted(conn, int(rp[0]), bool(rp[1])), repeat.fixture_ids(conn, int(rp[0])))["keys"]
             r.ids = repeat.fixture_ids(conn, args.run_id)
-    if not (args.error or args.stopped):
+    if not (args.error or args.stopped) and (r.dir / "bench-single.json").exists():   # the benchmark (R5.18)
+        from . import benchmark
+        benchmark.judge(r.dir, r.recorder("performance"), _version())
+    if not (args.error or args.stopped) and ("security" in (row[3] or []) or r.only is not None):
         rec = r.recorder("security")
         security.read_zap(r.dir / "zap.json", rec)
+        security.read_zap(r.dir / "zap-api.json", rec, "OWASP ZAP signed-in API scan")
         security.read_trivy(r.dir, rec)
+        security_gate.judge(r.dir, rec)               # a high or critical finding not accepted fails the run (R5.17)
     _close_access(engine, args.run_id, row[2], repo)
+    try:                                              # the live view's frames never outlive the run (R5.20)
+        from . import screencast
+        with engine.begin() as conn:
+            screencast.forget(conn, args.run_id)
+    except Exception:  # noqa: BLE001
+        pass
     return _close(engine, r, args.error or "", args.stopped or "")
 
 
 def main(argv: list[str] | None = None) -> int:
+    """python -m eax.testing run|collect."""
     p = argparse.ArgumentParser(prog="python -m eax.testing")
     sub = p.add_subparsers(dest="cmd", required=True)
     a = sub.add_parser("run")
@@ -944,6 +1022,10 @@ def main(argv: list[str] | None = None) -> int:
     a.add_argument("--folder", default="")
     a.add_argument("--repeat", type=int, default=None, help="repeat run N's failed checks (0: the newest finished run)")
     a.add_argument("--warnings", action="store_true", help="with --repeat: its warnings too")
+    a.add_argument("--live-slow", action="store_true", help="slow motion and pause after each step, to be watched (R5.20)")
+    a.add_argument("--bench-size", default="small", choices=["small", "medium", "large"], help="the benchmark's data (R5.18)")
+    a.add_argument("--bench-users", type=int, default=20, help="people at once in the load test (R5.18)")
+    a.add_argument("--bench-minutes", type=float, default=2, help="minutes of the load test (R5.18)")
     c = sub.add_parser("collect")
     c.add_argument("--run-id", type=int, required=True)
     c.add_argument("--error", default="")

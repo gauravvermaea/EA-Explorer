@@ -29,6 +29,7 @@ LINK = "link"
 
 
 def is_link(d: dict) -> bool:
+    """Whether a reference is a link (to a page or a project), not a file."""
     return bool(d.get("link_url") or d.get("link_project"))
 
 
@@ -53,6 +54,7 @@ def _folder_of(conn, p: dict, d: dict) -> tuple[str, int | None, str | None]:
 
 
 def clean_path(path: str) -> str:
+    """A project reference folder's path made safe, under the Reference folder."""
     parts = [re.sub(r"[^\w .()&,'-]+", "_", x).strip(" .")[:80] for x in str(path or "").replace("\\", "/").split("/")]
     parts = [x for x in parts if x]
     if not parts or parts[0] != REFERENCE:
@@ -79,6 +81,7 @@ def _target(conn, user, d: dict) -> dict:
 
 
 def add_link(conn, project: Any, user, d: dict) -> dict:
+    """Adds a link to a project's reference library."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
     title = (d.get("title") or "").strip()
@@ -103,6 +106,7 @@ def add_link(conn, project: Any, user, d: dict) -> dict:
 
 
 def update_link(conn, project: Any, user, doc: str, d: dict) -> dict:
+    """Changes a link in a project's reference library."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
     r = pj._doc(conn, p, doc)
@@ -168,6 +172,7 @@ def targets(conn, user, rows: list[dict]) -> None:
 
 # ---------------------------------------------------------------- the Reference area
 def reference(conn, project: Any, user) -> dict:
+    """A project's reference library: its folders and entries."""
     p = pj.project_row(conn, project)
     roles = pj._need(conn, p, user, "read")
     folders = {r["path"] for r in _rows(conn, "SELECT path FROM proj.folders WHERE project_id = :p AND path LIKE :r",
@@ -181,6 +186,7 @@ def reference(conn, project: Any, user) -> dict:
 
 
 def add_folder(conn, project: Any, user, path: str) -> dict:
+    """Adds a folder to a project's reference library."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
     path = clean_path(path)
@@ -192,6 +198,7 @@ def add_folder(conn, project: Any, user, path: str) -> dict:
 
 
 def delete_folder(conn, project: Any, user, path: str) -> dict:
+    """Deletes an empty folder of a project's reference library."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
     path = clean_path(path)
@@ -206,6 +213,7 @@ def delete_folder(conn, project: Any, user, path: str) -> dict:
 
 
 def upload(conn, project: Any, user, folder: str, file_name: str, content: bytes) -> dict:
+    """Uploads a file to a folder of a project's reference library."""
     from . import project_work as pw
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
@@ -213,6 +221,7 @@ def upload(conn, project: Any, user, folder: str, file_name: str, content: bytes
 
 
 def set_library(conn, project: Any, user, on: bool) -> dict:
+    """Marks a project as a library project, or not (a Super Admin)."""
     from . import permissions as perms
     if perms.SUPER_ADMIN not in user.roles:
         raise EditError("Only a Super Admin marks a library project.", 403)

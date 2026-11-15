@@ -150,7 +150,7 @@ def test_without_a_test_model_it_is_skipped():
 # ---------------------------------------------------------------- wired in
 def test_a_suite_of_the_full_test_before_the_backups():
     from eax.testing import SUITES, WEB_SUITES
-    assert SUITES == ("api", "ui", "db", "security", "reports", "backup", "restore") and "reports" in WEB_SUITES
+    assert SUITES == ("api", "ui", "db", "security", "reports", "performance", "backup", "restore") and "reports" in WEB_SUITES
     run = (REPO / "services/api/eax/testing/run.py").read_text()
     assert run.index('if "reports" in suites:') < run.index('if "backup" in suites:')
     assert 'reports_check.run(API, tokens, ids, r.recorder("reports"), r.log)' in run

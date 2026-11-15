@@ -10,6 +10,7 @@ from .config import get_settings
 
 
 def main() -> int:
+    """Makes the job queue's tables (procrastinate's schema) when they are not there."""
     settings = get_settings()
     with psycopg.connect(settings.libpq_conninfo) as conn:
         exists = conn.execute("SELECT to_regclass('jobs.procrastinate_jobs')").fetchone()[0]

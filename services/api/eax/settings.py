@@ -49,12 +49,15 @@ REGISTRY: dict[str, tuple] = {
     "session_idle_minutes": ("system", "Signed out after idle (minutes)", "int", 60, (5, 1440), "Applied to Keycloak at once."),
     "session_max_hours": ("system", "Longest session (hours)", "int", 10, (1, 168),
                           "Signed out after this long whatever happens; applied to Keycloak at once."),
-    "log_level": ("system", "Log level", "choice", "INFO", ["DEBUG", "INFO", "WARNING", "ERROR"],
+    "log_level": ("system", "Log level", "choice", "INFO", ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
                   "How much the API, the job runner and the change log write to their logs (eax logs api); applied at once. "
-                  "The default by deployment (R2.30): DEBUG on a laptop, ERROR on a server or in the cloud."),
-    "logs_keep_days": ("system", "Delete logs older than (days)", "int", 14, (0, 3650),
-                       "eax's own logs (work/logs), the log backups and the containers' daily log files are deleted when "
-                       "older, every night (R2.30); the default by deployment: 14 on a laptop, 90 on a server; 0 keeps them."),
+                  "INFO by default, on a laptop and a server alike (R5.6)."),
+    "logs_keep_days": ("system", "Delete logs older than (days)", "int", 7, (0, 3650),
+                       "The containers' daily logs, the web log, eax's own logs (work/logs) and the log backups are deleted "
+                       "when older, every night (R2.30); 7 days by default (R5.6); 0 keeps them."),
+    "web_log_debug_until": ("hidden", "Web log debug until", "text", "", (0, 40),
+                            "Set on System Admin › Logs: while it lasts, each API call's input and answer are written too "
+                            "(masked), R5.6. Empty: off."),
     # the resource history (R3.5-M8; owner, 14 Nov 2026: "every 15 min configurable from admin screen"): set here or on
     # System Admin > Footprint, applied at once (the job eax.resource_sample reads them each minute)
     "resource_every_minutes": ("system", "Resource history: a sample every (minutes)", "int", 15, (0, 1440),
@@ -68,6 +71,31 @@ REGISTRY: dict[str, tuple] = {
                              "Set on System Admin › Footprint for a test; goes back by itself."),
     "resource_boost_until": ("hidden", "Resource history: the shorter interval until", "text", "", (0, 40),
                              "When the shorter interval ends (UTC)."),
+    # database maintenance (R5.12, D691): the window for the nightly tidy, and how long a session may sit idle in a
+    # transaction before it is ended
+    "db_maint_window_start": ("system", "Database maintenance: window starts", "text", "01:00", (5, 5),
+                              "The nightly tidy (VACUUM, ANALYZE, REINDEX CONCURRENTLY) runs between these times (HH:MM, local)."),
+    "db_maint_window_end": ("system", "Database maintenance: window ends", "text", "05:00", (5, 5), "HH:MM, local."),
+    "db_idle_tx_minutes": ("system", "End sessions idle in a transaction after (minutes)", "int", 30, (0, 1440),
+                           "They hold locks and stop the tidy; 0 never ends them."),
+    # automated security testing (R5.17): the security suite every week, by itself
+    "security_test_weekly": ("system", "Security test every week", "bool", True, None,
+                             "Every Sunday at 03:20 the security suite runs by itself (scans, attacks, the gate); a new finding raises an alert."),
+    # the optimisation report (R5.1, D697: "This limit should be configurable")
+    "optimise_unused_days": ("system", "Optimisation report: unused after (days)", "int", 180, (30, 3650),
+                             "A model or project not opened or changed for this long is suggested for the archive."),
+    # alerts (R5.9, D689): who gets the email, through the mail server in the config file (EAX_SMTP_*)
+    "alerts_email_to": ("system", "Alerts: email to", "text", "", (0, 500),
+                        "Addresses (comma-separated) that get every alert, reminder and recovery by email; empty: none. The mail "
+                        "server is set in the config file (EAX_SMTP_HOST and the rest)."),
+    "alerts_email_escalate": ("system", "Alerts: also email when not acknowledged", "text", "", (0, 500),
+                              "Addresses told as well when an alert is not acknowledged within 30 minutes."),
+    # multi-factor sign-in (R5.3, D690; owner, 15 Nov 2026: "A setting, off by default", "kepp mfa off by default"):
+    # applied to Keycloak at once and every hour (eax/keycloak_upkeep.py)
+    "mfa_mode": ("security", "Multi-factor sign-in", "choice", "off", ["off", "admins", "everyone"],
+                 "off: nobody is asked (anyone may still add an authenticator app to their own account). admins: the "
+                 "Super, IT, User and Keycloak Admins and the Auditors set up a code at their next sign-in. everyone: "
+                 "every person does. Codes come from an authenticator app (TOTP)."),
     # the parts of EA Explorer an organisation uses (owner, 8 Nov 2026, phase 13.3, D329): off hides a part's screens, menus,
     # API, MCP tools and background work; its data is kept and comes back when it is switched on again
     "part_projects": ("system", "Projects", "bool", True, None,
@@ -96,7 +124,9 @@ CACHE_SECONDS = 15
 
 
 # defaults that depend on the deployment (owner, 12 Nov 2026, R2.30: "Laptop mode should be debug other can be error")
-BY_DEPLOYMENT = {"log_level": {"laptop": "DEBUG", "*": "ERROR"}, "logs_keep_days": {"laptop": 14, "*": 90}}
+# (R5.6, owner 14 Nov 2026: "We will by default keep it at an info level"; "Logs are deleted once every 7 days"): the
+# same everywhere now
+BY_DEPLOYMENT: dict[str, dict] = {}
 
 
 def default_of(key: str) -> Any:
@@ -162,6 +192,7 @@ def part_of_path(path: str, on: dict[str, bool]) -> str | None:
 
 
 def forget() -> None:
+    """Forgets the cached settings (they are read again)."""
     with _lock:
         _cache.update(at=0.0, values=None)
 
@@ -170,7 +201,7 @@ def describe(conn) -> dict:
     """The settings with their labels, types, choices and help, grouped (for the console)."""
     v = values(conn)
     rows = {r["key"]: r for r in conn.execute(text("SELECT key, modified_at, modified_by FROM core.settings")).mappings()}
-    out: dict[str, list] = {"application": [], "system": []}
+    out: dict[str, list] = {"application": [], "system": [], "security": []}   # security: System Admin › Security (R5)
     for k, (group, label, typ, _default, choices, help_) in REGISTRY.items():
         if group == "hidden":                   # set by their own screen only (the resource history's shorter interval)
             continue
@@ -229,6 +260,12 @@ def check(key: str, value: Any) -> Any:
             raise EditError(f"{label}: a web address starting with https:// or http://.")
         if key == "library_search_link" and "{q}" not in s:
             raise EditError(f"{label}: put {{q}} where the search words go.")
+    if key.startswith("db_maint_window_") and not re.match(r"^([01]\d|2[0-3]):[0-5]\d$", s):
+        raise EditError(f"{label}: a time as HH:MM, for example 01:00.")
+    if key.startswith("alerts_email") and s:
+        bad = [a for a in re.split(r"[,;]\s*", s) if a and not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", a)]
+        if bad:
+            raise EditError(f"{label}: {bad[0]} is not an email address.")
     return s
 
 
@@ -280,6 +317,14 @@ def update(conn, user, changes: dict) -> dict:
             applied.append("session time-outs (Keycloak)")
         except Exception as exc:  # noqa: BLE001
             note = f" The session time-outs are saved but Keycloak did not take them ({exc}); they apply after the next restart."
+    if "mfa_mode" in clean:
+        try:
+            from . import keycloak_upkeep
+            r = keycloak_upkeep.apply_mfa(clean["mfa_mode"])
+            applied.append("multi-factor sign-in (Keycloak)")
+            note += f" Multi-factor sign-in {r['mode']}: {r['asked']} asked to set up a code, {r['released']} no longer asked."
+        except Exception as exc:  # noqa: BLE001
+            note += f" Multi-factor sign-in is saved but Keycloak did not take it yet ({exc}); it is applied within the hour."
     if {"part_projects", "part_repository", "part_references"} & set(clean):
         p = parts(conn)
         off = [k.title() for k in PARTS if not p[k]]

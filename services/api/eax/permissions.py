@@ -25,7 +25,11 @@ from sqlalchemy import text
 # global roles (Keycloak, D92, D96)
 SUPER_ADMIN, IT_ADMIN, USER_ADMIN, KEYCLOAK_ADMIN = "super-admin", "it-admin", "user-admin", "keycloak-admin"
 MODEL_CREATOR, LIBRARY_ADMIN, USER = "model-creator", "library-admin", "user"
-GLOBAL_ROLES = [SUPER_ADMIN, IT_ADMIN, USER_ADMIN, KEYCLOAK_ADMIN, MODEL_CREATOR, LIBRARY_ADMIN, USER]
+# the Auditor (R5.22, D693; owner, 15 Nov 2026: "this role can view everything like a super admin but can not make any
+# changes"): no permission of its own. A read (GET, or one of READ_POSTS) is answered as for a Super Admin; a change
+# is judged by the person's other roles only (eax/auth.py auditor_view), so it adds sight, never a change
+AUDITOR = "auditor"
+GLOBAL_ROLES = [SUPER_ADMIN, IT_ADMIN, USER_ADMIN, KEYCLOAK_ADMIN, AUDITOR, MODEL_CREATOR, LIBRARY_ADMIN, USER]
 # model roles (per model, several allowed on one model)
 MODEL_ADMIN, MODEL_SUB_ADMIN, ARCHITECT, REPORT_VIEWER = "model-admin", "model-sub-admin", "architect", "report-viewer"
 COMMITTER, HISTORY_VIEWER = "committer", "history-viewer"   # phase 8 (D165, D151)
@@ -62,12 +66,38 @@ MODEL_PERMISSIONS: dict[str, set[str]] = {
 PERMISSIONS = {**GLOBAL_PERMISSIONS, **MODEL_PERMISSIONS}
 SEES_EVERY_MODEL = {SUPER_ADMIN}
 
+# calls that send a body but only read (R5.22): answered for the Auditor as a GET is
+import re as _re  # noqa: E402
+
+READ_POSTS = _re.compile(r"/(search|query|explain|export|compare|compare/(download|detail|fields)|compare-profiles|"
+                         r"duplicates/compare|entities/check|drawn-views/check|canvases/[^/]+/compare/[^/]+)$")
+
+
+def is_read(method: str, path: str) -> bool:
+    """Whether a call only reads: GET, HEAD and OPTIONS, and the few that send a body to ask a question."""
+    return method in ("GET", "HEAD", "OPTIONS") or (method == "POST" and bool(READ_POSTS.search(path or "")))
+
+
+def auditor_roles(roles, method: str, path: str) -> tuple[list[str], bool]:
+    """The roles a call is judged with (R5.22): an Auditor's read as a Super Admin's; anything else as given.
+    Returns (roles, whether the Auditor's view was used)."""
+    roles = list(roles or [])
+    if AUDITOR in roles and SUPER_ADMIN not in roles and is_read(method, path):
+        return roles + [SUPER_ADMIN], True
+    return roles, False
+
+
+def view_only(roles) -> bool:
+    """An Auditor with no other role that changes anything: the screens say "Auditor: view only"."""
+    return AUDITOR in set(roles or []) and not (set(roles or []) - {AUDITOR, USER})
+
 # Laptop only: test users (setup puts them in Keycloak, the seed gives their model roles, eax init/up/logins
 # print them). (user name, Keycloak role, {model name or "*": [model roles]}). The Fynbos and Karoo models
 # are laptop test models (eax/seed/build.py test_models_sql).
 TEST_USERS = [
     ("user_super_admin", "eax-super-admin", {}),
     ("user_it_admin", "eax-it-admin", {}),
+    ("user_auditor", "eax-audit", {}),                    # sees everything, changes nothing (R5.22)
     ("user_keycloak_admin", "eax-keycloak-admin", {}),
     ("user_user_admin", "eax-user-admin", {}),
     ("user_library_admin", "eax-library-admin", {}),
@@ -135,6 +165,7 @@ def role_map(conn=None) -> dict[str, set[str]]:
 
 
 def forget_role_map() -> None:
+    """Forgets the cached mapping of Keycloak roles to EA Explorer's (it is read again)."""
     with _cache_lock:
         _cache.update(at=0.0, map={})
 
@@ -181,6 +212,7 @@ def allowed(roles, permission: str, model_roles=None) -> bool:
 
 
 def sees_every_model(roles) -> bool:
+    """Whether these roles see every model."""
     return bool(set(roles or []) & SEES_EVERY_MODEL)
 
 

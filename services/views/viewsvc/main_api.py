@@ -19,6 +19,7 @@ _lock = threading.Lock()
 
 
 class Refused(Exception):
+    """The main API refused the person, with the HTTP status to answer."""
     def __init__(self, status: int, message: str):
         super().__init__(message)
         self.status = status
@@ -26,6 +27,7 @@ class Refused(Exception):
 
 @dataclass
 class Person:
+    """The person, as the main API says."""
     username: str
     roles: list[str] = field(default_factory=list)
     permissions: dict = field(default_factory=dict)

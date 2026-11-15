@@ -17,6 +17,7 @@ LABEL = {"chromium": "Chromium", "firefox": "Firefox", "webkit": "WebKit (Safari
 
 
 def clean_browsers(text: str | list[str] | None) -> list[str]:
+    """The browsers asked for, checked."""
     items = text if isinstance(text, list) else (text or "chromium").replace(";", ",").split(",")
     out: list[str] = []
     for b in (x.strip().lower() for x in items):

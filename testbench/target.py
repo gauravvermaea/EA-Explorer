@@ -12,10 +12,12 @@ from urllib.parse import urlparse
 
 
 class GuardError(Exception):
+    """The target may not be tested (not owned, or not an address)."""
     pass
 
 
 def clean(target: str) -> str:
+    """The target's address checked."""
     t = (target or "").strip().rstrip("/")
     if not t:
         raise GuardError("No target: give --target https://<host> (the EA Explorer address you sign in on).")
@@ -30,6 +32,7 @@ def clean(target: str) -> str:
 
 
 def host_of(target: str) -> str:
+    """The target's host name."""
     return urlparse(target).hostname or ""
 
 
@@ -52,6 +55,7 @@ class Client:
         self.target, self.token, self.timeout = target, token, timeout
 
     def call(self, method: str, path: str, body: dict | None = None, timeout: int | None = None) -> tuple[int, dict | str]:
+        """One call to the target's API."""
         data = json.dumps(body).encode() if body is not None else (b"{}" if method.upper() in ("POST", "PUT") else None)
         req = urllib.request.Request(self.target + path, data=data, method=method.upper(),
                                      headers={"Content-Type": "application/json", "Accept": "application/json",
@@ -69,13 +73,16 @@ class Client:
             return status, raw[:2000]
 
     def get(self, path: str, **kw):
+        """A GET to the target's API."""
         return self.call("GET", path, **kw)
 
     def post(self, path: str, body: dict | None = None, **kw):
+        """A POST to the target's API."""
         return self.call("POST", path, body, **kw)
 
 
 def message(answer) -> str:
+    """An answer's message."""
     return answer.get("message", "") if isinstance(answer, dict) else str(answer)[:300]
 
 

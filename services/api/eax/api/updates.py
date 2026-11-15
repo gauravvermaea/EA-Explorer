@@ -29,6 +29,8 @@ def _status() -> dict | None:
 
 @blp.route("")
 class Updates(MethodView):
+    """/api/v1/operations/updates: GET the installed version, settings and channels, the update running or waiting,
+    the schedule and the history."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -46,6 +48,8 @@ class Updates(MethodView):
 
 @blp.route("/versions/<channel>")
 class Versions(MethodView):
+    """/api/v1/operations/updates/versions/{channel}: GET what a channel offers above the installed version (forward
+    only), oldest first, with release notes."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -56,6 +60,8 @@ class Versions(MethodView):
 
 @blp.route("/settings")
 class Settings(MethodView):
+    """/api/v1/operations/updates/settings: PUT the repository link and whether RC and Latest are offered (written to
+    the config file, a dated copy first)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -71,6 +77,8 @@ class Settings(MethodView):
 
 @blp.route("/start")
 class Start(MethodView):
+    """/api/v1/operations/updates/start: POST update now, or at a time ({channel, to, at}): a full backup first, then
+    one release at a time."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(202, Free)
@@ -97,6 +105,7 @@ def _decide(action: str):
 
 @blp.route("/retry")
 class Retry(MethodView):
+    """/api/v1/operations/updates/retry: POST a failed update: its failed step again, then the rest."""
     @blp.doc(security=SECURITY)
     @blp.response(202, Free)
     @require_auth("system.operate")
@@ -107,6 +116,8 @@ class Retry(MethodView):
 
 @blp.route("/rollback")
 class Rollback(MethodView):
+    """/api/v1/operations/updates/rollback: POST back to the version before the update: its backup put back (work
+    since is lost; the current state is backed up first)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(202, Free)
@@ -121,6 +132,7 @@ class Rollback(MethodView):
 
 @blp.route("/schedule/cancel")
 class CancelSchedule(MethodView):
+    """/api/v1/operations/updates/schedule/cancel: POST cancel the scheduled update."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -131,6 +143,8 @@ class CancelSchedule(MethodView):
 
 @blp.route("/notice")
 class Notice(MethodView):
+    """/api/v1/operations/updates/notice: GET for everyone signed in: a scheduled update (banner) and the latest
+    update's What's new note."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()

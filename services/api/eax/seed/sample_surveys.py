@@ -139,6 +139,7 @@ def _age(conn, guid: str, sent_days: int, closed_days: int | None = None) -> Non
 
 
 def run() -> list[str]:
+    """Loads the sample surveys and maturity assessment."""
     from .. import maturity as mt
     from .. import permissions as perms
     from .. import surveys as sv

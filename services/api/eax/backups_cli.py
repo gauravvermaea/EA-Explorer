@@ -42,6 +42,7 @@ def _pick(rows: list, label) -> int | None:
 
 
 def backup(tag: str) -> int:
+    """eax app-backup: an application backup now, its folder said."""
     with get_engine().begin() as conn:
         msg, out = bk.application_backup(conn, SYSTEM, tag or "eax-command")
     print(msg)
@@ -50,6 +51,8 @@ def backup(tag: str) -> int:
 
 
 def restore_model(args: list[str]) -> int:
+    """eax restore-model: one model restored from an application backup (or an uploaded file), as a new model or over
+    itself."""
     runs = [r for r in bk.list_application()["runs"] if r.get("status") in ("ok", "partial")]
     uploaded = bk.list_application()["uploaded"]
     where, name, file = "application", "", ""
@@ -108,6 +111,7 @@ def restore_model(args: list[str]) -> int:
 
 
 def restore_all(args: list[str]) -> int:
+    """eax restore: the whole application restored from one of its backups, asked first."""
     runs = [r for r in bk.list_application()["runs"] if r.get("status") in ("ok", "partial")]
     if not runs:
         print("No application backup to restore from: make one with .\\eax app-backup")
@@ -167,6 +171,7 @@ def _option_values(args: list[str]) -> set[str]:
 
 
 def main(argv: list[str]) -> int:
+    """python -m eax.backups_cli: the backup and restore commands, run as a Super Admin."""
     perms.current.set(SYSTEM)   # the database sees the command as a Super Admin (as the job runner sees the person)
     if not argv or argv[0] in ("-h", "--help", "help"):
         print(__doc__)

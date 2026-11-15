@@ -46,6 +46,7 @@ def kv_name(key: str) -> str:
 
 
 def env_lines(values: dict[str, str]) -> str:
+    """Settings as config-file lines."""
     return "".join(f"{k}={v}\n" for k, v in sorted(values.items()))
 
 
@@ -124,11 +125,13 @@ def fetch(provider: str, name: str, keys: list[str]) -> dict[str, str]:
 
 
 def where(env_text: str) -> tuple[str, str]:
+    """Where the secrets come from (EAX_SECRETS_FROM)."""
     m = re.search(r"^EAX_SECRETS_FROM=['\"]?([a-z]+):([^'\"\n]+)", env_text, re.MULTILINE)
     return (m.group(1), m.group(2).strip()) if m else ("", "")
 
 
 def replace_values(env_text: str, values: dict[str, str]) -> tuple[str, list[str]]:
+    """The config file with some values replaced; which were changed."""
     changed = []
 
     def sub(m: re.Match) -> str:
@@ -141,6 +144,7 @@ def replace_values(env_text: str, values: dict[str, str]) -> tuple[str, list[str
 
 
 def main(options: list[str]) -> int:
+    """eax secrets: the passwords and keys (show, rotate, the vault's when it is used)."""
     from .deploy import secret_values
     if not ENV_FILE.exists():
         raise Failure(f"No {ENV_REL} yet: run {EAX} init or {EAX} deploy first.")
@@ -270,6 +274,7 @@ def _rotate_login(login: str, value: str) -> None:
 
 
 def openbao(action: str, rest: list[str], text: str, where_: str, values: dict[str, str]) -> int:
+    """The key vault's actions (switched off until the owner says)."""
     refs = vault.references(text)
     if not vault.ALLOWED and action not in ("pull", "show", "get", "env"):
         raise Failure(vault.OFF)

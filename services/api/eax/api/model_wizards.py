@@ -60,6 +60,8 @@ def _write(fn, action: str, model_id, details=None):
 
 @blp.route("/models/<uuid:model_id>/wizards/family")
 class Family(MethodView):
+    """/api/v1/models/{model_id}/wizards/family: GET the model's family: parent, children, the library model it came
+    from, frozen or not."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -70,6 +72,7 @@ class Family(MethodView):
 
 @blp.route("/models/<uuid:model_id>/wizards/tag-first")
 class TagFirst(MethodView):
+    """/api/v1/models/{model_id}/wizards/tag-first: POST tag the model as it is now, before a wizard changes it."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(201, Free)
@@ -81,6 +84,8 @@ class TagFirst(MethodView):
 
 @blp.route("/models/<uuid:model_id>/wizards/merge")
 class WizardMerge(MethodView):
+    """/api/v1/models/{model_id}/wizards/merge: POST merge another model into this one with what the person chose (a
+    background task)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -95,6 +100,8 @@ class WizardMerge(MethodView):
 
 @blp.route("/models/<uuid:model_id>/freeze")
 class Freeze(MethodView):
+    """/api/v1/models/{model_id}/freeze: POST freeze the model: read only for good (Model Admin); a Super Admin
+    unfreezes it."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -106,6 +113,7 @@ class Freeze(MethodView):
 
 @blp.route("/models/<uuid:model_id>/unfreeze")
 class Unfreeze(MethodView):
+    """/api/v1/models/{model_id}/unfreeze: POST unfreeze the model (Super Admins)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -116,6 +124,7 @@ class Unfreeze(MethodView):
 
 @blp.route("/models/<uuid:model_id>/detach")
 class Detach(MethodView):
+    """/api/v1/models/{model_id}/detach: POST break the parent-child link: the model becomes one of its own."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -126,6 +135,7 @@ class Detach(MethodView):
 
 @blp.route("/models/<uuid:model_id>/reparent")
 class Reparent(MethodView):
+    """/api/v1/models/{model_id}/reparent: POST make the model derive from another project model."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -137,6 +147,7 @@ class Reparent(MethodView):
 
 @blp.route("/models/<uuid:model_id>/split")
 class Split(MethodView):
+    """/api/v1/models/{model_id}/split: POST part of the model into a new model (child or separate; copied or moved)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -151,6 +162,7 @@ class Split(MethodView):
 
 @blp.route("/models/<uuid:model_id>/extend-preview")
 class ExtendPreview(MethodView):
+    """/api/v1/models/{model_id}/extend-preview: GET what another model's metamodel has that this one lacks."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -164,6 +176,7 @@ class ExtendPreview(MethodView):
 
 @blp.route("/models/<uuid:model_id>/extend")
 class Extend(MethodView):
+    """/api/v1/models/{model_id}/extend: POST add parts of another model's metamodel (Model Admin)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -178,6 +191,7 @@ class Extend(MethodView):
 
 @blp.route("/models/<uuid:model_id>/duplicates")
 class Duplicates(MethodView):
+    """/api/v1/models/{model_id}/duplicates: GET groups of entities that look like the same thing."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -195,6 +209,8 @@ class Duplicates(MethodView):
 
 @blp.route("/models/<uuid:model_id>/duplicates/xlsx")
 class DuplicatesXlsx(MethodView):
+    """/api/v1/models/{model_id}/duplicates/xlsx: GET the likely duplicates as an Excel workbook (same arguments as
+    the list; D541)."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self, model_id):
@@ -222,6 +238,8 @@ class DuplicatesXlsx(MethodView):
 
 @blp.route("/models/<uuid:model_id>/duplicates/merge")
 class DuplicatesMerge(MethodView):
+    """/api/v1/models/{model_id}/duplicates/merge: POST merge duplicates into the one kept (one commit, which can be
+    rolled back)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -235,6 +253,7 @@ class DuplicatesMerge(MethodView):
 
 @blp.route("/models/<uuid:model_id>/hand-over")
 class HandOver(MethodView):
+    """/api/v1/models/{model_id}/hand-over: POST hand the model over: Model Admins in and out, the owner."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)

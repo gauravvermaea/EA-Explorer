@@ -36,6 +36,7 @@ STATUSES = ("open", "answered", "accepted")
 
 # ---------------------------------------------------------------- reading
 def listing(conn, p: dict) -> dict:
+    """A project's key questions, with their answers, evidence and views."""
     qs = _rows(conn, """SELECT q.id, q.guid::text AS id_guid, q.sort_order, q.question, q.asked_by, q.approach, q.created_by, q.created_at,
                                q.changed_by, q.changed_at, q.status, q.answer, q.answered_by, q.answered_at, q.accepted_by,
                                q.accepted_at, q.accept_note, q.accept_recorded_by, d.guid::text AS evidence, d.file_name AS evidence_name
@@ -72,6 +73,7 @@ def listing(conn, p: dict) -> dict:
 
 
 def read(conn, project: Any, user) -> dict:
+    """A project's key questions, for those who may read it."""
     return listing(conn, _project(conn, project, user, "read"))
 
 
@@ -157,6 +159,7 @@ def _insert_question(conn, p: dict, user, data: dict, seq: int | None = None) ->
 
 
 def add_question(conn, project: Any, user, data: dict) -> dict:
+    """Adds a key question with the views that answer it."""
     p = _project(conn, project, user)
     row = _insert_question(conn, p, user, data)
     set_views(conn, p, row["id"], data.get("views") or [])
@@ -164,6 +167,7 @@ def add_question(conn, project: Any, user, data: dict) -> dict:
 
 
 def change_question(conn, project: Any, user, qid: str, data: dict) -> dict:
+    """Changes a key question, its answer or its acceptance."""
     p = _project(conn, project, user)
     q = _question(conn, p, qid)
     new = {k: data[k] if k in data else q[k] for k in ("question", "asked_by", "approach", "answer")}
@@ -344,6 +348,7 @@ def reopen(conn, project: Any, user, qid: str, note: str = "") -> dict:
 
 
 def delete_question(conn, project: Any, user, qid: str) -> dict:
+    """Deletes a key question."""
     p = _project(conn, project, user)
     q = _question(conn, p, qid)
     conn.execute(text("DELETE FROM proj.key_questions WHERE id = :i"), {"i": q["id"]})
@@ -393,6 +398,7 @@ def _placeholder(conn, p: dict, code: str) -> dict:
 
 
 def change_placeholder(conn, project: Any, user, code: str, data: dict) -> dict:
+    """Renames or changes a placeholder view."""
     p = _project(conn, project, user)
     ph = _placeholder(conn, p, code)
     name = _clean(data.get("name", ph["name"]), 200)
@@ -404,6 +410,7 @@ def change_placeholder(conn, project: Any, user, code: str, data: dict) -> dict:
 
 
 def delete_placeholder(conn, project: Any, user, code: str) -> dict:
+    """Deletes a placeholder view."""
     p = _project(conn, project, user)
     ph = _placeholder(conn, p, code)
     _drop_placeholder(conn, p, ph)
@@ -417,6 +424,7 @@ def _drop_placeholder(conn, p: dict, ph: dict) -> None:
 
 
 def waiting_files(conn, p: dict) -> int:
+    """How many placeholder views still wait for their file."""
     return (_one(conn, """SELECT count(*) AS n FROM proj.placeholder_views WHERE project_id = :p AND kind = 'file'
                            AND document_id IS NULL""", p=p["id"]) or {"n": 0})["n"]
 

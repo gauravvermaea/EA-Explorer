@@ -29,6 +29,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def runs_dir(root: Path = ROOT) -> Path:
+    """Where the Command centre's runs are kept (work/commands)."""
     return root / "work" / "commands"
 
 
@@ -37,6 +38,7 @@ def _now() -> str:
 
 
 def write_status(folder: Path, rec: dict) -> None:
+    """Writes a run's status file (whole, never half-written)."""
     folder.mkdir(parents=True, exist_ok=True)
     tmp = folder / "status.json.tmp"
     tmp.write_text(json.dumps(rec, indent=2), encoding="utf-8")
@@ -44,6 +46,7 @@ def write_status(folder: Path, rec: dict) -> None:
 
 
 def read_status(folder: Path) -> dict:
+    """A run's status (empty when it cannot be read)."""
     try:
         return json.loads((folder / "status.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -56,6 +59,7 @@ def _safety_home(root: Path) -> Path:
 
 
 def run(run_id: str, who: str, argv: list[str], root: Path = ROOT, source: str = "command centre") -> int:
+    """Runs one eax command for the Command centre or a schedule, its output and status kept."""
     argv = C.with_yes(C.check_argv(argv))
     wipe = C.kind_of_argv(argv) == "wipe"
     schedule = os.environ.get("EAX_SCHEDULE", "")
@@ -97,6 +101,7 @@ def run(run_id: str, who: str, argv: list[str], root: Path = ROOT, source: str =
 
 
 def history(root: Path = ROOT, limit: int = 100) -> list[dict]:
+    """The Command centre's runs, newest first."""
     out = []
     base = runs_dir(root)
     if base.is_dir():
@@ -109,6 +114,7 @@ def history(root: Path = ROOT, limit: int = 100) -> list[dict]:
 
 
 def output(run_id: str, start: int = 0, root: Path = ROOT, limit: int = 200_000) -> dict:
+    """A run's output from a byte on, and whether it has ended."""
     if not run_id.replace("-", "").replace("_", "").isalnum():
         raise ValueError("No such run.")
     for base in (runs_dir(root) / run_id, _safety_home(root) / run_id):
@@ -121,6 +127,7 @@ def output(run_id: str, start: int = 0, root: Path = ROOT, limit: int = 200_000)
 
 
 def main(args: list[str]) -> int:
+    """python3 -m eaxcli.cmdrun <run-id> <who> -- <command>: one run."""
     if len(args) < 4 or args[2] != "--":
         print("Usage: python3 -m eaxcli.cmdrun <run-id> <who> -- <command> [options...]")
         return 2

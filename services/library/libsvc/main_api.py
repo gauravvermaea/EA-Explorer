@@ -18,6 +18,7 @@ _lock = threading.Lock()
 
 
 class Refused(Exception):
+    """The main API refused the person, with the HTTP status to answer."""
     def __init__(self, status: int, message: str):
         super().__init__(message)
         self.status = status
@@ -25,6 +26,7 @@ class Refused(Exception):
 
 @dataclass
 class Person:
+    """The person, as the main API says: name, roles and permissions."""
     username: str
     roles: list[str] = field(default_factory=list)
     permissions: dict = field(default_factory=dict)
@@ -33,6 +35,7 @@ class Person:
 
     @property
     def library_admin(self) -> bool:
+        """Whether the person curates the library."""
         return "super-admin" in self.roles or bool(self.permissions.get("library.curate"))
 
 
@@ -76,6 +79,7 @@ def whoami(headers: dict) -> Person:
 
 
 def library_settings(person: Person) -> dict:
+    """Which library the organisation uses (ours, its own, or none)."""
     me = _cached(("me", tuple(sorted(person.extra_headers.items()))), lambda: _get("/api/v1/me", person.extra_headers))
     return dict(me.get("library") or {"mode": "ours"})
 

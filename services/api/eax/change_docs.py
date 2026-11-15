@@ -36,6 +36,7 @@ def _diff(before: dict | None, after: dict | None) -> list[dict]:
 
 
 def save(conn, model_id: int, kind: str, title: str, summary: str, sections: list[dict], by: str) -> int:
+    """Keeps a change document (what a change did, in sections) for a model; returns its number."""
     return conn.execute(text("""INSERT INTO core.change_documents (model_id, kind, title, summary, body, created_by)
                                 VALUES (:m, :k, :t, :s, CAST(:b AS jsonb), :by) RETURNING id"""),
                         {"m": model_id, "k": kind, "t": title[:300], "s": summary[:2000],
@@ -94,6 +95,7 @@ def for_push(conn, model_id: int, push: dict, target: dict, results: list[dict],
 
 
 def get(conn, guid, username: str, may_read_model) -> dict:
+    """One change document, when the person may read its model."""
     ref = str(guid)
     where = "d.id = :g" if ref.isdigit() else "d.guid = CAST(:g AS uuid)"
     d = _one(conn, f"""SELECT d.*, m.guid AS model_guid, m.name AS model_name FROM core.change_documents d
@@ -107,5 +109,6 @@ def get(conn, guid, username: str, may_read_model) -> dict:
 
 
 def for_model(conn, model_id: int, limit: int = 100) -> list[dict]:
+    """A model's change documents, newest first."""
     return _rows(conn, """SELECT guid AS id, id AS number, kind, title, summary, created_by, created_at FROM core.change_documents
                            WHERE model_id = :m ORDER BY id DESC LIMIT :l""", m=model_id, l=limit)

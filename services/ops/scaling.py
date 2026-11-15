@@ -39,10 +39,12 @@ state: dict = {"last_change": 0.0, "last": None, "error": ""}
 
 
 def bind(ns: dict) -> None:
+    """Takes ops.py's helpers."""
     H.update(ns)
 
 
 def settings(values: dict[str, str] | None = None) -> dict:
+    """The scaling rules from the config file."""
     v = values if values is not None else H["_values"](H["_read_config"]())
     out: dict = {}
     for key, default in DEFAULTS.items():
@@ -144,6 +146,7 @@ def active_people() -> int | None:
 
 
 def log(entry: dict) -> None:
+    """Writes a scaling event."""
     try:
         os.makedirs(os.path.dirname(LOG), exist_ok=True)
         with open(LOG, "a", encoding="utf-8") as f:
@@ -153,6 +156,7 @@ def log(entry: dict) -> None:
 
 
 def events(limit: int = 50) -> list[dict]:
+    """The newest scaling events."""
     try:
         with open(LOG, encoding="utf-8") as f:
             lines = f.readlines()[-limit:]
@@ -194,6 +198,7 @@ def tick() -> dict | None:
 
 
 def loop() -> None:
+    """Checks the scaling rules every minute."""
     while True:
         try:
             tick()
@@ -204,10 +209,12 @@ def loop() -> None:
 
 
 def start() -> None:
+    """Starts the scaling loop."""
     threading.Thread(target=loop, daemon=True, name="scaling").start()
 
 
 def describe() -> dict:
+    """The scaling page: rules, limits, servers wanted and running."""
     s = settings()
     return {"settings": s, "defaults": DEFAULTS, "limits": LIMITS, "servers": H["servers_wanted"](),
             "running": len([x for x in H["api_servers"]() if x["state"] == "running"]),
@@ -216,6 +223,7 @@ def describe() -> dict:
 
 
 def save(new: dict, by: str) -> dict:
+    """Saves the scaling rules (a dated copy of the config file first)."""
     clean = check(new)
     with H["config_lock"]:
         H["copy_config"](by or "console", "scaling-rules")

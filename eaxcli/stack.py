@@ -41,6 +41,7 @@ STARTUP_PY = ("import json,urllib.request as u; d=json.load(u.urlopen('http://lo
 
 
 def service_on(name: str) -> bool:
+    """Whether an optional service is switched on in the config file."""
     default = setting("EAX_MCP_ENABLED", "on") if name == "mcp" else "on"
     return setting(SERVICES[name][0], default).lower() not in ("off", "false", "0", "no", "disabled")
 
@@ -53,10 +54,12 @@ def write_services_file() -> None:
 
 
 def off_containers() -> list[str]:
+    """The containers of the services switched off."""
     return [c for n, (_s, cs) in SERVICES.items() if not service_on(n) and cs[0] != "api" for c in cs]
 
 
 def api_servers() -> int:
+    """How many API and job servers to run (EAX_API_SERVERS)."""
     try:
         n = int(setting("EAX_API_SERVERS", "1"))
     except ValueError:
@@ -65,6 +68,7 @@ def api_servers() -> int:
 
 
 def tiers() -> dict[str, list[str]]:
+    """The containers to start first and those after."""
     off = off_containers()
     on = [s for s in compose_out(["config", "--services"]) if s not in off]
     return {"first": [s for s in on if s in CORE], "later": [s for s in on if s not in CORE], "off": off}
@@ -124,6 +128,7 @@ def start_later() -> None:
 
 
 def up(names: list[str], wait_everything: bool, no_throw: bool = False) -> int:
+    """Starts the stack (or some parts), first the core then the rest."""
     write_services_file()
     scale = ["--scale", f"api={api_servers()}"]
     if names:
@@ -200,12 +205,14 @@ def show_filesystems() -> None:
 
 
 def show_services() -> None:
+    """eax services: each optional service on or off, and the containers."""
     for n, (s, cs) in SERVICES.items():
         say(f"{n:<11} {'on ' if service_on(n) else 'off'}   {s} = {setting(s, 'on')}   containers: {', '.join(cs)}")
     compose(["ps", "-a"])
 
 
 def set_service(name: str, value: str) -> None:
+    """eax service <name> on|off."""
     if name not in SERVICES:
         raise Failure(f"Unknown service '{name}'. One of: {', '.join(SERVICES)}")
     if value not in ("on", "off"):
@@ -224,6 +231,7 @@ def set_service(name: str, value: str) -> None:
 
 
 def servers(args: list[str]) -> None:
+    """eax servers: how many API servers run, or sets it."""
     if not args:
         say(f"API and job servers wanted: {api_servers()} (EAX_API_SERVERS). Running:")
         compose(["ps", "api"])
@@ -241,6 +249,7 @@ def servers(args: list[str]) -> None:
 
 
 def maintenance(arg: str) -> None:
+    """eax maintenance on|off: the maintenance page at the front door."""
     flag = WORK / "proxy" / "maintenance"
     if arg not in ("on", "off"):
         raise Failure(f"Usage: {EAX} maintenance on|off")
@@ -271,6 +280,7 @@ def backup_helpers() -> None:
 
 
 def compose_attached(args: list[str]) -> int:
+    """docker compose in this terminal."""
     from .core import attached
     return attached(compose_args(args))
 

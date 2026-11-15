@@ -32,6 +32,8 @@ def _audit(query: dict, outcome: str, **extra) -> None:
 
 @blp.route("/query")
 class SqlQuery(MethodView):
+    """/api/v1/sql/query: POST run SQL with a database login One or more statements; every result set comes back (at
+    most 1,000 rows each, 30-second limit)."""
     @blp.doc(security=[{"bearerAuth": []}])
     @blp.arguments(SqlQueryIn)
     @blp.response(200, SqlQueryOut)
@@ -58,6 +60,7 @@ class SqlQuery(MethodView):
 
 @blp.route("/databases")
 class SqlDatabases(MethodView):
+    """/api/v1/sql/databases: GET the databases on this installation's server (EA Explorer's own first)."""
     @blp.doc(security=[{"bearerAuth": []}])
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -71,6 +74,8 @@ class SqlDatabases(MethodView):
 
 @blp.route("/schema")
 class SqlSchema(MethodView):
+    """/api/v1/sql/schema: GET the tables of a schema with their columns and the joins between them, for the SQL
+    window's database diagram: ?schema=core (models: the repository) or proj (architecture…"""
     @blp.doc(security=[{"bearerAuth": []}])
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -128,6 +133,8 @@ def _guard(fn, *args, **kw):
 
 @blp.route("/browse")
 class SqlBrowse(MethodView):
+    """/api/v1/sql/browse: POST the tree of a database {database, username, password}: its schemas, tables and views
+    that the login may read, with estimated rows and size (R2.57)."""
     @blp.doc(security=[{"bearerAuth": []}])
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -140,6 +147,8 @@ class SqlBrowse(MethodView):
 
 @blp.route("/describe")
 class SqlDescribe(MethodView):
+    """/api/v1/sql/describe: POST a table's or view's structure {database, username, password, schema, table}:
+    columns, indexes, constraints, size, rows, a view's definition (R2.57)."""
     @blp.doc(security=[{"bearerAuth": []}])
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -153,6 +162,8 @@ class SqlDescribe(MethodView):
 
 @blp.route("/rows")
 class SqlRows(MethodView):
+    """/api/v1/sql/rows: POST a page of a table's rows {..., schema, table, page, order, desc, column, contains}: 200
+    a page, sorted and filtered, with the count; read only (R2.57)."""
     @blp.doc(security=[{"bearerAuth": []}])
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -170,6 +181,8 @@ class SqlRows(MethodView):
 
 @blp.route("/explain")
 class SqlExplain(MethodView):
+    """/api/v1/sql/explain: POST a statement's query plan {..., sql, analyze}: EXPLAIN as JSON; with analyze it runs
+    and is rolled back (R2.57)."""
     @blp.doc(security=[{"bearerAuth": []}])
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -184,6 +197,8 @@ class SqlExplain(MethodView):
 
 @blp.route("/export")
 class SqlExport(MethodView):
+    """/api/v1/sql/export: POST a query's rows as a file {..., sql, format: csv|xlsx}: at most 100,000 rows, rolled
+    back (R2.57)."""
     @blp.doc(security=[{"bearerAuth": []}])
     @blp.arguments(FreeIn)
     @require_auth("system.operate")

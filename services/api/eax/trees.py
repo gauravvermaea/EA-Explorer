@@ -40,6 +40,7 @@ def _quality(conn, m: dict) -> tuple[dict, dict]:
 
 # ---------------------------------------------------------------- the metamodel
 def metamodel_tree(conn, model: Any) -> dict:
+    """A model's metamodel as a tree: layers, types, their attributes and relationships."""
     m = repo.get_model(conn, model)
     types = _rows(conn, """SELECT et.id AS _id, et.guid::text AS id, et.code, et.name, l.name AS domain, l.colour,
                                   et.status_code AS status,

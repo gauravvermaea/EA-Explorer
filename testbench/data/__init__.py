@@ -19,14 +19,17 @@ HERE = Path(__file__).resolve().parent
 
 
 def folder() -> Path:
+    """Where the test data is."""
     return Path(os.environ.get("EAX_TEST_DATA") or HERE)
 
 
 def manifest() -> dict:
+    """The test data's manifest."""
     return json.loads((folder() / "manifest.json").read_text(encoding="utf-8"))
 
 
 def path(name: str) -> Path:
+    """A test data file, refused when it was not built."""
     p = folder() / name
     if name not in manifest()["files"] or not p.exists():
         raise FileNotFoundError(f"No test data file {name}: python -m testbench.data build")
@@ -34,4 +37,5 @@ def path(name: str) -> Path:
 
 
 def expected(name: str) -> dict:
+    """What the tests expect of the test data."""
     return json.loads((folder() / "expected" / "expected.json").read_text(encoding="utf-8")).get(name, {})

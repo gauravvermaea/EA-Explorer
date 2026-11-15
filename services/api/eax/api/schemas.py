@@ -4,6 +4,7 @@ from marshmallow import Schema, fields
 
 
 class DatabaseStatus(Schema):
+    """The shape of database status in the API's answers: reachable, latency_ms, schema_version, version, error."""
     reachable = fields.Boolean(required=True)
     latency_ms = fields.Float(allow_none=True)
     schema_version = fields.String(allow_none=True, metadata={"description": "Alembic revision"})
@@ -12,11 +13,14 @@ class DatabaseStatus(Schema):
 
 
 class JobQueueStatus(Schema):
+    """The shape of job queue status in the API's answers: waiting, failed."""
     waiting = fields.Integer(allow_none=True)
     failed = fields.Integer(allow_none=True)
 
 
 class Heartbeat(Schema):
+    """The shape of heartbeat in the API's answers: status, service, version, versions_match, warning, deployment,
+    time, database, jobs, maintenance."""
     status = fields.String(required=True, metadata={
         "description": "ok; warning when the API and database versions differ; degraded when the database cannot be reached"})
     service = fields.String(required=True)
@@ -32,10 +36,12 @@ class Heartbeat(Schema):
 
 
 class HeartbeatRecordIn(Schema):
+    """The shape of heartbeat record sent to the API: note."""
     note = fields.String(load_default="", metadata={"description": "Free text kept with the record"})
 
 
 class HeartbeatRecordOut(Schema):
+    """The shape of heartbeat record in the API's answers: id, at, source, note, requested_by."""
     id = fields.Integer()
     at = fields.DateTime()
     source = fields.String()
@@ -44,6 +50,7 @@ class HeartbeatRecordOut(Schema):
 
 
 class AssignedModelOut(Schema):
+    """The shape of assigned model in the API's answers: id, name, kind, roles, role, permissions."""
     id = fields.UUID()
     name = fields.String()
     kind = fields.String()
@@ -53,6 +60,8 @@ class AssignedModelOut(Schema):
 
 
 class Me(Schema):
+    """The shape of me in the API's answers: username, email, name, roles, keycloak_roles, permissions,
+    sees_every_model, models, break_glass, parts, library."""
     username = fields.String()
     email = fields.String(allow_none=True)
     name = fields.String(allow_none=True)
@@ -69,16 +78,19 @@ class Me(Schema):
 
 
 class JobRequestIn(Schema):
+    """The shape of job request sent to the API: note."""
     note = fields.String(load_default="")
 
 
 class JobOut(Schema):
+    """The shape of job in the API's answers: job_id, status, task."""
     job_id = fields.Integer()
     status = fields.String()
     task = fields.String(allow_none=True)
 
 
 class AuditEvent(Schema):
+    """The shape of audit event in the API's answers: id, at, actor, action, object_type, object_id, source, details."""
     id = fields.Integer()
     at = fields.DateTime()
     actor = fields.String()
@@ -90,12 +102,16 @@ class AuditEvent(Schema):
 
 
 class AuditQuery(Schema):
+    """The shape of audit query in the API's answers: limit."""
     limit = fields.Integer(load_default=50, validate=lambda n: 1 <= n <= 500)
 
 
 # ---- Phase 1: models and the metamodel (read only)
 
 class ModelOut(Schema):
+    """The shape of model in the API's answers: id, is_test_data, name, description, kind, kind_name,
+    parent_model_id, parent_model_name, source_model_id, source_model_name, source_model_kind, source_tag_name and
+    more."""
     id = fields.UUID()
     is_test_data = fields.Boolean(metadata={"description": "Made by a self-test run (R2.11); removed when the run ends"})
     name = fields.String()
@@ -141,6 +157,7 @@ class ModelOut(Schema):
 
 
 class ModelListQuery(Schema):
+    """The shape of model list query in the API's answers: search, kind, archived, test_data."""
     search = fields.String(load_default=None, metadata={"description": "Text in the name, description, owner or industry"})
     kind = fields.String(load_default=None, metadata={"description": "template, reference or project"})
     archived = fields.Boolean(load_default=True, metadata={"description": "Include archived models"})
@@ -148,6 +165,7 @@ class ModelListQuery(Schema):
 
 
 class TypeCountOut(Schema):
+    """The shape of type count in the API's answers: entity_type, domain, colour, count."""
     entity_type = fields.String()
     domain = fields.String()
     colour = fields.String()
@@ -155,17 +173,21 @@ class TypeCountOut(Schema):
 
 
 class RelationshipCountOut(Schema):
+    """The shape of relationship count in the API's answers: relationship_type, count."""
     relationship_type = fields.String()
     count = fields.Integer()
 
 
 class DomainCountOut(Schema):
+    """The shape of domain count in the API's answers: name, colour, types."""
     name = fields.String()
     colour = fields.String()
     types = fields.Integer()
 
 
 class LibraryModelOut(ModelOut):
+    """A model as the library lists it: its place at the top, the metamodel it is built on, and its counts by type,
+    relationship and domain."""
     is_top = fields.Boolean(metadata={"description": "The Root model at the top of the hierarchy"})
     built_on = fields.String(allow_none=True, metadata={"description": "The root metamodel it is built on (ArchiMate 4, ...)"})
     counts_by_type = fields.List(fields.Nested(TypeCountOut))
@@ -175,6 +197,8 @@ class LibraryModelOut(ModelOut):
 
 
 class EntityTypeSummary(Schema):
+    """The shape of entity type summary in the API's answers: id, domain_id, code, name, description, aspect,
+    id_prefix, table_name, status, attribute_count, entity_count, content_area and more."""
     id = fields.UUID()
     domain_id = fields.UUID()
     code = fields.String()
@@ -197,6 +221,7 @@ class EntityTypeSummary(Schema):
 
 
 class DomainOut(Schema):
+    """The shape of domain in the API's answers: id, code, name, description, colour, entity_types."""
     id = fields.UUID()
     code = fields.String()
     name = fields.String()
@@ -206,6 +231,8 @@ class DomainOut(Schema):
 
 
 class RelationshipTypeOut(Schema):
+    """The shape of relationship type in the API's answers: id, code, name, verb, category, is_directed, description,
+    status."""
     id = fields.UUID()
     code = fields.String()
     name = fields.String()
@@ -217,12 +244,15 @@ class RelationshipTypeOut(Schema):
 
 
 class Metamodel(Schema):
+    """The shape of metamodel in the API's answers: model, domains, relationship_types."""
     model = fields.Nested(ModelOut)
     domains = fields.List(fields.Nested(DomainOut))
     relationship_types = fields.List(fields.Nested(RelationshipTypeOut))
 
 
 class AttributeOut(Schema):
+    """The shape of attribute in the API's answers: item_id, attribute_id, default_value, help_text, pick_list_id,
+    code, name, description, column_name, data_type, data_type_name, unit and more."""
     item_id = fields.UUID(metadata={"description": "This attribute on this type (for changing it)"})
     attribute_id = fields.UUID(metadata={"description": "The attribute definition, shared by the types that use it"})
     default_value = fields.String(allow_none=True)
@@ -244,6 +274,8 @@ class AttributeOut(Schema):
 
 
 class RuleOut(Schema):
+    """The shape of rule in the API's answers: id, rule_type_code, attribute_id, field_name, all_types, field, rule,
+    param1, param2, severity, message."""
     id = fields.UUID()
     rule_type_code = fields.String()
     attribute_id = fields.UUID(allow_none=True)
@@ -258,6 +290,8 @@ class RuleOut(Schema):
 
 
 class AllowedOut(Schema):
+    """The shape of allowed in the API's answers: id, relationship_type_id, relationship_type, verb, other_type_id,
+    other_type, note, source_multiplicity, target_multiplicity."""
     id = fields.UUID(metadata={"description": "The mapping (for removing it)"})
     relationship_type_id = fields.UUID()
     relationship_type = fields.String()
@@ -270,6 +304,8 @@ class AllowedOut(Schema):
 
 
 class EntityTypeDetail(Schema):
+    """The shape of entity type detail in the API's answers: status, domain_id, id, code, name, description, aspect,
+    id_prefix, table_name, domain, colour, content_area and more."""
     status = fields.String()
     domain_id = fields.UUID()
     id = fields.UUID()
@@ -299,12 +335,14 @@ class EntityTypeDetail(Schema):
 
 
 class EntitiesQuery(Schema):
+    """The shape of entities query in the API's answers: type, name, limit."""
     type = fields.String(required=True, metadata={"description": "Entity type name, code or table name"})
     name = fields.String(load_default=None, metadata={"description": "One entity by name (case-insensitive)"})
     limit = fields.Integer(load_default=500, validate=lambda n: 1 <= n <= 5000)
 
 
 class EntitiesOut(Schema):
+    """The shape of entities in the API's answers: entity_table, relationship_table, columns, rows, relationships."""
     entity_table = fields.String()
     relationship_table = fields.String()
     columns = fields.List(fields.String(), metadata={"description": "Column order of the entity table"})
@@ -313,11 +351,14 @@ class EntitiesOut(Schema):
 
 
 class EntityListQuery(Schema):
+    """The shape of entity list query in the API's answers: type, limit."""
     type = fields.String(load_default=None, metadata={"description": "Only this entity type (name, code or table name)"})
     limit = fields.Integer(load_default=2000, validate=lambda n: 1 <= n <= 10000)
 
 
 class EntitySummaryOut(Schema):
+    """The shape of entity summary in the API's answers: id, display_id, name, description, entity_type,
+    entity_type_id, domain, colour, parent_name, status, relationship_count, modified_at and more."""
     id = fields.UUID()
     display_id = fields.String()
     name = fields.String()
@@ -334,6 +375,8 @@ class EntitySummaryOut(Schema):
 
 
 class RelationshipOut(Schema):
+    """The shape of relationship in the API's answers: id, relationship_type, verb, source_id, source_display_id,
+    source_name, source_type, target_id, target_display_id, target_name, target_type, name and more."""
     id = fields.UUID()
     relationship_type = fields.String()
     verb = fields.String()
@@ -354,17 +397,21 @@ class RelationshipOut(Schema):
 
 
 class RelationshipListQuery(Schema):
+    """The shape of relationship list query in the API's answers: type, limit."""
     type = fields.String(load_default=None, metadata={"description": "Only this relationship type (guid, code, name or verb)"})
     limit = fields.Integer(load_default=5000, validate=lambda n: 1 <= n <= 20000)
 
 
 class RelationshipTypeSummaryOut(RelationshipTypeOut):
+    """A relationship type with how many pairs the metamodel allows, how many relationships of it there are, and how many
+    of those are outside the rules."""
     allowed_pairs = fields.Integer(metadata={"description": "(source type, target type) pairs the metamodel allows"})
     relationship_count = fields.Integer(metadata={"description": "Relationships of this type in the model"})
     outside_rules = fields.Integer(metadata={"description": "Of those, how many the metamodel does not allow"})
 
 
 class RuleResultOut(Schema):
+    """The shape of rule result in the API's answers: field, code, rule, severity, message."""
     field = fields.String(metadata={"description": "Attribute or field name"})
     code = fields.String(metadata={"description": "Attribute code, or the built-in field (name, description)"})
     rule = fields.String(metadata={"description": "Rule type code; required = the attribute's required flag"})
@@ -373,6 +420,8 @@ class RuleResultOut(Schema):
 
 
 class EntityAttributeValueOut(Schema):
+    """The shape of entity attribute value in the API's answers: code, name, section, data_type, data_type_name,
+    unit, is_required, value, ref_id, ref_type, pick_list_values, warnings."""
     code = fields.String()
     name = fields.String()
     section = fields.String()
@@ -388,6 +437,9 @@ class EntityAttributeValueOut(Schema):
 
 
 class EntityRelationshipOut(Schema):
+    """The shape of entity relationship in the API's answers: id, relationship_type_id, relationship_type,
+    relationship_type_code, verb, category, direction, other_id, other_display_id, other_name, other_type,
+    other_type_id and more."""
     id = fields.UUID()
     relationship_type_id = fields.UUID()
     relationship_type = fields.String()
@@ -409,6 +461,8 @@ class EntityRelationshipOut(Schema):
 
 
 class EntityAllowedOut(Schema):
+    """The shape of entity allowed in the API's answers: direction, relationship_type, verb, other_type_id,
+    other_type."""
     direction = fields.String()
     relationship_type = fields.String()
     verb = fields.String()
@@ -417,12 +471,15 @@ class EntityAllowedOut(Schema):
 
 
 class EntityRefOut(Schema):
+    """The shape of entity ref in the API's answers: id, display_id, name."""
     id = fields.UUID()
     display_id = fields.String()
     name = fields.String()
 
 
 class LineageModelOut(Schema):
+    """The shape of lineage model in the API's answers: id, name, kind, kind_name, version_label, is_locked,
+    source_model_id, source_model_name, parent_model_id, parent_model_name."""
     id = fields.UUID()
     name = fields.String()
     kind = fields.String()
@@ -436,6 +493,8 @@ class LineageModelOut(Schema):
 
 
 class LineageItemOut(Schema):
+    """The shape of lineage item in the API's answers: id, display_id, name, model_id, model_name, model_version,
+    model_kind."""
     id = fields.UUID()
     display_id = fields.String()
     name = fields.String()
@@ -446,6 +505,7 @@ class LineageItemOut(Schema):
 
 
 class LineageOut(Schema):
+    """The shape of lineage in the API's answers: copied_from, copied_from_guid, type_from, copies."""
     copied_from = fields.Nested(LineageItemOut, allow_none=True, metadata={"description": "The entity this one was copied from"})
     copied_from_guid = fields.UUID(allow_none=True, metadata={"description": "Its guid, also when you may not read that model"})
     type_from = fields.Nested(LineageItemOut, allow_none=True, metadata={"description": "The template entity type its type came from"})
@@ -453,6 +513,8 @@ class LineageOut(Schema):
 
 
 class EntityDetailOut(Schema):
+    """The shape of entity detail in the API's answers: id, display_id, name, description, status, entity_type,
+    entity_type_id, domain, colour, parent_id, parent_name, created_at and more."""
     id = fields.UUID()
     display_id = fields.String()
     name = fields.String()
@@ -486,6 +548,7 @@ class EntityDetailOut(Schema):
 
 
 class TypeTableColumnOut(Schema):
+    """The shape of type table column in the API's answers: code, name, data_type, unit, is_required, section."""
     code = fields.String()
     name = fields.String()
     data_type = fields.String()
@@ -495,6 +558,8 @@ class TypeTableColumnOut(Schema):
 
 
 class TypeTableRowOut(Schema):
+    """The shape of type table row in the API's answers: id, display_id, name, description, status, parent_id,
+    parent_name, modified_at, modified_by, row_version, relationship_count, values and more."""
     id = fields.UUID()
     display_id = fields.String()
     name = fields.String()
@@ -516,6 +581,8 @@ class TypeTableRowOut(Schema):
 
 
 class TypeTableTypeOut(Schema):
+    """The shape of type table type in the API's answers: status, id, code, name, description, aspect, id_prefix,
+    table_name, domain, colour."""
     status = fields.String()
     id = fields.UUID()
     code = fields.String()
@@ -529,6 +596,7 @@ class TypeTableTypeOut(Schema):
 
 
 class TypeTableOut(Schema):
+    """The shape of type table in the API's answers: entity_type, columns, rows, rules."""
     entity_type = fields.Nested(TypeTableTypeOut)
     columns = fields.List(fields.Nested(TypeTableColumnOut))
     rows = fields.List(fields.Nested(TypeTableRowOut))
@@ -536,6 +604,7 @@ class TypeTableOut(Schema):
 
 
 class HistoryChangeOut(Schema):
+    """The shape of history change in the API's answers: field, old, new, action."""
     field = fields.String()
     old = fields.String(allow_none=True)
     new = fields.String(allow_none=True)
@@ -543,6 +612,8 @@ class HistoryChangeOut(Schema):
 
 
 class HistoryEventOut(Schema):
+    """The shape of history event in the API's answers: id, at, by, operation, version, label, kind, item, changes,
+    action, commit."""
     id = fields.Integer()
     at = fields.DateTime()
     by = fields.String()
@@ -557,6 +628,8 @@ class HistoryEventOut(Schema):
 
 
 class RuleResultOut(Schema):
+    """The shape of rule result in the API's answers: field, code, rule, rule_name, checks, severity, status,
+    message, value."""
     field = fields.String(metadata={"description": "The field, attribute or Relationships"})
     code = fields.String()
     rule = fields.String(metadata={"description": "Rule type code (required, mandatory, regex, has_relationship...)"})
@@ -569,6 +642,8 @@ class RuleResultOut(Schema):
 
 
 class RelationshipCheckOut(Schema):
+    """The shape of relationship check in the API's answers: id, relationship_type, verb, direction, other_id,
+    other_name, other_display_id, other_type, status, severity, message."""
     id = fields.UUID()
     relationship_type = fields.String()
     verb = fields.String()
@@ -583,6 +658,7 @@ class RelationshipCheckOut(Schema):
 
 
 class RuleSummaryOut(Schema):
+    """The shape of rule summary in the API's answers: checks, passed, failed, errors, warnings, not_applicable."""
     checks = fields.Integer()
     passed = fields.Integer()
     failed = fields.Integer()
@@ -592,6 +668,7 @@ class RuleSummaryOut(Schema):
 
 
 class EntityRulesOut(Schema):
+    """The shape of entity rules in the API's answers: entity, metamodel_version, summary, rules, relationships."""
     entity = fields.Dict()
     metamodel_version = fields.Integer()
     summary = fields.Nested(RuleSummaryOut)
@@ -600,16 +677,19 @@ class EntityRulesOut(Schema):
 
 
 class EntityHistoryOut(Schema):
+    """The shape of entity history in the API's answers: entity, events, total."""
     entity = fields.Nested(EntityRefOut)
     events = fields.List(fields.Nested(HistoryEventOut))
     total = fields.Integer()
 
 
 class HistoryQuery(Schema):
+    """The shape of history query in the API's answers: limit."""
     limit = fields.Integer(load_default=500, validate=lambda n: 1 <= n <= 5000)
 
 
 class GraphQuery(Schema):
+    """The shape of graph query in the API's answers: focus, depth, direction, rel, type, limit."""
     focus = fields.String(load_default=None, metadata={"description": "An entity (guid, display ID or name): it and its neighbours"})
     depth = fields.Integer(load_default=1, validate=lambda n: 1 <= n <= 10, metadata={"description": "Steps from the focus: 1 to 3; up to 6 with out, in or split; levels down (up to 10) with tree"})
     direction = fields.String(load_default="both", validate=lambda d: d in ("both", "out", "in", "split", "tree"),
@@ -620,6 +700,8 @@ class GraphQuery(Schema):
 
 
 class GraphNodeOut(Schema):
+    """The shape of graph node in the API's answers: id, display_id, name, entity_type, entity_type_id, domain,
+    colour, domain_order, focus, distance, target."""
     id = fields.UUID()
     display_id = fields.String()
     name = fields.String()
@@ -634,6 +716,8 @@ class GraphNodeOut(Schema):
 
 
 class GraphEdgeOut(Schema):
+    """The shape of graph edge in the API's answers: id, source, target, relationship_type_code, relationship_type,
+    verb, allowed."""
     id = fields.UUID()
     source = fields.UUID()
     target = fields.UUID()
@@ -644,6 +728,8 @@ class GraphEdgeOut(Schema):
 
 
 class EntityGraphOut(Schema):
+    """The shape of entity graph in the API's answers: model, nodes, edges, truncated, limit, direction, found,
+    steps, paths, source, target."""
     model = fields.String()
     nodes = fields.List(fields.Nested(GraphNodeOut))
     edges = fields.List(fields.Nested(GraphEdgeOut))
@@ -658,6 +744,7 @@ class EntityGraphOut(Schema):
 
 
 class PathQuery(Schema):
+    """The shape of path query in the API's answers: to, steps, paths, rel."""
     to = fields.String(required=True, metadata={"description": "The other entity (guid, display ID or name)"})
     steps = fields.Integer(load_default=6, validate=lambda n: 1 <= n <= 8, metadata={"description": "At most this many steps"})
     paths = fields.Integer(load_default=10, validate=lambda n: 1 <= n <= 50, metadata={"description": "At most this many paths"})
@@ -665,11 +752,13 @@ class PathQuery(Schema):
 
 
 class AsOfQuery(Schema):
+    """The shape of as of query in the API's answers: event, at."""
     event = fields.Integer(load_default=None, metadata={"description": "A history event id (from .../history): the entity just after it"})
     at = fields.DateTime(load_default=None, metadata={"description": "Or a time: the entity as it was then"})
 
 
 class AsOfPointOut(Schema):
+    """The shape of as of point in the API's answers: event_id, at, by, position, of, is_current."""
     event_id = fields.Integer()
     at = fields.DateTime()
     by = fields.String()
@@ -679,6 +768,8 @@ class AsOfPointOut(Schema):
 
 
 class AsOfValueOut(Schema):
+    """The shape of as of value in the API's answers: code, field, name, section, then, now, changed, before,
+    changed_here."""
     code = fields.String()
     field = fields.String()
     name = fields.String()
@@ -691,6 +782,8 @@ class AsOfValueOut(Schema):
 
 
 class AsOfRelationshipOut(Schema):
+    """The shape of as of relationship in the API's answers: id, relationship_type, verb, direction, other_id,
+    other_name, other_display_id, other_type, other_colour, relationship_type_code, still_there, added_here."""
     id = fields.UUID(allow_none=True)
     relationship_type = fields.String()
     verb = fields.String()
@@ -706,6 +799,8 @@ class AsOfRelationshipOut(Schema):
 
 
 class AsOfMomentRelationshipOut(Schema):
+    """The shape of as of moment relationship in the API's answers: id, relationship_type, verb, direction,
+    other_name."""
     id = fields.UUID(allow_none=True)
     relationship_type = fields.String()
     verb = fields.String()
@@ -714,6 +809,7 @@ class AsOfMomentRelationshipOut(Schema):
 
 
 class AsOfMomentOut(Schema):
+    """The shape of as of moment in the API's answers: created, changes, removed_relationships."""
     created = fields.Boolean(metadata={"description": "The entity was created at this moment"})
     changes = fields.Integer(metadata={"description": "Recorded changes in this moment"})
     removed_relationships = fields.List(fields.Nested(AsOfMomentRelationshipOut),
@@ -721,6 +817,7 @@ class AsOfMomentOut(Schema):
 
 
 class AsOfEntityOut(Schema):
+    """The shape of as of entity in the API's answers: id, display_id, name, entity_type, model."""
     id = fields.UUID()
     display_id = fields.String()
     name = fields.String()
@@ -729,6 +826,8 @@ class AsOfEntityOut(Schema):
 
 
 class EntityAsOfOut(Schema):
+    """The shape of entity as of in the API's answers: entity, as_of, moment, fields_, attributes, relationships,
+    added_since."""
     entity = fields.Nested(AsOfEntityOut)
     as_of = fields.Nested(AsOfPointOut)
     moment = fields.Nested(AsOfMomentOut, metadata={"description": "What this moment (one person, one second) changed"})
@@ -739,6 +838,8 @@ class EntityAsOfOut(Schema):
 
 
 class DiagramAttributeOut(Schema):
+    """The shape of diagram attribute in the API's answers: name, column_name, data_type, data_type_name, unit,
+    is_required, pick_list."""
     name = fields.String()
     column_name = fields.String()
     data_type = fields.String()
@@ -749,6 +850,8 @@ class DiagramAttributeOut(Schema):
 
 
 class DiagramTypeOut(Schema):
+    """The shape of diagram type in the API's answers: id, code, name, table_name, id_prefix, domain_id, domain,
+    colour, entity_count, base_id, attributes."""
     id = fields.UUID()
     code = fields.String()
     name = fields.String()
@@ -763,6 +866,8 @@ class DiagramTypeOut(Schema):
 
 
 class DiagramLinkOut(Schema):
+    """The shape of diagram link in the API's answers: source, target, relationship_types, source_multiplicities,
+    target_multiplicities."""
     source = fields.UUID()
     target = fields.UUID()
     relationship_types = fields.List(fields.String(), metadata={"description": "Codes of the allowed relationship types"})
@@ -771,6 +876,8 @@ class DiagramLinkOut(Schema):
 
 
 class MetamodelDiagram(Schema):
+    """The shape of metamodel diagram in the API's answers: model, domains, entity_types, relationship_types, links,
+    specializations."""
     model = fields.Nested(ModelOut)
     domains = fields.List(fields.Nested(DomainOut))
     entity_types = fields.List(fields.Nested(DiagramTypeOut))
@@ -780,6 +887,7 @@ class MetamodelDiagram(Schema):
 
 
 class MermaidQuery(Schema):
+    """The shape of mermaid query in the API's answers: domain, type, rel, generic, connected, attributes."""
     domain = fields.List(fields.String(), load_default=None,
                         metadata={"description": "Domains to show (name or code); repeat for several. All when left out"})
     type = fields.String(load_default=None, metadata={"description": "Focus on this entity type and the types it may connect to"})
@@ -791,6 +899,7 @@ class MermaidQuery(Schema):
 
 
 class MermaidOut(Schema):
+    """The shape of mermaid in the API's answers: model, entity_types, links, relationship_types, mermaid."""
     model = fields.String()
     entity_types = fields.Integer()
     links = fields.Integer()
@@ -799,6 +908,7 @@ class MermaidOut(Schema):
 
 
 class SqlQueryIn(Schema):
+    """The shape of sql query sent to the API: database, username, password, sql, keep."""
     database = fields.String(load_default="eaexplorer", metadata={"description": "Database on this installation's server"})
     username = fields.String(required=True, metadata={"description": "PostgreSQL user, for example eax_app or postgres"})
     password = fields.String(required=True, load_only=True)
@@ -807,6 +917,7 @@ class SqlQueryIn(Schema):
 
 
 class SqlResultSet(Schema):
+    """The shape of sql result set in the API's answers: columns, rows, row_count, truncated, status."""
     columns = fields.List(fields.String())
     rows = fields.List(fields.List(fields.Raw()))
     row_count = fields.Integer(allow_none=True)
@@ -815,6 +926,7 @@ class SqlResultSet(Schema):
 
 
 class SqlQueryOut(Schema):
+    """The shape of sql query in the API's answers: results, notices, committed, duration_ms."""
     results = fields.List(fields.Nested(SqlResultSet))
     notices = fields.List(fields.String())
     committed = fields.Boolean(metadata={"description": "True when the changes were kept (keep), false when rolled back"})
@@ -822,6 +934,7 @@ class SqlQueryOut(Schema):
 
 
 class ServiceHealth(Schema):
+    """The shape of service health in the API's answers: name, kind, status, detail, target, response_ms."""
     name = fields.String()
     kind = fields.String(metadata={"description": "The product behind the service"})
     status = fields.String(metadata={"description": "up, warning, down or off"})
@@ -831,6 +944,7 @@ class ServiceHealth(Schema):
 
 
 class ServicesHealth(Schema):
+    """The shape of services health in the API's answers: status, time, duration_ms, counts, services."""
     status = fields.String(metadata={"description": "ok, degraded, or down when the database is down"})
     time = fields.DateTime()
     duration_ms = fields.Integer()

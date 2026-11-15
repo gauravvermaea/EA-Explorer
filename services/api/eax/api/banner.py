@@ -37,6 +37,8 @@ def _record(action: str, details: dict) -> None:
 
 @blp.route("/banner")
 class Banner(MethodView):
+    """/api/v1/banner: GET the banner this person sees now ({banner: null} when none is set, it is outside its times,
+    or it is for admins only): the page then shows nothing at all."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -57,6 +59,9 @@ class Banner(MethodView):
 
 @blp.route("/admin/banner")
 class BannerAdmin(MethodView):
+    """/api/v1/admin/banner: GET the banner as set, what shows now, the last 20 banners set or cleared, and any
+    warning about the file; PUT set the banner: {text, link, link_text, level info|notice|urgent, starts, ends,
+    audience everyone|admins, dismissible}; DELETE clear the banner: nothing is shown."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")

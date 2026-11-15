@@ -45,6 +45,7 @@ def _png(width: int = 320, height: int = 180) -> bytes:
 
 
 def run() -> list[str]:
+    """Loads a sample self-test run."""
     from ..db import get_engine
     from ..testing import fixtures
     eng = get_engine()

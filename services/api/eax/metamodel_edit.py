@@ -85,6 +85,7 @@ def _need(p: dict, *names: str) -> None:
 
 
 def code_from(name: str) -> str:
+    """A type's code from its name (CamelCase, starting with a letter)."""
     words = re.findall(r"[A-Za-z0-9]+", name)
     code = "".join(w[:1].upper() + w[1:] for w in words)
     if not code or not code[0].isalpha():
@@ -93,6 +94,7 @@ def code_from(name: str) -> str:
 
 
 def snake_from(name: str) -> str:
+    """An attribute's code from its name (snake_case, starting with a letter)."""
     s = re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
     if not s or not s[0].isalpha():
         s = "x_" + s
@@ -897,6 +899,7 @@ VIEW_OPS = ("entity_type.", "attribute.", "lifecycle.")
 
 
 def changes_views(op: str) -> bool:
+    """Whether a metamodel change also changes the report views."""
     return str(op).startswith(VIEW_OPS)
 
 
@@ -964,6 +967,7 @@ LOCK_LEVELS = ("metamodel", "content", "maintenance")
 
 
 def set_lock(conn, model: Any, level: str, reason: str, actor: str) -> dict:
+    """Locks a model at a level (its metamodel, or everything), with a reason."""
     if level not in LOCK_LEVELS:
         raise EditError(f"Lock level is one of {', '.join(LOCK_LEVELS)}.")
     m = repo.get_model(conn, model)
@@ -981,6 +985,7 @@ def set_lock(conn, model: Any, level: str, reason: str, actor: str) -> dict:
 
 
 def clear_lock(conn, model: Any, actor: str) -> dict:
+    """Unlocks a model."""
     m = repo.get_model(conn, model)
     if m.get("lock_level", "none") == "none":
         raise EditError(f"Model {m['name']!r} is not locked.", 409)

@@ -24,6 +24,7 @@ blp = Blueprint(
 
 
 def check_database() -> tuple[dict, dict]:
+    """Whether the database answers and how fast, its schema version, and the job queue's waiting and failed jobs."""
     db = {"reachable": False, "latency_ms": None, "schema_version": None, "version": None, "error": None}
     jobs = {"waiting": None, "failed": None}
     started = time.perf_counter()
@@ -51,6 +52,8 @@ def check_database() -> tuple[dict, dict]:
 
 @blp.route("")
 class HeartbeatView(MethodView):
+    """/api/v1/heartbeat: GET heartbeat (public) Always answers 200 while the API runs; POST record a heartbeat now
+    (signed in) Writes a row to operations.heartbeat_logs, which the sample Superset dashboard shows."""
     @blp.response(200, Heartbeat)
     def get(self):
         """Heartbeat (public)
@@ -105,6 +108,8 @@ class HeartbeatView(MethodView):
 
 @blp.route("/services")
 class ServicesView(MethodView):
+    """/api/v1/heartbeat/services: GET health of every service (signed in) Checks, at the same time and from inside
+    the stack: the API, the database, the job runner, Keycloak, the web screens, the proxy…"""
     @blp.doc(security=[{"bearerAuth": []}])
     @blp.response(200, ServicesHealth)
     @require_auth()

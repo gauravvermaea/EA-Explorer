@@ -76,6 +76,7 @@ def set_icon(conn, model: Any, user, library: str | None = None, data: bytes | N
 
 
 def get_upload(conn, model: Any) -> tuple[bytes, str]:
+    """A model's uploaded icon and its type (for those who may read the model)."""
     m = repo.get_model(conn, model)          # only people who may read the model
     r = conn.execute(text("SELECT content_type, data FROM core.model_icons WHERE model_id = :m AND data IS NOT NULL"),
                      {"m": m["_id"]}).mappings().first()

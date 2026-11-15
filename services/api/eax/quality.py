@@ -94,6 +94,7 @@ def _model_roles(conn, user, m: dict) -> list[str]:
 
 
 def is_model_admin(conn, user, m: dict) -> bool:
+    """Whether the person is Model Admin of the model (or a Super Admin)."""
     return bool(user) and (perms.SUPER_ADMIN in user.roles or perms.MODEL_ADMIN in _model_roles(conn, user, m))
 
 
@@ -882,6 +883,7 @@ def run_request(conn_factory, request_id: str) -> None:
 
 
 def runs(conn, model: Any, limit: int = 60) -> list[dict]:
+    """A model's quality runs, newest first, with their scores."""
     m = repo.get_model(conn, model)
     return _rows(conn, """SELECT guid::text AS id, run_at, run_by, trigger, score, completeness, entities, summary, seconds
                             FROM core.quality_runs WHERE model_id = :m ORDER BY run_at DESC LIMIT :l""", m=m["_id"], l=limit)
@@ -1229,6 +1231,7 @@ def change(conn, model: Any, user, kind: str, payload: dict, note: str = "") -> 
 
 
 def pending(conn, user) -> list[dict]:
+    """Quality changes waiting for a Super Admin's approval."""
     if perms.SUPER_ADMIN not in user.roles:
         raise EditError("Approving quality changes needs the Super Admin role.", 403)
     return _rows(conn, """SELECT c.guid::text AS id, m.guid::text AS model_id, m.name AS model, c.kind, c.summary, c.payload,
@@ -1308,6 +1311,7 @@ def seal(conn, model: Any, user, entities: list[str], kind: str = "seal", note: 
 
 
 def unseal(conn, model: Any, user, entities: list[str]) -> dict:
+    """Removes the quality seals from elements (the Model Admin)."""
     m = repo.get_model(conn, model)
     if not is_model_admin(conn, user, m):
         raise EditError("Removing seals needs the Model Admin role on the model.", 403)
@@ -1590,6 +1594,7 @@ def _may_edit(conn, user, m: dict) -> bool:
 
 
 def exemptions(conn, m: dict, status: str = "pending") -> list[dict]:
+    """A model's quality exemptions of one status."""
     return _rows(conn, """SELECT x.guid::text AS id, e.guid::text AS entity, e.display_id, e.name, x.item, x.reason, x.status,
                                  x.requested_by, x.requested_at, x.decided_by, x.decided_at, x.decision_note
                             FROM core.quality_exemptions x JOIN core.entities e ON e.id = x.entity_id

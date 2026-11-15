@@ -198,6 +198,7 @@ def preview(conn, run_ids: list[int]) -> dict[str, Any]:
 
 
 def preview_text(p: dict[str, Any]) -> str:
+    """What removing earlier runs' test data would remove, as text."""
     if not p["fixtures"]:
         return "Dry run: no test data to remove."
     lines = [f"Dry run: nothing is deleted. Removing the test data of run(s) {', '.join(map(str, p['runs']))} would delete:"]

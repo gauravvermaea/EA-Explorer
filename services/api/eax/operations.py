@@ -189,6 +189,7 @@ def _library_use(rows: list[dict]) -> list[dict]:
 
 
 def model_use(conn, since: str) -> list[dict]:
+    """Every model with when it was last used and changed, its size and whether it is archived."""
     rows = _rows(conn, """
         SELECT m.guid, m.name, m.kind_code AS kind, m.status_code AS status,
                (m.status_code IN ('archived', 'frozen')) AS archived,
@@ -295,6 +296,7 @@ def _metric(conn, name: str) -> list[str]:
 
 # ---------------------------------------------------------------- database health
 def db_health(conn) -> dict:
+    """The database's tables by size, with rows and dead rows, and its overall figures."""
     tables = _rows(conn, """
         SELECT n.nspname AS schema, c.relname AS name, pg_total_relation_size(c.oid) AS bytes,
                pg_relation_size(c.oid) AS table_bytes, greatest(c.reltuples, 0)::bigint AS rows,
@@ -364,6 +366,7 @@ class NotConfirmed(Exception):
 
 
 def rules(conn) -> list[dict]:
+    """The keep-for rules with what an admin set on top of the defaults."""
     have = {r["code"]: r for r in _rows(conn, "SELECT * FROM core.retention_rules")}
     out = []
     for code, (label, covers, actions, min_days) in RULES.items():
@@ -380,6 +383,7 @@ def _rule_snapshot(conn) -> dict:
 
 
 def set_rule(conn, actor: str, code: str, action: str, after_days: int, roles=("super-admin",)) -> dict:
+    """Sets a keep-for rule's action and days (some by a Super Admin only)."""
     if code not in RULES:
         raise LookupError(f"No retention rule '{code}'.")
     if code in SUPER_ONLY and "super-admin" not in set(roles or ()):
@@ -426,10 +430,12 @@ def _run_shape(r: dict) -> dict:
 
 
 def runs(conn, limit: int = 30) -> list[dict]:
+    """The housekeeping runs, newest first."""
     return [_run_shape(r) for r in _rows(conn, "SELECT * FROM core.housekeeping_runs ORDER BY id DESC LIMIT :n", n=limit)]
 
 
 def confirm(conn, actor: str, run_id) -> dict:
+    """Confirms a housekeeping run's dry run, so the rules act from then on."""
     run = _rows(conn, "SELECT * FROM core.housekeeping_runs WHERE id::text = :i OR guid::text = :i", i=str(run_id))
     if not run:
         raise LookupError("No such run.")
@@ -630,6 +636,7 @@ def scheduled(conn) -> dict | None:
 
 
 def archive_search(conn, q: str = "", rule: str = "", limit: int = 100) -> list[dict]:
+    """Searches what housekeeping archived."""
     rows = _rows(conn, """
         SELECT id, rule, source_table, source_id, model_id, summary, created_at, archived_at, run_id,
                content IS NOT NULL AS has_file, coalesce(length(content), 0) AS bytes,
@@ -642,6 +649,7 @@ def archive_search(conn, q: str = "", rule: str = "", limit: int = 100) -> list[
 
 
 def archived_item(conn, ident: int) -> dict:
+    """One archived item in full."""
     r = _rows(conn, "SELECT id, rule, source_table, source_id, summary, data, created_at, archived_at FROM core.archived_items WHERE id = :i",
               i=int(ident))
     if not r:
@@ -650,6 +658,7 @@ def archived_item(conn, ident: int) -> dict:
 
 
 def archived_file(conn, ident: int) -> tuple[bytes, str, str]:
+    """An archived item's file, with its name and type."""
     r = _rows(conn, "SELECT content, data, summary FROM core.archived_items WHERE id = :i AND content IS NOT NULL", i=int(ident))
     if not r:
         raise LookupError("No file in the archive under that number.")

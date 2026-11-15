@@ -30,6 +30,7 @@ EDIT_HOLD = timedelta(minutes=30)       # a page held for editing is free again 
 
 
 class Refused(Exception):
+    """A library change refused, with the HTTP status to answer."""
     def __init__(self, message: str, status: int = 400):
         super().__init__(message)
         self.status = status
@@ -47,6 +48,7 @@ def _tags(v: Any) -> list[str]:
 
 # ---------------------------------------------------------------- libraries and what someone may do there
 def org_library(conn) -> dict:
+    """The organisation's library."""
     return one(conn, "SELECT * FROM lib.libraries WHERE scope = 'org'")
 
 
@@ -72,6 +74,7 @@ def library(conn, person, lib_id: str) -> tuple[dict, dict]:
 
 
 def may(conn, person, lib: dict) -> dict:
+    """What the person may do in a library: read, write, administer."""
     if lib["scope"] == "org":
         return {"read": True, "write": True, "admin": person.library_admin}
     try:
@@ -86,6 +89,7 @@ def may(conn, person, lib: dict) -> dict:
 
 
 def need(rights: dict, what: str) -> None:
+    """Refuses when the person may not do this."""
     if not rights.get(what):
         raise Refused({"write": "Only the project's people change its library." if "project" in rights else "Not allowed.",
                        "admin": "Needs a Library Admin or a Super Admin (a project's Project Admin for its library)."}.get(what, "Not allowed."), 403)
@@ -93,6 +97,7 @@ def need(rights: dict, what: str) -> None:
 
 # ---------------------------------------------------------------- folders
 def tree(conn, lib: dict) -> list[dict]:
+    """A library's folders as a tree."""
     fs = rows(conn, """SELECT guid::text AS id, name, parent_id, id AS _id, sort_order FROM lib.folders
                         WHERE library_id = %(l)s AND NOT is_deleted ORDER BY sort_order, lower(name)""", l=lib["id"])
     by = {f["_id"]: f["id"] for f in fs}
@@ -111,6 +116,7 @@ def _folder(conn, lib: dict, fid: str | None) -> dict | None:
 
 
 def add_folder(conn, person, lib: dict, data: dict) -> dict:
+    """Adds a folder."""
     name = _clean(data.get("name"), 120)
     if not name:
         raise Refused("Name the folder.")
@@ -122,6 +128,7 @@ def add_folder(conn, person, lib: dict, data: dict) -> dict:
 
 
 def change_folder(conn, person, lib: dict, fid: str, data: dict) -> dict:
+    """Renames or moves a folder."""
     f = _folder(conn, lib, fid)
     name = _clean(data.get("name", f["name"]), 120)
     parent_id = f["parent_id"]
@@ -188,6 +195,7 @@ def _entry(conn, lib: dict | None, eid: str) -> dict:
 
 
 def entries(conn, lib: dict, fid: str | None) -> dict:
+    """A folder's entries."""
     f = _folder(conn, lib, fid)
     es = rows(conn, f"""SELECT guid::text AS id, kind, title, description, tags, href, file_name, file_size, changed_by, changed_at,
                                created_by, created_at FROM lib.entries
@@ -205,6 +213,7 @@ def _path(conn, f: dict | None) -> list[dict]:
 
 
 def get_entry(conn, lib: dict, eid: str) -> dict:
+    """One entry, with who is editing it."""
     e = _entry(conn, lib, eid)
     f = one(conn, "SELECT * FROM lib.folders WHERE id = %(i)s", i=e["folder_id"]) if e["folder_id"] else None
     hold = e["editing_by"] if e["editing_by"] and e["editing_at"] and datetime.now(UTC) - e["editing_at"] < EDIT_HOLD else ""
@@ -234,6 +243,7 @@ def _fields(data: dict, kind: str) -> dict:
 
 
 def add_entry(conn, person, lib: dict, data: dict, file_name: str = "", content: bytes = b"") -> dict:
+    """Adds a page, link or file."""
     kind = data.get("kind") or ("file" if content else "page")
     if kind not in ("page", "link", "file"):
         raise Refused("An entry is a page, a link or a file.")
@@ -258,6 +268,7 @@ def add_entry(conn, person, lib: dict, data: dict, file_name: str = "", content:
 
 
 def change_entry(conn, person, lib: dict, eid: str, data: dict) -> dict:
+    """Changes an entry (a page held by someone else is refused)."""
     e = _entry(conn, lib, eid)
     if e["kind"] == "page" and "blocks" in data and _held_by_other(e, person):
         raise Refused(f"{e['editing_by']} is editing this page; try again when they are done.", 409)
@@ -280,6 +291,7 @@ def change_entry(conn, person, lib: dict, eid: str, data: dict) -> dict:
 
 
 def remove_entry(conn, person, lib: dict, eid: str) -> dict:
+    """Removes an entry (kept in the history, can be undone)."""
     e = _entry(conn, lib, eid)
     conn.execute("UPDATE lib.entries SET is_deleted = true, changed_by = %(u)s, changed_at = now() WHERE id = %(i)s", {"u": person.username, "i": e["id"]})
     _change(conn, lib, person, "removed", e["title"], entry=e["id"], before=_snapshot(e))
@@ -302,6 +314,7 @@ def hold(conn, person, lib: dict, eid: str, on: bool) -> dict:
 
 
 def file_of(conn, lib: dict, eid: str) -> tuple[bytes, str, str]:
+    """A file entry's content."""
     e = _entry(conn, lib, eid)
     if e["kind"] != "file" or e["content"] is None:
         raise Refused("Not a file.", 404)
@@ -310,6 +323,7 @@ def file_of(conn, lib: dict, eid: str) -> tuple[bytes, str, str]:
 
 # ---------------------------------------------------------------- history and undo
 def history(conn, lib: dict, eid: str | None = None, limit: int = 100) -> list[dict]:
+    """A library's (or an entry's) changes, newest first."""
     cond = "c.library_id = %(l)s" + (" AND e.guid::text = %(e)s" if eid else "")
     return rows(conn, f"""SELECT c.id, c.action, c.title, c.username, c.at, c.undone_by, e.guid::text AS entry, f.guid::text AS folder,
                                  c.before IS NOT NULL AS has_before
@@ -318,6 +332,7 @@ def history(conn, lib: dict, eid: str | None = None, limit: int = 100) -> list[d
 
 
 def change_detail(conn, lib: dict, cid: int) -> dict:
+    """One change, with what it changed."""
     c = one(conn, "SELECT * FROM lib.changes WHERE id = %(i)s AND library_id = %(l)s", i=int(cid), l=lib["id"])
     if not c:
         raise Refused("No such change.", 404)
@@ -411,6 +426,7 @@ def search(conn, libs: list[dict], q: str, limit: int = 60) -> dict:
 
 # ---------------------------------------------------------------- the project's settings
 def set_project(conn, person, lib: dict, rights: dict, data: dict) -> dict:
+    """A project library's settings (shared with the enterprise, its own address)."""
     need(rights, "admin")
     sets, msg = {}, []
     if "in_enterprise" in data:
@@ -437,6 +453,7 @@ def published(conn) -> list[dict]:
 
 # ---------------------------------------------------------------- export and import (project backups), for the main API
 def export_project(conn, project_guid: str) -> dict | None:
+    """A project's library for its backup."""
     lib = one(conn, "SELECT * FROM lib.libraries WHERE project_guid::text = %(g)s", g=project_guid)
     if not lib:
         return None

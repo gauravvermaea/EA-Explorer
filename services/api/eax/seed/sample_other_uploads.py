@@ -38,6 +38,7 @@ def _members(conn, project: str) -> set[str]:
 
 
 def run() -> list[str]:
+    """Loads the sample other uploads."""
     from .. import other_uploads as ou
     from .. import projects as pj
 

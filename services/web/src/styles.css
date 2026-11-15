@@ -2712,3 +2712,13 @@ th.sortable { cursor: pointer; }
 .res-line-1 { stroke: var(--ok); color: var(--ok); }
 .res-key.res-line-0::before, .res-key.res-line-1::before { content: "\25A0 "; }
 .res-band { fill: #f2a33a; opacity: 0.18; }
+
+/* the Auditor (R5.22): sees everything, changes nothing */
+.auditor-banner { background: #eef4fb; color: #1d3f66; border-bottom: 1px solid #b9cde6; padding: 4px 16px; font-size: 0.9em; }
+
+/* the Live browser panel (R5.20): the test's own Chromium, large, and a tile per other browser */
+.live-browser .live-frame { max-width: 100%; border: 1px solid var(--border, #ccc); border-radius: 4px; display: block; }
+.live-tiles { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.live-tile { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 4px; width: 190px; text-align: left; }
+.live-tile img { width: 180px; height: auto; border: 1px solid var(--border, #ccc); }
+.live-tile.on { outline: 2px solid var(--accent, #e8590c); }

@@ -23,6 +23,7 @@ TIMEOUT = 5
 
 
 class KeycloakError(RuntimeError):
+    """Keycloak's admin API refused or could not be reached."""
     pass
 
 

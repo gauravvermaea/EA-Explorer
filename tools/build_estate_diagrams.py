@@ -14,6 +14,7 @@ from eaxcli import estate  # noqa: E402
 
 
 def build() -> dict[str, str]:
+    """The estate's page and diagrams from docker-compose.yml."""
     items = estate.from_compose(yaml.safe_load((ROOT / "docker-compose.yml").read_text(encoding="utf-8")))
     return {"docs/estate.md": estate.markdown(items),
             "docs/estate/logical.drawio": estate.to_drawio("EA Explorer: logical", *estate.logical()),

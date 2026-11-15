@@ -48,6 +48,7 @@ _USE_COLOUR = _colour_ok()
 
 
 def paint(text: str, colour: str = "") -> str:
+    """Text in a colour (when the terminal shows colours)."""
     return f"\033[{_COLOURS[colour]}m{text}\033[0m" if colour and _USE_COLOUR else text
 
 
@@ -88,14 +89,17 @@ def say_status_lines(lines: list[str]) -> None:
 
 
 def ok(text: str) -> None:
+    """Says something in green."""
     say(text, "green")
 
 
 def warn(text: str) -> None:
+    """Says something in yellow."""
     say(text, "yellow")
 
 
 def heading(text: str) -> None:
+    """Says something in cyan."""
     say(text, "cyan")
 
 
@@ -106,12 +110,14 @@ def say(text: str = "", colour: str = "") -> None:
 
 
 def log_only(text: str) -> None:
+    """Writes a line to the command's log only."""
     if _log["file"]:
         _log["file"].write(text + "\n")
         _log["file"].flush()
 
 
 def start_log(name: str, rest: list[str]) -> None:
+    """Starts the command's log in work/logs (two weeks of logs kept)."""
     LOG_DIR.mkdir(parents=True, exist_ok=True)
     cutoff = time.time() - 14 * 86400          # keep two weeks of logs
     for f in LOG_DIR.glob("*.log"):
@@ -129,6 +135,7 @@ def start_log(name: str, rest: list[str]) -> None:
 
 
 def stop_log() -> None:
+    """Ends the command's log."""
     if _log["file"]:
         log_only(f"=== end {datetime.now().astimezone().isoformat()}")
         _log["file"].close()
@@ -136,6 +143,7 @@ def stop_log() -> None:
 
 
 def log_path() -> str:
+    """The command's log file."""
     return str(_log["path"] or "")
 
 
@@ -146,6 +154,7 @@ _MASKS = [(re.compile(r"((?:PASSWORD|SECRET|_KEY|URLENC)[A-Z_]*\s*[:=]\s*).*$"),
 
 
 def hide_secrets(line: str) -> str:
+    """A line with passwords, tokens and keys masked."""
     for rx, rep in _MASKS:
         line = rx.sub(rep, line)
     return line
@@ -219,6 +228,7 @@ CREATING = ("up", "run", "create")           # the compose commands that make co
 
 
 def vault_keys_file() -> Path:
+    """Where the key vault's unseal keys are kept."""
     from . import vault
     persist = ""
     if ENV_FILE.exists():
@@ -287,6 +297,7 @@ def vault_env() -> dict[str, str]:
 
 
 def kind() -> str:
+    """The installation's kind (laptop or server)."""
     return setting("EAX_DEPLOYMENT", "laptop")
 
 
@@ -325,6 +336,7 @@ def build_id() -> str:
 
 
 def release() -> str:
+    """The release this folder holds (services/api/version.toml)."""
     m = re.search(r'^version\s*=\s*"(.*)"', (ROOT / "services/api/version.toml").read_text(encoding="utf-8"), re.MULTILINE) \
         if (ROOT / "services/api/version.toml").exists() else None
     return m.group(1) if m else "?"
@@ -343,12 +355,35 @@ def _build_env() -> None:
 
 
 def compose_args(args: list[str]) -> list[str]:
+    """docker compose with the config file, the deployment's compose files, the data folders and the profiles switched
+    on."""
     if not ENV_FILE.exists():
         raise Failure(f"No {ENV_REL} yet: run {EAX} init first.")
     vault_profile()
     if args and args[0] in CREATING:
         vault_env()
+        folders_env()
     return _compose_base(args)
+
+
+def folders_env() -> None:
+    """Where the data lives (R5.4, D687): with a base folder (EAX_DATA_ROOT), each folder made and checked and its
+    value put in this process's environment for docker compose; a base folder that is missing or a folder that cannot
+    be written stops the start."""
+    if os.environ.get("EAX_FOLDERS_RESOLVED"):
+        return
+    from . import datafolders
+    base, places = datafolders.resolve()
+    if not base:
+        return
+    ok, checks = datafolders.check(base, places)
+    say(datafolders.table(base, checks))
+    if not ok:
+        raise Failure("a data folder cannot be used (above): nothing was started.")
+    for line in datafolders.env_lines(places):
+        k, v = line.split("=", 1)
+        os.environ[k] = v
+    os.environ["EAX_FOLDERS_RESOLVED"] = "1"
 
 
 def _compose_base(args: list[str]) -> list[str]:
@@ -366,6 +401,7 @@ def _compose_base(args: list[str]) -> list[str]:
 
 
 def compose(args: list[str], no_throw: bool = False, quiet: bool = False) -> int:
+    """Runs docker compose (diagnostics collected when it fails)."""
     code = run_logged(compose_args(args), quiet=quiet)
     if code != 0 and not no_throw:
         say(f"docker compose failed (exit {code}). Collecting diagnostics...", "red")
@@ -381,16 +417,19 @@ def compose_out(args: list[str]) -> list[str]:
 
 
 def docker_ok() -> bool:
+    """Whether Docker's engine answers."""
     return capture(["docker", "info", "--format", "{{.ServerVersion}}"])[0] == 0
 
 
 def assert_docker() -> None:
+    """Stops with what to do when Docker is not running."""
     if not docker_ok():
         raise Failure("Docker is not running (or still starting). Start Docker Desktop (or the Docker service), wait until it "
                       "shows 'Engine running', check with: docker version (it must show a Server section), then run this again.")
 
 
 def version() -> str:
+    """The version in services/api/version.toml."""
     m = re.search(r'^version = "(.*)"', (ROOT / "services/api/version.toml").read_text(encoding="utf-8"), re.MULTILINE)
     return m.group(1) if m else ""
 

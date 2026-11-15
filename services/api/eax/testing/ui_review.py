@@ -50,6 +50,7 @@ def routes(ids: dict[str, str]) -> list[str]:
 
 
 def slug(route: str) -> str:
+    """A screenshot's file name from its route."""
     return re.sub(r"[^a-z0-9]+", "-", route.lower()).strip("-")[:60] or "home"
 
 

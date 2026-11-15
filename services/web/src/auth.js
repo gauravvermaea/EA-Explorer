@@ -114,7 +114,7 @@ export function roles() {
   return me?.roles || [];
 }
 
-const ROLE_NAMES = { "super-admin": "Super Admin", "it-admin": "IT Admin", "user-admin": "User Admin", "keycloak-admin": "Keycloak Admin",
+const ROLE_NAMES = { "super-admin": "Super Admin", "it-admin": "IT Admin", "user-admin": "User Admin", "keycloak-admin": "Keycloak Admin", auditor: "Auditor",
   "model-creator": "Model Creator", "library-admin": "Library Admin", user: "User",
   "model-admin": "Model Admin", architect: "Architect", "model-sub-admin": "Model Sub Admin", "report-viewer": "Report Viewer",
   committer: "Committer", "history-viewer": "History Viewer" };
@@ -124,7 +124,11 @@ export const roleName = (r) => ROLE_NAMES[r] || r;
 // Why a greyed-out control cannot be used: the role it needs and who gives it, so people can ask for it.
 // Global roles (Super Admin, Model Creator, Library Admin...) are given in Keycloak by a User Admin;
 // roles on a model by that model's Model Admins on its People tab.
-const GLOBAL_ROLE_CODES = ["super-admin", "it-admin", "user-admin", "keycloak-admin", "model-creator", "library-admin"];
+const GLOBAL_ROLE_CODES = ["super-admin", "it-admin", "user-admin", "keycloak-admin", "auditor", "model-creator", "library-admin"];
+
+// The Auditor (R5.22): sees as a Super Admin; with no other role that changes anything, every change is refused by the
+// API, so the screens say so before asking ("Auditor: view only").
+export function viewOnly() { return !!me?.view_only; }
 export function needsRole(roles, modelName) {
   const list = (Array.isArray(roles) ? roles : [roles]);
   const names = list.map((r) => roleName(r));
@@ -220,7 +224,19 @@ export async function apiDownload(path, fallbackName = "download", body = undefi
 }
 
 // fetch() with the access token, refreshed when it is about to expire.
+// calls that send a body but only read: as the API's eax/permissions.py READ_POSTS (R5.22)
+const READ_POSTS = /\/(search|query|explain|export|compare|compare\/(download|detail|fields)|compare-profiles|duplicates\/compare|entities\/check|drawn-views\/check|canvases\/[^/]+\/compare\/[^/]+)$/;
+export function isReadCall(method, path) {
+  const m = (method || "GET").toUpperCase();
+  return ["GET", "HEAD", "OPTIONS"].includes(m) || (m === "POST" && READ_POSTS.test(String(path).split("?")[0]));
+}
+
 export async function apiFetch(path, options = {}) {
+  if (viewOnly() && !isReadCall(options.method, path) && !String(path).startsWith("/api/v1/me/")) {
+    const err = new Error("Auditor: view only. Your role lets you see everything but change nothing.");
+    err.status = 403;
+    throw err;
+  }
   const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
   if (fixedToken()) {
     headers.Authorization = `Bearer ${fixedToken()}`;

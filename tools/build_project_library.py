@@ -24,6 +24,7 @@ OUT = ROOT / "services" / "api" / "eax" / "seed" / "project_library.json"
 
 
 def rows(ws):
+    """A sheet's rows as dicts by heading."""
     it = ws.iter_rows(values_only=True)
     head = [str(h or "").strip() for h in next(it)]
     for r in it:
@@ -32,10 +33,12 @@ def rows(ws):
 
 
 def keep(v) -> bool:
+    """Whether a row is kept (not marked no)."""
     return str(v or "").strip().lower() not in ("no", "n", "false")
 
 
 def main(path: Path) -> dict:
+    """Builds the deliverables library from its workbook."""
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
     phases = [dict(code=r["Phase"], name=r["Name"], workspace=r["Workspace folder"], objectives=str(r["Objectives (Meridian framework)"]),
                    inputs=str(r["Inputs (Meridian framework)"]), sort=i)

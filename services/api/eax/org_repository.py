@@ -39,11 +39,14 @@ def _ids(conn, user) -> tuple[list[str], dict[str, str]]:
 
 
 def org_base(conn) -> dict | None:
+    """The organisation's own base project (its repository), if there is one."""
     r = pj._one(conn, "SELECT guid::text AS id, name FROM proj.projects WHERE base_kind = 'org' ORDER BY id LIMIT 1")
     return dict(r) if r else None
 
 
 def governance(conn, user, kind: str) -> dict:
+    """The organisation's governance records of one kind (decisions, compliance or capability assessments) across the
+    projects the person sees."""
     name = GOV_KINDS.get(kind)
     if not name:
         raise EditError("Decisions, compliance assessments or capability assessments.", 404)
@@ -63,6 +66,7 @@ def governance(conn, user, kind: str) -> dict:
 
 
 def people(conn, user) -> dict:
+    """The people on the projects the person sees, with their roles."""
     ids, _names = _ids(conn, user)
     rows = []
     if ids:
@@ -89,6 +93,7 @@ def may_see_all_users(user) -> bool:
 
 
 def model_levels(conn, user) -> dict:
+    """The models of the projects the person sees, by level."""
     ids, _names = _ids(conn, user)
     rows = []
     if ids:
@@ -112,6 +117,7 @@ def summary(conn, user) -> dict:
 
 # ---------------------------------------------------------------- the Architecture Board (D324): members only
 def board(conn, user) -> dict:
+    """The Architecture Board's members."""
     rows = _rows(conn, "SELECT username, role, added_by, added_at FROM proj.board_members ORDER BY username")
     for r in rows:
         r["added_at"] = r["added_at"].isoformat() if hasattr(r["added_at"], "isoformat") else r["added_at"]
@@ -119,6 +125,7 @@ def board(conn, user) -> dict:
 
 
 def board_set(conn, user, username: str, role: str = "", remove: bool = False) -> dict:
+    """Names someone to the Architecture Board, or removes them (Super Admins)."""
     from sqlalchemy import text
     if not pj._super(user):
         raise EditError("The Architecture Board's members are named by Super Admins.", 403)

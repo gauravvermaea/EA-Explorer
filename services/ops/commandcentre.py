@@ -66,6 +66,7 @@ def _config_values() -> dict:
 
 
 def installation_name() -> str:
+    """The installation's name (for the wipe confirmation)."""
     v = _config_values()
     if v.get("EAX_INSTALLATION_NAME") or v.get("EAX_HOSTNAME"):
         return v.get("EAX_INSTALLATION_NAME") or v.get("EAX_HOSTNAME")
@@ -76,6 +77,7 @@ def installation_name() -> str:
 
 
 def catalogue() -> dict:
+    """The Command centre's commands."""
     _need()
     return {**C.catalogue(), "installation": installation_name()}
 
@@ -89,6 +91,7 @@ def _read(path: str) -> dict:
 
 
 def history(limit: int = 200) -> list[dict]:
+    """The Command centre's runs, newest first."""
     out = []
     if os.path.isdir(RUNS):
         for d in os.listdir(RUNS):
@@ -122,6 +125,7 @@ def last_words(run_id: str, lines: int = 15) -> str:
 
 
 def detail(run_id: str, start: int = 0) -> dict:
+    """One run with its output."""
     folder = os.path.join(RUNS, _safe_id(run_id))
     rec = _read(os.path.join(folder, "status.json"))
     if not rec:
@@ -252,6 +256,7 @@ def start_scheduled(s: dict) -> str:
 
 
 def schedules_list() -> dict:
+    """The schedules."""
     _need()
     _tz_env()
     out = S.listing()
@@ -264,6 +269,7 @@ def schedules_list() -> dict:
 
 
 def schedule_add(body: dict) -> dict:
+    """Adds a schedule."""
     _need()
     _tz_env()
     by = str(body.get("by") or "?")
@@ -281,6 +287,7 @@ def schedule_add(body: dict) -> dict:
 
 
 def schedule_change(sid: str, what: str, body: dict) -> dict:
+    """Changes a schedule (on, off, remove, run)."""
     _need()
     _tz_env()
     by = str(body.get("by") or "?")
@@ -298,6 +305,7 @@ def schedule_change(sid: str, what: str, body: dict) -> dict:
 
 
 def scheduler_tick() -> list[dict]:
+    """Runs the schedules that are due (each minute)."""
     if S is None:
         return []
     _tz_env()
@@ -340,12 +348,14 @@ def reset_survival_runs() -> dict:
 
 
 def banner_now(admin: bool) -> dict:
+    """The banner to show now."""
     _need()
     _tz_env()
     return {"banner": B.current(admin=admin)}
 
 
 def banner_all() -> dict:
+    """The banner and its history."""
     _need()
     _tz_env()
     data, warn = B.load()
@@ -355,17 +365,20 @@ def banner_all() -> dict:
 
 
 def banner_set(body: dict) -> dict:
+    """Sets the banner."""
     _need()
     _tz_env()
     return {"banner": B.set_banner(dict(body.get("banner") or {}), str(body.get("by") or "?"))}
 
 
 def banner_clear(body: dict) -> dict:
+    """Clears the banner."""
     _need()
     return {"cleared": B.clear(str(body.get("by") or "?"))}
 
 
 def stop(run_id: str, by: str) -> dict:
+    """Stops a Command centre run."""
     _need()
     rec = _read(os.path.join(RUNS, _safe_id(run_id), "status.json"))
     if not rec:

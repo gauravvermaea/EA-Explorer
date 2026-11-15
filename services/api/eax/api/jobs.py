@@ -17,6 +17,8 @@ blp = Blueprint("jobs", __name__, url_prefix="/api/v1/jobs", description="Backgr
 
 @blp.route("/heartbeat")
 class HeartbeatJob(MethodView):
+    """/api/v1/jobs/heartbeat: POST start the sample background job (signed in) The job runner in the api container
+    picks it up, writes a heartbeat row and an audit event."""
     @blp.arguments(JobRequestIn)
     @blp.response(202, JobOut)
     @blp.doc(security=[{"bearerAuth": []}])
@@ -43,6 +45,7 @@ class HeartbeatJob(MethodView):
 
 @blp.route("/<int:job_id>")
 class JobStatus(MethodView):
+    """/api/v1/jobs/{job_id}: GET status of a job: todo, doing, succeeded, failed or cancelled."""
     @blp.response(200, JobOut)
     @blp.doc(security=[{"bearerAuth": []}])
     @require_auth()

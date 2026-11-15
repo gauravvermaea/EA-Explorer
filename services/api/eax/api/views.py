@@ -34,6 +34,8 @@ SECURITY = [{"bearerAuth": []}]
 
 
 class ViewIn(Schema):
+    """The shape of view sent to the API: code, name, category, purpose, concerns, stakeholders, element_types,
+    relationship_types, heat_attribute, audiences."""
     code = fields.String(required=True, metadata={"description": "For example OVP-01; VP-<number> is kept for the built-in ones"})
     name = fields.String(required=True)
     category = fields.String(load_default="Organisation")
@@ -71,6 +73,8 @@ def _write(fn, action: str, details: dict):
 
 @blp.route("/views")
 class Views(MethodView):
+    """/api/v1/views: GET every view: the 25 built in (ArchiMate 4, Appendix C) and the organisation's own; POST add
+    one of the organisation's own views (Library Admins)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -89,6 +93,8 @@ class Views(MethodView):
 
 @blp.route("/views/<string:code>")
 class View(MethodView):
+    """/api/v1/views/{code}: GET one view; PUT change one of the organisation's own views (built-in ones cannot be
+    changed); DELETE delete one of the organisation's own views."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -114,6 +120,7 @@ class View(MethodView):
 
 @blp.route("/models/<uuid:model_id>/views")
 class ModelViews(MethodView):
+    """/api/v1/models/{model_id}/views: GET every view with how many of this model's entities it shows."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -124,6 +131,8 @@ class ModelViews(MethodView):
 
 @blp.route("/models/<uuid:model_id>/views/render")
 class RenderView(MethodView):
+    """/api/v1/models/{model_id}/views/render: POST the model through a view definition (the model's own view, D406):
+    {name, element_types, relationship_types, heat_attribute, ...}; the same answer as a standard view's."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -136,6 +145,8 @@ class RenderView(MethodView):
 
 @blp.route("/models/<uuid:model_id>/views/<string:code>")
 class ModelView(MethodView):
+    """/api/v1/models/{model_id}/views/{code}: GET the model through one view: elements with their values,
+    relationships and the attributes to colour by."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -146,6 +157,8 @@ class ModelView(MethodView):
 
 @blp.route("/models/<uuid:model_id>/maps/value-streams")
 class ValueStreamMap(MethodView):
+    """/api/v1/models/{model_id}/maps/value-streams: GET value streams, their stages in order and the capabilities
+    that enable each stage."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -156,6 +169,8 @@ class ValueStreamMap(MethodView):
 
 @blp.route("/models/<uuid:model_id>/maps/roadmap")
 class Roadmap(MethodView):
+    """/api/v1/models/{model_id}/maps/roadmap: GET work packages, deliverables and plateaus with their dates and what
+    they deliver."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -166,6 +181,7 @@ class Roadmap(MethodView):
 
 @blp.route("/report-audiences")
 class Audiences(MethodView):
+    """/api/v1/report-audiences: GET who reports are for (CEO, CFO, architects...) and which reports each has (D153)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()

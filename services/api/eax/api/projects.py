@@ -153,6 +153,9 @@ def _queue_repository(project_guid: str) -> None:
 
 @blp.route("/projects")
 class Projects(MethodView):
+    """/api/v1/projects: GET the architecture projects you are on (a Super Admin sees all); ?test_data=1 adds the
+    self-test's (R2.11); POST create a project from the wizard: name, purpose, description, parent (a rerun),
+    libraries [template library ids, in order; default: every library offered to projects]…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -200,6 +203,7 @@ class Projects(MethodView):
 
 @blp.route("/projects/library")
 class Library(MethodView):
+    """/api/v1/projects/library: GET the project library: what the wizard offers."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -220,6 +224,9 @@ class Library(MethodView):
 
 @blp.route("/projects/library/templates/<int:template_id>/file")
 class TemplateFile(MethodView):
+    """/api/v1/projects/library/templates/{template_id}/file: GET download a library template's file (anyone the
+    library is offered to); POST store a library template's file in Documents (Super Admins); TOGAF's: your licensed
+    copy, unchanged."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self, template_id):
@@ -241,6 +248,8 @@ class TemplateFile(MethodView):
 
 @blp.route("/repository/summary")
 class OrgRepository(MethodView):
+    """/api/v1/repository/summary: GET the organisation's Architecture Repository map (D318): the Organisation base
+    its links open."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -252,6 +261,8 @@ class OrgRepository(MethodView):
 
 @blp.route("/repository/governance/<string:kind>")
 class OrgGovernance(MethodView):
+    """/api/v1/repository/governance/{kind}: GET read only, across the projects you are on: decisions, compliance or
+    capability assessments (changed in each project)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -263,6 +274,8 @@ class OrgGovernance(MethodView):
 
 @blp.route("/repository/people")
 class OrgPeople(MethodView):
+    """/api/v1/repository/people: GET read only, across the projects you are on: who works on them, their roles and
+    skills."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -274,6 +287,8 @@ class OrgPeople(MethodView):
 
 @blp.route("/repository/skills")
 class OrgSkills(MethodView):
+    """/api/v1/repository/skills: GET the Skills repository (D353): every EA Explorer user (from Keycloak) with the
+    skills they gave themselves."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -285,6 +300,8 @@ class OrgSkills(MethodView):
 
 @personal_blp.route("/skills")
 class MySkills(MethodView):
+    """/skills: GET your own skills (D353), and the skills others use, to offer as you type; PUT {skills: [tags]}:
+    your skills, replaced (free tags, at most 40)."""
     @personal_blp.doc(security=SECURITY)
     @personal_blp.response(200, Free)
     @require_auth()
@@ -306,6 +323,8 @@ class MySkills(MethodView):
 
 @blp.route("/repository/board")
 class OrgBoard(MethodView):
+    """/api/v1/repository/board: GET the Architecture Board's members (D324); POST add or change a member {username,
+    role}, or take one off {username, remove: true} (Super Admins)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -328,6 +347,8 @@ class OrgBoard(MethodView):
 
 @blp.route("/repository/measures/<string:what>")
 class OrgMeasures(MethodView):
+    """/api/v1/repository/measures/{what}: GET performance measurement across the projects you may see: completion,
+    governance, turnaround or coverage."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -339,6 +360,8 @@ class OrgMeasures(MethodView):
 
 @blp.route("/repository/reference/<string:part>")
 class OrgReferencePart(MethodView):
+    """/api/v1/repository/reference/{part}: GET a part of the reference library (foundation, common, industry, own):
+    its library models and its documents."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -351,6 +374,8 @@ class OrgReferencePart(MethodView):
 # ---------------------------------------------------------------- calendars (D324): 'org' or a project's guid
 @blp.route("/calendars/<string:cal>")
 class Calendar(MethodView):
+    """/api/v1/calendars/{cal}: GET the calendar's events and their occurrences between ?from= and ?to= (YYYY-MM-DD);
+    POST add an event: {topic, starts_on, at_time, minutes, notes, repeat, weekdays, until_on, times}."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -371,6 +396,8 @@ class Calendar(MethodView):
 
 @blp.route("/calendars/<string:cal>/events/<string:eid>")
 class CalendarEvent(MethodView):
+    """/api/v1/calendars/{cal}/events/{eid}: PUT change an event, or skip one occurrence {skip: YYYY-MM-DD}; DELETE
+    delete an event (whoever made it, a Project Admin or Lead Architect, a Super Admin)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -391,6 +418,7 @@ class CalendarEvent(MethodView):
 
 @blp.route("/calendars/<string:cal>/ics")
 class CalendarIcs(MethodView):
+    """/api/v1/calendars/{cal}/ics: GET download the calendar as an iCalendar file."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self, cal):
@@ -404,6 +432,8 @@ class CalendarIcs(MethodView):
 
 @blp.route("/calendars/<string:cal>/feed")
 class CalendarFeedLink(MethodView):
+    """/api/v1/calendars/{cal}/feed: POST your private subscription link for this calendar; {renew: true} makes a new
+    one (the old one stops working)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -416,6 +446,8 @@ class CalendarFeedLink(MethodView):
 
 @blp.route("/calendar-feed/<string:token>.ics")
 class CalendarFeed(MethodView):
+    """/api/v1/calendar-feed/{token}.ics: GET a private calendar link, for calendar applications (no sign-in: the
+    link is the key; renew it to stop it)."""
     def get(self, token):
         """A private calendar link, for calendar applications (no sign-in: the link is the key; renew it to stop it)"""
         from .. import calendars as cl
@@ -426,6 +458,8 @@ class CalendarFeed(MethodView):
 # ---------------------------------------------------------------- tracking sheets (D325): 'org' or a project's guid
 @blp.route("/tracking-sheets/<string:scope>")
 class TrackingSheets(MethodView):
+    """/api/v1/tracking-sheets/{scope}: GET the sheets of a project, or of the organisation; POST a new sheet: JSON
+    {name, description, columns}, or a multipart file (Excel's first tab or CSV) with name."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -450,6 +484,8 @@ class TrackingSheets(MethodView):
 
 @blp.route("/tracking-sheets/<string:scope>/<string:sid>")
 class TrackingSheet(MethodView):
+    """/api/v1/tracking-sheets/{scope}/{sid}: GET a sheet: its columns and rows; PUT change it: {name, description,
+    columns, renames, rows: [{id, cells}], add: [cells], delete: [id]}; DELETE delete the sheet."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -478,6 +514,8 @@ class TrackingSheet(MethodView):
 
 @blp.route("/tracking-sheets/<string:scope>/<string:sid>/upload")
 class TrackingSheetUpload(MethodView):
+    """/api/v1/tracking-sheets/{scope}/{sid}/upload: POST upload into the sheet: multipart file, how (replace, add,
+    update) and key (the column to match on, for update)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -492,6 +530,8 @@ class TrackingSheetUpload(MethodView):
 
 @blp.route("/tracking-sheets/<string:scope>/<string:sid>/xlsx")
 class TrackingSheetXlsx(MethodView):
+    """/api/v1/tracking-sheets/{scope}/{sid}/xlsx: GET download as Excel; ?rows=1,2,3 for only those rows (the
+    filtered ones)."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self, scope, sid):
@@ -507,6 +547,8 @@ class TrackingSheetXlsx(MethodView):
 
 @blp.route("/repository/model-levels")
 class OrgModelLevels(MethodView):
+    """/api/v1/repository/model-levels: GET each model's landscape level from its project's depth (Strategic,
+    Segment, Capability) and its role there."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -518,6 +560,8 @@ class OrgModelLevels(MethodView):
 
 @blp.route("/projects/library/template-setup")
 class TemplateSetup(MethodView):
+    """/api/v1/projects/library/template-setup: GET project admin › Template setup (D317): the deliverables and
+    artifacts with their content framework areas, and one library's templates with their own areas (?library=guid)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -530,6 +574,8 @@ class TemplateSetup(MethodView):
 
 @blp.route("/projects/library/items/<int:item>/repository-area")
 class LibraryItemRepositoryArea(MethodView):
+    """/api/v1/projects/library/items/{item}/repository-area: PUT a deliverable's or artifact's Repository Area:
+    {repository_area} ('' = built in; Super and Library Admins)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -543,6 +589,8 @@ class LibraryItemRepositoryArea(MethodView):
 
 @blp.route("/projects/library/templates/<int:template_id>/content-area")
 class TemplateContentArea(MethodView):
+    """/api/v1/projects/library/templates/{template_id}/content-area: PUT a template's own content framework areas,
+    over its deliverable's or artifact's: {areas} (Super and Library Admins)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -556,6 +604,9 @@ class TemplateContentArea(MethodView):
 
 @blp.route("/projects/library/libraries/<string:library>/templates")
 class LibraryTemplateAdd(MethodView):
+    """/api/v1/projects/library/libraries/{library}/templates: POST upload a new template into a library, tagged as
+    it is uploaded: multipart file, item (the deliverable or artifact), areas (its own, codes with commas),
+    class_areas (the…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -572,6 +623,8 @@ class LibraryTemplateAdd(MethodView):
 
 @blp.route("/projects/library/templates/load")
 class TemplatesLoad(MethodView):
+    """/api/v1/projects/library/templates/load: POST store every file of the library folder (library/templates) that
+    matches a library template (Super Admins)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -592,6 +645,8 @@ def _queue_library(library_id: int) -> None:
 
 @blp.route("/projects/library/setup")
 class Setup(MethodView):
+    """/api/v1/projects/library/setup: POST finish the template library setup: the libraries offered to projects
+    (Super Admins; before the first project)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -603,6 +658,8 @@ class Setup(MethodView):
 
 @blp.route("/projects/library/libraries")
 class Libraries(MethodView):
+    """/api/v1/projects/library/libraries: POST a new template library from a zip in the library's folder layout;
+    private until a Super Admin shares it."""
     @blp.doc(security=SECURITY)
     @blp.response(201, Free)
     @require_auth()
@@ -620,6 +677,9 @@ class Libraries(MethodView):
 
 @blp.route("/projects/library/libraries/<string:library>/zip")
 class LibraryZip(MethodView):
+    """/api/v1/projects/library/libraries/{library}/zip: GET the whole template library as one zip in its folder
+    layout (to rebrand and upload as your own); POST upload the TOGAF template deliverables as one zip (the I094
+    download as it is; Super Admins)."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self, library):
@@ -648,6 +708,8 @@ class LibraryZip(MethodView):
 
 @blp.route("/projects/library/libraries/<string:library>/templates")
 class LibraryTemplates(MethodView):
+    """/api/v1/projects/library/libraries/{library}/templates: GET a template library's files by folder, to look
+    through (read only)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -658,6 +720,8 @@ class LibraryTemplates(MethodView):
 
 @blp.route("/projects/library/libraries/<string:library>/share")
 class LibraryShare(MethodView):
+    """/api/v1/projects/library/libraries/{library}/share: POST offer a template library to every project, or stop
+    offering it (Super Admins)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -670,6 +734,8 @@ class LibraryShare(MethodView):
 
 @blp.route("/projects/<string:project>")
 class Project(MethodView):
+    """/api/v1/projects/{project}: GET one project (its people, Super Admins); PUT the edit workflow (D275): the
+    project as it should be, from the wizard (Project Admin, Lead Architect)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -694,6 +760,8 @@ class Project(MethodView):
 
 @blp.route("/projects/templates")
 class ProjectTemplates(MethodView):
+    """/api/v1/projects/templates: GET the project templates (D282); ?all=true with the retired ones; POST a new
+    project template (Super Admins, Library Admins)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -714,6 +782,7 @@ class ProjectTemplates(MethodView):
 
 @blp.route("/projects/templates/<string:code>")
 class ProjectTemplate(MethodView):
+    """/api/v1/projects/templates/{code}: PUT change a project template, or retire it ({retired: true})."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -726,6 +795,8 @@ class ProjectTemplate(MethodView):
 
 @blp.route("/projects/<string:project>/as-template")
 class AsTemplate(MethodView):
+    """/api/v1/projects/{project}/as-template: POST save the project's decisions as a new project template (Super
+    Admins, Library Admins)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(201, Free)
@@ -738,6 +809,7 @@ class AsTemplate(MethodView):
 
 @blp.route("/projects/<string:project>/files")
 class ProjectFiles(MethodView):
+    """/api/v1/projects/{project}/files: POST a file of the project's own: a contract, a statement of work."""
     @blp.doc(security=SECURITY)
     @blp.response(201, Free)
     @require_auth()
@@ -749,6 +821,8 @@ class ProjectFiles(MethodView):
 
 @blp.route("/projects/<string:project>/documents/<string:doc>/kind")
 class DocKind(MethodView):
+    """/api/v1/projects/{project}/documents/{doc}/kind: POST mark a document a deliverable (signed off) or an
+    artifact."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -761,6 +835,8 @@ class DocKind(MethodView):
 
 @blp.route("/projects/<string:project>/documents/<string:doc>/accept")
 class DocAccept(MethodView):
+    """/api/v1/projects/{project}/documents/{doc}/accept: POST accept a document directly (D290), multipart: note
+    (the evidence, required) and an optional evidence file."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def post(self, project, doc):
@@ -775,6 +851,8 @@ class DocAccept(MethodView):
 
 @blp.route("/projects/<string:project>/documents/<string:doc>/<any(archive,delete):how>")
 class DocHide(MethodView):
+    """/api/v1/projects/{project}/documents/{doc}/{how}: POST archive or delete a document with all its versions;
+    {undo: true} restores it (D290)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -787,6 +865,8 @@ class DocHide(MethodView):
 
 @blp.route("/projects/<string:project>/documents")
 class DocList(MethodView):
+    """/api/v1/projects/{project}/documents: GET the project's documents; ?show=archived,deleted adds those (they are
+    not loaded otherwise)."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self, project):
@@ -805,6 +885,8 @@ class DocList(MethodView):
 
 @blp.route("/projects/<string:project>/documents/<string:doc>/tags")
 class DocTags(MethodView):
+    """/api/v1/projects/{project}/documents/{doc}/tags: POST set a document's tags (D290): {tags: [..]}, anyone who
+    contributes to the project."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -817,6 +899,8 @@ class DocTags(MethodView):
 
 @blp.route("/projects/<string:project>/documents/<string:doc>/signoff")
 class RaiseSignoff(MethodView):
+    """/api/v1/projects/{project}/documents/{doc}/signoff: POST ask the signers to sign off the document's current
+    version (they are told in the application)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(201, Free)
@@ -829,6 +913,8 @@ class RaiseSignoff(MethodView):
 
 @blp.route("/projects/<string:project>/signoffs/<string:request_id>/decide")
 class DecideSignoff(MethodView):
+    """/api/v1/projects/{project}/signoffs/{request_id}/decide: POST a signer approves or rejects (a comment is
+    needed to reject)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -842,6 +928,8 @@ class DecideSignoff(MethodView):
 
 @blp.route("/projects/<string:project>/signoffs/<string:request_id>/record")
 class RecordSignoff(MethodView):
+    """/api/v1/projects/{project}/signoffs/{request_id}/record: POST record a signer's decision given outside the
+    application, with the evidence (multipart: signer, decision, comment, file)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -856,6 +944,7 @@ class RecordSignoff(MethodView):
 
 @blp.route("/projects/<string:project>/views")
 class ProjectViews(MethodView):
+    """/api/v1/projects/{project}/views: POST a view made for the project (contributors): code PV-<n>."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(201, Free)
@@ -867,6 +956,8 @@ class ProjectViews(MethodView):
 
 @blp.route("/projects/<string:project>/views/<string:code>/phase")
 class ProjectViewPhase(MethodView):
+    """/api/v1/projects/{project}/views/{code}/phase: POST the phase the project shows a view with: {phase} (empty:
+    its usual one)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -879,6 +970,8 @@ class ProjectViewPhase(MethodView):
 
 @blp.route("/projects/<string:project>/key-questions")
 class KeyQuestions(MethodView):
+    """/api/v1/projects/{project}/key-questions: GET the project's key questions, the views that answer each, and its
+    placeholder views; POST a key question (contributors): {question, asked_by, approach, views: [codes]}."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -899,6 +992,8 @@ class KeyQuestions(MethodView):
 
 @blp.route("/projects/<string:project>/key-questions/<string:qid>")
 class KeyQuestion(MethodView):
+    """/api/v1/projects/{project}/key-questions/{qid}: PUT change a key question: any of {question, asked_by,
+    approach, views: [codes]}; DELETE remove a key question (its views stay in the project)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -919,6 +1014,9 @@ class KeyQuestion(MethodView):
 
 @blp.route("/projects/<string:project>/key-questions/<string:qid>/<string:act>")
 class KeyQuestionStatus(MethodView):
+    """/api/v1/projects/{project}/key-questions/{qid}/{act}: POST a key question's status: answer {answer, note,
+    views} and reopen {note} (contributors); decide {decision: accepted | rejected, note} (the project's
+    stakeholders, in the…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -951,6 +1049,8 @@ def _body_and_file():
 
 @blp.route("/projects/<string:project>/canvases")
 class Canvases(MethodView):
+    """/api/v1/projects/{project}/canvases: GET the project's Business Model Canvases, and the nine blocks; POST a
+    new canvas (contributors): {name, kind: current | target | working | scenario, description}."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -971,6 +1071,8 @@ class Canvases(MethodView):
 
 @blp.route("/projects/<string:project>/canvases/<string:cid>")
 class CanvasOne(MethodView):
+    """/api/v1/projects/{project}/canvases/{cid}: GET a canvas: its items by block (with a working copy's marks),
+    documents and history; PUT change its name, kind, status (draft | agreed) or description; DELETE remove a canvas."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -999,6 +1101,9 @@ class CanvasOne(MethodView):
 
 @blp.route("/projects/<string:project>/canvases/<string:cid>/<string:act>")
 class CanvasAct(MethodView):
+    """/api/v1/projects/{project}/canvases/{cid}/{act}: POST items {block, text, note}; copy {name, kind}; copy-to
+    {project, name, kind}; clean {name, kind}; reorder {block, ids}; documents (multipart "file" and note, or…; GET
+    export?format=pdf | pptx | drawio [&compare=<another canvas>]: the canvas (or the comparison) as a file."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -1033,6 +1138,8 @@ class CanvasAct(MethodView):
 
 @blp.route("/projects/<string:project>/canvases/<string:cid>/documents/<string:doc>")
 class CanvasDocument(MethodView):
+    """/api/v1/projects/{project}/canvases/{cid}/documents/{doc}: DELETE take a document off the canvas (it stays in
+    the project)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -1044,6 +1151,9 @@ class CanvasDocument(MethodView):
 
 @blp.route("/projects/<string:project>/canvases/<string:a>/compare/<string:b>")
 class CanvasCompare(MethodView):
+    """/api/v1/projects/{project}/canvases/{a}/compare/{b}: GET compare two canvases: each block's items added,
+    changed or removed from a to b; POST a working copy of the changes from a to b, marked, to adjust and clean up:
+    {name}."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -1064,6 +1174,8 @@ class CanvasCompare(MethodView):
 
 @blp.route("/projects/<string:project>/canvas-items/<string:iid>")
 class CanvasItem(MethodView):
+    """/api/v1/projects/{project}/canvas-items/{iid}: PUT change an item's text, note or block (in a working copy it
+    is marked changed); DELETE remove an item (in a working copy it is crossed out)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -1084,6 +1196,7 @@ class CanvasItem(MethodView):
 
 @blp.route("/projects/<string:project>/canvas-items/<string:iid>/restore")
 class CanvasItemRestore(MethodView):
+    """/api/v1/projects/{project}/canvas-items/{iid}/restore: POST undo a working copy's mark on an item."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -1095,6 +1208,8 @@ class CanvasItemRestore(MethodView):
 
 @blp.route("/projects/<string:project>/placeholder-views")
 class PlaceholderViews(MethodView):
+    """/api/v1/projects/{project}/placeholder-views: POST a placeholder view (contributors): {name, description,
+    kind: text | file, file_type, questions: [ids]}; a file one's empty file is made in the project's files straight…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(201, Free)
@@ -1112,6 +1227,8 @@ class PlaceholderViews(MethodView):
 
 @blp.route("/projects/<string:project>/placeholder-views/files")
 class PlaceholderFiles(MethodView):
+    """/api/v1/projects/{project}/placeholder-views/files: POST make the empty file of each file placeholder that has
+    none yet (in the project's files)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -1123,6 +1240,8 @@ class PlaceholderFiles(MethodView):
 
 @blp.route("/projects/<string:project>/placeholder-views/<string:code>")
 class PlaceholderView(MethodView):
+    """/api/v1/projects/{project}/placeholder-views/{code}: PUT change a placeholder view's name or description;
+    DELETE remove a placeholder view (its file, if made, stays in the project's files)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -1143,6 +1262,8 @@ class PlaceholderView(MethodView):
 
 @blp.route("/projects/<string:project>/finish")
 class Finish(MethodView):
+    """/api/v1/projects/{project}/finish: POST finish the project (Project Admin, Lead Architect): freeze it (read
+    only), or merge it into another project (documents copied into its repository); each model kept as it…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -1162,6 +1283,7 @@ class Finish(MethodView):
 
 @blp.route("/projects/<string:project>/people")
 class People(MethodView):
+    """/api/v1/projects/{project}/people: PUT the people and who signs off (Project Admin, Lead Architect)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -1175,6 +1297,7 @@ class People(MethodView):
 
 @blp.route("/projects/<string:project>/items/<string:item>/choose")
 class Choose(MethodView):
+    """/api/v1/projects/{project}/items/{item}/choose: POST bring a not_for_use item into use, or put one out of use."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -1187,6 +1310,8 @@ class Choose(MethodView):
 
 @blp.route("/projects/<string:project>/items")
 class Items(MethodView):
+    """/api/v1/projects/{project}/items: POST a new document class in a phase: {phase, name, kind, type, note}
+    (anyone on the project, D290)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(201, Free)
@@ -1200,6 +1325,8 @@ class Items(MethodView):
 
 @blp.route("/projects/<string:project>/items/<string:item>/not-needed")
 class NotNeeded(MethodView):
+    """/api/v1/projects/{project}/items/{item}/not-needed: POST mark a document class "won't need this" ({reason}),
+    or bring it back ({undo: true})."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -1213,6 +1340,8 @@ class NotNeeded(MethodView):
 
 @blp.route("/projects/<string:project>/repository")
 class Repository(MethodView):
+    """/api/v1/projects/{project}/repository: POST build the project's repository in Documents again: a background
+    task (it shows in the task drawer)."""
     @blp.doc(security=SECURITY)
     @blp.response(202, Free)
     @require_auth()
@@ -1239,6 +1368,8 @@ def _admin_project(c, project):
 
 @blp.route("/projects/<string:project>/backups")
 class ProjectBackups(MethodView):
+    """/api/v1/projects/{project}/backups: GET the project's backups (each with its models and documents); POST back
+    up the project now, with its models and documents (Project Admin): a background task."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -1261,6 +1392,8 @@ class ProjectBackups(MethodView):
 
 @blp.route("/projects/<string:project>/backups/<string:file>")
 class ProjectBackup(MethodView):
+    """/api/v1/projects/{project}/backups/{file}: GET download a project backup file; DELETE delete a project backup
+    file (Project Admin)."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self, project, file):
@@ -1281,6 +1414,8 @@ class ProjectBackup(MethodView):
 
 @blp.route("/projects/<string:project>/backups/<string:file>/restore")
 class ProjectBackupRestore(MethodView):
+    """/api/v1/projects/{project}/backups/{file}/restore: POST restore a project backup as a NEW project (with its
+    models and documents): a background task."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(202, Free)
@@ -1303,6 +1438,8 @@ class ProjectBackupRestore(MethodView):
 
 @blp.route("/projects/restore")
 class ProjectRestoreUpload(MethodView):
+    """/api/v1/projects/restore: POST restore a project backup file you upload (from this installation or another) as
+    a new project."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def post(self):
@@ -1325,6 +1462,9 @@ class ProjectRestoreUpload(MethodView):
 
 @blp.route("/projects/<string:project>/items/<string:item>/documents")
 class Upload(MethodView):
+    """/api/v1/projects/{project}/items/{item}/documents: POST add a document to an item: multipart "file"
+    (optional), "title" (its name, apart from the file's name), "kind" (Deliverable, Artifact or None; empty: the
+    class's)."""
     @blp.doc(security=SECURITY)
     @blp.response(201, Free)
     @require_auth()
@@ -1343,6 +1483,9 @@ class Upload(MethodView):
 
 @blp.route("/projects/<string:project>/items/<string:item>/documents/from-templates")
 class FromTemplates(MethodView):
+    """/api/v1/projects/{project}/items/{item}/documents/from-templates: POST documents of a class made from
+    templates: {documents: [{template: id, title: name}], kind}: any number, the same template more than once if
+    wanted; a library not yet in…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(201, Free)
@@ -1357,6 +1500,8 @@ class FromTemplates(MethodView):
 
 @blp.route("/projects/<string:project>/documents/<string:doc>/file")
 class AddFile(MethodView):
+    """/api/v1/projects/{project}/documents/{doc}/file: POST the first file of a planned document (multipart "file",
+    "user_version")."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -1369,6 +1514,7 @@ class AddFile(MethodView):
 
 @blp.route("/projects/<string:project>/documents/<string:doc>/title")
 class DocTitle(MethodView):
+    """/api/v1/projects/{project}/documents/{doc}/title: PUT a document's name, apart from its file's name: {title}."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -1381,6 +1527,7 @@ class DocTitle(MethodView):
 
 @blp.route("/projects/<string:project>/documents/<string:doc>")
 class Download(MethodView):
+    """/api/v1/projects/{project}/documents/{doc}: GET download the document's latest version."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self, project, doc):
@@ -1392,6 +1539,7 @@ class Download(MethodView):
 
 @blp.route("/projects/<string:project>/templates/<int:template>")
 class TemplateDownload(MethodView):
+    """/api/v1/projects/{project}/templates/{template}: GET download a template of the project's libraries."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self, project, template):
@@ -1403,6 +1551,7 @@ class TemplateDownload(MethodView):
 
 @blp.route("/projects/<string:project>/steps/<int:step>/done")
 class StepDone(MethodView):
+    """/api/v1/projects/{project}/steps/{step}/done: POST mark a step done, or reopen it."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -1415,6 +1564,7 @@ class StepDone(MethodView):
 
 @blp.route("/projects/<string:project>/steps")
 class StepAdd(MethodView):
+    """/api/v1/projects/{project}/steps: POST add a step of the project's own at any time: {phase, name, due_date}."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -1426,6 +1576,9 @@ class StepAdd(MethodView):
 
 @blp.route("/projects/<string:project>/steps/<int:step>/move")
 class ProjectStepMove(MethodView):
+    """/api/v1/projects/{project}/steps/{step}/move: POST move a step within its phase (R4.21): {to:
+    up|down|start|end} or {after: another step's id}; its sub steps move with it; recorded on the step (contributors;
+    not in a…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -1438,6 +1591,8 @@ class ProjectStepMove(MethodView):
 
 @blp.route("/projects/<string:project>/steps/<int:step>/sub")
 class StepSub(MethodView):
+    """/api/v1/projects/{project}/steps/{step}/sub: POST + sub step: the step is to be done again, completed later:
+    {due_date, note}; DELETE take an open sub step away."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -1456,6 +1611,7 @@ class StepSub(MethodView):
 
 @blp.route("/projects/<string:project>/documents/<string:doc>/history")
 class History(MethodView):
+    """/api/v1/projects/{project}/documents/{doc}/history: GET who did what to the document."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -1466,6 +1622,8 @@ class History(MethodView):
 
 @blp.route("/projects/<string:project>/documents/<string:doc>/versions")
 class Versions(MethodView):
+    """/api/v1/projects/{project}/documents/{doc}/versions: GET the document's versions only, newest first: number,
+    your version, who, when, what changed (D312)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -1476,6 +1634,8 @@ class Versions(MethodView):
 
 @blp.route("/projects/<string:project>/documents/<string:doc>/versions/<int:version>")
 class VersionDownload(MethodView):
+    """/api/v1/projects/{project}/documents/{doc}/versions/{version}: GET download one version of the document (1 =
+    the first)."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self, project, doc, version):
@@ -1488,6 +1648,8 @@ class VersionDownload(MethodView):
 
 @blp.route("/projects/<string:project>/items/<string:item>/templates")
 class ClassTemplates(MethodView):
+    """/api/v1/projects/{project}/items/{item}/templates: POST a template added to a document class to download:
+    {template, remove} (its library joins the project)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -1501,6 +1663,8 @@ class ClassTemplates(MethodView):
 
 @blp.route("/projects/<string:project>/repo-tags")
 class RepoTags(MethodView):
+    """/api/v1/projects/{project}/repo-tags: GET the tags on the project's whole repository (D312); POST tag the
+    whole repository now: {name, note}: every document at its current version."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -1523,6 +1687,8 @@ class RepoTags(MethodView):
 
 @blp.route("/projects/<string:project>/repo-tags/<string:tag>")
 class RepoTag(MethodView):
+    """/api/v1/projects/{project}/repo-tags/{tag}: GET the documents at the tag, their version then and now, and the
+    documents added since; DELETE remove a tag (the documents are not changed): a Project Admin or Lead Architect."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -1542,6 +1708,8 @@ class RepoTag(MethodView):
 
 @blp.route("/projects/<string:project>/repo-tags/<string:tag>/revert")
 class RepoTagRevert(MethodView):
+    """/api/v1/projects/{project}/repo-tags/{tag}/revert: POST bring the repository back to the tag (a background
+    task): a tag "before application of tag <name>" first."""
     @blp.doc(security=SECURITY)
     @blp.response(202, Free)
     @require_auth()
@@ -1562,6 +1730,8 @@ class RepoTagRevert(MethodView):
 
 @blp.route("/projects/<string:project>/repo-zip")
 class RepoZip(MethodView):
+    """/api/v1/projects/{project}/repo-zip: GET every document in one zip, a folder per class: ?tag= as at a tag,
+    ?item= one class, neither: the whole repository as it is now."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self, project):
@@ -1580,6 +1750,8 @@ class RepoZip(MethodView):
 
 @blp.route("/projects/<string:project>/documents/<string:doc>/checkout")
 class CheckOut(MethodView):
+    """/api/v1/projects/{project}/documents/{doc}/checkout: POST check the document out to yourself: nothing is asked
+    (D290)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -1592,6 +1764,7 @@ class CheckOut(MethodView):
 
 @blp.route("/projects/<string:project>/documents/<string:doc>/checkin")
 class CheckIn(MethodView):
+    """/api/v1/projects/{project}/documents/{doc}/checkin: POST check in the new file as the next version."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -1606,6 +1779,8 @@ class CheckIn(MethodView):
 
 @blp.route("/projects/<string:project>/documents/<string:doc>/undo-checkout")
 class UndoCheckOut(MethodView):
+    """/api/v1/projects/{project}/documents/{doc}/undo-checkout: POST end a check-out without a new version (who
+    checked out; Lead Architect, Model Admin, Project Admin, Super Admin)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -1617,6 +1792,8 @@ class UndoCheckOut(MethodView):
 # ---------------------------------------------------------------- the content framework (D299)
 @blp.route("/projects/<string:project>/content-framework")
 class ContentFramework(MethodView):
+    """/api/v1/projects/{project}/content-framework: GET the content framework's areas with, for each, the entity
+    types and entities, document types and documents placed there."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -1628,6 +1805,8 @@ class ContentFramework(MethodView):
 
 @blp.route("/projects/<string:project>/content-framework/<string:area>")
 class ContentFrameworkArea(MethodView):
+    """/api/v1/projects/{project}/content-framework/{area}: GET one area as a tree: the project's models, their
+    entity types placed here and their entities; the document types placed here and their documents."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -1640,6 +1819,9 @@ class ContentFrameworkArea(MethodView):
 
 @blp.route("/projects/<string:project>/cf-tags")
 class ContentFrameworkTags(MethodView):
+    """/api/v1/projects/{project}/cf-tags: GET tag items: the project's deliverables and artifacts (kind=classes),
+    documents, entity types (types) or entities with their content framework areas; PUT areas for several rows at
+    once: {kind, ids, how: set|add|remove|reset, areas}."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -1675,6 +1857,8 @@ def _areas_in(data) -> object:
 
 @blp.route("/projects/<string:project>/items/<string:item>/content-area")
 class ItemContentArea(MethodView):
+    """/api/v1/projects/{project}/items/{item}/content-area: PUT where a document type sits in the content framework:
+    {area} ('' = its default)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -1688,6 +1872,8 @@ class ItemContentArea(MethodView):
 
 @blp.route("/projects/<string:project>/documents/<string:doc>/content-area")
 class DocumentContentArea(MethodView):
+    """/api/v1/projects/{project}/documents/{doc}/content-area: PUT a document placed in the content framework on its
+    own: {area} ('' = under its document type only)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -1701,6 +1887,8 @@ class DocumentContentArea(MethodView):
 
 @blp.route("/projects/library/items/<int:item>/content-area")
 class LibraryItemContentArea(MethodView):
+    """/api/v1/projects/library/items/{item}/content-area: PUT where a document type of the project library sits in
+    the content framework: {area} (Super and Library Admins)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -1715,6 +1903,9 @@ class LibraryItemContentArea(MethodView):
 # ---------------------------------------------------------------- the project's organisation (D302)
 @blp.route("/projects/<string:project>/organisation")
 class ProjectOrg(MethodView):
+    """/api/v1/projects/{project}/organisation: GET who works on the project and their role on it (flat: no
+    hierarchy); POST add a person: {name, role, username}; {members: true} adds the project's members not listed yet;
+    {stakeholders: true or [ids]} adds stakeholders of the matrix; {order…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -1745,6 +1936,8 @@ class ProjectOrg(MethodView):
 
 @blp.route("/projects/<string:project>/organisation/<string:pid>")
 class ProjectOrgPerson(MethodView):
+    """/api/v1/projects/{project}/organisation/{pid}: PUT change a person (the fields sent); DELETE take a person
+    out."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -1766,6 +1959,8 @@ class ProjectOrgPerson(MethodView):
 # ---------------------------------------------------------------- phase 13.1: bases, standards, governance log, charter (D303-D307)
 @blp.route("/projects/bases")
 class ProjectBases(MethodView):
+    """/api/v1/projects/bases: GET the project hierarchy: the bases (Empty, TOGAF 10, Organisation) and the library
+    projects, with the projects below each."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -1777,6 +1972,9 @@ class ProjectBases(MethodView):
 
 @blp.route("/projects/<string:project>/base")
 class ProjectBase(MethodView):
+    """/api/v1/projects/{project}/base: GET what the project derives from (the chain of bases) and what its base
+    offers it; POST {kind, id, take: true|false}: take or skip what the base offers (id '*': all); {base}: derive
+    from another base or library project (Super Admins)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -1802,6 +2000,8 @@ class ProjectBase(MethodView):
 
 @blp.route("/projects/<string:project>/standards")
 class ProjectStandards(MethodView):
+    """/api/v1/projects/{project}/standards: GET the project's standards by area; POST add a standard: {area, name,
+    description, status, source}."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -1822,6 +2022,8 @@ class ProjectStandards(MethodView):
 
 @blp.route("/projects/<string:project>/standards/<string:sid>")
 class ProjectStandard(MethodView):
+    """/api/v1/projects/{project}/standards/{sid}: PUT change a standard (not one mandatory from the base); DELETE
+    take a standard out (not one mandatory from the base)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -1842,6 +2044,9 @@ class ProjectStandard(MethodView):
 
 @blp.route("/projects/<string:project>/governance")
 class ProjectGovernance(MethodView):
+    """/api/v1/projects/{project}/governance: GET the governance log: records of every kind, the kinds (each a tab),
+    principles and standards to point at; POST log a record: {kind, title, html, status, owner, raised_on,
+    expires_on, principle, standard, related}; or a new kind: {new_kind: {name, prefix, statuses[]}}; or remove a…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -1868,6 +2073,8 @@ class ProjectGovernance(MethodView):
 
 @blp.route("/projects/<string:project>/governance/<string:rid>")
 class ProjectGovernanceRecord(MethodView):
+    """/api/v1/projects/{project}/governance/{rid}: PUT change a record of the governance log; DELETE take a record
+    out (Project Admin, Lead Architect)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -1888,6 +2095,9 @@ class ProjectGovernanceRecord(MethodView):
 
 @blp.route("/projects/<string:project>/governance/<string:rid>/approval")
 class ProjectGovernanceApproval(MethodView):
+    """/api/v1/projects/{project}/governance/{rid}/approval: POST approval of a record (D321): {action: send, note}
+    asks the project's sign-off people; {action: approve|reject, comment} is a sign-off person's decision (a
+    rejection…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -1908,6 +2118,8 @@ class ProjectGovernanceApproval(MethodView):
 
 @blp.route("/projects/<string:project>/governance/<string:rid>/evidence")
 class ProjectGovernanceEvidence(MethodView):
+    """/api/v1/projects/{project}/governance/{rid}/evidence: POST approve a record with evidence (anyone who
+    contributes): multipart reason and/or file."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -1923,6 +2135,8 @@ class ProjectGovernanceEvidence(MethodView):
 
 @blp.route("/projects/<string:project>/governance/<string:rid>/history")
 class ProjectGovernanceHistory(MethodView):
+    """/api/v1/projects/{project}/governance/{rid}/history: GET a record's history: logged, changed, sent for
+    approval, decisions, approved; the record as it was each time."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -1934,6 +2148,8 @@ class ProjectGovernanceHistory(MethodView):
 
 @blp.route("/projects/<string:project>/charter")
 class ProjectCharter(MethodView):
+    """/api/v1/projects/{project}/charter: GET the architecture charter: its sections and state; PUT {sections: {key:
+    html}} and/or {approve: true} (Project Admin, Lead Architect)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -1954,6 +2170,8 @@ class ProjectCharter(MethodView):
 
 @blp.route("/projects/<string:project>/complete")
 class ProjectComplete(MethodView):
+    """/api/v1/projects/{project}/complete: POST mark the project complete ({complete: true}) or open again
+    ({complete: false}); Project Admin, Lead Architect."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -1966,6 +2184,8 @@ class ProjectComplete(MethodView):
 
 @blp.route("/projects/<string:project>/phases/<string:phase>")
 class ProjectPhase(MethodView):
+    """/api/v1/projects/{project}/phases/{phase}: POST mark a phase complete ({complete: true, note}) or open it
+    again ({complete: false})."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -1979,6 +2199,10 @@ class ProjectPhase(MethodView):
 
 @blp.route("/projects/<string:project>/iteration")
 class ProjectIteration(MethodView):
+    """/api/v1/projects/{project}/iteration: GET the project's ADM iteration in its current cycle, the choices and
+    the history of changes (D571-D574); POST change the iteration ({iteration:
+    full|capability|development|transition|governance|custom, phases: [..] for custom, note}); anyone who can open
+    the project, at any…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -2012,6 +2236,8 @@ def _form(*keys):
 
 @blp.route("/reference-library")
 class RefLibrary(MethodView):
+    """/api/v1/reference-library: GET the library: folders, tags and entries
+    (?folder=&q=&tag=&kind=file|link&deep=true); q searches the text inside documents."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -2024,6 +2250,7 @@ class RefLibrary(MethodView):
 
 @blp.route("/reference-library/pick")
 class RefLibraryPick(MethodView):
+    """/api/v1/reference-library/pick: GET entries a project may link to (?q=)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -2035,6 +2262,8 @@ class RefLibraryPick(MethodView):
 
 @blp.route("/reference-library/folders")
 class RefLibraryFolders(MethodView):
+    """/api/v1/reference-library/folders: POST {path, description}: a folder (Super Admins); {path, delete: true}: an
+    empty one removed."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(201, Free)
@@ -2051,6 +2280,7 @@ class RefLibraryFolders(MethodView):
 
 @blp.route("/reference-library/links")
 class RefLibraryLinks(MethodView):
+    """/api/v1/reference-library/links: POST a link: {folder, title, url, description, source, tags} (Super Admins)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(201, Free)
@@ -2063,6 +2293,8 @@ class RefLibraryLinks(MethodView):
 
 @blp.route("/reference-library/files")
 class RefLibraryFiles(MethodView):
+    """/api/v1/reference-library/files: POST a document: multipart "file" with folder, title, description, source,
+    tags, note (Super Admins)."""
     @blp.doc(security=SECURITY)
     @blp.response(201, Free)
     @require_auth()
@@ -2076,6 +2308,9 @@ class RefLibraryFiles(MethodView):
 
 @blp.route("/reference-library/<string:eid>")
 class RefLibraryEntry(MethodView):
+    """/api/v1/reference-library/{eid}: GET one entry with its versions; PUT change an entry: {title, description,
+    source, tags, folder, url} (Super Admins); DELETE delete an entry (its files go to the document store's trash;
+    Super Admins)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -2104,6 +2339,8 @@ class RefLibraryEntry(MethodView):
 
 @blp.route("/reference-library/<string:eid>/versions")
 class RefLibraryVersion(MethodView):
+    """/api/v1/reference-library/{eid}/versions: POST a new version of a document: multipart "file", "note" (Super
+    Admins); the earlier versions stay."""
     @blp.doc(security=SECURITY)
     @blp.response(201, Free)
     @require_auth()
@@ -2117,6 +2354,7 @@ class RefLibraryVersion(MethodView):
 
 @blp.route("/reference-library/<string:eid>/file")
 class RefLibraryFile(MethodView):
+    """/api/v1/reference-library/{eid}/file: GET download a document (?version=n; the current one by default)."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self, eid):
@@ -2132,6 +2370,8 @@ class RefLibraryFile(MethodView):
 # ---------------------------------------------------------------- tasks (D298)
 @blp.route("/projects/<string:project>/tasks")
 class Tasks(MethodView):
+    """/api/v1/projects/{project}/tasks: GET the project's tasks (a scratchpad, no dates), its statuses, its people
+    and its steps; POST add a task: {title, notes_html, status, assigned_to, step_id}."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -2152,6 +2392,8 @@ class Tasks(MethodView):
 
 @blp.route("/projects/<string:project>/tasks/<string:tid>")
 class Task(MethodView):
+    """/api/v1/projects/{project}/tasks/{tid}: PUT change a task (the fields sent; the person it is assigned to may
+    change its status and notes); DELETE delete a task (who made it, a Project Admin or a Lead Architect)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -2172,6 +2414,8 @@ class Task(MethodView):
 
 @blp.route("/projects/<string:project>/task-statuses")
 class TaskStatuses(MethodView):
+    """/api/v1/projects/{project}/task-statuses: POST add a status of the project's own: {name}; DELETE remove a
+    status of the project's own (?name=; not while a task has it)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(201, Free)
@@ -2193,6 +2437,10 @@ class TaskStatuses(MethodView):
 # ---------------------------------------------------------------- the stakeholder matrix (D294)
 @blp.route("/projects/<string:project>/stakeholders")
 class Stakeholders(MethodView):
+    """/api/v1/projects/{project}/stakeholders: GET the project's stakeholders: category, power and interest, class,
+    position, concerns and artifacts, engagement, contact, last and next contact; POST add a stakeholder: {name,
+    organisation, role_title, category, power, interest, class, disrupt, understanding_now, understanding_needed,
+    commitment_now…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -2219,6 +2467,9 @@ class Stakeholders(MethodView):
 
 @blp.route("/projects/<string:project>/stakeholders/to-model")
 class StakeholdersToModel(MethodView):
+    """/api/v1/projects/{project}/stakeholders/to-model: POST put stakeholders into one of the project's models as
+    Stakeholder entities: {model (default: the project's model), ids (default: all)}; ones put there before are
+    brought…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -2234,6 +2485,7 @@ class StakeholdersToModel(MethodView):
 
 @blp.route("/projects/<string:project>/stakeholders/order")
 class StakeholderOrder(MethodView):
+    """/api/v1/projects/{project}/stakeholders/order: POST the stakeholders' order: {order: [ids]}."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -2246,6 +2498,8 @@ class StakeholderOrder(MethodView):
 
 @blp.route("/projects/<string:project>/stakeholders/<string:sid>")
 class Stakeholder(MethodView):
+    """/api/v1/projects/{project}/stakeholders/{sid}: PUT change a stakeholder (the fields sent; the rest stay);
+    DELETE take a stakeholder out (with its discussion notes)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -2266,6 +2520,8 @@ class Stakeholder(MethodView):
 
 @blp.route("/projects/<string:project>/stakeholders/<string:sid>/notes")
 class StakeholderNotes(MethodView):
+    """/api/v1/projects/{project}/stakeholders/{sid}/notes: GET a stakeholder's discussion notes, newest first; POST
+    note a discussion: {held_on (date), title, html (rich text)}."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -2286,6 +2542,8 @@ class StakeholderNotes(MethodView):
 
 @blp.route("/projects/<string:project>/stakeholder-notes/<string:nid>")
 class StakeholderNote(MethodView):
+    """/api/v1/projects/{project}/stakeholder-notes/{nid}: PUT change a discussion note; DELETE delete a discussion
+    note."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -2307,6 +2565,8 @@ class StakeholderNote(MethodView):
 # ---------------------------------------------------------------- a project's principles, at any time (owner, 8 Nov 2026)
 @blp.route("/projects/<string:project>/principles")
 class ProjectPrinciples(MethodView):
+    """/api/v1/projects/{project}/principles: POST add a principle of the project's own: {name, area, code,
+    statement, rationale, implications} (the last three rich text)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(201, Free)
@@ -2318,6 +2578,8 @@ class ProjectPrinciples(MethodView):
 
 @blp.route("/projects/<string:project>/principles/<int:pid>")
 class ProjectPrinciple(MethodView):
+    """/api/v1/projects/{project}/principles/{pid}: PUT change a principle of the project's own (a library one: its
+    area only); DELETE take a principle out of the project."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -2337,6 +2599,8 @@ class ProjectPrinciple(MethodView):
 # ---------------------------------------------------------------- links and the Reference area (D296)
 @blp.route("/projects/<string:project>/principle-areas")
 class ProjectPrincipleAreas(MethodView):
+    """/api/v1/projects/{project}/principle-areas: POST add a top-level area for principles {name}, or remove an
+    empty one {name, remove: true} (D327)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -2351,6 +2615,8 @@ class ProjectPrincipleAreas(MethodView):
 
 @blp.route("/projects/<string:project>/links")
 class ProjectLinks(MethodView):
+    """/api/v1/projects/{project}/links: POST add a link: {title, url | link_project (+ link_document | link_item),
+    description, item (a document class) or folder (in the Reference area), kind, tags}."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(201, Free)
@@ -2364,6 +2630,8 @@ class ProjectLinks(MethodView):
 
 @blp.route("/projects/<string:project>/links/<string:doc>")
 class ProjectLink(MethodView):
+    """/api/v1/projects/{project}/links/{doc}: PUT change a link: {title, url, link_project, link_document,
+    link_item, description}."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -2376,6 +2644,8 @@ class ProjectLink(MethodView):
 
 @blp.route("/projects/<string:project>/reference")
 class ProjectReference(MethodView):
+    """/api/v1/projects/{project}/reference: GET the Reference area: its folders, documents and links; POST a file
+    into a folder of the Reference area (multipart "file", "folder")."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -2397,6 +2667,8 @@ class ProjectReference(MethodView):
 
 @blp.route("/projects/<string:project>/reference/folders")
 class ProjectReferenceFolders(MethodView):
+    """/api/v1/projects/{project}/reference/folders: POST a folder of the Reference area: {path} (under
+    05_Reference_Library); {path, delete: true} takes an empty one away."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(201, Free)
@@ -2412,6 +2684,8 @@ class ProjectReferenceFolders(MethodView):
 
 @blp.route("/projects/<string:project>/library")
 class ProjectIsLibrary(MethodView):
+    """/api/v1/projects/{project}/library: POST {on: true|false}: a library project offers its reference material to
+    new projects (Super Admins)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -2424,6 +2698,8 @@ class ProjectIsLibrary(MethodView):
 
 @blp.route("/projects/reference-sources")
 class ReferenceSources(MethodView):
+    """/api/v1/projects/reference-sources: GET what a new project can copy into its Reference area:
+    ?parent=<project>&template=<code>."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -2436,6 +2712,8 @@ class ReferenceSources(MethodView):
 # ---------------------------------------------------------------- the project's own uploads (D461)
 @blp.route("/projects/<string:project>/other-uploads")
 class OtherUploads(MethodView):
+    """/api/v1/projects/{project}/other-uploads: GET the project's own uploads on Other views and documents, newest
+    first; POST upload one or more files (multipart "file", repeated), with an optional title and description."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -2462,6 +2740,9 @@ class OtherUploads(MethodView):
 
 @blp.route("/projects/<string:project>/other-uploads/<string:doc>")
 class OtherUpload(MethodView):
+    """/api/v1/projects/{project}/other-uploads/{doc}: PUT {title, description}: the uploader, the Project Admin or
+    Lead Architect, or a Super Admin; DELETE delete an upload (the uploader, the Project Admin or Lead Architect, or
+    a Super Admin)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -2484,6 +2765,8 @@ class OtherUpload(MethodView):
 
 @blp.route("/projects/<string:project>/other-uploads/<string:doc>/replace")
 class OtherUploadReplace(MethodView):
+    """/api/v1/projects/{project}/other-uploads/{doc}/replace: POST a new file for the upload (multipart "file",
+    optional "note"); the earlier one stays as an earlier version."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -2502,6 +2785,7 @@ class OtherUploadReplace(MethodView):
 
 @blp.route("/projects/<string:project>/other-uploads/<string:doc>/versions")
 class OtherUploadVersions(MethodView):
+    """/api/v1/projects/{project}/other-uploads/{doc}/versions: GET the upload's files, newest first."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -2513,6 +2797,8 @@ class OtherUploadVersions(MethodView):
 
 @blp.route("/projects/<string:project>/other-uploads/<string:doc>/download")
 class OtherUploadDownload(MethodView):
+    """/api/v1/projects/{project}/other-uploads/{doc}/download: GET download the upload (?version=n for an earlier
+    file)."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self, project, doc):

@@ -58,6 +58,8 @@ def _ops(method: str, path: str, body: dict | None = None, timeout: int = 10) ->
 
 @blp.route("/settings")
 class PublicSettings(MethodView):
+    """/api/v1/settings: GET the application settings every screen follows: currency, time zone, date and number
+    formats, week, financial year."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -71,6 +73,8 @@ class PublicSettings(MethodView):
 
 @blp.route("/admin/databases")
 class Databases(MethodView):
+    """/api/v1/admin/databases: GET every database EA Explorer uses (R2.50, D611): what it holds, its setting, where
+    it lives (the shared server or its own) and, for EA Explorer's own, whether it answers."""
     @blp.doc(security=[{"bearerAuth": []}])
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -83,6 +87,8 @@ class Databases(MethodView):
 
 @blp.route("/admin/logs/files")
 class LogFiles(MethodView):
+    """/api/v1/admin/logs/files: GET the containers' logs kept on disk, one file a day (R2.32): ?service= for one
+    container."""
     @blp.doc(security=[{"bearerAuth": []}])
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -94,6 +100,8 @@ class LogFiles(MethodView):
 
 @blp.route("/admin/logs/read")
 class LogRead(MethodView):
+    """/api/v1/admin/logs/read: GET a day of one or several containers' logs, merged by time (R2.31):
+    ?services=api,db&day=YYYY-MM-DD&level= (debug|info|warning|error: that and…"""
     @blp.doc(security=[{"bearerAuth": []}])
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -107,6 +115,8 @@ class LogRead(MethodView):
 
 @blp.route("/admin/logs/own")
 class LogOwn(MethodView):
+    """/api/v1/admin/logs/own: GET eax's own logs (work/logs) and the log backups (R2.31): listed; ?name= reads one
+    of eax's logs, ?backup= lists a backup's files and &member= reads one; &q= words…"""
     @blp.doc(security=[{"bearerAuth": []}])
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -120,6 +130,8 @@ class LogOwn(MethodView):
 
 @blp.route("/admin/logs/<any(backup, clean):what>")
 class LogKeep(MethodView):
+    """/api/v1/admin/logs/{what}: POST backup {tag}: the containers' logs and eax's own in one zip in
+    work/backups/logs; clean {days}: those and the log backups older than `days` deleted for good (R2.30)."""
     @blp.doc(security=[{"bearerAuth": []}])
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -146,6 +158,9 @@ class LogKeep(MethodView):
 
 @blp.route("/admin/footprint")
 class Footprint(MethodView):
+    """/api/v1/admin/footprint: GET how much each container takes (R2.22): the newest measurement and the one before
+    (image, own disk, volumes, memory, CPU, start-up seconds), as `eax footprint` keeps them…; POST measures now
+    {label}; kept beside the ones before."""
     @blp.doc(security=[{"bearerAuth": []}])
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -165,6 +180,9 @@ class Footprint(MethodView):
 
 @blp.route("/admin/resources")
 class Resources(MethodView):
+    """/api/v1/admin/resources: GET the resource history over a period (R3.5-M8): ?from=&to= (UTC times) or ?days= (1
+    unless given): the whole installation's memory and CPU, the host's memory left and…; DELETE deletes the resource
+    history (Super Admin, audited): ?from=&to= a period, ?to= everything before, neither: all."""
     @blp.doc(security=[{"bearerAuth": []}])
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -209,6 +227,8 @@ class Resources(MethodView):
 
 @blp.route("/admin/resources/csv")
 class ResourcesCsv(MethodView):
+    """/api/v1/admin/resources/csv: GET the resource history over a period as CSV (?from=&to= or ?days=): one line
+    per container per sample."""
     @blp.doc(security=[{"bearerAuth": []}])
     @require_auth("system.operate")
     def get(self):
@@ -228,6 +248,8 @@ class ResourcesCsv(MethodView):
 
 @blp.route("/admin/resources/sample")
 class ResourcesSample(MethodView):
+    """/api/v1/admin/resources/sample: POST a sample of the resource history now (as the job takes every few
+    minutes)."""
     @blp.doc(security=[{"bearerAuth": []}])
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -240,6 +262,8 @@ class ResourcesSample(MethodView):
 
 @blp.route("/admin/resources/settings")
 class ResourcesSettings(MethodView):
+    """/api/v1/admin/resources/settings: PUT how often a sample is taken and how long kept {every_minutes,
+    detail_days, keep_days}, and a shorter interval for a while {boost_every, boost_hours} (0 ends it); applied…"""
     @blp.doc(security=[{"bearerAuth": []}])
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -265,6 +289,8 @@ def _is_super(user) -> bool:
 
 @blp.route("/admin/estate")
 class Estate(MethodView):
+    """/api/v1/admin/estate: GET EA Explorer's own estate (R2.33): the logical diagram (components and who calls
+    whom) and the physical one of this installation as it runs (containers, images, networks…"""
     @blp.doc(security=[{"bearerAuth": []}])
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -277,6 +303,8 @@ class Estate(MethodView):
 
 @blp.route("/admin/persist")
 class Persist(MethodView):
+    """/api/v1/admin/persist: GET what persist/ holds (R2.26): the settings that survive every reset (schedules,
+    banner, Self-test settings), the safety backups and the reset-survival results; name…"""
     @blp.doc(security=[{"bearerAuth": []}])
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -288,6 +316,8 @@ class Persist(MethodView):
 
 @blp.route("/admin/persist/delete")
 class PersistDelete(MethodView):
+    """/api/v1/admin/persist/delete: POST deletes an item of persist/ for good {item} or everything {all: true,
+    confirm: "DELETE"} (R2.26); a deleted settings file falls back to its default."""
     @blp.doc(security=[{"bearerAuth": []}])
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -308,6 +338,9 @@ class PersistDelete(MethodView):
 
 @blp.route("/admin/first-run")
 class FirstRun(MethodView):
+    """/api/v1/admin/first-run: GET the first-run setup (UI-009): its steps, which are done, and whether to show it
+    (a Super Admin, not finished); POST {step, done} marks a step; {finished: true} puts the setup away, {finished:
+    false} opens it again (Super Admins)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -336,6 +369,9 @@ class FirstRun(MethodView):
 
 @blp.route("/admin/settings")
 class AdminSettings(MethodView):
+    """/api/v1/admin/settings: GET every runtime setting with its label, type, choices and help; the start-up
+    settings (in clear text) for IT and Super Admins; PUT changes settings (Super Admin) and applies them at once:
+    {key: value, ...}."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -366,6 +402,7 @@ class AdminSettings(MethodView):
 
 @blp.route("/admin/licences")
 class Licences(MethodView):
+    """/api/v1/admin/licences: GET the products and libraries EA Explorer runs and their licences."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -376,6 +413,8 @@ class Licences(MethodView):
 
 @blp.route("/admin/containers")
 class Containers(MethodView):
+    """/api/v1/admin/containers: GET this installation's containers, their state and health, and a running restart
+    (from the operations helper)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -386,6 +425,8 @@ class Containers(MethodView):
 
 @blp.route("/admin/restart")
 class Restart(MethodView):
+    """/api/v1/admin/restart: POST restarts the whole system, or one service ({service}), through the operations
+    helper (Super Admin)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(202, Free)
@@ -402,6 +443,8 @@ class Restart(MethodView):
 # ---------------------------------------------------------------- optional services and copies of the config file (D191)
 @blp.route("/admin/services")
 class Services(MethodView):
+    """/api/v1/admin/services: GET the optional services (reports, documents, draw.io, MCP, change log, backups): on
+    or off, what stops while off, and (IT and Super Admins) their containers' state."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -423,6 +466,8 @@ class Services(MethodView):
 
 @blp.route("/admin/services/health")
 class ServicesHealth(MethodView):
+    """/api/v1/admin/services/health: GET each service's health now (IT and Super Admins): its health check with the
+    response time, and per container CPU, memory, disk, Docker health, restarts and uptime from…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -435,6 +480,8 @@ class ServicesHealth(MethodView):
 
 @blp.route("/admin/sign-in-check")
 class SignInCheck(MethodView):
+    """/api/v1/admin/sign-in-check: POST the sign-in check (IT and Super Admins, D215): the screens call it once when
+    an admin signs in; it runs in the background and, when containers, services, backups, the…"""
     @blp.doc(security=SECURITY)
     @blp.response(202, Free)
     @require_auth("system.operate")
@@ -454,6 +501,8 @@ class SignInCheck(MethodView):
 # ---------------------------------------------------------------- the container console (owner, 6 Nov 2026)
 @blp.route("/admin/containers/<service>")
 class Container(MethodView):
+    """/api/v1/admin/containers/{service}: GET one container: state, health and its last checks, image, mounts,
+    ports, networks, environment (clear text), restart policy, limits and what it uses now (IT and Super…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -465,6 +514,7 @@ class Container(MethodView):
 
 @blp.route("/admin/containers/<service>/logs")
 class ContainerLogs(MethodView):
+    """/api/v1/admin/containers/{service}/logs: GET the container's last log lines (?tail=, at most 5,000)."""
     @blp.doc(security=SECURITY, parameters=[{"in": "query", "name": "tail", "schema": {"type": "integer"}}])
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -475,6 +525,8 @@ class ContainerLogs(MethodView):
 
 @blp.route("/admin/containers/<service>/terminal")
 class ContainerTerminal(MethodView):
+    """/api/v1/admin/containers/{service}/terminal: POST open an interactive terminal in a container (IT and Super
+    Admins, D214; off when EAX_CONTAINER_CONSOLE=off): answers a one-time address (good for 30 seconds) for the…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -544,6 +596,8 @@ def record_command_ends() -> int:
 
 @blp.route("/admin/services/<key>")
 class Service(MethodView):
+    """/api/v1/admin/services/{key}: PUT switches an optional service on or off ({on: true|false}, Super Admin): a
+    dated copy of the config file is kept, the switch written to it, then the service's containers…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -562,6 +616,10 @@ class Service(MethodView):
 
 @blp.route("/admin/servers")
 class Servers(MethodView):
+    """/api/v1/admin/servers: GET the API and job servers (copies of the api container: each answers API calls, which
+    nginx spreads across them, and runs background jobs), and how many are wanted (D249…; PUT run this many API and
+    job servers {count: 1 to 16}, at once and without a restart: copies of the first are added, or the
+    highest-numbered stop (the jobs they run finish…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -590,6 +648,8 @@ class Servers(MethodView):
 
 @blp.route("/admin/config-file")
 class ConfigFile(MethodView):
+    """/api/v1/admin/config-file: GET the config file (work/eaexplorer.env), or one dated copy of it (?name=), as it
+    is: in clear text, passwords and secrets too (owner, 5 Nov 2026)."""
     @blp.doc(security=SECURITY, parameters=[{"in": "query", "name": "name", "schema": {"type": "string"}}])
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -607,6 +667,8 @@ class ConfigFile(MethodView):
 
 @blp.route("/admin/config-file/check")
 class ConfigCheck(MethodView):
+    """/api/v1/admin/config-file/check: POST checks a config file typed on screen ({text}) and lists what it would
+    change; nothing is saved."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -618,6 +680,8 @@ class ConfigCheck(MethodView):
 
 @blp.route("/admin/config-file/save")
 class ConfigSave(MethodView):
+    """/api/v1/admin/config-file/save: POST saves the config file typed on screen ({text, why}; IT and Super Admins,
+    owner 5 Nov 2026): checked first, the file now kept as a dated copy, then written."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -639,6 +703,8 @@ class ConfigSave(MethodView):
 
 @blp.route("/admin/config-diff")
 class ConfigDiff(MethodView):
+    """/api/v1/admin/config-diff: GET the differences between two config files, in clear text: a and b are copy
+    names, empty for the current file."""
     @blp.doc(security=SECURITY, parameters=[{"in": "query", "name": "a", "schema": {"type": "string"}},
                                             {"in": "query", "name": "b", "schema": {"type": "string"}}])
     @blp.response(200, Free)
@@ -651,6 +717,8 @@ class ConfigDiff(MethodView):
 
 @blp.route("/admin/config-copies")
 class ConfigCopies(MethodView):
+    """/api/v1/admin/config-copies: GET the dated copies of the config file (each kept before a change from the
+    console or the eax command)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -661,6 +729,8 @@ class ConfigCopies(MethodView):
 
 @blp.route("/admin/config-copies/new")
 class ConfigCopyNew(MethodView):
+    """/api/v1/admin/config-copies/new: POST keeps a dated copy of the config file now ({why}: a few words, part of
+    the copy's name)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -677,6 +747,8 @@ class ConfigCopyNew(MethodView):
 
 @blp.route("/admin/config-copies/restore")
 class ConfigRestore(MethodView):
+    """/api/v1/admin/config-copies/restore: POST makes a copy the config file again ({name}, IT and Super Admins; the
+    current one is copied first)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -701,6 +773,8 @@ def _looked(action: str, object_id: str, details: dict | None = None) -> None:
 
 @blp.route("/admin/hosts")
 class Hosts(MethodView):
+    """/api/v1/admin/hosts: GET the Docker engine EA Explorer runs on (R2.16): OS, kernel, Docker and Compose
+    versions, CPUs and their use, load, memory (EA Explorer's and the rest), disks and Docker's…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -713,6 +787,8 @@ class Hosts(MethodView):
 
 @blp.route("/admin/mounts")
 class Mounts(MethodView):
+    """/api/v1/admin/mounts: GET every volume and bind mount the containers use (R2.17): which containers use it,
+    where, read only or not, its size, and warnings (read only where it must be writable, a…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -724,6 +800,8 @@ class Mounts(MethodView):
 
 @blp.route("/admin/mounts/<mid>")
 class MountDetail(MethodView):
+    """/api/v1/admin/mounts/{mid}: GET one mount, looked into read only: its size, free space, files, largest folders
+    and files, newest and oldest (or, with ?path=, one folder in it)."""
     @blp.doc(security=SECURITY, parameters=[{"in": "query", "name": "path", "schema": {"type": "string"}}])
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -738,6 +816,8 @@ class MountDetail(MethodView):
 
 @blp.route("/admin/mounts/<mid>/search")
 class MountSearch(MethodView):
+    """/api/v1/admin/mounts/{mid}/search: GET files in a mount by name (?name=), size (?min_mb=) or age (?days=,
+    changed in the last N days); up to 500."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -751,6 +831,10 @@ class MountSearch(MethodView):
 
 @blp.route("/admin/containers/<service>/files")
 class ContainerFiles(MethodView):
+    """/api/v1/admin/containers/{service}/files: GET a folder in a container (R2.18): name, size, date, owner and
+    permissions, the mounts marked; secrets and keys are not shown; POST a change in a container's files {op:
+    write|upload|mkdir|rename|move|copy|delete, path, to, content, sha256, files: [{name, content (base64)}],
+    overwrite, confirm…"""
     @blp.doc(security=SECURITY, parameters=[{"in": "query", "name": "path", "schema": {"type": "string"}}])
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -779,6 +863,8 @@ class ContainerFiles(MethodView):
 
 @blp.route("/admin/containers/<service>/files/content")
 class ContainerFileContent(MethodView):
+    """/api/v1/admin/containers/{service}/files/content: GET a text file in a container (up to 2 MB), with its sha256
+    for a safe edit; a binary file: its size only."""
     @blp.doc(security=SECURITY, parameters=[{"in": "query", "name": "path", "schema": {"type": "string"}}])
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -792,6 +878,8 @@ class ContainerFileContent(MethodView):
 
 @blp.route("/admin/containers/<service>/files/properties")
 class ContainerFileProperties(MethodView):
+    """/api/v1/admin/containers/{service}/files/properties: GET properties of a file or folder in a container (R3.5):
+    kind, size (a folder: everything in it, and how many files and folders), owner, group, permissions, when changed…"""
     @blp.doc(security=SECURITY, parameters=[{"in": "query", "name": "path", "schema": {"type": "string"}}])
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -804,6 +892,8 @@ class ContainerFileProperties(MethodView):
 
 @blp.route("/admin/containers/<service>/files/download")
 class ContainerFileDownload(MethodView):
+    """/api/v1/admin/containers/{service}/files/download: GET a file from a container, or a folder as a zip; several
+    (?path= more than once) as one zip (R3.5)."""
     @blp.doc(security=SECURITY, parameters=[{"in": "query", "name": "path", "schema": {"type": "string"}}])
     @require_auth("system.operate")
     def get(self, service):
@@ -826,6 +916,8 @@ class ContainerFileDownload(MethodView):
 
 @blp.route("/admin/alerts")
 class Alerts(MethodView):
+    """/api/v1/admin/alerts: GET containers not working now and the history of alerts and recoveries (R2.19), from
+    the operations helper's watcher (it looks every minute, also while the API is down)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -847,6 +939,8 @@ class Alerts(MethodView):
 
 @blp.route("/admin/alerts/test")
 class AlertTest(MethodView):
+    """/api/v1/admin/alerts/test: POST a test alert {service}: the watcher tells it as if that container had stopped,
+    then its recovery notice on the next look (the self-test uses it; nothing is stopped)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -860,6 +954,8 @@ class AlertTest(MethodView):
 
 @blp.route("/internal/container-alerts")
 class ContainerAlertsIn(MethodView):
+    """/api/v1/internal/container-alerts: POST for the operations helper only (X-Ops-Token): alerts, reminders and
+    recoveries from its watcher become notifications for the IT Admins and Super Admins (an alert needs…"""
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
     def post(self, data):
@@ -876,6 +972,8 @@ class ContainerAlertsIn(MethodView):
 
 @blp.route("/admin/coverage")
 class Coverage(MethodView):
+    """/api/v1/admin/coverage: GET code coverage of the API since it started (D642; EAX_COVERAGE=on): the share of EA
+    Explorer's lines run, by area and by file (the least covered first)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -898,6 +996,9 @@ def _sites_call(fn):
 
 @blp.route("/sites")
 class Sites(MethodView):
+    """/api/v1/sites: GET every EA Explorer site (Local first) with its health (green, amber, red) from its public
+    heartbeat, every 5 minutes; anyone signed in sees them and opens one to sign in…; POST add a site {name, url,
+    note} (Super Admins)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -922,6 +1023,8 @@ class Sites(MethodView):
 
 @blp.route("/sites/<sid>")
 class Site(MethodView):
+    """/api/v1/sites/{sid}: PUT change a site's name, address or note (Super Admins; Local's address comes from its
+    settings); DELETE remove a site from the list (Super Admins; nothing happens to the site itself; Local stays)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -945,3 +1048,585 @@ class Site(MethodView):
             audit.record(c, actor=g.user.username, action="site.remove", object_type="site", object_id=sid, details={})
             return out
         return _sites_call(go)
+
+
+# ---------------------------------------------------------------- IP allow-listing (R5.2, D686)
+def _caller_address() -> str:
+    """The caller's address as the front door saw it (X-Real-IP: nginx's $remote_addr, after the trusted load
+    balancers, R5.2)."""
+    return request.headers.get("X-Real-IP") or request.remote_addr or ""
+
+
+@blp.route("/admin/allow")
+class AdminAllow(MethodView):
+    """/api/v1/admin/allow: GET the IP allow lists per place, the addresses always allowed, the trusted load
+    balancers and your own address; PUT saves the lists ({lists: {place: [{address, name, why}]}, trusted: [...]}),
+    refusing one that would lock you out; nginx takes them at once (tested first)."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def get(self):
+        """The IP allow lists per place, the addresses always allowed, the trusted load balancers and your own address"""
+        out = _ops("GET", "/allow")
+        out["your_address"] = _caller_address()
+        out["may_change"] = g.user.can("settings.manage")
+        return out
+
+    @blp.doc(security=SECURITY)
+    @blp.arguments(FreeIn)
+    @blp.response(200, Free)
+    @require_auth("settings.manage")
+    def put(self, data):
+        """Saves the lists ({lists: {place: [{address, name, why}]}, trusted: [...]}), refusing one that would lock you
+        out; nginx takes them at once (tested first)"""
+        from .. import ip_allow
+        try:
+            clean = ip_allow.clean(data)
+            current = _ops("GET", "/allow")
+            ip_allow.guard(clean["lists"], _caller_address(), current.get("internal") or [])
+        except ip_allow.Refused as exc:
+            abort(409, message=str(exc))
+        out = _ops("POST", "/allow", clean | {"by": g.user.username}, timeout=60)
+        with get_engine().connect() as conn, conn.begin():
+            audit.record(conn, actor=g.user.username, action="security.allow_lists", object_type="settings",
+                         object_id="allow", details={"lists": {p: [e["address"] for e in v] for p, v in clean["lists"].items()},
+                                                     "trusted": [e["address"] for e in clean["trusted"]]})
+        return out
+
+
+@blp.route("/admin/allow/refused")
+class AdminAllowRefused(MethodView):
+    """/api/v1/admin/allow/refused: GET the addresses the front door refused (since the proxy started): the most
+    refused, by place, the latest."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def get(self):
+        """The addresses the front door refused (since the proxy started): the most refused, by place, the latest"""
+        return _ops("GET", "/allow/refused")
+
+
+# ---------------------------------------------------------------- multi-factor sign-in (R5.3, D690)
+@blp.route("/admin/security/mfa")
+class AdminMfa(MethodView):
+    """/api/v1/admin/security/mfa: GET the multi-factor setting, who has a code set up and who has been asked to set
+    one up."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def get(self):
+        """The multi-factor setting, who has a code set up and who has been asked to set one up"""
+        from .. import keycloak_upkeep as ku
+        with get_engine().connect() as conn:
+            mode = st.values(conn).get("mfa_mode", "off")
+        try:
+            status = ku.mfa_status()
+        except Exception as exc:  # noqa: BLE001
+            status = {"error": f"Keycloak could not be asked ({exc})"}
+        return {"mode": mode, "modes": list(ku.MODES), "admin_roles": list(ku.ADMIN_ROLES), **status,
+                "may_change": g.user.can("settings.manage")}
+
+
+@blp.route("/admin/security/mfa/reset")
+class AdminMfaReset(MethodView):
+    """/api/v1/admin/security/mfa/reset: POST removes a person's authenticator ({username}): they set up a new one at
+    their next sign-in."""
+    @blp.doc(security=SECURITY)
+    @blp.arguments(FreeIn)
+    @blp.response(200, Free)
+    @require_auth("settings.manage")
+    def post(self, data):
+        """Removes a person's authenticator ({username}): they set up a new one at their next sign-in"""
+        from .. import keycloak_upkeep as ku
+        username = str((data or {}).get("username") or "").strip().lower()
+        if not username:
+            abort(400, message="username: whose authenticator to remove.")
+        try:
+            out = ku.reset_device(username)
+        except ku.UpkeepError as exc:
+            abort(409, message=str(exc))
+        with get_engine().connect() as conn, conn.begin():
+            audit.record(conn, actor=g.user.username, action="security.mfa_reset", object_type="person",
+                         object_id=username, details=out)
+        return out
+
+
+# ---------------------------------------------------------------- the web log (R5.6)
+@blp.route("/admin/logs/web")
+class WebLog(MethodView):
+    """/api/v1/admin/logs/web: GET the web log of a day (every call to the API and MCP):
+    ?day=YYYY-MM-DD&since=HH:MM&until=&who=&path= &status=(a code|4xx|5xx|errors)&sort=(time|slowest)&page=N (500 a…"""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def get(self):
+        """The web log of a day (every call to the API and MCP): ?day=YYYY-MM-DD&since=HH:MM&until=&who=&path=
+        &status=(a code|4xx|5xx|errors)&sort=(time|slowest)&page=N (500 a page); with the slowest and most failing
+        routes summed, and whether web log debug is on"""
+        from urllib.parse import urlencode
+
+        from .. import weblog
+        keep = {k: request.args.get(k, "") for k in ("day", "since", "until", "who", "path", "status", "sort", "page")}
+        out = _ops("GET", "/logs/web?" + urlencode(keep), timeout=60)
+        weblog.forget()
+        out["debug_until"] = weblog.until() if weblog.on() else ""
+        return out
+
+
+@blp.route("/admin/logs/web/<any(files, csv, zip):what>")
+class WebLogFiles(MethodView):
+    """/api/v1/admin/logs/web/{what}: GET files: the days kept; csv: a day as CSV (the same filters as the web log);
+    zip: the raw files of a period (?start=&end=, base64)."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def get(self, what):
+        """files: the days kept; csv: a day as CSV (the same filters as the web log); zip: the raw files of a period
+        (?start=&end=, base64)"""
+        from urllib.parse import urlencode
+        keep = {k: v for k, v in request.args.items()}
+        return _ops("GET", f"/logs/web/{what}?" + urlencode(keep), timeout=120)
+
+
+@blp.route("/admin/logs/clean-range")
+class LogCleanRange(MethodView):
+    """/api/v1/admin/logs/clean-range: POST deletes the container logs and the web log: {what: period, start, end} |
+    {what: before, start} | {what: all} (Super Admin); a log backup is taken first."""
+    @blp.doc(security=SECURITY)
+    @blp.arguments(FreeIn)
+    @blp.response(200, Free)
+    @require_auth("settings.manage")
+    def post(self, data):
+        """Deletes the container logs and the web log: {what: period, start, end} | {what: before, start} | {what: all}
+        (Super Admin); a log backup is taken first. In the audit trail"""
+        data = data or {}
+        out = _ops("POST", "/logs/clean-range", {"what": data.get("what"), "start": data.get("start") or "",
+                                                 "end": data.get("end") or "", "by": g.user.username}, timeout=300)
+        with get_engine().begin() as conn:
+            audit.record(conn, actor=g.user.username, action="logs.delete", object_type="logs", object_id=str(data.get("what")),
+                         details={"start": out.get("start"), "end": out.get("end"), "backup": out.get("backup"),
+                                  "deleted": len(out.get("deleted") or [])})
+        return out
+
+
+@blp.route("/admin/logs/web-debug")
+class WebLogDebug(MethodView):
+    """/api/v1/admin/logs/web-debug: POST web log debug on for {minutes} (1 to 1440; 0 switches it off): each API
+    call's input and answer written too, masked (R5.6)."""
+    @blp.doc(security=SECURITY)
+    @blp.arguments(FreeIn)
+    @blp.response(200, Free)
+    @require_auth("settings.manage")
+    def post(self, data):
+        """Web log debug on for {minutes} (1 to 1440; 0 switches it off): each API call's input and answer written too,
+        masked (R5.6). Super Admin; in the audit trail"""
+        from datetime import UTC, datetime, timedelta
+
+        from .. import weblog
+        try:
+            minutes = int((data or {}).get("minutes") or 0)
+        except (TypeError, ValueError):
+            abort(400, message="minutes is a whole number, 0 to 1440.")
+        if not 0 <= minutes <= 1440:
+            abort(400, message="minutes is a whole number, 0 to 1440.")
+        until = (datetime.now(UTC) + timedelta(minutes=minutes)).isoformat(timespec="seconds") if minutes else ""
+        with get_engine().begin() as conn:
+            st.store(conn, {"web_log_debug_until": until})
+            audit.record(conn, actor=g.user.username, action="logs.web_debug", object_type="logs", object_id="web",
+                         details={"minutes": minutes, "until": until})
+        st.forget()
+        weblog.forget()
+        return {"until": until, "on": bool(until)}
+
+
+# ---------------------------------------------------------------- alerts (R5.9, D689)
+@blp.route("/admin/alerting")
+class Alerting(MethodView):
+    """/api/v1/admin/alerting: GET every check with its state, since when, acknowledged by whom; the open alerts
+    first; the silences; each check's levels; the email settings (no password)."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def get(self):
+        """Every check with its state, since when, acknowledged by whom; the open alerts first; the silences; each check's
+        levels; the email settings (no password)"""
+        from .. import alerts
+        with get_engine().connect() as conn:
+            return alerts.overview(conn)
+
+
+@blp.route("/admin/alerting/summary")
+class AlertsSummary(MethodView):
+    """/api/v1/admin/alerting/summary: GET how many alerts are open, critical and not acknowledged (the Health page
+    and the header)."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def get(self):
+        """How many alerts are open, critical and not acknowledged (the Health page and the header)"""
+        from .. import alerts
+        with get_engine().connect() as conn:
+            o = alerts.overview(conn)
+        return {k: o[k] for k in ("open", "critical", "unacknowledged")}
+
+
+@blp.route("/admin/alerting/<path:key>/<any(ack, config, delete):what>")
+class AlertOne(MethodView):
+    """/api/v1/admin/alerting/{key}/{what}: POST ack {note}: acknowledge an open alert (it stops repeating); config
+    {warning, critical, enabled, hold}: a check's levels (Super Admin); delete: remove a check a person…"""
+    @blp.doc(security=SECURITY)
+    @blp.arguments(FreeIn)
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def post(self, data, key, what):
+        """ack {note}: acknowledge an open alert (it stops repeating); config {warning, critical, enabled, hold}: a check's
+        levels (Super Admin); delete: remove a check a person added (Super Admin)"""
+        from .. import alerts
+        data = data or {}
+        if what in ("config", "delete") and not g.user.can("settings.manage"):
+            abort(403, message="Only a Super Admin changes the checks.")
+        try:
+            with get_engine().begin() as conn:
+                if what == "ack":
+                    out = alerts.acknowledge(conn, key, g.user.username, str(data.get("note") or ""))
+                elif what == "config":
+                    out = alerts.set_config(conn, key, data)
+                else:
+                    n = conn.execute(text("DELETE FROM core.alert_custom WHERE key = :k"), {"k": key.removeprefix("custom:")}).rowcount
+                    conn.execute(text("DELETE FROM core.alert_checks WHERE check_key = :k"), {"k": key})
+                    out = {"deleted": n}
+                audit.record(conn, actor=g.user.username, action=f"alert.{what}", object_type="alert", object_id=key, details=data)
+                return out
+        except ValueError as exc:
+            abort(400, message=str(exc))
+
+
+@blp.route("/admin/alerting/silence")
+class AlertSilence(MethodView):
+    """/api/v1/admin/alerting/silence: POST silence a check, or every check (key empty or *: a planned downtime), for
+    {minutes} with a {reason}."""
+    @blp.doc(security=SECURITY)
+    @blp.arguments(FreeIn)
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def post(self, data):
+        """Silence a check, or every check (key empty or *: a planned downtime), for {minutes} with a {reason}"""
+        from .. import alerts
+        data = data or {}
+        try:
+            with get_engine().begin() as conn:
+                out = alerts.silence(conn, str(data.get("key") or "*"), int(data.get("minutes") or 0), g.user.username,
+                                     str(data.get("reason") or ""))
+                audit.record(conn, actor=g.user.username, action="alert.silence", object_type="alert", object_id=out["check"], details=data)
+                return out
+        except (TypeError, ValueError) as exc:
+            abort(400, message=str(exc))
+
+
+@blp.route("/admin/alerting/custom")
+class AlertCustom(MethodView):
+    """/api/v1/admin/alerting/custom: POST a check of your own: {key, name, kind: url|sql, target, warning,
+    critical}: an address that answers within a time (ms), or one read-only SELECT that returns a number."""
+    @blp.doc(security=SECURITY)
+    @blp.arguments(FreeIn)
+    @blp.response(200, Free)
+    @require_auth("settings.manage")
+    def post(self, data):
+        """A check of your own: {key, name, kind: url|sql, target, warning, critical}: an address that answers within a
+        time (ms), or one read-only SELECT that returns a number"""
+        from .. import alerts
+        try:
+            with get_engine().begin() as conn:
+                out = alerts.add_custom(conn, data or {}, g.user.username)
+                audit.record(conn, actor=g.user.username, action="alert.custom", object_type="alert", object_id=out["key"],
+                             details=data or {})
+                return out
+        except ValueError as exc:
+            abort(400, message=str(exc))
+
+
+@blp.route("/admin/alerting/history")
+class AlertHistory(MethodView):
+    """/api/v1/admin/alerting/history: GET every change of state in the last 90 days, as CSV ({name, csv})."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def get(self):
+        """Every change of state in the last 90 days, as CSV ({name, csv})"""
+        from .. import alerts
+        with get_engine().connect() as conn:
+            return {"name": "alert-history.csv", "csv": alerts.history_csv(conn)}
+
+
+@blp.route("/admin/alerting/test-email")
+class AlertTestEmail(MethodView):
+    """/api/v1/admin/alerting/test-email: POST sends a test email to the alert addresses (or {to}) through the mail
+    server in the config file."""
+    @blp.doc(security=SECURITY)
+    @blp.arguments(FreeIn)
+    @blp.response(200, Free)
+    @require_auth("settings.manage")
+    def post(self, data):
+        """Sends a test email to the alert addresses (or {to}) through the mail server in the config file"""
+        from .. import alerts
+        with get_engine().connect() as conn:
+            to = [a for a in str((data or {}).get("to") or "").split(",") if "@" in a] or alerts.recipients_of(conn)
+        why = alerts.send_email(to, "[EA Explorer] Test of the alert email", "This is a test of the alert email (R5.9).")
+        if why:
+            abort(409, message=why)
+        return {"sent_to": to}
+
+
+# ---------------------------------------------------------------- database maintenance (R5.12, D691)
+@blp.route("/admin/db-maintenance")
+class DbMaintenance(MethodView):
+    """/api/v1/admin/db-maintenance: GET the last check's findings, the runs (check, tidy, compact, clear, locks),
+    the window and what would stop a run now."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def get(self):
+        """The last check's findings, the runs (check, tidy, compact, clear, locks), the window and what would stop a run now"""
+        from .. import dbmaint
+        with get_engine().connect() as conn:
+            return {"last_check": dbmaint.last_check(conn), "history": dbmaint.history(conn), "settings": dbmaint.settings_of(conn),
+                    "busy": dbmaint.busy_reason()}
+
+
+DB_ACTIONS = ("check", "tidy", "clear", "compact", "compact-preview", "locks", "stop", "stop-preview")
+
+
+@blp.route("/admin/db-maintenance/<string:what>")
+class DbMaintenanceDo(MethodView):
+    """/api/v1/admin/db-maintenance/{what}: GET locks: who blocks whom, on every database; POST check: every database
+    now; tidy {dry_run}: what the check finds, done (nothing locked); clear: the keep-for rules now; compact-preview
+    {database, table} then compact…"""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def get(self, what):
+        """locks: who blocks whom, on every database"""
+        from .. import dbmaint
+        if what not in DB_ACTIONS:
+            abort(404, message=f"No {what}: one of {', '.join(DB_ACTIONS)}.")
+        if what != "locks":
+            abort(405, message="Use POST.")
+        return {"sessions": dbmaint.locks()}
+
+    @blp.doc(security=SECURITY)
+    @blp.arguments(FreeIn)
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def post(self, data, what):
+        """check: every database now; tidy {dry_run}: what the check finds, done (nothing locked); clear: the keep-for
+        rules now; compact-preview {database, table} then compact {confirm}: VACUUM FULL (locks the table; Super Admin);
+        stop-preview {pid, end} then stop {confirm}: cancel a query or end a session"""
+        from .. import dbmaint
+        data = data or {}
+        if what not in DB_ACTIONS:
+            abort(404, message=f"No {what}: one of {', '.join(DB_ACTIONS)}.")
+        if what in ("compact", "compact-preview", "clear") and not g.user.can("settings.manage"):
+            abort(403, message="Only a Super Admin compacts a table or clears by the keep-for rules.")
+        if what in ("tidy", "compact", "clear") and not data.get("dry_run"):
+            why = dbmaint.busy_reason()
+            if why:
+                abort(409, message=f"Not now: {why}. Try again when it has finished.")
+        try:
+            if what == "check":
+                out = dbmaint.check()
+                kind, found, done = "check", out["findings"], []
+            elif what == "tidy":
+                found = dbmaint.check()["findings"]
+                done = dbmaint.tidy(found, dry_run=bool(data.get("dry_run")))
+                out, kind = {"actions": done}, "tidy"
+                if data.get("dry_run"):
+                    return out
+            elif what == "compact-preview":
+                return dbmaint.compact_preview(str(data.get("database") or ""), str(data.get("table") or ""))
+            elif what == "compact":
+                r = dbmaint.compact(str(data.get("confirm") or ""))
+                out, kind, found, done = r, "compact", [], [r]
+            elif what == "stop-preview":
+                return dbmaint.stop_preview(int(data.get("pid") or 0), bool(data.get("end")))
+            elif what == "stop":
+                r = dbmaint.stop(str(data.get("confirm") or ""))
+                out, kind, found, done = r, "locks", [], [r]
+            elif what == "clear":
+                with get_engine().begin() as conn:
+                    r = dbmaint.clear(conn, g.user.username)
+                out, kind, found, done = r, "clear", [], [r]
+            else:
+                abort(405, message="Use GET for locks.")
+        except ValueError as exc:
+            abort(400, message=str(exc))
+        with get_engine().begin() as conn:
+            dbmaint.record(conn, kind, g.user.username, found, done)
+            audit.record(conn, actor=g.user.username, action=f"db.{what}", object_type="database", object_id=what,
+                         details={"found": len(found), "done": len(done)})
+        return out
+
+
+# ---------------------------------------------------------------- the optimisation report (R5.1, D697)
+def _optimise_view(conn, rep: dict | None) -> dict | None:
+    """IT and Super Admins see the whole report; a Model Admin only what is theirs to decide (their models)."""
+    from .. import permissions as P
+    if rep is None or g.user.can("system.operate"):
+        return rep
+    mine = [s for s in rep["report"]["suggestions"] if s.get("params", {}).get("model")
+            and "model-admin" in P.model_roles(conn, g.user.username, s["params"]["model"])]
+    return {**rep, "report": {**rep["report"], "suggestions": mine}}
+
+
+@blp.route("/admin/optimisation")
+class Optimisation(MethodView):
+    """/api/v1/admin/optimisation: GET the newest optimisation report, compared with the one before, and what of it
+    was applied; POST measure now: a new report (nothing is changed)."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth()
+    def get(self):
+        """The newest optimisation report, compared with the one before, and what of it was applied"""
+        from .. import optimise as op
+        with get_engine().connect() as conn:
+            two = op.latest(conn, 2)
+            now = _optimise_view(conn, two[0] if two else None)
+            before = two[1]["report"] if len(two) > 1 else None
+        return {"report": now, "compared": op.compare(two[0]["report"], before) if two else None,
+                "unused_days": st.values().get("optimise_unused_days"), "may_measure": g.user.can("system.operate")}
+
+    @blp.doc(security=SECURITY)
+    @blp.arguments(FreeIn)
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def post(self, data):
+        """Measure now: a new report (nothing is changed)"""
+        from .. import optimise as op
+        with get_engine().begin() as conn:
+            r = op.measure(conn)
+            rid = op.save(conn, r, g.user.username)
+            audit.record(conn, actor=g.user.username, action="optimise.report", object_type="optimisation", object_id=str(rid),
+                         details={"suggestions": len(r["suggestions"])})
+        return {"id": rid, **r}
+
+
+@blp.route("/admin/optimisation/<int:report_id>/apply")
+class OptimisationApply(MethodView):
+    """/api/v1/admin/optimisation/{report_id}/apply: POST {key, choice}: one suggestion applied, for a whole model or
+    project (history: choice condense or remove)."""
+    @blp.doc(security=SECURITY)
+    @blp.arguments(FreeIn)
+    @blp.response(200, Free)
+    @require_auth()
+    def post(self, data, report_id):
+        """{key, choice}: one suggestion applied, for a whole model or project (history: choice condense or remove)"""
+        from .. import optimise as op
+        data = data or {}
+        if g.user.auditor_view:
+            abort(403, message="Auditor: view only.")
+        try:
+            with get_engine().begin() as conn:
+                return op.apply(conn, g.user, report_id, str(data.get("key") or ""), str(data.get("choice") or ""))
+        except op.NotAllowed as exc:
+            abort(403, message=str(exc))
+        except EditError as exc:
+            abort(exc.status, message=str(exc))
+        except ValueError as exc:
+            abort(409, message=str(exc))
+
+
+@blp.route("/admin/optimisation/<int:report_id>/xlsx")
+class OptimisationExcel(MethodView):
+    """/api/v1/admin/optimisation/{report_id}/xlsx: GET the report as an Excel workbook."""
+    @blp.doc(security=SECURITY)
+    @require_auth()
+    def get(self, report_id):
+        """The report as an Excel workbook"""
+        from flask import Response
+
+        from .. import optimise as op
+        with get_engine().connect() as conn:
+            row = conn.execute(text("SELECT id, at, by_whom, report, applied FROM core.optimisation_reports WHERE id = :i"),
+                               {"i": report_id}).mappings().first()
+            if not row:
+                abort(404, message="No such report.")
+            rep = _optimise_view(conn, dict(row))
+        body = op.workbook(rep["report"], rep["applied"])
+        return Response(body, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        headers={"Content-Disposition": f'attachment; filename="eaexplorer-optimisation-{report_id}.xlsx"'})
+
+
+# ---------------------------------------------------------------- the server sizing estimate (R5.19)
+@blp.route("/admin/sizing")
+class Sizing(MethodView):
+    """/api/v1/admin/sizing: GET the defaults (a laptop's figures), the assumptions a person may change, the saved
+    estimates, and this installation's real memory per container (to set beside an estimate); POST {users, models,
+    model_size, projects, documents_per_project, reports, documents, mcp, discovery, backups_kept, headroom, node_gb,
+    node_cores, assumptions, save: name}…"""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def get(self):
+        """The defaults (a laptop's figures), the assumptions a person may change, the saved estimates, and this
+        installation's real memory per container (to set beside an estimate)"""
+        from .. import resources as rs
+        from .. import sizing
+        with get_engine().connect() as conn:
+            saved = [{**dict(r), "at": r["at"].isoformat()} for r in conn.execute(text(
+                "SELECT id, at, by_whom, name, result->'server' AS server FROM core.sizing_estimates ORDER BY at DESC LIMIT 50")).mappings()]
+            try:
+                from .. import databases
+                on = databases.on("operations", conn)
+                rows = [dict(r) for r in on.execute(text(f"SELECT * FROM {rs.TABLE} WHERE at > now() - interval '7 days' ORDER BY at")).mappings()]
+                measured = (rs.merge(rows) or {}).get("containers") or []
+            except Exception:  # noqa: BLE001 - no resource history: nothing to set beside it
+                measured = []
+        here = sizing.estimate(sizing.LAPTOP)
+        return {"defaults": {**sizing.LAPTOP, "headroom": sizing.HEADROOM}, "assumptions": sizing.DATA, "saved": saved,
+                "model_version": sizing.VERSION, "changes": sizing.CHANGES, "measured": sizing.against(here, measured)}
+
+    @blp.doc(security=SECURITY)
+    @blp.arguments(FreeIn)
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def post(self, data):
+        """{users, models, model_size, projects, documents_per_project, reports, documents, mcp, discovery, backups_kept,
+        headroom, node_gb, node_cores, assumptions, save: name}: the estimate (saved when a name is given)"""
+        from .. import sizing
+        data = dict(data or {})
+        try:
+            out = sizing.estimate(data)
+        except ValueError as exc:
+            abort(400, message=str(exc))
+        name = str(data.get("save") or "").strip()
+        if name:
+            with get_engine().begin() as conn:
+                out["id"] = conn.execute(text("INSERT INTO core.sizing_estimates (by_whom, name, result) VALUES (:b, :n, CAST(:r AS jsonb)) "
+                                              "RETURNING id"), {"b": g.user.username, "n": name[:200], "r": json.dumps(out)}).scalar()
+                audit.record(conn, actor=g.user.username, action="sizing.saved", object_type="sizing", object_id=str(out["id"]),
+                             details={"name": name, "server": out["server"]})
+        return out
+
+
+@blp.route("/admin/sizing/<int:estimate_id>/<any(json, xlsx, override):fmt>")
+class SizingFile(MethodView):
+    """/api/v1/admin/sizing/{estimate_id}/{fmt}: GET a saved estimate: as JSON, as Excel, or the compose override to
+    paste."""
+    @blp.doc(security=SECURITY)
+    @require_auth("system.operate")
+    def get(self, estimate_id, fmt):
+        """A saved estimate: as JSON, as Excel, or the compose override to paste"""
+        from flask import Response
+
+        from .. import sizing
+        with get_engine().connect() as conn:
+            row = conn.execute(text("SELECT name, result FROM core.sizing_estimates WHERE id = :i"), {"i": estimate_id}).mappings().first()
+        if not row:
+            abort(404, message="No such estimate.")
+        r = row["result"]
+        if fmt == "json":
+            return r
+        if fmt == "override":
+            return Response(r.get("override") or sizing.override(r["containers"]), mimetype="text/yaml",
+                            headers={"Content-Disposition": f'attachment; filename="docker-compose.sizing-{estimate_id}.yml"'})
+        return Response(sizing.workbook(r), mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        headers={"Content-Disposition": f'attachment; filename="eaexplorer-sizing-{estimate_id}.xlsx"'})

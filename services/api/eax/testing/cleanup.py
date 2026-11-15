@@ -69,6 +69,7 @@ def delete(engine, ids: list[int], by: str, remove_folders, say=lambda _m: None)
 
 
 def message(out: dict[str, Any]) -> str:
+    """What a test-results clean-up deleted, in words."""
     return (f"Deleted {out['runs']} run(s): {out['results']} results with their screenshots, {out['fixtures']} test fixture(s), "
             f"{len(out['folders'])} folder(s) of reports, logs and videos"
             + (f"; could not remove {', '.join(out['left'])} (delete them in work/tests)" if out["left"] else "")

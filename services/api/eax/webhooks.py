@@ -25,6 +25,7 @@ TIMEOUT = 10
 
 
 class HookError(Exception):
+    """A webhook change refused, with the HTTP status to answer."""
     def __init__(self, message: str, status: int = 400):
         super().__init__(message)
         self.status = status
@@ -43,6 +44,7 @@ def queue(conn, nid: int) -> int:
 
 
 def sign(secret: str, body: bytes) -> str:
+    """A webhook payload's signature (HMAC-SHA256 with its secret)."""
     return "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
 
 
@@ -121,6 +123,7 @@ def _out(r: dict) -> dict:
 
 
 def listing(conn) -> list[dict]:
+    """The webhooks with their recent deliveries' counts."""
     return [_out(r) for r in _rows(conn, """
         SELECT w.*, (SELECT count(*) FROM core.webhook_deliveries d WHERE d.webhook_id = w.id AND d.status = 'sent') AS sent,
                (SELECT count(*) FROM core.webhook_deliveries d WHERE d.webhook_id = w.id AND d.status = 'failed') AS failed,
@@ -137,6 +140,7 @@ def _hook(conn, guid) -> dict:
 
 
 def create(conn, body: dict, by: str) -> dict:
+    """Adds a webhook."""
     v = _check(body)
     r = _one(conn, """INSERT INTO core.webhooks (name, url, secret, kinds, enabled, created_by)
                       VALUES (:n, :u, :s, CAST(:k AS text[]), :e, :b) RETURNING *""",
@@ -145,6 +149,7 @@ def create(conn, body: dict, by: str) -> dict:
 
 
 def update(conn, guid, body: dict) -> dict:
+    """Changes a webhook (a new secret when asked)."""
     h = _hook(conn, guid)
     v = _check(body, partial=True)
     if body.get("new_secret"):
@@ -156,12 +161,14 @@ def update(conn, guid, body: dict) -> dict:
 
 
 def delete(conn, guid) -> dict:
+    """Deletes a webhook."""
     h = _hook(conn, guid)
     conn.execute(text("DELETE FROM core.webhooks WHERE id = :i"), {"i": h["id"]})
     return {"deleted": h["name"]}
 
 
 def deliveries(conn, guid, limit: int = 100) -> list[dict]:
+    """A webhook's recent deliveries."""
     h = _hook(conn, guid)
     return _rows(conn, """SELECT d.id, d.status, d.attempts, d.last_status, d.last_error, d.created_at, d.sent_at, d.next_at,
                                  d.payload->>'kind' AS kind, d.payload->>'title' AS title

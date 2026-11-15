@@ -40,6 +40,8 @@ def _preview(load: dict, model_id) -> dict:
 
 @blp.route("/models/<uuid:model_id>/import-sources")
 class Sources(MethodView):
+    """/api/v1/models/{model_id}/import-sources: GET the model's import sources, with the deliveries waiting for
+    review; POST adds an import source {name, description, folder, values_win, contact, sender} (Model Admins)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -59,6 +61,8 @@ class Sources(MethodView):
 
 @blp.route("/import-sources/<source_id>")
 class Source(MethodView):
+    """/api/v1/import-sources/{source_id}: PATCH changes an import source {name, description, values_win, contact,
+    sender, active} (Model Admins)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -72,6 +76,8 @@ class Source(MethodView):
 
 @blp.route("/import-sources/<source_id>/deliveries")
 class Deliveries(MethodView):
+    """/api/v1/import-sources/{source_id}/deliveries: POST delivers a file (multipart field file) in a published
+    format: kept, previewed in the background, waiting for a person to accept it."""
     @blp.doc(security=SECURITY, parameters=[{"in": "query", "name": "how", "schema": {"type": "string"}}])
     @blp.response(202, Free)
     @require_auth()
@@ -87,6 +93,8 @@ class Deliveries(MethodView):
 
 @blp.route("/import-sources/<source_id>/collect")
 class Collect(MethodView):
+    """/api/v1/import-sources/{source_id}/collect: POST takes the files dropped in the source's folder: one delivery
+    a workbook or file, one for a CSV set with master.csv; each previewed in the background."""
     @blp.doc(security=SECURITY)
     @blp.response(202, Free)
     @require_auth()
@@ -101,6 +109,8 @@ class Collect(MethodView):
 
 @blp.route("/loads/<load_id>/accept")
 class Accept(MethodView):
+    """/api/v1/loads/{load_id}/accept: POST accepts a delivery: its rows become your changes, committed at once as
+    your load (a task; Committers)."""
     @blp.doc(security=SECURITY)
     @blp.response(202, Free)
     @require_auth()
@@ -125,6 +135,7 @@ class Accept(MethodView):
 
 @blp.route("/loads/<load_id>/decline")
 class Decline(MethodView):
+    """/api/v1/loads/{load_id}/decline: POST declines a delivery {note}: nothing in the model changes."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -144,6 +155,8 @@ def _file(data: bytes, name: str) -> Response:
 
 @blp.route("/metamodel-workbooks/template")
 class WorkbookTemplate(MethodView):
+    """/api/v1/metamodel-workbooks/template: GET the metamodel workbook: empty with its drop-downs, or ?model=<id>
+    that model's metamodel in the same layout."""
     @blp.doc(security=SECURITY, parameters=[{"in": "query", "name": "model", "schema": {"type": "string"}}])
     @require_auth()
     def get(self):
@@ -167,6 +180,8 @@ def _workbook_upload():
 
 @blp.route("/metamodel-workbooks/preview")
 class WorkbookPreview(MethodView):
+    """/api/v1/metamodel-workbooks/preview: POST what a metamodel workbook would make (multipart file, base): counts,
+    added, changed, errors and warnings."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -179,6 +194,8 @@ class WorkbookPreview(MethodView):
 
 @blp.route("/metamodel-workbooks")
 class Workbooks(MethodView):
+    """/api/v1/metamodel-workbooks: POST makes a project model from a metamodel workbook (multipart file, name, base,
+    description): blank (on Root) or added to the base model's metamodel; you become its Model…"""
     @blp.doc(security=SECURITY)
     @blp.response(201, Free)
     @require_auth()

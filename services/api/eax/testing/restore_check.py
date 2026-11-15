@@ -139,15 +139,18 @@ class Buffer:
         self.tally = {"passed": 0, "failed": 0}
 
     def rec(self, name: str, ok: bool, detail: str = "", ms: int = 0) -> None:
+        """Keeps a restore check's result until the API answers again."""
         self.tally["passed" if ok else "failed"] += 1
         self.rows.append((f"restore: {name}", "passed" if ok else "failed", detail, ms))
 
     def flush(self, record: Callable[..., None]) -> None:
+        """Records the kept results."""
         for name, outcome, detail, ms in self.rows:
             record(name, outcome, detail, ms)
 
 
 def wait_api(base: str, seconds: int = 1800, call=call, sleep=time.sleep) -> bool:
+    """Waits for the API to answer after a restore (up to `seconds`)."""
     end = time.time() + seconds
     while time.time() < end:
         code, _ = call(base, "GET", "/api/health", None)

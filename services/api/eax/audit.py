@@ -21,6 +21,7 @@ def record(
     source: str = "api",
     request_id: str | None = None,
 ) -> None:
+    """Writes one line in the audit log: who did what to which object, with details, in the caller's transaction."""
     conn.execute(
         text(
             """

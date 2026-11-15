@@ -7,6 +7,10 @@ eaxcli/logkeep.py, shared with `eax logs backup | clean`.
   GET  /logs/read?services=a,b&day=YYYY-MM-DD&level=&q=&since=HH:MM&until=HH:MM&page=N   their lines, merged by time
   POST /logs/backup {tag, by}     one zip of them and eax's own logs in work/backups/logs
   POST /logs/clean {days, by}     delete them and the log backups older than `days`
+  GET  /logs/web?day=&since=&until=&who=&path=&status=&sort=&page=   the web log of a day, filtered, with what is
+                                  slowest and most failing (R5.6); /logs/web/files the days kept; /logs/web/csv?day=
+                                  (with the same filters) as CSV; /logs/web/zip?start=&end= the raw files (base64)
+  POST /logs/clean-range {what: period|before|all, start, end, by}   a log backup first, then delete (R5.6)
 """
 
 from __future__ import annotations
@@ -37,12 +41,14 @@ def _need() -> None:
 
 
 def read_since(cid: str, since: str) -> list[str]:
+    """A container's log lines since a time."""
     r = subprocess.run(["docker", "logs", "--timestamps", "--since", since, cid], capture_output=True, text=True,
                        errors="replace", timeout=60)
     return (r.stdout + r.stderr).splitlines()
 
 
 def ship_once() -> dict:
+    """Copies every container's new log lines into the day files."""
     _need()
     if not LOGS.is_dir():
         return {}
@@ -61,15 +67,18 @@ def shipper(pause: float = 60) -> None:
 
 
 def start() -> None:
+    """Starts copying the logs in the background."""
     threading.Thread(target=shipper, daemon=True).start()
 
 
 def files(service: str = "") -> dict:
+    """The kept log files (one container's)."""
     _need()
     return {"files": K.files(LOGS, service), "folder": os.environ.get("EAX_LOGS_DIR_HOST", "logs/")}
 
 
 def read(args: dict) -> dict:
+    """A day of some containers' logs, merged."""
     _need()
     services = [s for s in str(args.get("services") or "").split(",") if s]
     if not services:
@@ -93,12 +102,39 @@ def own(args: dict) -> dict:
 
 
 def backup(body: dict) -> dict:
+    """Backs the logs up in one zip."""
     _need()
     return K.backup(LOGS, WORK / "logs", BACKUPS / "logs", str(body.get("tag") or ""))
 
 
 def clean(body: dict) -> dict:
+    """Deletes logs and log backups older than some days."""
     _need()
     out = K.clean(LOGS, WORK / "logs", BACKUPS / "logs", int(body.get("days") or 0))
     out["deleted"] += K.clean(LOGS, WORK / "logs", K.kept_backups(LOGS), int(body.get("days") or 0))["deleted"]
     return out
+
+
+def web(path: str, q: dict) -> dict:
+    """The web log (R5.6): read, its files, a CSV of a filtered day, or the raw files of a period zipped (base64)."""
+    _need()
+    if path == "/logs/web/files":
+        return {"files": K.web_files(LOGS)}
+    if path == "/logs/web/zip":
+        import base64
+        data = K.web_zip(LOGS, str(q.get("start") or ""), str(q.get("end") or q.get("start") or ""))
+        return {"name": f"web-log-{q.get('start')}-{q.get('end') or q.get('start')}.zip", "zip": base64.b64encode(data).decode()}
+    out = K.web_read(LOGS, str(q.get("day") or ""), str(q.get("since") or ""), str(q.get("until") or ""),
+                     str(q.get("who") or ""), str(q.get("path") or ""), str(q.get("status") or ""),
+                     str(q.get("sort") or "time"), int(q.get("page") or 0), size=10 ** 9 if path == "/logs/web/csv" else 500)
+    if path == "/logs/web/csv":
+        return {"name": f"web-log-{out['day']}.csv", "csv": K.web_csv(out["rows"])}
+    return out
+
+
+def clean_range(body: dict) -> dict:
+    """Delete from the page (R5.6): a log backup first (D625), then a period, everything before a day, or all."""
+    _need()
+    taken = K.backup(LOGS, WORK / "logs", BACKUPS / "logs", "before-delete")
+    out = K.clean_range(LOGS, str(body.get("what") or ""), str(body.get("start") or ""), str(body.get("end") or ""))
+    return out | {"backup": taken["file"]}

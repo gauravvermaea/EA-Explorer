@@ -82,6 +82,7 @@ HEALTH_COLOUR = {"Healthy": "#2e7d4f", "Degraded": "#d4a72c", "Not healthy": "#b
 
 
 def ring_parts(s: dict[str, Any]) -> list[tuple[str, int]]:
+    """The parts of a run's health ring."""
     c, nc = s["critical"], s["non_critical"]
     return [("critical failed", c["failed"]), ("non-critical failed", nc["failed"]),
             ("warning", c["warning"] + nc["warning"]), ("skipped", c["skipped"] + nc["skipped"]),

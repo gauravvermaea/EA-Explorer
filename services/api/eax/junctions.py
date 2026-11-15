@@ -27,11 +27,13 @@ def _rows(conn, sql: str, **p) -> list[dict]:
 
 
 def connector_type_ids(conn, model_id: int) -> set[int]:
+    """The model's connector types (junctions)."""
     return {r["id"] for r in _rows(conn, """SELECT id FROM core.entity_types
                                              WHERE model_id = :m AND is_connector AND NOT is_deleted""", m=model_id)}
 
 
 def is_junction(conn, entity_id: int) -> bool:
+    """Whether an element is a junction."""
     r = conn.execute(text("""SELECT t.is_connector FROM core.entities e JOIN core.entity_types t ON t.id = e.entity_type_id
                               WHERE e.id = :e"""), {"e": entity_id}).scalar()
     return bool(r)

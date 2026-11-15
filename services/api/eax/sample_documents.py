@@ -46,12 +46,14 @@ CATALOGUE: dict[str, tuple[str, str, str, str]] = {
 
 
 def listing() -> dict:
+    """The sample templates to download."""
     return {"templates": [{"code": c, "name": n, "type": t, "type_name": bf.TYPES[t], "purpose": p, "when": w}
                           for c, (n, t, p, w) in CATALOGUE.items()],
             "note": "Sample templates in our own wording, to download and use. They are not copied into a project or a model."}
 
 
 def make(code: str) -> tuple[bytes, str, str]:
+    """Makes one sample template file."""
     if code not in CATALOGUE:
         raise EditError(f"No sample template {code!r}.", 404)
     name, kind, _p_, _w = CATALOGUE[code]
@@ -86,6 +88,7 @@ class _Slide:
         self.n += 1
 
     def text(self, x: float, y: float, w: float, h: float, s: str, size: int = 24, bold: bool = True) -> None:
+        """Adds a text box to a sample slide."""
         self.shapes.append(
             f'<p:sp><p:nvSpPr><p:cNvPr id="{self.n}" name="Text {self.n}"/><p:cNvSpPr txBox="1"/><p:nvPr/></p:nvSpPr>'
             f'<p:spPr><a:xfrm><a:off x="{int(x * EMU)}" y="{int(y * EMU)}"/><a:ext cx="{int(w * EMU)}" cy="{int(h * EMU)}"/></a:xfrm>'
@@ -95,6 +98,7 @@ class _Slide:
         self.n += 1
 
     def save(self, name: str) -> bytes:
+        """The sample slide as a PowerPoint file."""
         return bf.pptx_slide(name, "".join(self.shapes))
 
 

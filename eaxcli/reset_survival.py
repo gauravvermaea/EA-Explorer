@@ -27,6 +27,7 @@ FILES = ("schedules.json", "banner.json")
 
 
 def results_dir(root: Path) -> Path:
+    """Where the reset-survival test keeps its results."""
     return persist.folder(root) / "test-results"
 
 
@@ -42,6 +43,7 @@ def _sums(root: Path) -> dict[str, str]:
 
 
 def place_markers(root: Path, run: str) -> None:
+    """Puts a schedule and a banner in persist/ for the reset-survival test to find again."""
     items, _ = S.load(root)
     items = [s for s in items if not str(s.get("name", "")).startswith(f"self_test_{run}")]
     now = datetime.now(S.zone(root)).isoformat(timespec="seconds")
@@ -56,6 +58,7 @@ def place_markers(root: Path, run: str) -> None:
 
 
 def check_markers(root: Path, run: str) -> list[tuple[str, bool, str]]:
+    """Whether the markers survived the reset."""
     from . import banner as B
     items, warn_s = S.load(root)
     data, warn_b = B.load(root)
@@ -66,6 +69,7 @@ def check_markers(root: Path, run: str) -> list[tuple[str, bool, str]]:
 
 
 def remove_markers(root: Path, run: str) -> None:
+    """Removes the test's markers."""
     items, _ = S.load(root)
     S.save([s for s in items if s.get("name") != f"self_test_{run}"], root)
     from . import banner as B
@@ -118,6 +122,7 @@ def run(root: Path, reset, wait_back, log=print, run_id: str | None = None, stri
 
 
 def history(root: Path) -> list[dict]:
+    """The reset-survival test's earlier results."""
     out = []
     d = results_dir(root)
     if d.is_dir():

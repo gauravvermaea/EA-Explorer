@@ -36,6 +36,7 @@ def _form() -> tuple[str, str, bool]:
 
 
 def groups(form: str = "py", windows: bool = WINDOWS) -> list[dict]:
+    """The help's groups of commands, for the menu."""
     doc = help_.parse(help_.SOURCE.read_text(encoding="utf-8"), {form, "win" if windows else "unix"})
     return [s for s in doc["sections"] if s["commands"]]
 
@@ -176,6 +177,7 @@ def run(line: list[str]) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """eax menu: the numbered menu of commands (the help when there is no terminal)."""
     if not sys.stdin.isatty() and not os.environ.get("EAX_MENU_ANYWAY"):
         _, eax, windows = _form()
         print(help_.render(_form()[0], eax, windows)[0])

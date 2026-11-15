@@ -46,22 +46,26 @@ DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
 
 class TagIn(Schema):
+    """The shape of tag sent to the API: name, description, lock."""
     name = fields.String(required=True)
     description = fields.String(load_default="")
     lock = fields.Boolean(load_default=False)
 
 
 class TagPatch(Schema):
+    """The shape of tag patch in the API's answers: name, description, locked."""
     name = fields.String(load_default=None)
     description = fields.String(load_default=None)
     locked = fields.Boolean(load_default=None, allow_none=True)
 
 
 class NoteIn(Schema):
+    """The shape of note sent to the API: note."""
     note = fields.String(load_default="")
 
 
 class DetailIn(Schema):
+    """The shape of detail sent to the API: left, right, left_entity, right_entity."""
     left = fields.Dict(required=True, metadata={"description": "{kind: model|tag, id}: the baseline"})
     right = fields.Dict(required=True, metadata={"description": "{kind: model|tag, id}: the target"})
     left_entity = fields.String(load_default=None, allow_none=True, metadata={"description": "The element's id in the baseline"})
@@ -69,6 +73,7 @@ class DetailIn(Schema):
 
 
 class SidesIn(Schema):
+    """The shape of sides sent to the API: left, right, settings."""
     left = fields.Dict(required=True, metadata={"description": "{kind: model|tag, id}: the baseline"})
     right = fields.Dict(required=True, metadata={"description": "{kind: model|tag, id}: the target"})
     settings = fields.Dict(load_default=None, metadata={"description": "{types: {code: [fields]}, relationship_types: [...], "
@@ -76,11 +81,13 @@ class SidesIn(Schema):
 
 
 class ProfileIn(Schema):
+    """The shape of profile sent to the API: name, settings."""
     name = fields.String(required=True)
     settings = fields.Dict(required=True)
 
 
 class GapIn(Schema):
+    """The shape of gap sent to the API: store_in, name, description, template, baseline, target, settings."""
     store_in = fields.String(required=True, metadata={"description": "The model the gaps are stored in (a project model, not locked)"})
     name = fields.String(required=True)
     description = fields.String(load_default="")
@@ -91,18 +98,21 @@ class GapIn(Schema):
 
 
 class GapItemIn(Schema):
+    """The shape of gap item sent to the API: note, resolution, work_packages."""
     note = fields.String(load_default=None)
     resolution = fields.String(load_default=None)
     work_packages = fields.List(fields.String(), load_default=None)
 
 
 class GapItemsIn(Schema):
+    """The shape of gap items sent to the API: items, note, resolution."""
     items = fields.List(fields.String(), required=True)
     note = fields.String(load_default=None)
     resolution = fields.String(load_default=None)
 
 
 class GapEntitiesIn(Schema):
+    """The shape of gap entities sent to the API: items, include_kept."""
     items = fields.List(fields.String(), load_default=None)
     include_kept = fields.Boolean(load_default=False)
 
@@ -143,6 +153,9 @@ def _file(data: bytes, name: str, ctype: str) -> Response:
 # ---------------------------------------------------------------- tags
 @blp.route("/models/<uuid:model_id>/tags")
 class Tags(MethodView):
+    """/api/v1/models/{model_id}/tags: GET the model's tags, newest first: name, who and when, commit and metamodel
+    version, locked; POST tags the model as it is now: a frozen snapshot of its metamodel and committed content
+    (content rights)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -188,6 +201,7 @@ class Tags(MethodView):
 
 @blp.route("/tags")
 class AllTags(MethodView):
+    """/api/v1/tags: GET the Tags screen: the tags of every model you may read, newest first."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -198,6 +212,8 @@ class AllTags(MethodView):
 
 @blp.route("/models/<uuid:model_id>/tags/<string:tag_id>/entities/<string:entity_id>")
 class TagEntity(MethodView):
+    """/api/v1/models/{model_id}/tags/{tag_id}/entities/{entity_id}: GET one entity as it was in the tag: fields,
+    values and relationships."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -208,6 +224,9 @@ class TagEntity(MethodView):
 
 @blp.route("/models/<uuid:model_id>/tags/<string:tag_id>")
 class Tag(MethodView):
+    """/api/v1/models/{model_id}/tags/{tag_id}: GET one tag: its details and its frozen contents (entities by type,
+    relationships, the metamodel in short); PATCH renames or describes a tag (not when locked), locks it, or unlocks
+    it (Model Admin); DELETE deletes a tag that is not locked."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -234,6 +253,8 @@ class Tag(MethodView):
 
 @blp.route("/models/<uuid:model_id>/tags/<string:tag_id>/download")
 class TagDownload(MethodView):
+    """/api/v1/models/{model_id}/tags/{tag_id}/download: GET the tag as a model package (Excel or zip): to keep, load
+    elsewhere, or merge into another model."""
     @blp.doc(security=SECURITY, parameters=[{"in": "query", "name": "format", "schema": {"type": "string", "enum": ["xlsx", "zip"]}}])
     @require_auth()
     def get(self, model_id, tag_id):
@@ -249,6 +270,8 @@ class TagDownload(MethodView):
 
 @blp.route("/models/<uuid:model_id>/tags/<string:tag_id>/restore")
 class TagRestore(MethodView):
+    """/api/v1/models/{model_id}/tags/{tag_id}/restore: POST makes the tag the latest (Model Admin): the current
+    version is tagged first, then the tag overwrites the model completely, metamodel and content, as one commit."""
     @blp.doc(security=SECURITY)
     @blp.arguments(NoteIn)
     @blp.response(200, Free)
@@ -267,6 +290,8 @@ class TagRestore(MethodView):
 # ---------------------------------------------------------------- comparison
 @blp.route("/compare/fields")
 class CompareFields(MethodView):
+    """/api/v1/compare/fields: POST the filter screen: every entity type of either side with its fields, the tool's
+    defaults, the relationship types."""
     @blp.doc(security=SECURITY)
     @blp.arguments(SidesIn)
     @blp.response(200, Free)
@@ -281,6 +306,8 @@ class CompareFields(MethodView):
 
 @blp.route("/compare")
 class Compare(MethodView):
+    """/api/v1/compare: POST compares two sides (each a model as it is now, or a tag): summary, entities, fields,
+    relationships, metamodel."""
     @blp.doc(security=SECURITY)
     @blp.arguments(SidesIn)
     @blp.response(200, Free)
@@ -296,6 +323,8 @@ class Compare(MethodView):
 
 @blp.route("/compare/download")
 class CompareDownload(MethodView):
+    """/api/v1/compare/download: POST the comparison as an Excel workbook: summary, entities, field changes,
+    relationships, metamodel."""
     @blp.doc(security=SECURITY)
     @blp.arguments(SidesIn)
     @require_auth()
@@ -313,6 +342,8 @@ class CompareDownload(MethodView):
 
 @blp.route("/compare/detail")
 class CompareDetail(MethodView):
+    """/api/v1/compare/detail: POST one element side by side: {left, right (sides), left_entity, right_entity}; every
+    field, value and relationship."""
     @blp.doc(security=SECURITY)
     @blp.arguments(DetailIn)
     @blp.response(200, Free)
@@ -328,6 +359,8 @@ class CompareDetail(MethodView):
 # ---------------------------------------------------------------- comparison profiles (shared by everyone, D177)
 @blp.route("/compare-profiles")
 class Profiles(MethodView):
+    """/api/v1/compare-profiles: GET the saved comparison profiles (everyone's); POST saves a comparison profile for
+    everyone (the same name again, by its maker, replaces it)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -347,6 +380,7 @@ class Profiles(MethodView):
 
 @blp.route("/compare-profiles/<string:profile_id>")
 class Profile(MethodView):
+    """/api/v1/compare-profiles/{profile_id}: DELETE deletes a profile (its maker or a Super Admin)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -363,6 +397,9 @@ def _gap_write(analysis_id, fn, action: str, details=None):
 
 @blp.route("/gaps")
 class Gaps(MethodView):
+    """/api/v1/gaps: GET the gap analyses you may see (stored in models you may read), and the TOGAF templates and
+    resolutions; POST a new gap analysis: a baseline and a target (any models you may read, as they are now or a tag
+    of each) compared with a TOGAF template, the gaps stored in the model…"""
     @blp.doc(security=SECURITY, parameters=[{"in": "query", "name": "model", "schema": {"type": "string"},
                                              "description": "Only those stored in this model"}])
     @blp.response(200, Free)
@@ -387,6 +424,8 @@ class Gaps(MethodView):
 
 @blp.route("/gaps/<string:analysis_id>")
 class Gap(MethodView):
+    """/api/v1/gaps/{analysis_id}: GET one gap analysis: the model it is stored in, its sides, when compared, the
+    gaps with their decisions and its results; DELETE gap."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -398,11 +437,14 @@ class Gap(MethodView):
     @blp.response(200, Free)
     @require_auth()
     def delete(self, analysis_id):
+        """Deletes a gap analysis"""
         return _gap_write(analysis_id, lambda c, m: gp.delete(c, m, g.user, analysis_id), "gap.delete")
 
 
 @blp.route("/gaps/<string:analysis_id>/refresh")
 class GapRefresh(MethodView):
+    """/api/v1/gaps/{analysis_id}/refresh: POST compares the two sides again; the gaps' notes, resolutions, work
+    packages and Gap entities are kept."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -419,6 +461,8 @@ class GapRefresh(MethodView):
 
 @blp.route("/gaps/<string:analysis_id>/items/<string:item_id>")
 class GapItem(MethodView):
+    """/api/v1/gaps/{analysis_id}/items/{item_id}: PATCH a gap's note, resolution and work packages (entities of the
+    storage model)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(GapItemIn)
     @blp.response(200, Free)
@@ -432,6 +476,8 @@ class GapItem(MethodView):
 
 @blp.route("/gaps/<string:analysis_id>/items/<string:item_id>/detail")
 class GapItemDetail(MethodView):
+    """/api/v1/gaps/{analysis_id}/items/{item_id}/detail: GET one gap side by side: the element in the baseline and
+    in the target, the differences marked."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -442,6 +488,7 @@ class GapItemDetail(MethodView):
 
 @blp.route("/gaps/<string:analysis_id>/items")
 class GapItems(MethodView):
+    """/api/v1/gaps/{analysis_id}/items: POST the same resolution or note for many gaps at once."""
     @blp.doc(security=SECURITY)
     @blp.arguments(GapItemsIn)
     @blp.response(200, Free)
@@ -454,6 +501,8 @@ class GapItems(MethodView):
 
 @blp.route("/gaps/<string:analysis_id>/gap-entities")
 class GapEntities(MethodView):
+    """/api/v1/gaps/{analysis_id}/gap-entities: POST adds gaps to the storage model as Gap entities (its Model
+    Admins; one commit at once; a Gap entity type is added if needed)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(GapEntitiesIn)
     @blp.response(200, Free)
@@ -466,6 +515,9 @@ class GapEntities(MethodView):
 
 @blp.route("/gaps/<string:analysis_id>/migration-plan")
 class GapMigrationPlan(MethodView):
+    """/api/v1/gaps/{analysis_id}/migration-plan: GET a first grouping of the open gaps into work packages, for the
+    migration plan wizard (WIZ-017); POST {packages: [{name, gaps: [gap ids], wave, start, end, resolution,
+    description}], project}: Work Package entities made (one commit, Model Admins), linked to their gaps…"""
     @blp.doc(security=SECURITY, parameters=[{"in": "query", "name": "by", "schema": {"type": "string",
                                                                                    "enum": ["domain", "type", "resolution", "each"]}}])
     @blp.response(200, Free)
@@ -502,6 +554,8 @@ class GapMigrationPlan(MethodView):
 
 @blp.route("/gaps/<string:analysis_id>/download")
 class GapDownload(MethodView):
+    """/api/v1/gaps/{analysis_id}/download: GET the gap analysis as an Excel workbook (gaps, TOGAF gap matrix, field
+    changes) or a Word document."""
     @blp.doc(security=SECURITY, parameters=[{"in": "query", "name": "format", "schema": {"type": "string", "enum": ["xlsx", "docx"]}}])
     @require_auth()
     def get(self, analysis_id):
@@ -523,6 +577,8 @@ class GapDownload(MethodView):
 # ---------------------------------------------------------------- gap results (runs) and comparing two of them
 @blp.route("/gap-runs")
 class GapRuns(MethodView):
+    """/api/v1/gap-runs: GET every result of every gap analysis you may see (each time one was made or compared
+    again), newest first."""
     @blp.doc(security=SECURITY, parameters=[{"in": "query", "name": "model", "schema": {"type": "string"}},
                                             {"in": "query", "name": "analysis", "schema": {"type": "string"}},
                                             {"in": "query", "name": "q", "schema": {"type": "string"}}])
@@ -536,6 +592,8 @@ class GapRuns(MethodView):
 
 @blp.route("/gap-runs/<run_id>")
 class GapRun(MethodView):
+    """/api/v1/gap-runs/{run_id}: DELETE delete one result of a gap analysis (the analysis, its gaps, notes and other
+    results stay)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -548,6 +606,8 @@ class GapRun(MethodView):
 
 @blp.route("/gap-runs/compare")
 class GapRunsCompare(MethodView):
+    """/api/v1/gap-runs/compare: GET two gap results side by side (gaps closed, new gaps, status or resolution
+    changed) as an Excel workbook; not kept."""
     @blp.doc(security=SECURITY, parameters=[{"in": "query", "name": "a", "required": True, "schema": {"type": "string"}},
                                             {"in": "query", "name": "b", "required": True, "schema": {"type": "string"}},
                                             {"in": "query", "name": "format", "schema": {"type": "string", "enum": ["xlsx", "csv", "json"]}}])

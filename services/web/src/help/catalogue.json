@@ -3628,5 +3628,169 @@
   "button:Back to every": "Ends the shorter interval now: back to the usual one.",
   "button:From ... to": "Chart a period of your own: choose from and to.",
   "button:Sample now": "Takes a sample of the resource history now, as is done every few minutes.",
-  "field:Where it goes": "Where the new step goes in its phase: last, first, or after a step you choose. Steps can be moved up and down later with the arrows."
+  "field:Where it goes": "Where the new step goes in its phase: last, first, or after a step you choose. Steps can be moved up and down later with the arrows.",
+  "tab:Security": {
+    "what": "Who may reach EA Explorer (IP allow lists) and how people sign in (multi-factor sign-in).",
+    "how": [
+      "Allow lists: one per place (everything, sign-in, System Admin, AI, the client-certificate port); an empty list lets everyone in; this machine and EA Explorer's own containers are always allowed.",
+      "A change that would shut you out is refused; on the machine itself eax allow clear empties every list.",
+      "Multi-factor sign-in: off (the default), admins, or everyone; reset the authenticator of someone who lost their phone."
+    ],
+    "example": "Allow only 10.20.0.0/16 (head office) for System Admin."
+  },
+  "field:Address or range": "An address (10.1.2.3) or a range (10.1.0.0/16, 2001:db8::/32) allowed in.",
+  "field:Load balancer address": "The address of a load balancer in front of EA Explorer: the caller address it forwards is then used.",
+  "field:Reset the authenticator of (lost phone)": "The user name of the person whose authenticator app is removed; they set up a new one at their next sign-in.",
+  "button:Add a load balancer": "Trust one more load balancer to say who the caller is.",
+  "button:Add an address": "Allow one more address or range at this place.",
+  "button:Reset": "Remove this person's authenticator; they set up a new one at their next sign-in.",
+  "tab:Container logs": {
+    "what": "Every container's log, a file a day, from debug to critical.",
+    "how": [
+      "Pick one or more containers and a day; filter by level, time and words; Live follows new lines."
+    ]
+  },
+  "tab:Web log": {
+    "what": "Every call to the API and MCP: when, who, from where, the call, its status, how long it took, its size and request id.",
+    "how": [
+      "Filter by time, person, path and status; Slowest first puts the slow calls at the top.",
+      "The slowest and most failing routes are summed above the list; download the day as CSV or its raw files.",
+      "Web log debug (Super Admin) writes each call's input and answer too, masked, for a while."
+    ]
+  },
+  "tab:Delete logs": {
+    "what": "Delete the container logs and the web log: a period, everything before a day, or all (Super Admin).",
+    "how": [
+      "A log backup is taken first. Logs older than 7 days are deleted every night by themselves."
+    ]
+  },
+  "field:For how many minutes": "How long web log debug stays on (1 to 1440 minutes); it goes off by itself.",
+  "field:Order": "By time, or the slowest calls first.",
+  "field:Path": "Only calls whose path contains these words.",
+  "button:Download CSV": "The calls shown (with the filters) as a CSV file.",
+  "button:Download the raw files": "The day's web log files as they are, zipped.",
+  "button:Switch off": "Web log debug off now.",
+  "button:Switch on": "Web log debug on for the minutes given: each call's input and answer written too, masked.",
+  "tab:Alerts": {
+    "what": "Nagios-like checks every minute: each service, the disks, memory, the certificate, the database, the web log errors, the self-test, database maintenance, and checks of your own.",
+    "how": [
+      "A state counts once it holds for two checks; an alert goes to the IT Admins and Super Admins, the webhooks and by email.",
+      "Acknowledge an alert to stop it repeating; silence a check, or plan a downtime for all of them.",
+      "Change a check's warning and critical levels (Super Admin)."
+    ],
+    "example": "Plan a downtime of 60 minutes before moving the server."
+  },
+  "field:Address or query": "For an address check, the address that must answer (https://...); for a query check, one SELECT that returns a number.",
+  "field:Critical at": "The value at which the check is CRITICAL.",
+  "field:Key": "A short name for your check (letters, digits and -).",
+  "field:Warning at": "The value at which the check is WARNING.",
+  "button:Acknowledge": "Say someone is on it: the alert stops repeating (with a note).",
+  "button:Add the check": "Add this check: it is checked from the next minute.",
+  "button:Download the history (CSV)": "Every change of state in the last 90 days, as a CSV file.",
+  "button:Plan a downtime": "Silence every check for a time (an update, a move): nothing is sent until it ends.",
+  "button:Send a test email": "Send a test email to the alert addresses through the mail server.",
+  "button:Silence": "Send nothing about this check for a time.",
+  "tab:Database maintenance": {
+    "what": "Every database on the server checked every day and tidied every night, in plain words.",
+    "how": [
+      "Check now: what needs doing in each database.",
+      "What a tidy would do, then Tidy now: VACUUM, ANALYZE and REINDEX CONCURRENTLY, nothing locked.",
+      "Who blocks whom: cancel a query or end a session, asked first.",
+      "Compact (Super Admin): VACUUM FULL of one swollen table; it locks the table while it runs."
+    ],
+    "example": "A table swollen with dead rows after a large import: Tidy now."
+  },
+  "button:Apply the keep-for rules now": "Housekeeping and the old alert history, by the keep-for rules, now.",
+  "button:Cancel query": "Stop what this session is running (it stays connected).",
+  "button:Compact": "VACUUM FULL of this table: the space it wins is said first; it locks the table while it runs.",
+  "button:End session": "End this session: its transaction is rolled back and its locks released.",
+  "button:Tidy now": "Run the tidy shown above now (nothing is locked).",
+  "button:What a tidy would do": "List the steps a tidy would run now, without running them.",
+  "button:Who blocks whom": "The sessions holding or waiting for locks, on every database.",
+  "page:#/service-desk": {
+    "title": "Service desk",
+    "what": "Ask for things (a model, access, a project, a report, help) and follow your requests; teams work on what is asked of them.",
+    "how": [
+      "Ask for something: pick a request type, fill in its form, send it: it becomes REQ-<number>.",
+      "My requests: what you asked for, with comments both ways.",
+      "To work on: what your teams do or approve; take a request, do it, mark it done."
+    ],
+    "example": "Ask for Access to a model: its Model Admins approve, and access is given at once."
+  },
+  "tab:All requests": {
+    "what": "Every request, with how many are open, done and on time (Super Admins and Auditors).",
+    "how": [
+      "Filter by status or words; open a request to see its history."
+    ]
+  },
+  "tab:Ask for something": {
+    "what": "The service catalogue: everything you can ask for, by area.",
+    "how": [
+      "Pick one, fill in its form and send it."
+    ]
+  },
+  "tab:My requests": {
+    "what": "The requests you asked for, open first.",
+    "how": [
+      "Open one to read the comments, add a file or cancel it."
+    ]
+  },
+  "tab:Service catalogue": {
+    "what": "The request types: their forms, teams, approvals and target times (Super Admins).",
+    "how": [
+      "Change a type, switch it off, or add one."
+    ]
+  },
+  "tab:To work on": {
+    "what": "Requests your teams do or approve, open first; overdue ones marked.",
+    "how": [
+      "Take a request, do it (Do it opens the wizard with its details), then mark it done."
+    ]
+  },
+  "field:A comment": "A comment for the request: the requester and the team see it.",
+  "field:Add a file (10 MB at most)": "A file for the request: a screenshot, a spreadsheet, a document.",
+  "field:Form (fields as JSON: name, label, kind": "The request type's form: a list of fields, each with a name, a label, a kind, whether it is required and its choices.",
+  "field:Priority": "How urgent it is: low, normal, high or urgent.",
+  "field:Target (hours)": "How long the team should take, in hours; past it the request is marked overdue and the team reminded.",
+  "field:Team": "Who works on requests of this type: a global role, the Model Admins of its model or the Project Admins of its project.",
+  "field:Words or REQ-number": "Find requests by words in their title, who asked, or their REQ number.",
+  "button:Add a request type": "Add something people can ask for, with its own form.",
+  "button:Ask the requester": "Set the request to waiting for the requester (they are told).",
+  "button:Cancel my request": "You no longer need it: the request is cancelled.",
+  "button:Do it": "Do what the request asks: access is given at once where it can be; otherwise its wizard opens with the details filled in.",
+  "button:Take it": "Assign the request to yourself and start on it.",
+  "button:Write it": "Add the comment to the request.",
+  "button:‹ The catalogue": "Back to everything you can ask for.",
+  "tab:Optimisation": {
+    "what": "The optimisation report: what EA Explorer suggests changing to run lighter, each with its evidence, what it saves, its risk and how to undo it. Measured on the 1st of every month and on Measure now.",
+    "how": [
+      "Read the suggestions by area: server, unused models and projects, disk, history, database.",
+      "Apply one for a whole model or project; a model history suggestion asks its Model Admin to condense or remove.",
+      "Download the report as Excel; on the command line: eax optimise."
+    ]
+  },
+  "button:Apply": "Apply this suggestion (asked first). It is for the whole model or project, and is recorded in the audit log.",
+  "tab:Performance": {
+    "what": "The benchmark trend: each operation median time per run for one data size, beside the last release baseline. An operation more than 10% slower, errors, or a container over its memory limit fail the run.",
+    "how": [
+      "Run eax test performance (or the full test) to add a run.",
+      "Compare each column with the baseline: red is slower than the margin.",
+      "Choose the data size when runs of more than one size exist."
+    ]
+  },
+  "field:Data": "The benchmark data size to show: small, medium or large (each is compared only with runs and baselines of the same size).",
+  "tab:Sizing": {
+    "what": "The server sizing estimate: a best estimate of the RAM, CPU cores and disk a server needs, and per container the memory to reserve and its limit, the copies, the settings and a compose override.",
+    "how": [
+      "Enter people at once, models and their size, projects and documents, and what is switched on.",
+      "Press Estimate; change the assumptions if you know better figures.",
+      "Save it under a name to download it as Excel or as a compose override."
+    ]
+  },
+  "field:Model size": "How large a model is, roughly: small (500 elements), medium (5,000) or large (25,000), with relationships to match.",
+  "field:Name to save it under": "A name for this estimate, to find it again under Saved and download it.",
+  "button:Compose override": "Download a compose file with each service memory and CPU limits (and the API copies), to use beside docker-compose.yml.",
+  "button:Estimate": "Work out the estimate from the figures above (nothing is saved).",
+  "button:Estimate and save": "Work out the estimate and keep it under the name given, with its inputs and assumptions.",
+  "button:Step": "A run started to be watched and paused after each step: take one more step, then pause again."
 }

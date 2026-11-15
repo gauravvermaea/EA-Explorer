@@ -28,6 +28,7 @@ Sh = Callable[[list[str], Path], int]
 
 
 def real_sh(argv: list[str], cwd: Path) -> int:
+    """Runs a command, showing it first."""
     print("$ " + " ".join(str(a) for a in argv), flush=True)
     return subprocess.call([str(a) for a in argv], cwd=str(cwd))
 
@@ -38,6 +39,7 @@ def launcher(folder: Path) -> list[str]:
 
 
 def version_of(folder: Path) -> str:
+    """The version a folder holds."""
     try:
         return tomllib.loads((folder / "services" / "api" / "version.toml").read_text(encoding="utf-8"))["version"]
     except (OSError, KeyError, tomllib.TOMLDecodeError):
@@ -60,6 +62,7 @@ def migration_head(folder: Path) -> str:
 
 
 def wait_healthy(target: str, minutes: float = 20, sleep=time.sleep, clock=time.time, client_of=Client) -> bool:
+    """Waits until the target answers healthy."""
     t0 = clock()
     while clock() - t0 < minutes * 60:
         s, _ = client_of(target).get("/api/health", timeout=15)
@@ -78,6 +81,7 @@ def export(ref: str, dest: Path, url: str) -> str:
 
 def install(run, folder: Path, answers: Path, target: str, sh: Sh = real_sh, sleep=time.sleep, clock=time.time,
             client_of=Client, minutes: float = 30) -> bool:
+    """Installs EA Explorer with the deployment wizard's answers, timed."""
     rec = run.recorder("install")
     t0 = clock()
     code = sh([*launcher(folder), "deploy", "--console", "--answers", str(answers.resolve()), "--yes"], folder)
@@ -109,6 +113,7 @@ def state(client: Client) -> dict:
 
 
 def compare(rec, before: dict, after: dict, to_version: str, to_head: str) -> None:
+    """After an upgrade: the version and the data as before."""
     v = after.get("version", "")
     rec("the version after the upgrade", "passed" if v == to_version else "failed",
         f"{before.get('version') or '?'} -> {v or '?'} (expected {to_version})", 0)

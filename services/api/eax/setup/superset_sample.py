@@ -38,6 +38,7 @@ def _column(name: str, type_: str, is_dttm: bool) -> dict:
 
 
 def bundle_files(db_password: str, db_name: str = "eaexplorer") -> dict[str, dict]:
+    """The sample dashboard's bundle, file by file."""
     database = {
         "database_name": "EA Explorer reports",
         "sqlalchemy_uri": f"postgresql+psycopg2://eax_report:{quote(db_password, safe='')}@db:5432/{db_name}",
@@ -149,6 +150,7 @@ def bundle_files(db_password: str, db_name: str = "eaexplorer") -> dict[str, dic
 
 
 def build_sample_bundle(folder: Path, db_password: str, db_name: str = "eaexplorer") -> Path:
+    """Writes the sample dashboard's zip for Reports to import."""
     folder.mkdir(parents=True, exist_ok=True)
     out = folder / "sample_dashboard.zip"
     root = "eax_phase0_sample"
@@ -163,4 +165,5 @@ def build_sample_bundle(folder: Path, db_password: str, db_name: str = "eaexplor
 
 # A fresh UUID helper for future bundles (kept here so new samples follow the same pattern).
 def new_uuid() -> str:
+    """A new UUID as text."""
     return str(uuid.uuid4())

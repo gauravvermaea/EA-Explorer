@@ -235,6 +235,7 @@ def own_value(defn: dict, data: dict[str, Any]) -> Decimal:
 
 # ---------------------------------------------------------------- definitions
 def definitions(conn, model_id: int) -> list[dict]:
+    """A model's KPI definitions."""
     return _maps(conn.execute(text("""
         SELECT d.guid::text AS id, d.name, d.kind, d.entity_type_code, d.attribute_code, d.filter_attribute, d.filter_op,
                d.filter_value, d.unit, d.description, d.created_by, d.created_at, d.modified_by, d.modified_at
@@ -293,6 +294,7 @@ def _admin(conn, user, m: dict) -> None:
 
 
 def add_definition(conn, model: Any, user, body: dict) -> dict:
+    """Adds a KPI definition to a model (its Model Admin)."""
     m = repo.get_model(conn, model)
     _admin(conn, user, m)
     d = _check(conn, m["_id"], body)
@@ -305,6 +307,7 @@ def add_definition(conn, model: Any, user, body: dict) -> dict:
 
 
 def update_definition(conn, model: Any, user, kpi: str, body: dict) -> dict:
+    """Changes a KPI definition."""
     m = repo.get_model(conn, model)
     _admin(conn, user, m)
     cur = next((x for x in definitions(conn, m["_id"]) if x["id"] == str(kpi)), None)

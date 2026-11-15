@@ -34,10 +34,12 @@ def on(conn):
 
 
 def apart() -> bool:
+    """Whether personal data lives in a database of its own."""
     return databases.own(databases.BY_KEY["personal"])
 
 
 def rows(conn, sql: str, **p) -> list[dict]:
+    """Rows from the personal data's database."""
     try:
         return [dict(r) for r in on(conn).execute(text(sql), p).mappings()]
     except DBAPIError as exc:
@@ -47,11 +49,13 @@ def rows(conn, sql: str, **p) -> list[dict]:
 
 
 def one(conn, sql: str, **p) -> dict | None:
+    """One row from the personal data's database, or None."""
     r = rows(conn, sql, **p)
     return r[0] if r else None
 
 
 def run(conn, sql: str, **p):
+    """Runs a statement on the personal data's database."""
     try:
         return on(conn).execute(text(sql), p)
     except DBAPIError as exc:
@@ -72,6 +76,7 @@ def models_by_id(conn, ids) -> dict[int, dict]:
 
 
 def model_ids_by_guid(conn, guids) -> dict[str, int]:
+    """Models' numbers by their guids (the personal database keeps guids)."""
     gs = [str(g) for g in guids if g]
     if not gs:
         return {}
@@ -95,6 +100,7 @@ def forget_models(conn, model_ids: list[int]) -> None:
 
 # ---------------------------------------------------------------- notifications, queued while the service is away
 def queue(conn, payload: dict, why: str = "") -> None:
+    """Queues a notification for the personal database when it cannot be reached now; it is sent later."""
     conn.execute(text("INSERT INTO core.personal_outbox (kind, payload, last_error) VALUES ('notification', CAST(:p AS jsonb), :e)"),
                  {"p": json.dumps(payload, default=str), "e": why[:500]})
 
@@ -134,11 +140,13 @@ def flush(conn, limit: int = 200) -> dict[str, Any]:
 
 # ---------------------------------------------------------------- each person's settings
 def get_settings(conn, username: str) -> dict[str, Any]:
+    """A person's own settings."""
     return {r["key"]: r["value"] for r in rows(conn, "SELECT key, value FROM personal.settings WHERE username = lower(:u) ORDER BY key",
                                                 u=username)}
 
 
 def put_setting(conn, username: str, key: str, value: Any) -> dict:
+    """Sets one of a person's own settings (its key checked)."""
     import re
     if not re.fullmatch(r"[a-z][a-z0-9_.-]{0,79}", key or ""):
         raise ValueError("A setting's key is lower-case letters, digits, dots, dashes or underscores (up to 80).")
@@ -151,5 +159,6 @@ def put_setting(conn, username: str, key: str, value: Any) -> dict:
 
 
 def delete_setting(conn, username: str, key: str) -> dict:
+    """Deletes one of a person's own settings."""
     run(conn, "DELETE FROM personal.settings WHERE username = lower(:u) AND key = :k", u=username, k=key)
     return {"deleted": key}

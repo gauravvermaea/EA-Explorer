@@ -253,6 +253,20 @@ $lines
 EOF_VAULT
   export EAX_VAULT_RESOLVED=1
 }
+# where the data lives (R5.4, D687): with one base folder (EAX_DATA_ROOT), each folder is made and checked and its value
+# put in this shell's environment before containers are made (eaxpy folders env); docker compose takes them from there
+folders_env() {
+  [ -z "${EAX_FOLDERS_RESOLVED:-}" ] || return 0
+  grep -qE '^EAX_DATA_ROOT=.+' "$ENV_FILE" 2>/dev/null || [ -n "${EAX_DATA_ROOT:-}" ] || return 0
+  local lines line
+  lines=$("$ROOT/eaxpy.sh" folders env) || return 1
+  while IFS= read -r line; do
+    case "$line" in EAX_[A-Z_]*=*) export "$line" ;; esac
+  done <<EOF_FOLDERS
+$lines
+EOF_FOLDERS
+  export EAX_FOLDERS_RESOLVED=1
+}
 kind() { setting EAX_DEPLOYMENT laptop; }
 # the build shown with the release (R2.47): EAX_BUILD as CI sets it, else the commit's short id ("-changed" when files
 # differ from it), "dev" outside git; the commit and its time, so the API container is made again only when they change
@@ -269,7 +283,7 @@ compose() {
   EAX_BUILT_AT=${EAX_BUILT_AT:-$(git log -1 --format=%cI 2>/dev/null || true)}
   export EAX_BUILD EAX_COMMIT EAX_BUILT_AT
   vault_profile
-  case "${1:-}" in up|run|create) vault_env || return 1 ;; esac
+  case "${1:-}" in up|run|create) vault_env || return 1; folders_env || return 1 ;; esac
   # plain progress and no colour codes, so the log reads cleanly
   # scale-out extra files (phase 36.3, D521): EAX_COMPOSE_EXTRA=standby,shared-storage... (deploy/compose/scale)
   set -- $(compose_extra) "$@"
@@ -655,7 +669,7 @@ cleanup() {
     [ "$answer" = "yes" ] || { echo "Nothing deleted."; exit 0; }
   fi
   # the logs first, where no reset deletes them (R2.30); a log backup never stops the cleanup
-  "$BASH" ./eaxpy.sh logs backup before-cleanup --outside-work || echo "The logs could not be backed up first."
+  "$BASH" ./eaxpy.sh logs backup before-cleanup --outside-work --then-clear || echo "The logs could not be backed up first."
   if [ -f "$ENV_FILE" ]; then
     if $all; then compose down -v --remove-orphans || true; else compose down --remove-orphans || true; fi
   elif $all; then
@@ -785,7 +799,7 @@ case "$CMD" in
   menu) EAX_FORM=sh exec "$BASH" ./eaxpy.sh menu ;;   # the numbered menu (R2.29), one Python program for every form
   screen) EAX_FORM=sh exec "$BASH" ./eaxpy.sh screen ;;   # the full screen (R3.1), Python with Textual
   measure) EAX_FORM=sh exec "$BASH" ./eaxpy.sh "$@" ;;   # memory measured in one go (R3.5-M1); eax commands run back here
-  deploy|secrets|packs|schedule|persist)   # packs (D546); schedule: scheduled commands (D559); persist (R2.26)
+  deploy|secrets|packs|schedule|persist|folders|allow|sign|verify|db|ticket|optimise|estimate|dev)   # packs (D546); schedule (D559); persist (R2.26); folders (R5.4); allow (R5.2)
     # phase 36 (D498, D504): one Python program for every form (D500): eaxpy.sh fetches uv and Python into work/tools
     exec "$BASH" ./eaxpy.sh "$@" ;;
   restart)
@@ -851,13 +865,15 @@ case "$CMD" in
     if [ -z "$NOVAULT" ] && [ "$K" = "laptop" ]; then :
     elif [ "$K" = "laptop" ]; then show_logins
     else
-      # a server or platform keeps its backups in a mounted folder (R2.44, D635): no backups until it is set
+      # a server or platform keeps all its data under one base folder (R5.4, D687; it replaced the backups question)
+      BDEF=$(setting EAX_DATA_ROOT /srv/eax); BDIR=""
       if [ -t 0 ]; then
-        read -r -p "Folder for backups: a mounted network share or volume (empty: set EAX_BACKUP_DIR later): " BDIR
-        if [ -n "$BDIR" ]; then
-          sed -i "s|^EAX_BACKUP_DIR=\$|EAX_BACKUP_DIR=$BDIR|" "$ENV_FILE" && echo "Backups go to $BDIR (EAX_BACKUP_DIR)."
-        else echo "No backups are taken until EAX_BACKUP_DIR is set in $ENV_FILE."; fi
-      else echo "Set EAX_BACKUP_DIR in $ENV_FILE to the mounted folder for backups: no backups are taken until it is set."; fi
+        read -r -p "Base folder for all the data (databases, documents, logs, backups, imports, exports, certificates, reports); mount what you want onto its folders later [$BDEF]: " BDIR
+      fi
+      BDIR=${BDIR:-$BDEF}
+      if grep -q '^EAX_DATA_ROOT=' "$ENV_FILE"; then sed -i "s|^EAX_DATA_ROOT=.*|EAX_DATA_ROOT=$BDIR|" "$ENV_FILE"
+      else printf '\nEAX_DATA_ROOT=%s\n' "$BDIR" >> "$ENV_FILE"; fi
+      echo "All the data goes under $BDIR (EAX_DATA_ROOT), a folder for each kind, made at the first ./eax.sh up; ./eax.sh folders shows them."
       [ -n "$NOVAULT" ] && echo "Now replace every change-me value in $ENV_FILE with your own passwords before ./eax.sh up."
     fi
     ;;
@@ -940,6 +956,14 @@ case "$CMD" in
         fi
         if [ "${1:-}" = "api" ]; then shift                                   # the API test harness: one call (R3.16)
           compose exec api python -m eax.testing.cli api "$@"; exit $?
+        fi
+        if [ "${1:-}" = "watch" ]; then case " $* " in *" --browser "*)    # the live view in a browser (R5.20)
+          RUN=""; for a in "$@"; do case "$a" in *[!0-9]*|"") ;; *) RUN="/$a" ;; esac; done
+          H=$(setting EAX_HOSTNAME localhost); P=$(setting EAX_HTTPS_PORT 443); [ "$P" = 443 ] && P="" || P=":$P"
+          URL="https://$H$P/#/admin/self-test/watch$RUN"; echo "The live view: $URL"
+          [ -n "${EAX_NO_BROWSER:-}" ] && exit 0
+          if [ "$(uname)" = Darwin ]; then open "$URL"; elif command -v xdg-open >/dev/null 2>&1; then xdg-open "$URL" >/dev/null 2>&1 || true; fi
+          exit 0 ;; esac
         fi
         if [ "${1:-}" = "watch" ] || [ "${1:-}" = "stop" ]; then WHAT="$1"; shift   # follow a run live, or stop it (R3.2)
           compose exec api python -m eax.testing.cli "$WHAT" "$@"; exit $?

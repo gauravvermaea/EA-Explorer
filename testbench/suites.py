@@ -46,10 +46,12 @@ class Session:
 
     @property
     def ok(self) -> bool:
+        """Whether a test session was started."""
         return bool(self.run_id and self.ticket)
 
 
 def start_session(client: Client, role: str, run, wait_s: int = 900) -> Session:
+    """Starts a self-test session on the target for the bench's browser checks."""
     if not client.token:
         return Session(why="no token given (--token or EAX_TESTBENCH_TOKEN): only the checks that need no fixtures run")
     s, a = client.post("/api/v1/admin/tests", {"level": "detailed", "suites": ["ui"], "watch": True, "role": role})
@@ -126,6 +128,7 @@ def run_all(run, client: Client, target: str, level: str, suites: list[str], rol
             journeys: list[str] | None = None, pages_only: bool = False, browsers: list[str] | None = None,
             db_dsn: str = "", publish_all: bool = False, zap: bool = True, trivy: bool = True,
             fixtures: bool = True, publish_to: Client | None = None) -> Session:
+    """The bench's suites against the target."""
     api_matrix, api_writes, db_checks = shared.module("api_matrix"), shared.module("api_writes"), shared.module("db_checks")
     run_mod = shared.module("run")
     shared.point_at(target)
@@ -183,6 +186,7 @@ def run_all(run, client: Client, target: str, level: str, suites: list[str], rol
 
 
 def db(run, client: Client, dsn: str, db_checks) -> None:
+    """The database checks (when a database address is given)."""
     rec = run.recorder("db")
     if dsn:
         try:
@@ -203,9 +207,11 @@ def db(run, client: Client, dsn: str, db_checks) -> None:
 
 
 def fixtures_list(client: Client, run_id: str = "") -> tuple[int, object]:
+    """The target's test data."""
     return client.get("/api/v1/admin/tests/fixtures" + (f"?run={run_id}" if run_id else ""))
 
 
 def clean(client: Client, which: str) -> tuple[int, object]:
+    """Removes the target's test data."""
     runs = "all" if which == "all" else [int(which)]
     return client.post("/api/v1/admin/tests/fixtures/purge", {"runs": runs, "confirm": "DELETE"}, timeout=600)

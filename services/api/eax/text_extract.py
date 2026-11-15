@@ -57,6 +57,7 @@ def _pdf(content: bytes) -> str:
 
 
 def text_of(file_name: str, content: bytes) -> str:
+    """A file's text (PDF, Word, PowerPoint, Excel or plain), empty when it cannot be read."""
     ext = (file_name.rsplit(".", 1)[-1] if "." in file_name else "").lower()
     try:
         if ext == "pdf":

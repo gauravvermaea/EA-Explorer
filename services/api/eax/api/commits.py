@@ -47,6 +47,7 @@ SECURITY = [{"bearerAuth": []}]
 
 
 class ChangesIn(Schema):
+    """The shape of changes sent to the API: set, changes, note, message, resolutions."""
     set = fields.String(load_default=None, metadata={"description": "A change set id; empty: my own uncommitted changes"})
     changes = fields.List(fields.String(), load_default=None, metadata={"description": "Only these changes; empty: all"})
     note = fields.String(load_default="")
@@ -56,18 +57,21 @@ class ChangesIn(Schema):
 
 
 class RollBackIn(Schema):
+    """The shape of roll back sent to the API: items, force, message."""
     items = fields.List(fields.Integer(), load_default=None, metadata={"description": "Only these items; empty: the whole commit"})
     force = fields.Boolean(load_default=False, metadata={"description": "Roll back although the targets changed since"})
     message = fields.String(load_default="")
 
 
 class MergeApplyIn(Schema):
+    """The shape of merge apply sent to the API: decisions, all_conflicts, add_metamodel."""
     decisions = fields.Dict(load_default=None, metadata={"description": "conflict id: mine | theirs | {value: ...}"})
     all_conflicts = fields.String(load_default="", metadata={"description": "mine or theirs for every conflict not decided"})
     add_metamodel = fields.Boolean(load_default=True, metadata={"description": "Kept for older clients: a merge always adds the missing metamodel parts (D169)"})
 
 
 class BatchIn(Schema):
+    """The shape of batch sent to the API: changes."""
     changes = fields.List(fields.Dict(), required=True, metadata={"description": (
         "[{op, args}] in order. op: entity.create {data} | entity.update {entity, data} | entity.status {entity, status} | "
         "entity.delete {entity} | relationship.create {data} | relationship.delete {relationship} | relationship.rename "
@@ -76,6 +80,7 @@ class BatchIn(Schema):
 
 
 class NoteIn(Schema):
+    """The shape of note sent to the API: note."""
     note = fields.String(load_default="")
 
 
@@ -113,6 +118,8 @@ def _write(fn, action: str, model_id, details=None):
 # ---------------------------------------------------------------- change sets
 @blp.route("/models/<uuid:model_id>/changes")
 class Changes(MethodView):
+    """/api/v1/models/{model_id}/changes: GET my uncommitted changes (by change set) and, if I may commit, the
+    changes others asked to commit; ?entity=<id> only those to one entity and its relationships (the entity…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -182,6 +189,8 @@ BATCH_OPS = ("entity.create", "entity.update", "entity.status", "entity.delete",
 
 @blp.route("/models/<uuid:model_id>/changes/batch")
 class Batch(MethodView):
+    """/api/v1/models/{model_id}/changes/batch: POST several content changes at once, the way a diagram editor saves
+    (phases 28-29) or a tool sends them."""
     @blp.doc(security=SECURITY)
     @blp.arguments(BatchIn)
     @blp.response(200, Free)
@@ -220,6 +229,8 @@ class Batch(MethodView):
 # ---------------------------------------------------------------- commits
 @blp.route("/models/<uuid:model_id>/commits")
 class Commits(MethodView):
+    """/api/v1/models/{model_id}/commits: GET commits of the model, newest first: mine (as author or committer), or
+    everyone's with the History Viewer or Model Admin role (D151); ?person= one person's."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -231,6 +242,8 @@ class Commits(MethodView):
 
 @blp.route("/models/<uuid:model_id>/commits/latest")
 class LatestCommit(MethodView):
+    """/api/v1/models/{model_id}/commits/latest: GET the last commit: number, who and when (open pages compare it
+    with the one they loaded, E37)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -241,6 +254,8 @@ class LatestCommit(MethodView):
 
 @blp.route("/models/<uuid:model_id>/commits/<string:commit_id>")
 class Commit(MethodView):
+    """/api/v1/models/{model_id}/commits/{commit_id}: GET one commit: its items, each with what it changed (before
+    and after)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -251,6 +266,8 @@ class Commit(MethodView):
 
 @blp.route("/models/<uuid:model_id>/commits/<string:commit_id>/roll-back")
 class RollBackCommit(MethodView):
+    """/api/v1/models/{model_id}/commits/{commit_id}/roll-back: POST undo a commit, whole or chosen items, as a new
+    commit (committers)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(RollBackIn)
     @blp.response(200, Free)
@@ -265,6 +282,8 @@ class RollBackCommit(MethodView):
 # ---------------------------------------------------------------- merges
 @blp.route("/models/<uuid:model_id>/merges")
 class Merges(MethodView):
+    """/api/v1/models/{model_id}/merges: POST model Admins: upload a model package (.zip or .xlsx), or name another
+    model here (JSON source_model), to merge into this model: the plan (new entities, filled fields…"""
     @blp.doc(security=SECURITY, requestBody={"content": {"multipart/form-data": {"schema": {
         "type": "object", "properties": {"file": {"type": "string", "format": "binary"}}}}}})
     @blp.response(200, Free)
@@ -297,6 +316,8 @@ class Merges(MethodView):
 
 @blp.route("/models/<uuid:model_id>/merge-test-file")
 class MergeTestFile(MethodView):
+    """/api/v1/models/{model_id}/merge-test-file: GET a package made from this model to try the Merge tab with
+    (?format=zip|xlsx): some descriptions and values changed (conflicts), empty fields filled, four new entities…"""
     @blp.doc(security=SECURITY, parameters=[{"in": "query", "name": "format", "schema": {"type": "string", "enum": ["zip", "xlsx"]}},
                                      {"in": "query", "name": "content", "schema": {"type": "string", "enum": ["content", "metamodel"]}}])
     @require_auth()
@@ -318,6 +339,8 @@ class MergeTestFile(MethodView):
 
 @blp.route("/models/<uuid:model_id>/merges/<string:merge_id>/apply")
 class MergeApply(MethodView):
+    """/api/v1/models/{model_id}/merges/{merge_id}/apply: POST apply a merge with the decisions: committed at once as
+    one commit (no commit step; roll back from the commits)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(MergeApplyIn)
     @blp.response(200, Free)
@@ -336,6 +359,7 @@ class MergeApply(MethodView):
 
 @blp.route("/models/<uuid:model_id>/merges/<string:merge_id>/cancel")
 class MergeCancel(MethodView):
+    """/api/v1/models/{model_id}/merges/{merge_id}/cancel: POST cancel a merge before applying it."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -347,6 +371,8 @@ class MergeCancel(MethodView):
 # ---------------------------------------------------------------- draft models (D165)
 @blp.route("/models/<uuid:model_id>/reject-publish")
 class RejectPublish(MethodView):
+    """/api/v1/models/{model_id}/reject-publish: POST reject a draft model waiting for approval, with the reason (its
+    approvers): not published, archived."""
     @blp.doc(security=SECURITY)
     @blp.arguments(NoteIn)
     @blp.response(200, Free)
@@ -359,6 +385,8 @@ class RejectPublish(MethodView):
 
 @blp.route("/models/<uuid:model_id>/reopen")
 class Reopen(MethodView):
+    """/api/v1/models/{model_id}/reopen: POST open a rejected draft again to change it and ask once more (its Model
+    Admin)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(NoteIn)
     @blp.response(200, Free)
@@ -371,6 +399,7 @@ class Reopen(MethodView):
 
 @blp.route("/drafts/waiting")
 class Waiting(MethodView):
+    """/api/v1/drafts/waiting: GET draft models waiting for my approval."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()

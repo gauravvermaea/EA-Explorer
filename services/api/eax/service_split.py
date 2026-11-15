@@ -33,6 +33,7 @@ ALWAYS = ("health",)          # every container answers its own health
 
 
 def serving() -> str:
+    """What this API container serves (all, core, or one service)."""
     v = os.environ.get("EAX_SERVE", "all").strip().lower() or "all"   # all: the standard stack (D677)
     return v if v in ("all", "core", *SERVICES) else "all"
 
@@ -47,6 +48,7 @@ def wanted(blueprint: str, role: str | None = None) -> bool:
 
 
 def api_url() -> str:
+    """The API's address inside the installation."""
     return os.environ.get("EAX_API_INTERNAL_URL", "http://api:8000")
 
 

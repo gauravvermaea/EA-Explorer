@@ -9,6 +9,7 @@ from __future__ import annotations
 
 
 def run() -> list[str]:
+    """Loads the sample update history."""
     from .. import updates as up
     from ..db import get_engine
     with get_engine().begin() as conn:

@@ -56,6 +56,7 @@ def help_text(name: str = "") -> str:
 
 
 def show_help(name: str = "", arg: str = "") -> int:
+    """eax help: one command's help, or all."""
     text, code = help_.render("py", EAX, WINDOWS, name, arg)
     print(text)
     return code
@@ -113,6 +114,7 @@ def _paged(text: str) -> None:
 
 # ---------------------------------------------------------------- starting again (no log: the logs folder goes)
 def cleanup(options: list[str]) -> None:
+    """eax clean: removes the stack (and its data with --all, asked first)."""
     all_, yes, cert = "--all" in options, "--yes" in options or "-y" in options, "--certificate" in options
     unknown = [o for o in options if o not in ("--all", "--yes", "-y", "--certificate")]
     if unknown:
@@ -129,6 +131,8 @@ def cleanup(options: list[str]) -> None:
         base = logkeep.folder(WORK.parent)
         out = logkeep.backup(base, WORK / "logs", logkeep.kept_backups(base), "before-cleanup")
         say(f"Logs backed up first: {logkeep.kept_backups(base) / out['file']}")
+        logkeep.clear(base)                # then cleaned too (R5.6: "Logs get cleaned in clean-run"); the backup stays
+        say("The container logs and the web log are deleted (the backup above keeps them).")
     except Exception as exc:  # noqa: BLE001 - a log backup never stops the cleanup
         say(f"The logs could not be backed up first: {exc}", "yellow")
     if ENV_FILE.exists():
@@ -269,6 +273,7 @@ def console(options: list[str]) -> None:
 
 # ---------------------------------------------------------------- init, check, the dispatch
 def init(rest: list[str]) -> None:
+    """eax init: the config file from the laptop or server template."""
     kind_ = rest[0] if rest else "laptop"
     template = ROOT / "deploy" / "templates" / f"eaexplorer.{kind_}.env"
     if ENV_FILE.exists():
@@ -286,7 +291,7 @@ def init(rest: list[str]) -> None:
     ENV_FILE.write_text(text, encoding="utf-8", newline="\n")
     say(f"Created {ENV_REL} ({kind_}) from deploy/templates/eaexplorer.{kind_}.env.")
     if kind_ != "laptop":
-        _ask_backup_folder()
+        _ask_base_folder()
     if use_vault:
         say(f"Every password and key is made in the key vault (OpenBao) at the first {EAX} up and kept there; {ENV_REL} "
             f"holds references only. {EAX} logins shows them; the vault's keys: {_shown(vault_keys_file())}.")
@@ -297,6 +302,7 @@ def init(rest: list[str]) -> None:
 
 
 def vault_on() -> bool:
+    """Whether the key vault may be used (it is switched off)."""
     from . import vault
     return vault.ALLOWED
 
@@ -315,23 +321,31 @@ def with_vault(text: str) -> str:
                                 "(eax secrets) ----\n" f"EAX_SECRETS_FROM=openbao:{vault.DEFAULT_WHERE}\n")
 
 
-def _ask_backup_folder() -> None:
-    """A server or platform keeps its backups in a mounted folder (R2.44, D635): asked here, kept as EAX_BACKUP_DIR;
-    no backups are taken until it is set."""
+BASE_ASK = ("Base folder for all the data (databases, documents, logs, backups, imports, exports, certificates, "
+            "reports); mount what you want onto its folders later")
+
+
+def _ask_base_folder() -> None:
+    """A server or platform keeps all its data under one base folder (R5.4, D687; it replaced the backups folder's
+    question, R2.44): asked here, kept as EAX_DATA_ROOT (the template's /srv/eax when nothing is typed)."""
+    import re
     import sys
-    if not sys.stdin.isatty():
-        say(f"Set EAX_BACKUP_DIR in {ENV_REL} to the mounted folder for backups: no backups are taken until it is set.")
-        return
-    folder = input("Folder for backups: a mounted network share or volume (empty: set EAX_BACKUP_DIR later): ").strip()
-    if not folder:
-        say(f"No backups are taken until EAX_BACKUP_DIR is set in {ENV_REL}.")
-        return
-    text_ = ENV_FILE.read_text(encoding="utf-8").replace("\nEAX_BACKUP_DIR=\n", f"\nEAX_BACKUP_DIR={folder}\n", 1)
+    text_ = ENV_FILE.read_text(encoding="utf-8")
+    m = re.search(r"(?m)^EAX_DATA_ROOT=(.*)$", text_)
+    default = m.group(1).strip() if m else "/srv/eax"
+    folder = input(f"{BASE_ASK} [{default}]: ").strip() if sys.stdin.isatty() else ""
+    folder = folder or default
+    if m:
+        text_ = text_[:m.start()] + f"EAX_DATA_ROOT={folder}" + text_[m.end():]
+    else:
+        text_ = text_.rstrip("\n") + f"\nEAX_DATA_ROOT={folder}\n"
     ENV_FILE.write_text(text_, encoding="utf-8", newline="\n")
-    say(f"Backups go to {folder} (EAX_BACKUP_DIR).")
+    say(f"All the data goes under {folder} (EAX_DATA_ROOT), a folder for each kind, made at the first {EAX} up; "
+        f"{EAX} folders shows them.")
 
 
 def check() -> None:
+    """eax check: Docker and Docker Compose are there."""
     if attached(["docker", "version", "--format", "Docker {{.Server.Version}}"]) != 0:
         raise Failure("Docker is not running.")
     attached(["docker", "compose", "version"])
@@ -343,11 +357,13 @@ def check() -> None:
 
 
 def need_backups() -> None:
+    """Stops when backups are switched off."""
     if not stack.service_on("backups"):
         raise Failure(f"Backups are switched off: {EAX} service backups on")
 
 
 def dispatch(command: str, rest: list[str], wait_all: bool) -> None:
+    """Runs one eax command."""
     ops = ["ops", "python3", "/app/ops.py"]
     api = ["api", "python", "-m", "eax.backups_cli"]
     if command in DOCKER_COMMANDS:
@@ -449,6 +465,15 @@ def dispatch(command: str, rest: list[str], wait_all: bool) -> None:
         stack.interactive(["api", "python", "-m", "eax.testing.cli", "delete"], rest[1:])
     elif command == "test" and rest[:1] == ["api"]:     # the API test harness: one call (R3.16)
         stack.interactive(["api", "python", "-m", "eax.testing.cli", "api"], rest[1:])
+    elif command == "test" and rest[:1] == ["watch"] and "--browser" in rest:   # the live view in a browser (R5.20)
+        import webbrowser
+        run = next((a for a in rest[1:] if a.isdigit()), "")
+        port = setting("EAX_HTTPS_PORT", "443")
+        url = f"https://{setting('EAX_HOSTNAME', 'localhost')}{'' if port == '443' else ':' + port}/#/admin/self-test/watch" \
+            + (f"/{run}" if run else "")
+        say(f"The live view of the {'run ' + run if run else 'run going on'}: {url}")
+        if not os.environ.get("EAX_NO_BROWSER"):
+            webbrowser.open(url)
     elif command == "test" and rest[:1] in (["watch"], ["stop"]):   # follow a run live, or stop it (R3.2)
         stack.interactive(["api", "python", "-m", "eax.testing.cli", rest[0]], rest[1:])
     elif command == "test":             # the self-test (phase 36.1, D367, D529): results read in the api container, a
@@ -502,6 +527,7 @@ def dispatch(command: str, rest: list[str], wait_all: bool) -> None:
 
 
 def main(argv: list[str]) -> int:
+    """eax: the command line's entry point."""
     if "--no-color" in argv:                  # plain text, wherever it is typed (R2.10)
         from . import core as _core
         _core.no_colour()
@@ -542,6 +568,30 @@ def main(argv: list[str]) -> int:
         if command == "document":
             document(rest)
             return 0
+        if command == "ticket":                 # the service desk's requests (R5.11, D692): every form
+            from . import ticket_cli
+            return ticket_cli.main(rest)
+        if command == "dev":                    # the newcomer's first check (R5.16): every form, nothing running
+            from . import dev_cli
+            return dev_cli.main(rest)
+        if command == "estimate":               # the server sizing estimate (R5.19): every form, nothing running
+            from . import estimate_cli
+            return estimate_cli.main(rest)
+        if command == "optimise":               # the optimisation report (R5.1, D697): every form
+            from . import optimise_cli
+            return optimise_cli.main(rest)
+        if command == "db":                     # database maintenance (R5.12, D691): every form
+            from . import db_cli
+            return db_cli.main(rest)
+        if command in ("sign", "verify"):       # signed deployments, the organisation's own (R5.10, D685): every form
+            from . import signing
+            return signing.main(command, rest)
+        if command == "allow":                  # the IP allow lists from the machine (R5.2, D686): every form
+            from . import allow_cli
+            return allow_cli.main(rest)
+        if command == "folders":                # where the data lives (R5.4, D687): every form
+            from . import datafolders
+            return datafolders.main(rest)
         if command == "persist":                # what persist/ holds, and deleting it (R2.26): every form
             from . import persist_cli
             return persist_cli.main(rest)

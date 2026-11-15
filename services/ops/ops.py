@@ -27,6 +27,8 @@ restarts the system from the administration console. It talks to the Docker engi
   GET  /terminal/<ticket>       on port 8091 only, no token (the ticket is the key): the WebSocket of the terminal
   GET  /backups                 the infrastructure backups, the one running (progress), maintenance
   GET  /vault                   the key vault's state (R4.19): unsealed, audit log, references, passwords left in clear
+  GET  /allow, /allow/refused   the IP allow lists and the refusals nginx logged;  POST /allow {lists, trusted, by}: save,
+                                write nginx's files, test them and reload the proxy (R5.2, D686; allowlist.py)
   POST /backups/backup          {tag, by, kind, version, pinned, keep}: an infrastructure backup now, in the background
                                 (D216); then the oldest beyond `keep` go (pinned ones stay)
   POST /backups/stop            {by}: stop the backups running (D231)
@@ -114,18 +116,56 @@ config_lock = threading.Lock()   # one write of the config file at a time
 
 
 def busy(key: str) -> bool:
+    """Whether a job of the helper is busy."""
     return bool(jobs.get(key, {}).get("busy"))
 
 
 def switching() -> dict:
+    """The helper's jobs and whether any is busy."""
     return {"busy": any(j["busy"] for j in jobs.values()), "jobs": jobs}
 
 
 def docker(*args: str, timeout: int = 120) -> str:
+    """Runs docker, refusing on an error."""
     r = subprocess.run(["docker", *args], capture_output=True, text=True, timeout=timeout)
     if r.returncode:
         raise RuntimeError((r.stderr or r.stdout).strip()[:500])
     return r.stdout
+
+
+def docker_space() -> dict:
+    """What Docker keeps on disk (R5.1, the optimisation report): the build cache and the images no container uses."""
+    out = {"build_cache_mb": 0.0, "dangling_images": 0, "dangling_mb": 0.0}
+    for line in docker("system", "df", "--format", "{{json .}}", timeout=120).splitlines():
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if row.get("Type") == "Build Cache":
+            out["build_cache_mb"] = round(_size_mb(row.get("Reclaimable") or row.get("Size") or "0"), 1)
+    ids = [x for x in docker("images", "--filter", "dangling=true", "--format", "{{.ID}} {{.Size}}").splitlines() if x.strip()]
+    out["dangling_images"] = len(ids)
+    out["dangling_mb"] = round(sum(_size_mb(x.split(" ", 1)[1]) for x in ids if " " in x), 1)
+    return out
+
+
+def _size_mb(v: str) -> float:
+    """Docker's sizes ("1.2GB", "350MB (40%)", "12kB") in MB."""
+    m = re.match(r"\s*([0-9.]+)\s*([kKMGT]?B)", str(v))
+    if not m:
+        return 0.0
+    return float(m.group(1)) * {"B": 1 / 1048576, "kB": 1 / 1024, "KB": 1 / 1024, "MB": 1, "GB": 1024, "TB": 1048576}[m.group(2)]
+
+
+def docker_prune(by: str) -> dict:
+    """The build cache and the images nothing uses cleared (a person's yes on the optimisation report). Never a volume,
+    never a container, never an image a container uses."""
+    before = docker_space()
+    docker("builder", "prune", "--force", timeout=900)
+    docker("image", "prune", "--force", timeout=900)
+    after = docker_space()
+    won = before["build_cache_mb"] + before["dangling_mb"] - after["build_cache_mb"] - after["dangling_mb"]
+    return {"by": by, "before": before, "after": after, "won_mb": round(max(won, 0.0), 1)}
 
 
 def gone(exc: Exception) -> bool:
@@ -135,6 +175,7 @@ def gone(exc: Exception) -> bool:
 
 
 def project() -> str:
+    """This installation's compose project."""
     labels = json.loads(docker("inspect", "--format", "{{json .Config.Labels}}", socket.gethostname()))
     return labels.get("com.docker.compose.project", "")
 
@@ -148,6 +189,7 @@ def is_service_container(config_hash: str, oneoff: str) -> bool:
 
 
 def containers() -> list[dict]:
+    """This installation's containers."""
     out = docker("ps", "-a", "--filter", f"label=com.docker.compose.project={project()}",
                  "--format", "{{json .}}")
     rows = []
@@ -251,6 +293,7 @@ def _values(lines: list[str]) -> dict[str, str]:
 
 
 def switches(lines: list[str] | None = None) -> dict[str, bool]:
+    """The optional services' switches in the config file."""
     v = _values(lines if lines is not None else _read_config())
     out = {}
     for key, (setting, _) in SERVICES.items():
@@ -292,6 +335,7 @@ def write_services_file(lines: list[str] | None = None) -> None:
 
 
 def set_switch(lines: list[str], key: str, on: bool) -> list[str]:
+    """The config file's lines with a switch set."""
     setting, value = SERVICES[key][0], "on" if on else "off"
     out, done = [], False
     for line in lines:
@@ -399,6 +443,7 @@ def api_servers() -> list[dict]:
 
 
 def servers_wanted(lines: list[str] | None = None) -> int:
+    """How many API servers the config file asks for."""
     try:
         return max(1, min(MAX_SERVERS, int(_values(lines if lines is not None else _read_config()).get(SERVERS_KEY, "1"))))
     except ValueError:
@@ -506,6 +551,7 @@ def scale_api(count: int) -> list[str]:
 
 
 def copies() -> list[dict]:
+    """The config file's dated copies."""
     if not os.path.isdir(HISTORY):
         return []
     out = []
@@ -521,6 +567,7 @@ def copies() -> list[dict]:
 
 
 def restore(name: str, by: str) -> dict:
+    """Puts a copy of the config file back."""
     if not re.fullmatch(r"eaexplorer\.env\.[A-Za-z0-9_.-]+", name or "") or not os.path.isfile(os.path.join(HISTORY, name)):
         raise FileNotFoundError("No such copy of the config file.")
     before = switches()
@@ -845,6 +892,7 @@ def _one_container(service: str) -> dict:
 
 
 def container_detail(service: str) -> dict:
+    """A container's details (state, image, health, mounts, limits)."""
     c = _one_container(service)
     d = json.loads(docker("inspect", c["id"]))[0]
     st, cfg, hc = d.get("State", {}), d.get("Config", {}), d.get("HostConfig", {})
@@ -881,6 +929,7 @@ def container_detail(service: str) -> dict:
 
 
 def container_logs(service: str, tail: int = 300) -> dict:
+    """A container's last log lines."""
     c = _one_container(service)
     r = subprocess.run(["docker", "logs", "--timestamps", "--tail", str(max(1, min(tail, 5000))), c["id"]],
                        capture_output=True, text=True, timeout=60)
@@ -889,6 +938,7 @@ def container_logs(service: str, tail: int = 300) -> dict:
 
 
 def console_on() -> bool:
+    """Whether terminals in containers are on."""
     try:
         lines = _read_config()
     except OSError:
@@ -911,6 +961,7 @@ _tlock = threading.Lock()
 
 
 def idle_minutes() -> int:
+    """Minutes before an idle terminal is closed."""
     try:
         return max(1, int(_values(_read_config()).get("EAX_TERMINAL_IDLE_MINUTES", "15") or 15))
     except (OSError, ValueError):
@@ -918,6 +969,7 @@ def idle_minutes() -> int:
 
 
 def terminal_ticket(service: str, user: str, cols: int = 120, rows: int = 32) -> dict:
+    """A one-use ticket to open a terminal in a container."""
     if not console_on():
         raise PermissionError("Terminals in containers are switched off (EAX_CONTAINER_CONSOLE=off in the config file).")
     c = _one_container(service)
@@ -935,11 +987,13 @@ def terminal_ticket(service: str, user: str, cols: int = 120, rows: int = 32) ->
 
 
 def terminal_sessions() -> list[dict]:
+    """The terminal sessions."""
     with _tlock:
         return [dict(x) for x in _sessions.values()]
 
 
 def terminal_ack(ids: list[str]) -> int:
+    """Forgets ended sessions the API has recorded."""
     with _tlock:
         gone = [i for i in ids if i in _sessions and _sessions[i].get("ended")]
         for i in gone:
@@ -1002,6 +1056,7 @@ def ssh_ticket(b: dict) -> dict:
 
 
 def ssh_transcript(sid: str, tail: int = 200000) -> dict:
+    """A terminal session's transcript."""
     if not re.fullmatch(r"[0-9a-f]{8,32}", sid or ""):
         raise ValueError("No such session.")
     path = os.path.join(SSH_LOGS, f"{sid}.log")
@@ -1018,6 +1073,7 @@ def _winsize(fd: int, rows: int, cols: int) -> None:
 
 
 def ws_frame(opcode: int, payload: bytes) -> bytes:
+    """A WebSocket frame."""
     n = len(payload)
     head = bytes([0x80 | opcode])
     if n < 126:
@@ -1061,6 +1117,7 @@ class TerminalHandler(BaseHTTPRequestHandler):
     rbufsize = 0   # unbuffered, so select() sees every byte the browser sends
 
     def log_message(self, fmt, *args):
+        """One line per call in the helper's log."""
         print(f"ops terminal: {self.command} -> {args[1] if len(args) > 1 else ''}", flush=True)
 
     def _refuse(self, code: int, msg: str) -> None:
@@ -1081,6 +1138,7 @@ class TerminalHandler(BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def do_GET(self):  # noqa: N802
+        """The terminals' WebSocket and the restore's status while the API may be stopped."""
         from urllib.parse import parse_qs, urlparse
         u = urlparse(self.path)
         if u.path == "/restore/active":     # the screens ask while the API may be stopped (D227)
@@ -1115,6 +1173,7 @@ class TerminalHandler(BaseHTTPRequestHandler):
 
 
 def run_terminal(sock, rfile, t: dict) -> None:
+    """Runs a terminal in a container over a WebSocket, closed when idle."""
     sid, idle = t["session"], idle_minutes() * 60
     send_lock = threading.Lock()
     rec = {"id": sid, "service": t["service"], "user": t["user"], "started": time.time(), "ended": None, "reason": "",
@@ -1307,6 +1366,7 @@ class _BackupLock:
         self._f = None
 
     def acquire(self, blocking: bool = True, timeout: float = -1) -> bool:
+        """Takes the backup lock (one backup or restore at a time, across processes)."""
         if not self._t.acquire(blocking, timeout):
             return False
         try:
@@ -1322,6 +1382,7 @@ class _BackupLock:
             return False
 
     def release(self) -> None:
+        """Gives the backup lock back."""
         if self._f:
             try:
                 fcntl.flock(self._f, fcntl.LOCK_UN)
@@ -1387,6 +1448,7 @@ def _public(rec: dict) -> dict:
 
 
 def list_restores() -> list[dict]:
+    """The infrastructure restores."""
     out = []
     try:
         names = os.listdir(RESTORES)
@@ -1402,6 +1464,7 @@ def list_restores() -> list[dict]:
 
 
 def restore_detail(rid: str, tail: int = 5000, token: str | None = None) -> dict:
+    """One restore with the end of its log."""
     with open(_rec_path(rid), encoding="utf-8") as f:
         rec = json.load(f)
     if token is not None and not hmac.compare_digest(hashlib.sha256(token.encode()).hexdigest(), rec.get("token_sha", "")):
@@ -1415,6 +1478,7 @@ def restore_detail(rid: str, tail: int = 5000, token: str | None = None) -> dict
 
 
 def delete_restore(rid: str) -> dict:
+    """Deletes a finished restore's record."""
     rec = restore_detail(rid, 0)
     if rec["status"] == "running":
         raise ValueError("This restore is still running: it can be deleted when it has finished.")
@@ -1473,6 +1537,7 @@ def recover_after_restart() -> None:
 
 
 def delete_infra_backup(name: str) -> dict:
+    """Deletes an infrastructure backup (never a pinned one)."""
     folder = _infra_folder(name)
     m = _manifest_of(folder) or {}
     if m.get("pinned"):
@@ -1589,6 +1654,7 @@ def verify_backup(name: str) -> dict:
 
 
 def pin_backup(name: str, pinned: bool) -> dict:
+    """Pins or unpins an infrastructure backup."""
     folder = _infra_folder(name)
     flag = os.path.join(folder, "PINNED")
     if pinned:
@@ -1781,6 +1847,7 @@ def _vt(v: str) -> tuple:
 
 
 def maintenance() -> dict | None:
+    """The maintenance in progress, if any."""
     try:
         with open(MAINTENANCE, encoding="utf-8") as f:
             return json.load(f)
@@ -2052,12 +2119,14 @@ def start_backup_job(action: str, **kw) -> dict:
 
 
 def take_events() -> list[dict]:
+    """The backup events since the last ask."""
     out = list(backup_events)
     del backup_events[:len(out)]
     return out
 
 
 class Handler(BaseHTTPRequestHandler):
+    """The operations helper's HTTP API (every call needs EAX_OPS_TOKEN)."""
     def _send(self, code: int, body: dict) -> None:
         data = json.dumps(body, default=str).encode()
         self.send_response(code)
@@ -2120,12 +2189,18 @@ class Handler(BaseHTTPRequestHandler):
         return None
 
     def do_GET(self):  # noqa: N802
+        """The helper's reads."""
         if self.path == "/health":
             return self._send(200, {"status": "ok"})
         if not self._ok():
             return None
         if self.path == "/tests":                    # test runs (phase 36.1, D367; testruns.py)
             return self._send(200, testruns.status())
+        if self.path == "/docker/space":             # the optimisation report (R5.1)
+            try:
+                return self._send(200, docker_space())
+            except Exception as exc:  # noqa: BLE001
+                return self._send(500, {"message": str(exc)})
         if self.path.startswith("/tests/build/"):    # building the test runner from the page (D570)
             from urllib.parse import parse_qs, urlparse
             u = urlparse(self.path)
@@ -2166,6 +2241,15 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(404, {"message": str(exc)})
             except Exception as exc:  # noqa: BLE001
                 return self._send(500, {"message": str(exc)})
+        if self.path in ("/allow", "/allow/refused"):  # the IP allow lists (R5.2, D686; allowlist.py)
+            import allowlist
+            try:
+                if self.path == "/allow":
+                    return self._send(200, allowlist.read() | {"places": allowlist.PLACES, "always": allowlist.ALWAYS,
+                                                               "internal": allowlist.internal_networks(project())})
+                return self._send(200, allowlist.refused(project()))
+            except Exception as exc:  # noqa: BLE001
+                return self._send(500, {"message": str(exc)[:300]})
         if self.path == "/vault":                       # the key vault's state, for the self-test (R4.19)
             try:
                 return self._send(200, vault_report())
@@ -2216,6 +2300,15 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, {"sessions": terminal_sessions()})
         if self.path.split("?")[0].startswith("/commands"):      # the Command centre (D554; commandcentre.py)
             return self._commands_get()
+        if self.path.split("?")[0] in ("/logs/web", "/logs/web/files", "/logs/web/csv", "/logs/web/zip"):   # web log (R5.6)
+            from urllib.parse import parse_qs, urlparse
+            q = {k: v[0] for k, v in parse_qs(urlparse(self.path).query).items()}
+            try:
+                return self._send(200, logsops.web(self.path.split("?")[0], q))
+            except ValueError as exc:
+                return self._send(400, {"message": str(exc)})
+            except RuntimeError as exc:
+                return self._send(409, {"message": str(exc)})
         if self.path.split("?")[0] in ("/logs/files", "/logs/read", "/logs/own"):   # the logs kept on disk (R2.31, R2.32)
             from urllib.parse import parse_qs, urlparse
             q = {k: v[0] for k, v in parse_qs(urlparse(self.path).query).items()}
@@ -2381,15 +2474,28 @@ class Handler(BaseHTTPRequestHandler):
         return self._send(404, {"message": "No such page."})
 
     def do_POST(self):  # noqa: N802
+        """The helper's actions."""
         if not self._ok():
             return None
         m = re.match(r"^/containers/([a-z0-9_-]+)/files$", self.path)     # a write in a container's files (R2.18)
         if m:
             b = self._body()
             return self._hostwatch_call(lambda: hostwatch.files_change(m.group(1), b))
+        if self.path == "/allow":                                         # the IP allow lists (R5.2, D686)
+            import allowlist
+            b = self._body()
+            try:
+                return self._send(200, allowlist.apply(b, project(), str(b.get("by") or "console")))
+            except ValueError as exc:
+                return self._send(400, {"message": str(exc)})
         if self.path == "/alerts/test":                                   # the self-test's pretend stop (R2.19)
             b = self._body()
             return self._hostwatch_call(lambda: hostwatch.test_alert(str(b.get("service") or "api")))
+        if self.path == "/docker/prune":                # a person's yes on the optimisation report (R5.1)
+            try:
+                return self._send(200, docker_prune(str(self._body().get("by") or "")))
+            except Exception as exc:  # noqa: BLE001
+                return self._send(500, {"message": str(exc)})
         if self.path == "/tests/results/delete":       # test runs' folders (R2.43)
             return self._send(200, testruns.delete_results([str(f) for f in self._body().get("folders") or []]))
         if self.path in ("/tests", "/tests/stop", "/tests/build", "/tests/settings", "/scaling"):   # self-test, scaling
@@ -2438,9 +2544,11 @@ class Handler(BaseHTTPRequestHandler):
             return self._banner("POST")
         if self.path == "/footprint":                          # measure now (R2.22)
             return self._send(200, footprint.measure(str(self._body().get("label") or "")))
-        if self.path in ("/logs/backup", "/logs/clean"):         # back up or clean the logs (R2.30)
+        if self.path in ("/logs/backup", "/logs/clean", "/logs/clean-range"):   # back up or clean the logs (R2.30, R5.6)
             try:
                 b = self._body()
+                if self.path == "/logs/clean-range":
+                    return self._send(200, logsops.clean_range(b))
                 return self._send(200, logsops.backup(b) if self.path == "/logs/backup" else logsops.clean(b))
             except (ValueError, OSError) as exc:
                 return self._send(400, {"message": str(exc)})
@@ -2624,6 +2732,7 @@ class Handler(BaseHTTPRequestHandler):
         return self._send(404, {"message": "No such request."})
 
     def log_message(self, fmt, *args):  # quieter log: one line per request
+        """One line per call in the helper's log."""
         print(f"ops: {self.command} {self.path} -> {args[1] if len(args) > 1 else ''}", flush=True)
 
 

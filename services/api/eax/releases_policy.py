@@ -26,6 +26,7 @@ def base(version: str) -> str:
 
 
 def is_rc(version: str) -> bool:
+    """Whether a version is a release candidate."""
     return "-rc." in version
 
 

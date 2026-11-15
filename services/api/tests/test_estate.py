@@ -60,3 +60,17 @@ def test_the_page():
     assert "COPY estate_ops.py /app/estate_ops.py" in (REPO / "services/ops/Dockerfile").read_text()
     assert '@blp.route("/admin/estate")' in (REPO / "services/api/eax/api/admin.py").read_text()
     assert '["estate", "Estate"' in (REPO / "services/web/src/Admin.jsx").read_text()
+
+
+def test_r5_8_every_container_is_in_the_logical_diagram():
+    """R5.8 (owner, 14 Nov 2026: "Ensure when ELK is done we update estate diagram"): a service added to
+    docker-compose.yml without a place in the logical diagram (or a reason in NOT_DRAWN) fails the build, and every flow
+    names components that are drawn."""
+    import yaml
+    from eaxcli import estate
+    services = set(yaml.safe_load((REPO / "docker-compose.yml").read_text())["services"])
+    drawn = {c[0] for c in estate.LOGICAL}
+    missing = sorted(services - drawn - set(estate.NOT_DRAWN))
+    assert not missing, f"add these to eaxcli/estate.py LOGICAL (or NOT_DRAWN with why): {missing}"
+    assert not set(estate.NOT_DRAWN) - services, "NOT_DRAWN names a container that is gone"
+    assert all(a in drawn and b in drawn for a, b, _w in estate.FLOWS)

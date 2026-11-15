@@ -71,6 +71,7 @@ def rows(wb, prefix: str):
 
 
 def build(path: Path) -> tuple[list, list]:
+    """An industry pack's workbook as elements and relationships."""
     wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
     ents, rels = [], []
     names: dict[str, str] = {}      # key -> type
@@ -250,6 +251,7 @@ def build_meridian(path: Path) -> tuple[list, list]:
 
 
 def write(code: str, industry: str, company: str, src: Path, ents: list, rels: list) -> Path:
+    """Writes an industry reference model's seed file."""
     out = OUT / f"industry_{code}.py"
     doc = (f'"""{industry} reference model (phase 39, D470): industry content from the owner\'s {industry} starter pack.\n\n'
            f"Taken from the pack's worked example ({company}, an invented company) and mapped to ArchiMate 4: capabilities\n"
@@ -267,6 +269,7 @@ def write(code: str, industry: str, company: str, src: Path, ents: list, rels: l
 
 
 def main(folder: str) -> int:
+    """Builds every industry reference model from its pack."""
     root = Path(folder)
     for code, industry, pattern, company in PACKS + [MERIDIAN]:
         found = sorted(root.glob(pattern))

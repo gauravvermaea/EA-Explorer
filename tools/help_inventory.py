@@ -167,6 +167,7 @@ def _keep(text: str) -> bool:
 
 
 def routes() -> set[str]:
+    """The screens' pages."""
     app = (SRC / "App.jsx").read_text(encoding="utf-8")
     found = set(re.findall(r'route(?:\.startsWith\(|\s*===\s*)"(#/[a-z0-9-]*)', app))
     return {"page:" + r for r in found}
@@ -197,6 +198,7 @@ def _balanced(src: str, start: int, open_c: str = "[", close_c: str = "]") -> st
 
 
 def tabs() -> set[str]:
+    """The screens' tabs."""
     keys: set[str] = set()
     for f in SRC.glob("*.jsx"):
         src = f.read_text(encoding="utf-8")
@@ -219,6 +221,7 @@ def tabs() -> set[str]:
 
 
 def popups() -> set[str]:
+    """The screens' pop-ups."""
     keys: set[str] = set()
     for f in SRC.glob("*.jsx"):
         src = f.read_text(encoding="utf-8")
@@ -237,6 +240,7 @@ def popups() -> set[str]:
 
 
 def steps() -> set[str]:
+    """The wizards' steps."""
     keys: set[str] = set()
     for f in SRC.glob("*.jsx"):
         src = f.read_text(encoding="utf-8")
@@ -248,6 +252,7 @@ def steps() -> set[str]:
 
 
 def fields() -> set[str]:
+    """The screens' fields."""
     keys: set[str] = set()
     for f in SRC.glob("*.jsx"):
         src = f.read_text(encoding="utf-8")
@@ -277,6 +282,7 @@ def fields() -> set[str]:
 
 
 def buttons() -> set[str]:
+    """The screens' buttons."""
     keys: set[str] = set()
     for f in SRC.glob("*.jsx"):
         src = f.read_text(encoding="utf-8")
@@ -293,10 +299,12 @@ def buttons() -> set[str]:
 
 
 def needed() -> dict[str, set[str]]:
+    """Every part of the screens that needs help."""
     return {"page": routes(), "tab": tabs(), "popup": popups(), "step": steps(), "field": fields(), "button": buttons()}
 
 
 def catalogue() -> dict:
+    """The help catalogue."""
     return json.loads(CATALOGUE.read_text(encoding="utf-8")) if CATALOGUE.exists() else {}
 
 
@@ -313,6 +321,7 @@ def covered(cat: dict) -> set[str]:
 
 
 def missing() -> dict[str, list[str]]:
+    """The parts of the screens with no help yet."""
     have = covered(catalogue())
     return {kind: sorted(k for k in ks if k not in have) for kind, ks in needed().items()}
 

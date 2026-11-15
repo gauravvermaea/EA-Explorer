@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def main(rest: list[str], ask=input) -> int:
+    """eax logs backup|clean."""
     if not rest or rest[0] not in ("backup", "clean"):
         print(__doc__)
         return 2
@@ -27,6 +28,9 @@ def main(rest: list[str], ask=input) -> int:
         out = logkeep.backup(base, own, dest, tag)
         where = f"{dest}/{out['file']}" if "--outside-work" in rest else f"work/backups/logs/{out['file']}"
         print(f"Logs backed up: {where} ({out['files']} files, {out['size'] // 1024} KB).")
+        if "--then-clear" in rest:         # clean-run and clean-restart (R5.6: "Logs get cleaned in clean-run")
+            logkeep.clear(base)
+            print("The container logs and the web log are deleted (the backup above keeps them).")
         return 0
     days = logkeep.default_keep_days(persist._config_value(ROOT, "EAX_DEPLOYMENT") or "laptop")
     if "--older-than" in rest:

@@ -20,6 +20,7 @@ from .target import Client, message
 
 def run(run, client: Client, name: str, typed: str, token_after: str = "", wait_s: int = 1800, poll_s: int = 10,
         sleep=time.sleep, clock=time.time, client_of=Client) -> None:
+    """The reset-survival test: what persist/ holds survives a reset."""
     rec = run.recorder("reset-survival")
     if typed != name:
         rec("the strong confirm", "failed", f"--confirm must be the installation's name, {name!r}; nothing was reset", 0)

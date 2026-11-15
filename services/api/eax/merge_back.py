@@ -72,14 +72,17 @@ def _roles(conn, user, m: dict) -> set[str]:
 
 
 def is_child_admin(conn, user, child: dict) -> bool:
+    """Whether the person is Model Admin of the child model."""
     return perms.MODEL_ADMIN in _roles(conn, user, child)
 
 
 def is_reviewer(conn, user, parent: dict) -> bool:
+    """Whether the person may review merges into the parent model (they may commit there)."""
     return bool(_roles(conn, user, parent) & perms.MODEL_PERMISSIONS["model.commit"])
 
 
 def is_parent_admin(conn, user, parent: dict) -> bool:
+    """Whether the person is Model Admin of the parent model."""
     return perms.MODEL_ADMIN in _roles(conn, user, parent)
 
 
@@ -369,6 +372,7 @@ def waiting_for(conn, user) -> list[dict]:
 
 
 def get(conn, rid: Any, user) -> dict:
+    """One merge-back request in full, for those who may see it."""
     r = _request(conn, rid)
     _may_see(conn, user, r)
     return _out(conn, r, user, full=True)
@@ -433,6 +437,7 @@ def send(conn, model: Any, user, note: str = "") -> dict:
 
 
 def withdraw(conn, rid: Any, user, note: str = "") -> dict:
+    """Withdraws a merge-back request that is still waiting."""
     r = _request(conn, rid)
     child = _model_row(conn, r["child_id"])
     if r["status"] != "sent":
@@ -763,6 +768,7 @@ def refresh(conn, child: dict, user) -> dict:
 
 # ---------------------------------------------------------------- the merge report as a Word document
 def report_docx(conn, rid: Any, user) -> tuple[bytes, str]:
+    """A merge-back request as a Word report."""
     from .gaps import _p, _table, docx_from
     r = _request(conn, rid)
     _may_see(conn, user, r)

@@ -34,20 +34,23 @@ import threading
 import time
 
 H: dict = {}                                   # ops.py's globals: docker, containers, jobs, _in_background...
-SUITES = ("api", "ui", "db", "security", "reports", "backup", "restore")   # backup (R2.45), then restore (R3.8, the command line only)
+SUITES = ("api", "ui", "db", "security", "reports", "performance", "backup", "restore")   # performance (R5.18); backup (R2.45), then restore (R3.8, the command line only)
 ALIASES = {"backup-restore": "restore"}
-ZAP_IMAGE = os.environ.get("EAX_IMAGE_ZAP", "ghcr.io/zaproxy/zaproxy:2.15.0")
-TRIVY_IMAGE = os.environ.get("EAX_IMAGE_TRIVY", "aquasec/trivy:0.56.2")
+ZAP_IMAGE = os.environ.get("EAX_IMAGE_ZAP", "ghcr.io/zaproxy/zaproxy:2.16.1")     # R5.17: 2.15.0 was out of date
+TRIVY_IMAGE = os.environ.get("EAX_IMAGE_TRIVY", "aquasec/trivy:0.60.0")
+K6_IMAGE = os.environ.get("EAX_IMAGE_K6", "grafana/k6:0.54.0")                  # the load test (R5.18, D695)
 WORK = "/eax-work"
 _lock = threading.Lock()
 current: dict = {}
 
 
 def bind(ns: dict) -> None:
+    """Takes ops.py's helpers."""
     H.update(ns)
 
 
 def suites_of(args: list[str] | str | None) -> list[str]:
+    """The suites asked for, checked (all when none)."""
     if isinstance(args, str):
         args = args.replace(",", " ").split()
     asked = [ALIASES.get(a.lower(), a.lower()) for a in (args or []) if a and not a.startswith("--")]
@@ -67,12 +70,14 @@ def _api_container() -> dict:
 
 
 def runner_image(info: dict | None = None) -> str:
+    """The test runner's image for this version."""
     info = info or _api_container()
     tag = info["Config"]["Image"].rsplit(":", 1)[-1] if ":" in info["Config"]["Image"] else "dev"
     return f"eaexplorer/testrunner:{tag}"
 
 
 def image_present(image: str) -> bool:
+    """Whether an image is there."""
     try:
         H["docker"]("image", "inspect", image, timeout=30)
         return True
@@ -116,6 +121,7 @@ NOT_BUILT = ("The test runner is prepared when a test starts (the first time abo
 
 
 def status() -> dict:
+    """The self-test's state: running, the runner image and its build, the settings."""
     extra = {"build": build_status(), "auto_build": auto_build(_deployment()), "keep_days": keep_days(), "size_gb": RUNNER_SIZE_GB,
              "build_minutes": BUILD_MINUTES}
     try:
@@ -166,6 +172,7 @@ def auto_build(deployment: str = "") -> bool:
 
 
 def set_auto_build(on: bool, by: str = "") -> dict:
+    """Whether the runner is built by itself after an update."""
     P = _persist()
     if P is None:
         raise RuntimeError("persist/ is not reachable from the operations helper (docker-compose.yml mounts it).")
@@ -181,6 +188,7 @@ KEEP_KEY = "testrunner_keep_days"              # how long test results are kept 
 
 
 def keep_days() -> int:
+    """How many days test results are kept."""
     P = _persist()
     if P is None:
         return 30
@@ -192,6 +200,7 @@ def keep_days() -> int:
 
 
 def set_keep_days(days: int, by: str = "") -> dict:
+    """Sets how many days test results are kept."""
     P = _persist()
     if P is None:
         raise RuntimeError("persist/ is not reachable from the operations helper (docker-compose.yml mounts it).")
@@ -269,6 +278,7 @@ def build_status() -> dict:
 
 
 def build_detail(run_id: str, start: int = 0) -> dict:
+    """The runner build's state and log, with its steps."""
     d = H["commandcentre"].detail(run_id, 0)
     rec = d["status"]
     log = d["text"]
@@ -419,6 +429,7 @@ def _security_scans(info: dict, folder: str, say) -> None:
         say("ZAP: not repeated (it passed in the run being repeated)")
     else:
         _zap(hostdir, front, say)
+        _zap_api(folder, hostdir, front, say)
     images = sorted({c["image"] for c in H["containers"]() if str(c.get("image", "")).startswith("eaexplorer/")})
     if only is not None and "*" not in only["images"]:
         images = [i for i in images if i in only["images"]]
@@ -433,6 +444,117 @@ def _zap(hostdir: str, front: str, say) -> None:
                        capture_output=True, text=True, timeout=3600)
     except (OSError, subprocess.TimeoutExpired) as exc:
         say(f"ZAP did not run: {exc}")
+
+
+def _zap_api(folder: str, hostdir: str, front: str, say) -> None:
+    """The signed-in ZAP scan (R5.17 (2)): the API's reads in the run's own test data (zap-openapi.json, written by the
+    runner), signed in as the run's Architect (zap-auth.txt), its active rules on the query strings. The token file is
+    deleted when the scan ends, whatever happens."""
+    spec, auth = f"{WORK}/tests/{folder}/zap-openapi.json", f"{WORK}/tests/{folder}/zap-auth.txt"
+    if not (os.path.exists(spec) and os.path.exists(auth)):
+        say("ZAP signed-in scan: no scope from the runner (an older runner image): left out")
+        return
+    try:
+        with open(auth, encoding="utf-8") as f:
+            token = f.read().strip()
+    finally:
+        try:
+            os.remove(auth)
+        except OSError:
+            pass
+    if not re.fullmatch(r"[A-Za-z0-9._~+/=-]{8,8000}", token):
+        say("ZAP signed-in scan: the runner's token could not be read: left out")
+        return
+    env = {**os.environ, "ZAP_AUTH_HEADER_VALUE": f"Bearer {token}"}   # ZAP's packaged scans add it to every request
+    say(f"OWASP ZAP signed-in scan of the API's reads in the run's test data ({ZAP_IMAGE})")
+    try:
+        subprocess.run(check=False, args=["docker", "run", "--rm", *(["--network", front] if front else []), "-v", f"{hostdir}:/zap/wrk:rw",
+                        "-e", "ZAP_AUTH_HEADER=Authorization", "-e", "ZAP_AUTH_HEADER_VALUE",   # the value from env: not on the command line
+                        "-t", ZAP_IMAGE, "zap-api-scan.py", "-t", "/zap/wrk/zap-openapi.json", "-f", "openapi", "-O", "https://proxy",
+                        "-J", "zap-api.json", "-I", "-T", "30"], capture_output=True, text=True, timeout=3600,
+                       env=env)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        say(f"ZAP signed-in scan did not run: {exc}")
+
+
+def _k6(info: dict, folder: str, say) -> None:
+    """The load test (R5.18, D695): k6 in its own container on the front door's network, the run's test users' tokens
+    from bench-tokens.txt (deleted at once), the plan from bench-plan.json; every container's memory and CPU sampled
+    while it runs (bench-resources.json). k6's summary becomes bench-load.json."""
+    here = f"{WORK}/tests/{folder}"
+    hostdir = f"{host_work()}/tests/{folder}"
+    try:
+        with open(f"{here}/bench-plan.json", encoding="utf-8") as f:
+            plan = json.load(f)
+        with open(f"{here}/bench-tokens.txt", encoding="utf-8") as f:
+            tokens = f.read().strip()
+    except (OSError, ValueError) as exc:
+        say(f"k6: no plan from the runner ({exc}): left out")
+        return
+    finally:
+        try:
+            os.remove(f"{here}/bench-tokens.txt")
+        except OSError:
+            pass
+    script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "benchmark.js")
+    try:
+        shutil.copy(script, f"{here}/benchmark.js")
+    except OSError as exc:
+        say(f"k6: the script is not in the helper ({exc}): left out")
+        return
+    nets = _networks(info)
+    front = next((n for n in nets if n.endswith("frontend")), "")
+    users, minutes = int(plan.get("users") or 20), float(plan.get("minutes") or 2)
+    say(f"k6 ({K6_IMAGE}): {users} people at once for {minutes:g} minutes on {len(plan.get('paths') or [])} reads")
+    stop = threading.Event()
+    samples: dict = {}
+    threading.Thread(target=_sample_resources, args=(stop, samples), daemon=True, name="k6-resources").start()
+    env = {**os.environ, "TOKENS": tokens}
+    try:
+        subprocess.run(check=False, args=["docker", "run", "--rm", *(["--network", front] if front else []), "-v", f"{hostdir}:/bench:rw",
+                       "-e", "TOKENS", "-e", f"TARGET={plan.get('target') or 'https://proxy'}", "-e", f"USERS={users}",
+                       "-e", f"MINUTES={minutes}", "-e", "PLAN=/bench/bench-plan.json", "-e", "OUT=/bench/bench-load.json",
+                       K6_IMAGE, "run", "--quiet", "/bench/benchmark.js"], capture_output=True, text=True,
+                       timeout=int(minutes * 60) + 600, env=env)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        say(f"k6 did not run: {exc}")
+    finally:
+        stop.set()
+    try:
+        with open(f"{here}/bench-resources.json", "w", encoding="utf-8") as f:
+            json.dump(samples, f)
+    except OSError:
+        pass
+
+
+def _sample_resources(stop: threading.Event, out: dict, every: float = 5) -> None:
+    """Every container's memory (peak, and its limit) and CPU (peak) while the load test runs."""
+    while not stop.is_set():
+        try:
+            lines = H["docker"]("stats", "--no-stream", "--format", "{{json .}}", timeout=60).splitlines()
+        except Exception:  # noqa: BLE001 - measuring is never in the test's way
+            lines = []
+        for line in lines:
+            try:
+                row = json.loads(line)
+                name = str(row.get("Name") or "")
+                used, _, limit = str(row.get("MemUsage") or "").partition("/")
+                cpu = float(str(row.get("CPUPerc") or "0").rstrip("%") or 0)
+            except (ValueError, TypeError):
+                continue
+            c = out.setdefault(name, {"peak_mb": 0.0, "limit_mb": 0.0, "cpu_peak": 0.0})
+            c["peak_mb"] = max(c["peak_mb"], _mb(used))
+            c["limit_mb"] = _mb(limit)
+            c["cpu_peak"] = max(c["cpu_peak"], cpu)
+        stop.wait(every)
+
+
+def _mb(v: str) -> float:
+    m = re.match(r"\s*([0-9.]+)\s*([KMGT]?i?B)", v or "")
+    if not m:
+        return 0.0
+    unit = m.group(2).replace("i", "")
+    return float(m.group(1)) * {"B": 1 / 1048576, "KB": 1 / 1024, "kB": 1 / 1024, "MB": 1, "GB": 1024, "TB": 1048576}.get(unit, 1)
 
 
 def _trivy(hostdir: str, images: list[str], say) -> None:
@@ -450,7 +572,8 @@ def _trivy(hostdir: str, images: list[str], say) -> None:
 
 def run_sequence(level: str, suites: list[str], role: str = "", area: str = "", watch: bool = False, run_id: int = 0,
                  by: str = "", trigger: str = "web", follow=None, journeys: list[str] | None = None,
-                 pages_only: bool = False, repeat: int | None = None, warnings: bool = False, ui_review: bool = False) -> dict:
+                 pages_only: bool = False, repeat: int | None = None, warnings: bool = False, ui_review: bool = False,
+                 bench: dict | None = None, live_slow: bool = False) -> dict:
     """The whole run: the runner, then (detailed with security) ZAP and Trivy, then collect. Returns {run_id, folder, code}."""
     say = follow or (lambda _m: None)
     with _lock:
@@ -484,6 +607,11 @@ def run_sequence(level: str, suites: list[str], role: str = "", area: str = "", 
             cmd.append("--pages-only")
         if ui_review:                                  # screenshots for the UI review (R2.12)
             cmd.append("--ui-review")
+        if live_slow:                                  # slow motion and pause after each step, to be watched (R5.20)
+            cmd.append("--live-slow")
+        for k, v in (bench or {}).items():             # the benchmark's size, people and minutes (R5.18)
+            if v:
+                cmd += [f"--bench-{k}", str(v)]
         if repeat is not None:                         # the failed checks of an earlier run only (R2.36)
             cmd += ["--repeat", str(int(repeat))] + (["--warnings"] if warnings else [])
         cid = _start_runner(info, name, folder, cmd)
@@ -497,8 +625,12 @@ def run_sequence(level: str, suites: list[str], role: str = "", area: str = "", 
         H["docker"]("rm", "-f", cid, timeout=60)
         if current.get("stop") and run_id:
             _collect(info, name, folder, run_id, ["--stopped", current["stop"]])
-        elif run_id and code == 0 and ("SCANS_NEXT" in out or (repeat is None and level == "detailed" and "security" in suites)):
-            _security_scans(info, folder, say)
+        elif run_id and code == 0 and ("SCANS_NEXT" in out or (repeat is None and level == "detailed"
+                                                                and ("security" in suites or "performance" in suites))):
+            if os.path.exists(f"{WORK}/tests/{folder}/bench-plan.json"):   # the load test first, on a quiet system (R5.18)
+                _k6(info, folder, say)
+            if "security" in suites or os.path.exists(f"{WORK}/tests/{folder}/scans.json"):
+                _security_scans(info, folder, say)
             code = _collect(info, name, folder, run_id, [], follow)
         elif not run_id:                              # nothing to repeat: no run was made, nor is its folder needed
             try:
@@ -544,6 +676,7 @@ BEAT_FILE, BEAT_EVERY = ".alive", 20
 
 
 def keep_beating(folder: str) -> threading.Event:
+    """Writes the run's heartbeat every 20 seconds until stopped."""
     stop = threading.Event()
 
     def loop() -> None:
@@ -596,7 +729,8 @@ def start(body: dict) -> dict:
         "by": str(body.get("by") or ""), "trigger": "web", "journeys": [str(j) for j in body.get("journeys") or []][:20],
         "pages_only": bool(body.get("pages_only")),
         "repeat": int(body["repeat"]) if body.get("repeat") is not None else None,   # a repeat (R2.36)
-        "warnings": bool(body.get("warnings"))}, daemon=True).start()
+        "warnings": bool(body.get("warnings")), "live_slow": bool(body.get("live_slow")),
+        "bench": {k: body.get(f"bench_{k}") for k in ("size", "users", "minutes") if body.get(f"bench_{k}")}}, daemon=True).start()
     return {"run_id": int(body.get("run_id") or 0), "suites": suites, "message": "The self-test is starting."}
 
 
@@ -646,7 +780,7 @@ def cli(args: list[str]) -> int:
     level = "detailed" if "--detailed" in args else "smoke"
     picked = [args[i + 1] for i, a in enumerate(args) if a in ("--suite", "--suites") and i + 1 < len(args)]
     picked += [a for i, a in enumerate(args) if not a.startswith("--") and (i == 0 or args[i - 1] not in
-               ("--suite", "--suites", "--role", "--area", "--version", "--journey"))]
+               ("--suite", "--suites", "--role", "--area", "--version", "--journey", "--size", "--users", "--minutes"))]
     try:
         suites = suites_of(",".join(picked))
     except ValueError as exc:
@@ -668,8 +802,12 @@ def cli(args: list[str]) -> int:
           + (f", area {area}" if area else "") + ". It removes test data left by earlier runs, starts its own test container, "
           "makes its own self_test_<id>_<n> models, project and accounts and tests in them; nothing else changes. The container "
           "is removed when it ends. Results: System Admin > Tools > Self-test, and work/tests.", flush=True)
+    bench = {k: _opt(args, f"--{k}") for k in ("size", "users", "minutes") if _opt(args, f"--{k}")}   # R5.18
+    if bench.get("size") and bench["size"] not in ("small", "medium", "large"):
+        print("--size: small, medium or large")
+        return 2
     r = run_sequence(level, suites, role, area, False, by="eax test", trigger="ci" if "--ci" in args else "eax",
-                     follow=lambda line: print(line, flush=True), journeys=journeys, pages_only=pages_only)
+                     follow=lambda line: print(line, flush=True), journeys=journeys, pages_only=pages_only, bench=bench)
     if r.get("error"):
         print(f"The self-test could not finish: {r['error']}")
         return 1

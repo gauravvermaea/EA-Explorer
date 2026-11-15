@@ -74,6 +74,7 @@ def _guid(conn, m: str, name: str) -> str | None:
 
 
 def run() -> str:
+    """Gives the demo model a history to compare versions in."""
     try:
         with get_engine().connect() as conn:
             m = conn.execute(text("SELECT guid FROM core.models WHERE name = :n"), {"n": MODEL}).scalar()

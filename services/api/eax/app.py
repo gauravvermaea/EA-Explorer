@@ -16,6 +16,8 @@ log = logging.getLogger(__name__)
 
 
 def create_app(testing: bool = False) -> Flask:
+    """Makes the Flask application: logging, settings, the OpenAPI description, every blueprint, the request hooks and
+    the error handlers."""
     configure_logging()
     settings = get_settings()
 
@@ -132,6 +134,9 @@ def create_app(testing: bool = False) -> Flask:
     # deploying EA Explorer to another place from System admin > Deploy (phase 36, D555)
     from .api.deploys import blp as deploys_blp
     api.register_blueprint(deploys_blp)
+
+    from .api.servicedesk import blp as servicedesk_blp  # the service desk (R5.11)
+    api.register_blueprint(servicedesk_blp)
     # eax commands from a web page: the Command centre and the Console (D554)
     from .api.command_centre import blp as command_centre_blp
     api.register_blueprint(command_centre_blp)
@@ -273,6 +278,16 @@ def create_app(testing: bool = False) -> Flask:
     @app.after_request
     def _add_request_id(response):
         response.headers["X-Request-ID"] = getattr(g, "request_id", "")
+        # who made the call, for the front door's web log (R5.6); the front door does not pass it on to the caller
+        user = getattr(g, "user", None)
+        if user is not None:
+            machine = getattr(user, "machine", None)
+            response.headers["X-EAX-Actor"] = (f"{user.username} ({machine.name})" if machine is not None else user.username)[:120]
+        try:
+            from . import weblog
+            weblog.debug_line(request, response, getattr(g, "request_id", ""), getattr(user, "username", "") if user else "")
+        except Exception:  # noqa: BLE001 - the web log never fails a call
+            log.debug("web log debug line skipped", exc_info=True)
         return response
 
     @app.get("/api/health")

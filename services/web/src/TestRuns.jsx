@@ -26,7 +26,8 @@ const SUITES = [
   ["api", "API", "every endpoint, with no token and as every role: allowed and refused, never a server error"],
   ["ui", "Browser", "the main journeys through the screens"],
   ["db", "Database", "read-only checks of the database"],
-  ["security", "Security", "headers, cookies, the Python dependencies, an OWASP ZAP scan and Trivy image scans"],
+  ["security", "Security", "headers, cookies, the dependencies, code and secrets scans, Release 3's attacks, OWASP ZAP (signed in and not) and Trivy; a gate on high and critical findings (R5.17)"],
+  ["performance", "Performance", "the benchmark: the test model filled, every read timed, then k6 with many people at once, against the last release's baseline (R5.18)"],
   ["backup", "Backups", "the last: an infrastructure and an application backup, each restored into a scratch copy, then removed (R2.45)"],
 ];
 const STATE = { queued: "Starting", running: "Running", passed: "Passed", failed: "Failed", error: "Could not finish", stopped: "Stopped" };
@@ -72,8 +73,81 @@ function RepeatButton({ run, busy, onStarted, small }) {
 }
 
 // ---------------------------------------------------------------- the page
+// The security trend (R5.17): the security suite's failed checks and warnings per run and kind, the newest gate, and the
+// findings accepted for now with their reasons and the date after which they fail again.
+function SecurityTrend({ onOpen }) {
+  const [d, setD] = useState(null);
+  const [err, setErr] = useState("");
+  useEffect(() => { apiFetch("/api/v1/admin/tests/security").then(setD).catch((e) => setErr(e.message)); }, []);
+  if (err) return <p className="status bad">{err}</p>;
+  if (!d) return <p><span className="spinner" aria-hidden="true" /> Reading…</p>;
+  const kinds = [...new Set(d.trend.flatMap((t) => Object.keys(t.kinds)))].sort();
+  return (
+    <div className="security-trend">
+      <p className="quiet small">The security suite runs {d.weekly ? "every Sunday at 03:20 by itself (System settings), " : ""}nightly in CI and
+        whenever it is started here: the front door's headers, the dependencies, the code and secrets scans, the attacks of Release 3,
+        ZAP (signed in and not) and Trivy. A high or critical finding that is not accepted fails the run; a new one raises an alert.</p>
+      {d.gate && <p className={d.gate.outcome === "failed" ? "status bad" : "status ok"}>Newest gate (run{" "}
+        <button className="linkish" onClick={() => onOpen(d.gate.run_id)}>{d.gate.run_id}</button>): {d.gate.outcome}. {d.gate.detail}</p>}
+      {!d.trend.length ? <p>No security run yet.</p> : (
+        <table className="grid-table small">
+          <thead><tr><th>Run</th><th>When</th>{kinds.map((k) => <th key={k}>{k}</th>)}</tr></thead>
+          <tbody>{d.trend.slice().reverse().map((t) => (
+            <tr key={t.run}><td><button className="linkish" onClick={() => onOpen(t.run)}>{t.run}</button></td><td>{fmtDateTime(t.at)}</td>
+              {kinds.map((k) => { const c = t.kinds[k]; return <td key={k} className={c?.failed ? "bad" : c?.warning ? "warn" : ""}>
+                {c ? `${c.failed} failed, ${c.warning} warnings` : "-"}</td>; })}</tr>))}</tbody>
+        </table>)}
+      <h3>Accepted for now</h3>
+      {!d.accepted.length ? <p>None.</p> : (
+        <table className="grid-table small">
+          <thead><tr><th>Finding</th><th>Where</th><th>Why</th><th>Until</th><th>By</th></tr></thead>
+          <tbody>{d.accepted.map((a, i) => <tr key={i} className={a.expired ? "bad" : ""}><td>{a.id}</td><td>{a.where || "anywhere"}</td>
+            <td>{a.reason}</td><td>{a.until}{a.expired ? " (past: it fails again)" : ""}</td><td>{a.by}</td></tr>)}</tbody>
+        </table>)}
+    </div>
+  );
+}
+
+// The benchmark's trend (R5.18): each operation's median per run, one data size, with each release's baseline; an
+// operation more than the margin slower than the last release's baseline fails the run.
+function PerformanceTrend() {
+  const [size, setSize] = useState("");
+  const [d, setD] = useState(null);
+  const [err, setErr] = useState("");
+  useEffect(() => { apiFetch(`/api/v1/admin/tests/performance${size ? `?size=${size}` : ""}`).then(setD).catch((e) => setErr(e.message)); }, [size]);
+  if (err) return <p className="status bad">{err}</p>;
+  if (!d) return <p><span className="spinner" aria-hidden="true" /> Reading…</p>;
+  const ops = d.operations.filter((o) => d.runs.some((r) => r.ops[o.key] != null));
+  const versions = Object.keys(d.baselines);
+  const last = versions.length ? d.baselines[versions[versions.length - 1]] : {};
+  return (
+    <div className="performance-trend">
+      <p className="quiet small">The benchmark runs with the full test, nightly in CI and on <code>eax test performance</code>: the run's test
+        model filled to a fixed size, every read that matters timed alone, then k6 with many people at once. An operation more than
+        {" "}{d.margin}% slower than the last release's baseline, errors, or a container over its memory limit fail the run. Medians in ms.</p>
+      {d.sizes.length > 1 && <label>Data <select value={size || d.size} onChange={(e) => setSize(e.target.value)}>
+        {d.sizes.map((s) => <option key={s}>{s}</option>)}</select></label>}
+      {!d.runs.length ? <p>No benchmark yet: run <code>eax test performance</code> or the full test.</p> : (
+        <table className="grid-table small">
+          <thead><tr><th>Operation</th>{versions.length > 0 && <th>Baseline {versions[versions.length - 1]}</th>}
+            {d.runs.slice(-8).map((r) => <th key={r.folder} title={r.folder}>{r.version} {r.folder.slice(4, 8)}</th>)}</tr></thead>
+          <tbody>{ops.map((o) => (
+            <tr key={o.key}><td>{o.label}</td>{versions.length > 0 && <td className="quiet">{last[o.key] ?? "-"}</td>}
+              {d.runs.slice(-8).map((r) => { const v = r.ops[o.key]; const b = last[o.key];
+                const slow = v != null && b && v > b * (1 + d.margin / 100) && v - b > 25;
+                return <td key={r.folder} className={slow ? "bad" : ""}>{v ?? "-"}</td>; })}</tr>))}
+            <tr><td>k6: 95th percentile under load</td>{versions.length > 0 && <td />}
+              {d.runs.slice(-8).map((r) => <td key={r.folder}>{r.load_p95 ?? "-"}</td>)}</tr></tbody>
+        </table>)}
+    </div>
+  );
+}
+
 export default function SelfTest() {
   const [tab, setTab] = useState("run");
+  // #/admin/self-test/watch[/<run>] (eax test watch --browser, R5.20): the run (or the one going on) watched, its Live browser open
+  const asked = /#\/admin\/self-test\/watch(?:\/(\d+))?/.exec(window.location.hash || "");
+  const [watchRun, setWatchRun] = useState(asked ? Number(asked[1] || 0) : null);
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
   const [open, setOpen] = useState(null);
@@ -95,7 +169,7 @@ export default function SelfTest() {
         named <code>self_test_&lt;id&gt;_&lt;n&gt;</code> and tests only inside them, so nothing else changes and runs can be repeated.
         The same runs come from <code>eax test</code> and CI. Fixtures stay until you purge them (Test fixtures).</p>
       <div className="seg" role="tablist" aria-label="Self-test">
-        {[["run", "Run"], ["history", "History"], ["fixtures", "Test data"], ["harness", "API harness"]].map(([k, l]) => (
+        {[["run", "Run"], ["history", "History"], ["security", "Security"], ["performance", "Performance"], ["fixtures", "Test data"], ["harness", "API harness"]].map(([k, l]) => (
           <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>{l}</button>))}
       </div>
       {err && <p className="status bad">{err}</p>}
@@ -108,9 +182,13 @@ export default function SelfTest() {
           {" "}· {fmtDateTime(data.runs[0].finished_at || data.runs[0].queued_at)}</p>)}
       {tab === "history" && data && <History runs={data.runs} onOpen={setOpen} busy={!!live} onRepeat={repeated}
         keepDays={data.runner?.keep_days} onChange={load} />}
+      {tab === "security" && <SecurityTrend onOpen={setOpen} />}
+      {tab === "performance" && <PerformanceTrend />}
       {tab === "fixtures" && <FixturesTab runs={data?.runs || []} />}
       {tab === "harness" && <ApiHarness />}
       {open && <RunDetail id={open} busy={!!live} onRepeat={repeated} onClose={() => { setOpen(null); load(); }} />}
+      {watchRun !== null && (watchRun || live) && <TestWatch runId={watchRun || live.id} live
+        onClose={() => { setWatchRun(null); window.location.hash = "#/admin/self-test"; }} />}
     </div>
   );
 }
@@ -128,14 +206,15 @@ function Chooser({ data, onStarted }) {
   const [ask, setAsk] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [slow, setSlow] = useState(false);
   const runner = data.runner || {};
   const est = (k) => (k === "smoke" ? data.estimates.smoke
     : SUITES.reduce((a, [s]) => [a[0] + data.estimates[s][0] - 1, a[1] + data.estimates[s][1] - 2], [1, 2]));
   const start = async () => {
     setBusy(true); setMsg("");
     try {
-      const r = await apiFetch("/api/v1/admin/tests", { method: "POST", body: JSON.stringify(ask === "smoke"
-        ? { level: "smoke", suites: [] } : { level: "detailed", suites: SUITES.map(([k]) => k) }) });
+      const r = await apiFetch("/api/v1/admin/tests", { method: "POST", body: JSON.stringify({ ...(ask === "smoke"
+        ? { level: "smoke", suites: [] } : { level: "detailed", suites: SUITES.map(([k]) => k) }), live_slow: slow }) });
       setMsg(r.message); setAsk(""); onStarted();
     } catch (e) { setMsg(e.message); setAsk(""); } finally { setBusy(false); }
   };
@@ -164,6 +243,9 @@ function Chooser({ data, onStarted }) {
               the test container</> : ""}.</p>
           <p className="small">It makes the models, project and test accounts it needs (<code>self_test_&lt;id&gt;_&lt;n&gt;</code>) and tests only
             inside them; nothing else changes.</p>
+          <label className="check small"><input type="checkbox" checked={slow} onChange={(e) => setSlow(e.target.checked)} /> To be watched:
+            slow motion, and pause after each step while someone has the Live browser open (Step, Continue); every journey's video and
+            trace kept (R5.20). Slower.</label>
         </Modal>)}
     </section>
   );
@@ -597,6 +679,9 @@ function RunDetail({ id, onClose, busy, onRepeat }) {
                   <td className="nowrap small">
                     {r.has_screenshot && <button className="linkish small" onClick={() => showShot(r)}>Screenshot</button>}
                     {r.video && <button className="linkish small" onClick={() => file(r.video)}>Video</button>}
+                    {r.video && d?.files?.includes(r.video.replace(/\.webm$/, ".trace.zip")) && <button className="linkish small"
+                      title="The Playwright trace: every action, the page before and after, the network and the console (open it at trace.playwright.dev or with npx playwright show-trace)"
+                      onClick={() => file(r.video.replace(/\.webm$/, ".trace.zip"))}>Trace</button>}
                   </td>
                 </tr>
               ))}

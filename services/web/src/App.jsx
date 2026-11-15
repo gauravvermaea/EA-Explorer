@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { apiFetch, can, isBreakGlass, keycloak, keycloakReachable, myInfo, partOn, roles, signedIn as isSignedIn } from "./auth";
+import { apiFetch, can, isBreakGlass, keycloak, keycloakReachable, myInfo, partOn, roles, signedIn as isSignedIn, viewOnly } from "./auth";
 import BreakGlass from "./BreakGlass";
 import { config } from "./config";
 import StartPage, { EverythingElse } from "./StartPage";
@@ -16,6 +16,7 @@ import Mcp from "./Mcp";
 import Library from "./Library";
 import CompareScreen from "./Versions";
 import ChangeLog from "./ChangeLog";
+import ServiceDesk from "./ServiceDesk";
 import { TaskDrawer } from "./TaskDrawer";
 import NotificationsPage, { Bell, ChangeDocumentPage } from "./Notifications";
 import SurveysPage from "./Surveys";
@@ -144,6 +145,7 @@ export default function App() {
           <StartupStatus />
         </div>
       </header>
+      {viewOnly() && <div className="auditor-banner" role="status">Auditor: view only. You see everything; nothing can be changed with this role.</div>}
       {isBreakGlass() && <div className="break-glass-banner">Break-glass session: everything you do is audited and the IT and Super Admins are alerted. Change the break-glass password afterwards.</div>}
       {signedIn && !isBreakGlass() && !roles().length && !(info?.models || []).length && (
         <div className="lock-banner">You have no role yet: you see nothing until a model's Model Admin gives you a role
@@ -182,6 +184,7 @@ export default function App() {
           : route.startsWith("#/library") ? <Library route={route} />
           : route.startsWith("#/compare") ? <CompareScreen route={route} />
           : route.startsWith("#/change-log") ? <ChangeLog />
+          : route.startsWith("#/service-desk") ? <ServiceDesk route={route} />
           : route.startsWith("#/notifications") ? <NotificationsPage route={route} />
           : route.startsWith("#/surveys") || route.startsWith("#/maturity") ? <SurveysPage route={route} />
           : route.startsWith("#/change-documents") ? <ChangeDocumentPage route={route} />

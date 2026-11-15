@@ -51,11 +51,13 @@ def _norm(s: str) -> str:
 
 
 def tag_name(name: str) -> str:
+    """The tag put on the common elements of a commons analysis."""
     return f"common: {name.strip()}"[:100]
 
 
 # ---------------------------------------------------------------- the set-up screen
 def load_sides(conn, sides: list[dict]) -> list[dict]:
+    """The models (or tags) a commons analysis compares, read; two to twelve."""
     if not isinstance(sides, list) or len(sides) < 2:
         raise EditError("Choose two or more models (or tags) to find what they have in common.")
     if len(sides) > 12:
@@ -87,6 +89,7 @@ def fields_for(loaded: list[dict]) -> dict:
 
 
 def defaults(info: dict, n: int) -> dict:
+    """A commons analysis's default settings: in how many sides an element must be, and which types and fields count."""
     return {"threshold": n, "values": True, "relationships": True, "by_display_id": False,
             "types": {t["code"]: [f["code"] for f in t["fields"] if f["default"] and not f["code"].startswith("rel:")]
                       for t in info["types"] if t["default"]},
@@ -94,6 +97,7 @@ def defaults(info: dict, n: int) -> dict:
 
 
 def clean_settings(st: dict | None, info: dict, n: int) -> dict:
+    """A commons analysis's settings checked against what the sides have, defaults filled in."""
     base = defaults(info, n)
     st = dict(st or {})
     out = {**base, **{k: v for k, v in st.items() if k in base}}
@@ -290,12 +294,14 @@ def _may_store(m: dict) -> None:
 
 
 def preview(conn, sides: list[dict]) -> dict:
+    """What a commons analysis would compare: the types and fields of the sides, with the default settings."""
     loaded = load_sides(conn, sides)
     info = fields_for(loaded)
     return {**info, "defaults": defaults(info, len(loaded)), "decisions": DECISIONS}
 
 
 def create(conn, model: Any, user, name: str, sides: list[dict], settings: dict | None = None, description: str = "") -> dict:
+    """Makes a commons analysis stored in a model: the sides matched and the common elements kept."""
     m = repo.get_model(conn, model)
     _may_store(m)
     _may(conn, user, m)
@@ -369,6 +375,7 @@ def _new_run(conn, analysis_id: int, user) -> int:
 
 
 def model_of(conn, analysis: Any) -> str:
+    """The model a commons analysis is stored in."""
     g = repo._as_guid(analysis)
     r = _one(conn, "SELECT x.guid FROM core.common_analyses a JOIN core.models x ON x.id = a.model_id WHERE a.guid = :g", g=str(g)) if g else None
     if not r:
@@ -419,6 +426,7 @@ def decide_suggestions(conn, model: Any, user, analysis: Any, confirm: list, rej
 
 
 def list_analyses(conn, model: Any = None) -> dict:
+    """The commons analyses (of one model, or all)."""
     m = repo.get_model(conn, model) if model else None
     rows = _rows(conn, """SELECT a.guid AS id, a.name, a.description, a.sides, a.summary, a.compared_at, a.compared_by, a.created_by,
                                  a.runs_made, x.guid AS model_id, x.name AS model_name
@@ -437,6 +445,7 @@ def list_analyses(conn, model: Any = None) -> dict:
 
 
 def get(conn, model: Any, analysis: Any) -> dict:
+    """One commons analysis with its items."""
     m = repo.get_model(conn, model)
     a = _analysis(conn, m, analysis)
     items = _rows(conn, """SELECT guid AS id, match_key, entity_type, entity_type_name, layer AS domain, name, members, sides_count, is_common,
@@ -460,6 +469,7 @@ def get(conn, model: Any, analysis: Any) -> dict:
 
 
 def update_items(conn, model: Any, user, analysis: Any, items: list, decision: str | None = None, note: str | None = None) -> dict:
+    """Records a decision and note on some of a commons analysis's items."""
     m = repo.get_model(conn, model)
     _may(conn, user, m)
     a = _analysis(conn, m, analysis)
@@ -484,6 +494,7 @@ def update_items(conn, model: Any, user, analysis: Any, items: list, decision: s
 
 
 def delete(conn, model: Any, user, analysis: Any) -> dict:
+    """Deletes a commons analysis."""
     m = repo.get_model(conn, model)
     _may(conn, user, m)
     a = _analysis(conn, m, analysis)
@@ -557,6 +568,7 @@ def make_model(conn, model: Any, user, analysis: Any, d: dict) -> dict:
 
 # ---------------------------------------------------------------- downloads
 def to_xlsx(data: dict) -> bytes:
+    """A commons analysis as an Excel workbook."""
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill
     wb = Workbook()
@@ -604,6 +616,7 @@ def to_xlsx(data: dict) -> bytes:
 
 
 def to_docx(data: dict) -> bytes:
+    """A commons analysis as a Word document."""
     t = data["totals"]
     labels = [s.get("label") or f"Side {n + 1}" for n, s in enumerate(data["sides"])]
     body = [gp._p(data["name"], "Title")]

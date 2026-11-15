@@ -45,10 +45,12 @@ SUFFIX = ".eaxbackup.zip"
 
 
 def root() -> Path:
+    """Where the backups are, inside the container (EAX_BACKUP_MOUNT)."""
     return Path(os.environ.get("EAX_BACKUP_MOUNT", "/data/backups"))
 
 
 def app_dir() -> Path:
+    """The application backups' folder."""
     return root() / "application"
 
 
@@ -117,6 +119,7 @@ def model_file(conn, model: Any, by: str, why: str) -> tuple[bytes, dict]:
 
 
 def read_file(path: Path) -> tuple[dict, zipfile.ZipFile]:
+    """Opens a model backup file and reads its backup.json; refused when it is not one."""
     try:
         z = zipfile.ZipFile(path)
         info = json.loads(z.read("backup.json"))
@@ -326,6 +329,7 @@ def model_backup(conn, user, model: Any, why: str = "") -> tuple[str, dict]:
 
 
 def may_back_up(conn, user, model: Any) -> dict:
+    """The model, when the person may back it up (its Model Admin or a Super Admin); refused otherwise."""
     m = repo.get_model(conn, model)
     if perms.SUPER_ADMIN in user.roles or perms.MODEL_ADMIN in perms.model_roles(conn, user.username, m["id"]):
         return m
@@ -336,10 +340,12 @@ def may_back_up(conn, user, model: Any) -> dict:
 # Every restore, of a model as of the installation, has a record in work/backups/restores/<id>: status.json and
 # restore.log, listed on Administration > Restores and by the eax command, kept until deleted by hand.
 def restores_dir() -> Path:
+    """The folder holding a record of every restore."""
     return root() / "restores"
 
 
 def new_record(kind: str, backup: str, what: str, by: str, model: str = "") -> dict:
+    """Starts the record of a restore: its id, what is restored, by whom, and its own folder for the log."""
     rid = f"{_stamp()}-{kind[:5]}-{_slug(backup, 40) or 'restore'}"
     rec = {"id": rid, "kind": kind, "backup": backup, "what": what, "by": by, "model": model,
            "started": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"), "finished": None, "status": "running", "error": "",
@@ -350,6 +356,7 @@ def new_record(kind: str, backup: str, what: str, by: str, model: str = "") -> d
 
 
 def record_log(rec: dict, msg: str, step: str = "") -> None:
+    """Adds a line to a restore's log, and the step it is on."""
     try:
         with open(restores_dir() / rec["id"] / "restore.log", "a", encoding="utf-8") as f:
             f.write(f"{datetime.now(UTC).strftime('%Y-%m-%dT%H:%M:%SZ')} {msg}\n")
@@ -361,6 +368,7 @@ def record_log(rec: dict, msg: str, step: str = "") -> None:
 
 
 def record_end(rec: dict, status: str, error: str = "") -> None:
+    """Closes a restore's record: ok or failed, with the error."""
     rec.update(status=status, error=error[:1000], step="done" if status == "ok" else "failed",
                finished=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"))
     try:
@@ -370,6 +378,7 @@ def record_end(rec: dict, status: str, error: str = "") -> None:
 
 
 def list_records(model: str = "") -> list[dict]:
+    """Every restore's record (one model's when given), newest first."""
     out = []
     for f in restores_dir().glob("*/status.json") if restores_dir().is_dir() else []:
         try:
@@ -383,6 +392,7 @@ def list_records(model: str = "") -> list[dict]:
 
 
 def record_detail(rid: str, tail: int = 5000) -> dict:
+    """One restore's record with the end of its log."""
     if not re.match(r"^[A-Za-z0-9._-]+$", rid or ""):
         raise EditError("No such restore.", 404)
     d = restores_dir() / rid
@@ -399,6 +409,7 @@ def record_detail(rid: str, tail: int = 5000) -> dict:
 
 
 def delete_record(rid: str) -> dict:
+    """Deletes a finished restore's record and log."""
     rec = record_detail(rid, 0)
     if rec["status"] == "running":
         raise EditError("This restore is still running: it can be deleted when it has finished.", 409)
@@ -841,6 +852,7 @@ def store_upload(data: bytes, filename: str) -> dict:
 
 # ---------------------------------------------------------------- pinning and cleaning up
 def pin(where: str, name: str, file: str, model_guid: str, pinned: bool) -> dict:
+    """Pins or unpins a backup (application or model) so the keep-for rules leave it alone."""
     if where == "application":
         folder = app_dir() / name
         if not re.match(r"^[A-Za-z0-9._-]+$", name or "") or not (folder / "manifest.json").exists():

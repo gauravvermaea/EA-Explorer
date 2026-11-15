@@ -58,6 +58,8 @@ def _write(fn):
 
 @blp.route("/models/<uuid:model_id>/kpis")
 class Kpis(MethodView):
+    """/api/v1/models/{model_id}/kpis: GET the model's KPI trends: the standard set and its own KPIs, every snapshot
+    kept (monthly and on tags) and the value now."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -69,6 +71,8 @@ class Kpis(MethodView):
 
 @blp.route("/models/<uuid:model_id>/kpis/definitions")
 class KpiDefinitions(MethodView):
+    """/api/v1/models/{model_id}/kpis/definitions: POST add one of the model's own KPIs (Model Admins): a count of
+    entities of a type, or the sum of a number attribute, with one filter."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -81,6 +85,8 @@ class KpiDefinitions(MethodView):
 
 @blp.route("/models/<uuid:model_id>/kpis/definitions/<uuid:kpi>")
 class KpiDefinition(MethodView):
+    """/api/v1/models/{model_id}/kpis/definitions/{kpi}: PUT change one of the model's own KPIs (Model Admins); the
+    values kept so far stay as they were."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -92,6 +98,8 @@ class KpiDefinition(MethodView):
 
 @blp.route("/models/<uuid:model_id>/kpis/definitions/<uuid:kpi>/delete")
 class KpiDefinitionDelete(MethodView):
+    """/api/v1/models/{model_id}/kpis/definitions/{kpi}/delete: POST stop keeping one of the model's own KPIs (Model
+    Admins); its trend so far stays in the snapshots."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -102,6 +110,8 @@ class KpiDefinitionDelete(MethodView):
 
 @blp.route("/models/<uuid:model_id>/report-designer")
 class Designer(MethodView):
+    """/api/v1/models/{model_id}/report-designer: GET what the report designer offers for the model, its saved
+    designs and its OData feed address."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -117,6 +127,8 @@ class Designer(MethodView):
 
 @blp.route("/models/<uuid:model_id>/report-designs")
 class Designs(MethodView):
+    """/api/v1/models/{model_id}/report-designs: POST keep a report design {name, spec: {entity_type, columns,
+    related: [{relationship_type, direction, other_type, columns}], filters: [{field, op, value}]}}; open_url opens…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -129,6 +141,8 @@ class Designs(MethodView):
 
 @blp.route("/models/<uuid:model_id>/report-designs/preview")
 class DesignPreview(MethodView):
+    """/api/v1/models/{model_id}/report-designs/preview: POST the first rows a design gives now and its SQL, without
+    keeping it."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -140,6 +154,8 @@ class DesignPreview(MethodView):
 
 @blp.route("/models/<uuid:model_id>/report-designs/<uuid:design>")
 class Design(MethodView):
+    """/api/v1/models/{model_id}/report-designs/{design}: PUT change a report design (whoever made it, or a Model
+    Admin)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -151,6 +167,8 @@ class Design(MethodView):
 
 @blp.route("/models/<uuid:model_id>/report-designs/<uuid:design>/delete")
 class DesignDelete(MethodView):
+    """/api/v1/models/{model_id}/report-designs/{design}/delete: POST delete a report design (whoever made it, or a
+    Model Admin)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -197,6 +215,7 @@ def _challenge(response):
 @odata_blp.route("/models/<uuid:model_id>/", methods=["GET"])
 @signed_in
 def service(model_id):
+    """The OData service document of a model's report feed: the tables it offers."""
     def go(c):
         r = jsonify(od.service_document(c, model_id, _base(model_id)))
         r.headers.update(HEADERS)
@@ -207,12 +226,14 @@ def service(model_id):
 @odata_blp.route("/models/<uuid:model_id>/$metadata", methods=["GET"])
 @signed_in
 def metadata(model_id):
+    """The OData $metadata of a model's report feed (XML): each table's columns and types."""
     return _odata(lambda c: Response(od.metadata(c, model_id), mimetype="application/xml", headers=HEADERS))
 
 
 @odata_blp.route("/models/<uuid:model_id>/<table>", methods=["GET"])
 @signed_in
 def table(model_id, table):
+    """One table of a model's OData report feed, with the query options ($filter, $select, $top and the rest) applied."""
     def go(c):
         r = jsonify(od.query(c, model_id, table, dict(request.args), _base(model_id)))
         r.headers.update(HEADERS)

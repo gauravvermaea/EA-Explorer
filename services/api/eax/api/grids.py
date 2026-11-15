@@ -31,15 +31,18 @@ SECURITY = [{"bearerAuth": []}]
 
 
 class RowsIn(Schema):
+    """The shape of rows sent to the API: rows."""
     rows = fields.List(fields.Dict(), required=True, metadata={"description": "Changed rows only; a row with id and delete: true is deleted"})
 
 
 class ChangesIn(Schema):
+    """The shape of changes sent to the API: changes, dry_run."""
     changes = fields.List(fields.Dict(), required=True, metadata={"description": "Metamodel changes {op, ...} in order, saved as one version"})
     dry_run = fields.Boolean(load_default=False)
 
 
 class ViewIn(Schema):
+    """The shape of view sent to the API: id, name, view_kind, model, target, config, shared."""
     class Meta:
         unknown = INCLUDE
     id = fields.String(load_default=None)
@@ -52,6 +55,7 @@ class ViewIn(Schema):
 
 
 class FavouriteIn(Schema):
+    """The shape of favourite sent to the API: kind, id, favourite, label."""
     kind = fields.String(required=True)
     id = fields.String(required=True)
     favourite = fields.Boolean(load_default=True)
@@ -89,6 +93,8 @@ def _write(fn, action: str, object_id="", details=None, dry_run: bool = False):
 # ---------------------------------------------------------------- content grids
 @blp.route("/models/<uuid:model_id>/grids/entities/<string:entity_type>")
 class EntityGrid(MethodView):
+    """/api/v1/models/{model_id}/grids/entities/{entity_type}: GET the entities of one type as grid rows, with the
+    type's columns (same as the data entry page); POST save the changed rows: new, changed and deleted entities."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -111,6 +117,9 @@ class EntityGrid(MethodView):
 
 @blp.route("/models/<uuid:model_id>/grids/relationships")
 class RelationshipGrid(MethodView):
+    """/api/v1/models/{model_id}/grids/relationships: GET every relationship of the model (?type= one relationship
+    type) as grid rows; POST save the changed rows: new (type, source, target by guid, display ID or name), changed
+    and deleted."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -135,6 +144,8 @@ class RelationshipGrid(MethodView):
 # ---------------------------------------------------------------- metamodel grids
 @blp.route("/models/<uuid:model_id>/grids/metamodel/<any(entity_types,relationship_types,attributes,mappings,pick_list_values,rules):kind>")
 class MetamodelGrid(MethodView):
+    """/api/v1/models/{model_id}/grids/metamodel/{kind}: GET one part of the metamodel as grid rows, with the choices
+    its drop-down cells offer."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -145,6 +156,8 @@ class MetamodelGrid(MethodView):
 
 @blp.route("/models/<uuid:model_id>/metamodel/batch")
 class MetamodelBatch(MethodView):
+    """/api/v1/models/{model_id}/metamodel/batch: POST save several metamodel changes as one new metamodel version,
+    all or nothing (dry_run: the impact only)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(ChangesIn)
     @blp.response(200, Free)
@@ -158,6 +171,8 @@ class MetamodelBatch(MethodView):
 # ---------------------------------------------------------------- search
 @blp.route("/search")
 class Search(MethodView):
+    """/api/v1/search: GET search every model you may read: ?q=text&model=&type=&attribute=&tag=&status=&limit=;
+    &archived=1 (Include archived, R2.41): also the archived models and projects you…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -182,6 +197,8 @@ class Search(MethodView):
 # ---------------------------------------------------------------- saved views and favourites
 @personal_blp.route("/saved-views")
 class Views(MethodView):
+    """/saved-views: GET your saved views and those shared with you: ?model=&kind=&target=; POST save a view (with
+    id: change your own view)."""
     @personal_blp.doc(security=SECURITY)
     @personal_blp.response(200, Free)
     @require_auth()
@@ -201,6 +218,7 @@ class Views(MethodView):
 
 @personal_blp.route("/saved-views/<string:view_id>")
 class View(MethodView):
+    """/saved-views/{view_id}: DELETE delete one of your views."""
     @personal_blp.doc(security=SECURITY)
     @personal_blp.response(200, Free)
     @require_auth()
@@ -211,6 +229,8 @@ class View(MethodView):
 
 @personal_blp.route("/favourites")
 class Favourites(MethodView):
+    """/favourites: GET your favourites: entities, models and views; POST mark (favourite: true) or unmark something
+    as a favourite."""
     @personal_blp.doc(security=SECURITY)
     @personal_blp.response(200, Free)
     @require_auth()

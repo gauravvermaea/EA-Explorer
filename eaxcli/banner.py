@@ -24,10 +24,12 @@ COMMENT = ("The banner under EA Explorer's top bar (D558). Survives resets. Remo
 
 
 def path(root: Path | str | None = None) -> Path:
+    """Where the banner is kept (persist/banner.json)."""
     return persist.folder(root) / "banner.json"
 
 
 def load(root: Path | str | None = None) -> tuple[dict, str]:
+    """The banner and its history, with any problem reading it."""
     return persist.read_json(path(root), {"version": persist.VERSION, "banner": None, "history": []})
 
 
@@ -59,6 +61,7 @@ def _clean(b: dict, by: str, source: str, root) -> dict:
 
 
 def set_banner(b: dict, by: str, source: str = "admin", root: Path | str | None = None) -> dict:
+    """Sets the banner under the top bar (its last 20 changes kept)."""
     data, _ = load(root)
     new = _clean(b, by, source, root)
     hist = [*(data.get("history") or []), {**new, "what": "set"}][-20:]

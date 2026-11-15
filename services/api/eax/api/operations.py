@@ -33,6 +33,8 @@ def _do(fn, write: bool = False):
 
 @blp.route("/usage")
 class Usage(MethodView):
+    """/api/v1/operations/usage: GET who uses what and how often; models' use and size; idle models (a report only);
+    stale work and old loads."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -44,6 +46,8 @@ class Usage(MethodView):
 
 @blp.route("/database")
 class Database(MethodView):
+    """/api/v1/operations/database: GET database health: the largest tables, the slowest queries, when tables were
+    last tidied."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -54,6 +58,7 @@ class Database(MethodView):
 
 @blp.route("/retention")
 class Retention(MethodView):
+    """/api/v1/operations/retention: GET the retention rules, whether housekeeping may act, and the runs."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -64,6 +69,7 @@ class Retention(MethodView):
 
 @blp.route("/retention/<code>")
 class RetentionRule(MethodView):
+    """/api/v1/operations/retention/{code}: PUT set a rule: {action: keep | archive | delete, after_days}."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -76,6 +82,8 @@ class RetentionRule(MethodView):
 
 @blp.route("/housekeeping/run")
 class HousekeepingRun(MethodView):
+    """/api/v1/operations/housekeeping/run: POST run housekeeping now: {dry_run: true} (always allowed) or a real run
+    (only once a dry run is confirmed)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -88,6 +96,8 @@ class HousekeepingRun(MethodView):
 
 @blp.route("/housekeeping/runs/<run_id>/confirm")
 class HousekeepingConfirm(MethodView):
+    """/api/v1/operations/housekeeping/runs/{run_id}/confirm: POST confirm a dry run: from now on the nightly run
+    acts on these rules."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -98,6 +108,7 @@ class HousekeepingConfirm(MethodView):
 
 @blp.route("/archive")
 class Archive(MethodView):
+    """/api/v1/operations/archive: GET search the archive: ?q=words&rule=loads."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -109,6 +120,7 @@ class Archive(MethodView):
 
 @blp.route("/archive/<int:item>")
 class ArchivedItem(MethodView):
+    """/api/v1/operations/archive/{item}: GET one archived item as it was."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -119,6 +131,7 @@ class ArchivedItem(MethodView):
 
 @blp.route("/archive/<int:item>/file")
 class ArchivedFile(MethodView):
+    """/api/v1/operations/archive/{item}/file: GET an archived item's file (a load's sheet, a task's file)."""
     @blp.doc(security=SECURITY)
     @require_auth("system.operate")
     def get(self, item):

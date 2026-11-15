@@ -78,6 +78,8 @@ def _write(fn):
 
 @blp.route("/models/<uuid:model_id>/quality")
 class Quality(MethodView):
+    """/api/v1/models/{model_id}/quality: GET the model's quality (the latest kept measurement; ?fresh=true measures
+    it now, as the data quality wizard does), its trend, settings, rules and changes waiting for…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -99,6 +101,8 @@ def _measured(model_id) -> dict:
 
 @blp.route("/models/<uuid:model_id>/quality/pdf")
 class QualityPdf(MethodView):
+    """/api/v1/models/{model_id}/quality/pdf: GET every data quality metric of the model as a PDF; with
+    ?drill=type|owner|rule|kind|mine|all&value=..., only the entities of that drill-down."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self, model_id):
@@ -114,6 +118,8 @@ class QualityPdf(MethodView):
 
 @blp.route("/models/<uuid:model_id>/quality/xlsx")
 class QualityXlsx(MethodView):
+    """/api/v1/models/{model_id}/quality/xlsx: GET every data quality metric of the model as an Excel workbook, the
+    drill-downs as Excel groups (type, owner and rule open to their entities, each entity to its findings)…"""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self, model_id):
@@ -129,6 +135,8 @@ class QualityXlsx(MethodView):
 
 @blp.route("/models/<uuid:model_id>/quality/run")
 class QualityRun(MethodView):
+    """/api/v1/models/{model_id}/quality/run: POST measure the model's quality in the background and keep the
+    measurement (Measure now, Recalculate; D245): returns the request at once; GET .../quality/jobs (or the…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -162,6 +170,7 @@ def _start(reqs: list[dict]) -> list[dict]:
 
 @blp.route("/models/<uuid:model_id>/quality/jobs")
 class QualityJobs(MethodView):
+    """/api/v1/models/{model_id}/quality/jobs: GET the model's measurements queued, running and last finished (D245)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -172,6 +181,8 @@ class QualityJobs(MethodView):
 
 @blp.route("/quality/run")
 class QualityRunAll(MethodView):
+    """/api/v1/quality/run: POST measure all: every model that is measured (and that you may read) in the background,
+    one job each (D245)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -184,6 +195,8 @@ class QualityRunAll(MethodView):
 
 @blp.route("/models/<uuid:model_id>/entities/<string:entity>/quality")
 class EntityQuality(MethodView):
+    """/api/v1/models/{model_id}/entities/{entity}/quality: GET one entity's data quality now: score, parts, and per
+    field why it lowers it (D246)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -195,6 +208,8 @@ class EntityQuality(MethodView):
 
 @blp.route("/models/<uuid:model_id>/entities/<string:entity>/quality/recheck")
 class EntityRecheck(MethodView):
+    """/api/v1/models/{model_id}/entities/{entity}/quality/recheck: POST recheck one entity's data quality now and
+    store it (the ↻ on a row)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -205,6 +220,8 @@ class EntityRecheck(MethodView):
 
 @blp.route("/models/<uuid:model_id>/quality/types/<string:entity_type>/recheck")
 class TypeRecheck(MethodView):
+    """/api/v1/models/{model_id}/quality/types/{entity_type}/recheck: POST recheck every entity of a type in the
+    background (Recheck all; a task followed in the task drawer, D273)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -219,6 +236,7 @@ class TypeRecheck(MethodView):
 
 @blp.route("/models/<uuid:model_id>/quality/types")
 class TypeScores(MethodView):
+    """/api/v1/models/{model_id}/quality/types: GET every entity type's overall data quality now."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -229,6 +247,8 @@ class TypeScores(MethodView):
 
 @blp.route("/models/<uuid:model_id>/quality/types/<string:entity_type>")
 class TypeQuality(MethodView):
+    """/api/v1/models/{model_id}/quality/types/{entity_type}: GET one entity type's data quality now, and each of its
+    entities' with the fields that lower it (grids)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -239,6 +259,8 @@ class TypeQuality(MethodView):
 
 @blp.route("/models/<uuid:model_id>/quality/leave-out")
 class LeaveOut(MethodView):
+    """/api/v1/models/{model_id}/quality/leave-out: POST {item: attr:<code> | field:description, entity_type: * |
+    <code>, include: false}: a Model Admin leaves a field out of data quality for the whole model (applies at once…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -253,6 +275,9 @@ class LeaveOut(MethodView):
 
 @blp.route("/models/<uuid:model_id>/quality/not-applicable")
 class NotApplicable(MethodView):
+    """/api/v1/models/{model_id}/quality/not-applicable: GET fields marked not applicable on one entity: waiting
+    (?status=pending, the default), approved or all (status=); POST {entity, item: attr:<code> | field:description,
+    reason}: mark it not applicable on that entity (D246); a Model Admin approves it (theirs applies at once)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -276,6 +301,8 @@ class NotApplicable(MethodView):
 
 @blp.route("/models/<uuid:model_id>/quality/not-applicable/decide")
 class NotApplicableDecideMany(MethodView):
+    """/api/v1/models/{model_id}/quality/not-applicable/decide: POST {ids, decision: approve | reject, note}: decide
+    many 'not applicable' requests at once (Model Admins)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -289,6 +316,8 @@ class NotApplicableDecideMany(MethodView):
 
 @blp.route("/quality/changes/decide")
 class QualityDecideMany(MethodView):
+    """/api/v1/quality/changes/decide: POST {ids, decision: approve | reject, note}: decide many Model Admins'
+    quality changes at once (Super Admins)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -302,6 +331,8 @@ class QualityDecideMany(MethodView):
 
 @blp.route("/quality/changes/<uuid:change_id>/resubmit")
 class QualityResubmit(MethodView):
+    """/api/v1/quality/changes/{change_id}/resubmit: POST ask again for a rejected quality change {note, payload?}:
+    it waits for a Super Admin again."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -314,6 +345,8 @@ class QualityResubmit(MethodView):
 
 @blp.route("/models/<uuid:model_id>/quality/not-applicable/<uuid:exemption_id>/<string:decision>")
 class NotApplicableDecide(MethodView):
+    """/api/v1/models/{model_id}/quality/not-applicable/{exemption_id}/{decision}: POST approve, reject (Model
+    Admins) or withdraw (the asker or a Model Admin) {note}."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -325,6 +358,7 @@ class NotApplicableDecide(MethodView):
 
 @blp.route("/models/<uuid:model_id>/quality/runs")
 class QualityRuns(MethodView):
+    """/api/v1/models/{model_id}/quality/runs: GET the kept measurements, newest first."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -335,6 +369,8 @@ class QualityRuns(MethodView):
 
 @blp.route("/models/<uuid:model_id>/quality/settings")
 class QualitySettings(MethodView):
+    """/api/v1/models/{model_id}/quality/settings: PUT the model's own stale period, schedule, weights, score weights
+    {completeness, rules, freshness} adding up to 100 and colours {green, amber} (empty or null: inherited)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -349,6 +385,8 @@ class QualitySettings(MethodView):
 
 @blp.route("/models/<uuid:model_id>/quality/rules")
 class QualityRules(MethodView):
+    """/api/v1/models/{model_id}/quality/rules: POST add or change a rule {code, name, kind, entity_type, spec,
+    severity, enabled, message} (same approval)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -361,6 +399,8 @@ class QualityRules(MethodView):
 
 @blp.route("/models/<uuid:model_id>/quality/rules/preview")
 class QualityRulePreview(MethodView):
+    """/api/v1/models/{model_id}/quality/rules/preview: POST what a rule would find in the model now, without keeping
+    it."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -372,6 +412,8 @@ class QualityRulePreview(MethodView):
 
 @blp.route("/models/<uuid:model_id>/quality/rules/<string:code>/delete")
 class QualityRuleDelete(MethodView):
+    """/api/v1/models/{model_id}/quality/rules/{code}/delete: POST delete one of the model's own rules (same
+    approval)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -383,6 +425,8 @@ class QualityRuleDelete(MethodView):
 
 @blp.route("/models/<uuid:model_id>/quality/seal")
 class QualitySeal(MethodView):
+    """/api/v1/models/{model_id}/quality/seal: POST attest entities as correct (kind seal: their responsible person
+    or a Model Admin) or mark them still current (kind current: a Model Admin, one or many in one click)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -397,6 +441,7 @@ class QualitySeal(MethodView):
 
 @blp.route("/models/<uuid:model_id>/quality/unseal")
 class QualityUnseal(MethodView):
+    """/api/v1/models/{model_id}/quality/unseal: POST remove the seals of entities (Model Admins)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -408,6 +453,8 @@ class QualityUnseal(MethodView):
 
 @blp.route("/quality")
 class QualityAll(MethodView):
+    """/api/v1/quality: GET the estate's quality: its overall score (each model weighs its entities) and weekly
+    trend, and every project model with its latest score, a month before and its trend…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -420,6 +467,7 @@ class QualityAll(MethodView):
 
 @blp.route("/quality/pdf")
 class QualityAllPdf(MethodView):
+    """/api/v1/quality/pdf: GET the estate's quality as a PDF."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self):
@@ -431,6 +479,8 @@ class QualityAllPdf(MethodView):
 
 @blp.route("/quality/xlsx")
 class QualityAllXlsx(MethodView):
+    """/api/v1/quality/xlsx: GET the estate's quality as an Excel workbook: the estate, every model (each opens to
+    its entity types) and the trend."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self):
@@ -442,6 +492,9 @@ class QualityAllXlsx(MethodView):
 
 @blp.route("/quality/defaults")
 class QualityDefaults(MethodView):
+    """/api/v1/quality/defaults: GET the installation's data quality defaults: stale period, schedule, score weights
+    and colours (D244); PUT change the installation's defaults {stale_days, cron, score_parts {completeness, rules,
+    freshness} adding up to 100, bands {green, amber}} (Super Admins; applies at once…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -461,6 +514,8 @@ class QualityDefaults(MethodView):
 
 @blp.route("/quality/scope")
 class QualityScope(MethodView):
+    """/api/v1/quality/scope: PUT choose which models are measured {models: [guid], measured: true|false}; the choice
+    stays (Super and IT Admins)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -473,6 +528,8 @@ class QualityScope(MethodView):
 
 @blp.route("/quality/changes")
 class QualityChanges(MethodView):
+    """/api/v1/quality/changes: GET quality settings and rules changed by Model Admins: waiting for approval first,
+    then decided (Super Admins)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -483,6 +540,8 @@ class QualityChanges(MethodView):
 
 @blp.route("/quality/changes/<uuid:change_id>/<string:decision>")
 class QualityDecide(MethodView):
+    """/api/v1/quality/changes/{change_id}/{decision}: POST approve (apply) or reject a Model Admin's quality change
+    {note}; they are told (Super Admins)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)

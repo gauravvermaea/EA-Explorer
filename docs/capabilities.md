@@ -17,6 +17,13 @@ Every phase in detail: [build-phases.md](build-phases.md). Decisions: [decisions
 | Integration | A REST API (OpenAPI), signed webhooks, Excel and CSV in and out with mappings, model packages, the MCP server; discovery: OData feeds read, pushes taken and documents read by AI, proposed as deliveries to review (Release 3, in progress) |
 | Operations | One command (`eax`, full screen or numbered menu) and a console, start-up in two tiers, health, tagged backups and restores, every service switchable, a file explorer in every container |
 
+## New in Release 5 (5.0.0, being tested)
+
+Security at the front door (IP allow lists per place, multi-factor sign-in as a setting, the Auditor role, signed
+deployments), alerts, logs and the web log, database maintenance, the optimisation report, server sizing, where the
+data lives, the service desk, automated security and performance testing, the tests' browsers watched live, and every
+part of the code documented. See [releases/5.0.0.md](../releases/5.0.0.md).
+
 ## New in 4.0.0 (Release 4)
 
 - **Reports** on Apache Superset 6.1.0; a model's report links open their dashboard directly; a self-test suite signs in to

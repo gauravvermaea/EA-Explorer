@@ -9,6 +9,7 @@ from functools import lru_cache
 
 @dataclass(frozen=True)
 class Settings:
+    """The views service's settings from the environment."""
     db_host: str
     db_port: int
     db_name: str
@@ -21,12 +22,14 @@ class Settings:
     deployment: str
 
     def dsn(self, user: str | None = None, password: str | None = None, db: str | None = None) -> str:
+        """The views' database connection string."""
         return (f"host={self.db_host} port={self.db_port} dbname={db or self.db_name} user={user or self.db_user} "
                 f"password={password if password is not None else self.db_password}")
 
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
+    """The settings, read now."""
     e = os.environ.get
     laptop = e("EAX_DEPLOYMENT", "laptop") == "laptop"
     # a config file made before the views service (0.16.0) has no views settings: on a laptop they fall back to the main

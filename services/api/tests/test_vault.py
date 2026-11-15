@@ -246,10 +246,10 @@ def test_r4_19_every_form_of_eax_reads_the_vault_before_making_containers():
     assert 'CREATING = ("up", "run", "create")' in core and "if args and args[0] in CREATING:\n        vault_env()" in core
     assert 'if v.startswith("openbao:"):\n                vault_env()' in core
     sh = (REPO / "eax.sh").read_text()
-    assert 'case "${1:-}" in up|run|create) vault_env || return 1 ;; esac' in sh
+    assert 'case "${1:-}" in up|run|create) vault_env || return 1; folders_env || return 1 ;; esac' in sh   # + R5.4
     assert 'lines=$("$ROOT/eaxpy.sh" secrets env)' in sh and "openbao:*) vault_env" in sh
     ps = (REPO / "eax.ps1").read_text()
-    assert '@("up", "run", "create") -contains $Arguments[0]) { Use-VaultEnv }' in ps
+    assert '@("up", "run", "create") -contains $Arguments[0]) { Use-VaultEnv; Use-DataFolders }' in ps
     assert '& (Join-Path $PSScriptRoot "eaxpy.ps1") secrets env' in ps and 'StartsWith("openbao:")' in ps
     secrets = (REPO / "eaxcli/secrets.py").read_text()
     assert 'contextlib.redirect_stdout(sys.stderr)' in secrets                          # only KEY=VALUE on the pipe
@@ -313,7 +313,7 @@ def test_r4_19_the_self_test_checks_the_vault():
     security.key_vault(rec, lambda: {"used": False})
     assert seen == [("key vault", "skipped")]
     run = (REPO / "services/api/eax/testing/run.py").read_text()
-    assert run.count("security.key_vault(rec)") == 2
+    assert run.count("security.key_vault(rec)") == 1 and run.count("_security_suite(r, spec, tokens, ids)") == 2   # R5.17: one place
 
 
 # ---------------------------------------------------------------- switched off for now (owner, 14 Nov 2026, 20:34)

@@ -73,6 +73,7 @@ def _canvas(conn, p: dict, cid: str) -> dict:
 
 
 def listing(conn, project: Any, user) -> dict:
+    """A project's canvases with how many items and marks each has."""
     p = _project(conn, project, user, "read")
     rows = _rows(conn, """SELECT c.guid::text AS id, c.name, c.kind, c.status, c.description, c.source_note, s.guid::text AS source,
                                  s.name AS source_name, c.created_by, c.created_at, c.changed_by, c.changed_at,
@@ -90,6 +91,7 @@ def _items(conn, cid: int) -> list[dict]:
 
 
 def get(conn, project: Any, user, cid: str) -> dict:
+    """One canvas with its items by block and the canvas it was copied from."""
     p = _project(conn, project, user, "read")
     c = _canvas(conn, p, cid)
     src = _one(conn, "SELECT guid::text AS id, name FROM proj.canvases WHERE id = :i", i=c["source_id"]) if c["source_id"] else None
@@ -135,6 +137,7 @@ def _new(conn, p: dict, user, name: str, kind: str, description: str = "", sourc
 
 
 def create(conn, project: Any, user, data: dict) -> dict:
+    """Makes a canvas in a project (current or future state)."""
     p = _project(conn, project, user, "contribute")
     c = _new(conn, p, user, data.get("name"), data.get("kind") or "current", data.get("description") or "")
     return {"id": str(c["guid"]), "message": f"Canvas {c['name']} made."}
@@ -167,6 +170,7 @@ def change(conn, project: Any, user, cid: str, data: dict) -> dict:
 
 
 def delete(conn, project: Any, user, cid: str) -> dict:
+    """Removes a canvas."""
     p = _project(conn, project, user, "contribute")
     c = _canvas(conn, p, cid)
     conn.execute(text("DELETE FROM proj.canvases WHERE id = :i"), {"i": c["id"]})
@@ -183,6 +187,7 @@ def _item(conn, p: dict, iid: str) -> tuple[dict, dict]:
 
 
 def add_item(conn, project: Any, user, cid: str, data: dict) -> dict:
+    """Adds an item to a block of a canvas."""
     p = _project(conn, project, user, "contribute")
     c = _canvas(conn, p, cid)
     block, t = data.get("block"), _clean(data.get("text"), 300)
@@ -255,6 +260,7 @@ def restore_item(conn, project: Any, user, iid: str) -> dict:
 
 
 def reorder(conn, project: Any, user, cid: str, block: str, ids: list[str]) -> dict:
+    """Puts a block's items in the order given."""
     p = _project(conn, project, user, "contribute")
     c = _canvas(conn, p, cid)
     for n, g in enumerate(ids or [], start=1):
@@ -403,6 +409,7 @@ def diff(a_items: list[dict], b_items: list[dict]) -> dict[str, list[dict]]:
 
 
 def compare(conn, project: Any, user, a: str, b: str) -> dict:
+    """Two canvases compared block by block: the same, added, changed and removed items."""
     p = _project(conn, project, user, "read")
     ca, cb = _canvas(conn, p, a), _canvas(conn, p, b)
     d = diff(_effective(conn, ca), _effective(conn, cb))
@@ -468,6 +475,7 @@ def view(conn, project: Any, user, cid: str, other: str = "") -> dict:
 
 
 def export(conn, project: Any, user, cid: str, fmt: str, other: str = "") -> tuple[bytes, str, str]:
+    """A canvas (or two compared) as PDF, PowerPoint or draw.io, with its file name and type."""
     v = view(conn, project, user, cid, other)
     name = bf.file_name(v["title"].replace("→", "to"), {"pdf": "pdf", "pptx": "pptx", "drawio": "drawio"}.get(fmt, "x"))
     if fmt == "pdf":

@@ -26,6 +26,7 @@ SECURITY = [{"bearerAuth": []}]
 
 
 class AppRoleOut(Schema):
+    """The shape of app role in the API's answers: code, name, scope, description, keycloak_roles."""
     code = fields.String()
     name = fields.String()
     scope = fields.String(metadata={"description": "global (given in Keycloak) or model (given per model here)"})
@@ -34,16 +35,19 @@ class AppRoleOut(Schema):
 
 
 class MappingIn(Schema):
+    """The shape of mapping sent to the API: keycloak_role, app_role."""
     keycloak_role = fields.String(required=True)
     app_role = fields.String(required=True, metadata={"description": "A global role: super-admin, it-admin, user-admin, "
                                                                       "keycloak-admin, model-creator or user"})
 
 
 class RoleQuery(Schema):
+    """The shape of role query in the API's answers: role."""
     role = fields.String(load_default=None, metadata={"description": "The model role to take away (all when left out)"})
 
 
 class MappingOut(Schema):
+    """The shape of mapping in the API's answers: id, keycloak_role, app_role, created_at, created_by."""
     id = fields.UUID()
     keycloak_role = fields.String()
     app_role = fields.String()
@@ -52,12 +56,15 @@ class MappingOut(Schema):
 
 
 class KeycloakRoleOut(Schema):
+    """The shape of keycloak role in the API's answers: name, description, app_roles."""
     name = fields.String()
     description = fields.String()
     app_roles = fields.List(fields.String())
 
 
 class PersonOut(Schema):
+    """The shape of person in the API's answers: id, username, name, email, enabled, keycloak_roles, roles, models,
+    projects, keycloak_url."""
     id = fields.String(metadata={"description": "Keycloak user id"})
     username = fields.String()
     name = fields.String(allow_none=True)
@@ -71,15 +78,18 @@ class PersonOut(Schema):
 
 
 class PeopleQuery(Schema):
+    """The shape of people query in the API's answers: search."""
     search = fields.String(load_default=None)
 
 
 class AssigneeIn(Schema):
+    """The shape of assignee sent to the API: username, role."""
     username = fields.String(required=True)
     role = fields.String(required=True, metadata={"description": "model-admin, architect, model-sub-admin or report-viewer"})
 
 
 class AssigneeOut(Schema):
+    """The shape of assignee in the API's answers: username, role, created_at, created_by."""
     username = fields.String()
     role = fields.String()
     created_at = fields.DateTime()
@@ -101,6 +111,7 @@ def _kc(fn, *args, **kwargs):
 # ---------------------------------------------------------------- roles and the Keycloak mapping
 @blp.route("/roles")
 class Roles(MethodView):
+    """/api/v1/roles: GET EA Explorer's roles: global ones (and which Keycloak roles give each) and model ones."""
     @blp.doc(security=SECURITY)
     @blp.response(200, AppRoleOut(many=True))
     @require_auth()
@@ -117,6 +128,8 @@ class Roles(MethodView):
 
 @blp.route("/role-mappings")
 class Mappings(MethodView):
+    """/api/v1/role-mappings: GET which Keycloak role gives which EA Explorer role; POST map a Keycloak role to a
+    global EA Explorer role (everyone holding the Keycloak role gets it)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, MappingOut(many=True))
     @require_auth("users.read")
@@ -156,6 +169,8 @@ class Mappings(MethodView):
 
 @blp.route("/role-mappings/<uuid:mapping_id>")
 class Mapping(MethodView):
+    """/api/v1/role-mappings/{mapping_id}: DELETE remove a mapping (people holding only that Keycloak role lose the
+    EA Explorer role at once)."""
     @blp.doc(security=SECURITY)
     @blp.response(204)
     @require_auth("roles.map")
@@ -175,6 +190,7 @@ class Mapping(MethodView):
 
 @blp.route("/keycloak-roles")
 class KeycloakRoles(MethodView):
+    """/api/v1/keycloak-roles: GET the realm roles in Keycloak and the EA Explorer roles each gives."""
     @blp.doc(security=SECURITY)
     @blp.response(200, KeycloakRoleOut(many=True))
     @require_auth("users.read")
@@ -218,6 +234,8 @@ def _project_rows() -> list:
 
 @blp.route("/people")
 class People(MethodView):
+    """/api/v1/people: GET people in Keycloak (first 100 matching), their Keycloak roles, the global roles those
+    give, and their roles on models and on projects (R3.3)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(PeopleQuery, location="query")
     @blp.response(200, PersonOut(many=True))
@@ -257,6 +275,8 @@ class People(MethodView):
 # ---------------------------------------------------------------- who is assigned to a model
 @blp.route("/models/<uuid:model_id>/people")
 class ModelPeople(MethodView):
+    """/api/v1/models/{model_id}/people: GET the people with a role on the model (anyone who may read the model may
+    see who works on it); POST give a person a role on the model (the model's Model Admin)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, AssigneeOut(many=True))
     @require_auth()
@@ -301,6 +321,8 @@ class ModelPeople(MethodView):
 
 @blp.route("/models/<uuid:model_id>/people/<string:username>")
 class ModelPerson(MethodView):
+    """/api/v1/models/{model_id}/people/{username}: DELETE take a person's role on the model away (`role`), or all
+    their roles on it (no `role`)."""
     @blp.doc(security=SECURITY)
     @blp.response(204)
     @blp.arguments(RoleQuery, location="query")

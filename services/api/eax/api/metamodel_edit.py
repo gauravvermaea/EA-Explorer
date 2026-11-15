@@ -26,6 +26,7 @@ SECURITY = [{"bearerAuth": []}]
 
 
 class ChangeIn(Schema):
+    """The shape of change sent to the API: op, dry_run."""
     class Meta:
         unknown = INCLUDE   # the change's own fields (see eax/metamodel_edit.py)
     op = fields.String(required=True, metadata={"description": "entity_type.create, attribute.create, attribute.update, "
@@ -34,6 +35,7 @@ class ChangeIn(Schema):
 
 
 class ImpactRowOut(Schema):
+    """The shape of impact row in the API's answers: entity_id, display_id, name, rule, field, severity."""
     entity_id = fields.UUID()
     display_id = fields.String()
     name = fields.String()
@@ -43,6 +45,8 @@ class ImpactRowOut(Schema):
 
 
 class ImpactOut(Schema):
+    """The shape of impact in the API's answers: summary, newly_failing, now_passing, newly_failing_count,
+    now_passing_count."""
     summary = fields.List(fields.String())
     newly_failing = fields.List(fields.Nested(ImpactRowOut))
     now_passing = fields.List(fields.Nested(ImpactRowOut))
@@ -51,6 +55,7 @@ class ImpactOut(Schema):
 
 
 class ChangeOut(Schema):
+    """The shape of change in the API's answers: model, op, version, note, dry_run, result, impact."""
     model = fields.String()
     op = fields.String()
     version = fields.Integer(metadata={"description": "The metamodel version this change publishes (not kept when dry_run)"})
@@ -61,6 +66,7 @@ class ChangeOut(Schema):
 
 
 class VersionOut(Schema):
+    """The shape of version in the API's answers: id, version, note, changed_at, changed_by, changes."""
     id = fields.UUID()
     version = fields.Integer()
     note = fields.String()
@@ -70,12 +76,14 @@ class VersionOut(Schema):
 
 
 class FieldChangeOut(Schema):
+    """The shape of field change in the API's answers: field, old, new."""
     field = fields.String()
     old = fields.String(allow_none=True)
     new = fields.String(allow_none=True)
 
 
 class MmChangeOut(Schema):
+    """The shape of mm change in the API's answers: kind, table, item, change, fields_, at, by, history_id."""
     kind = fields.String()
     table = fields.String()
     item = fields.String()
@@ -87,27 +95,32 @@ class MmChangeOut(Schema):
 
 
 class CountOut(Schema):
+    """The shape of count in the API's answers: kind, count."""
     kind = fields.String()
     count = fields.Integer()
 
 
 class HistoryVersionOut(VersionOut):
+    """A version in a metamodel's history, with the changes it made and the counts it left."""
     items = fields.List(fields.Nested(MmChangeOut))
     counts = fields.List(fields.Nested(CountOut))
 
 
 class MmHistoryOut(Schema):
+    """The shape of mm history in the API's answers: model, current_version, versions."""
     model = fields.String()
     current_version = fields.Integer()
     versions = fields.List(fields.Nested(HistoryVersionOut))
 
 
 class CompareQuery(Schema):
+    """The shape of compare query in the API's answers: from_, to."""
     from_ = fields.Integer(required=True, data_key="from", metadata={"description": "The earlier version"})
     to = fields.Integer(load_default=None, metadata={"description": "The later version (default: the current one)"})
 
 
 class CompareOut(Schema):
+    """The shape of compare in the API's answers: model, from_version, to_version, items, summary."""
     model = fields.String()
     from_version = fields.Integer()
     to_version = fields.Integer()
@@ -116,12 +129,14 @@ class CompareOut(Schema):
 
 
 class PickValueOut(Schema):
+    """The shape of pick value in the API's answers: id, value, status."""
     id = fields.UUID()
     value = fields.String()
     status = fields.String()
 
 
 class PickListOut(Schema):
+    """The shape of pick list in the API's answers: id, code, name, description, values."""
     id = fields.UUID()
     code = fields.String()
     name = fields.String()
@@ -130,6 +145,8 @@ class PickListOut(Schema):
 
 
 class FailingRowOut(Schema):
+    """The shape of failing row in the API's answers: entity_id, display_id, name, entity_type, entity_type_id,
+    colour, rule, field, severity, message, created_mm_version, modified_mm_version."""
     entity_id = fields.UUID()
     display_id = fields.String()
     name = fields.String()
@@ -145,11 +162,14 @@ class FailingRowOut(Schema):
 
 
 class NameCountOut(Schema):
+    """The shape of name count in the API's answers: name, count."""
     name = fields.String()
     count = fields.Integer()
 
 
 class FailingOut(Schema):
+    """The shape of failing in the API's answers: model, metamodel_version, rows, entities, failures, by_type,
+    by_rule, by_severity."""
     model = fields.String()
     metamodel_version = fields.Integer()
     rows = fields.List(fields.Nested(FailingRowOut))
@@ -161,15 +181,18 @@ class FailingOut(Schema):
 
 
 class FailingQuery(Schema):
+    """The shape of failing query in the API's answers: type."""
     type = fields.String(load_default=None, metadata={"description": "Only this entity type (guid, code or name)"})
 
 
 class LockIn(Schema):
+    """The shape of lock sent to the API: level, reason."""
     level = fields.String(required=True, metadata={"description": "metamodel, content (metamodel and content) or maintenance"})
     reason = fields.String(load_default="")
 
 
 class LockOut(Schema):
+    """The shape of lock in the API's answers: id, name, lock_level, lock_reason, locked_at, locked_by."""
     id = fields.UUID()
     name = fields.String()
     lock_level = fields.String()
@@ -217,6 +240,8 @@ def _write(model_id, action: str, details: dict, fn, *args, dry_run: bool = Fals
 
 @blp.route("/<uuid:model_id>/metamodel/changes")
 class MetamodelChange(MethodView):
+    """/api/v1/models/{model_id}/metamodel/changes: POST make one change to a project model's metamodel (or, with
+    dry_run, see what it would do) Each change publishes a new metamodel version at once with a note saying what it…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(ChangeIn)
     @blp.response(200, ChangeOut)
@@ -237,6 +262,8 @@ class MetamodelChange(MethodView):
 
 @blp.route("/<uuid:model_id>/metamodel/versions")
 class MetamodelVersions(MethodView):
+    """/api/v1/models/{model_id}/metamodel/versions: GET the published versions of the model's metamodel, newest
+    first."""
     @blp.doc(security=SECURITY)
     @blp.response(200, VersionOut(many=True))
     @require_auth()
@@ -247,6 +274,8 @@ class MetamodelVersions(MethodView):
 
 @blp.route("/<uuid:model_id>/metamodel/history")
 class MetamodelHistory(MethodView):
+    """/api/v1/models/{model_id}/metamodel/history: GET every change to the metamodel, grouped by version: what, old
+    and new values, who and when."""
     @blp.doc(security=SECURITY)
     @blp.response(200, MmHistoryOut)
     @require_auth()
@@ -257,6 +286,8 @@ class MetamodelHistory(MethodView):
 
 @blp.route("/<uuid:model_id>/metamodel/compare")
 class MetamodelCompare(MethodView):
+    """/api/v1/models/{model_id}/metamodel/compare: GET what differs between two versions of the metamodel (`to`
+    defaults to the current version)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(CompareQuery, location="query")
     @blp.response(200, CompareOut)
@@ -268,6 +299,7 @@ class MetamodelCompare(MethodView):
 
 @blp.route("/<uuid:model_id>/metamodel/pick-lists")
 class PickLists(MethodView):
+    """/api/v1/models/{model_id}/metamodel/pick-lists: GET the model's pick lists and their values."""
     @blp.doc(security=SECURITY)
     @blp.response(200, PickListOut(many=True))
     @require_auth()
@@ -278,6 +310,8 @@ class PickLists(MethodView):
 
 @blp.route("/<uuid:model_id>/checks")
 class FailingChecks(MethodView):
+    """/api/v1/models/{model_id}/checks: GET every entity failing a check (rules, mandatory values, relationships
+    outside the metamodel)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FailingQuery, location="query")
     @blp.response(200, FailingOut)
@@ -289,6 +323,8 @@ class FailingChecks(MethodView):
 
 @blp.route("/<uuid:model_id>/lock")
 class ModelLock(MethodView):
+    """/api/v1/models/{model_id}/lock: PUT lock the model: metamodel (metamodel read-only), content (metamodel and
+    content read-only) or maintenance (only you may change it until you lift the lock); DELETE lift the model's lock."""
     @blp.doc(security=SECURITY)
     @blp.arguments(LockIn)
     @blp.response(200, LockOut)

@@ -8,6 +8,62 @@ import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "./auth";
 import { Modal } from "./ModelOps";
 
+// The Live browser panel (R5.20; owner, 14 Nov 2026: "view how testing is going I mean actual clicks etc in chromium";
+// "stream to start only on demand"): nothing is captured until it is opened; while open it asks every LARGE_MS for the
+// browser shown large (its newest frame only: a slow connection skips frames) and the tiles' small stills; closing it
+// (or leaving the page) stops the asking and the runner stops capturing within 30 seconds. A run started to be watched
+// can be paused after each step: Step takes one, Continue lets it go.
+const LARGE_MS = 300, TILES_MS = 2000;
+
+export function LiveBrowser({ runId, open }) {
+  const [large, setLarge] = useState("");
+  const [d, setD] = useState(null);
+  const [frame, setFrame] = useState(null);
+  const [err, setErr] = useState("");
+  const seq = useRef(0);
+  useEffect(() => {
+    if (!open) return undefined;
+    let alive = true, timer;
+    const ask = async () => {
+      try {
+        const x = await apiFetch(`/api/v1/admin/tests/${runId}/live-browser?large=${encodeURIComponent(large)}&since=${seq.current}`);
+        if (!alive) return;
+        setD(x); setErr("");
+        if (!large && x.tiles.length) setLarge(x.tiles[0].browser);
+        if (x.frame) { seq.current = x.frame.seq; setFrame(x.frame); }
+        timer = setTimeout(ask, large ? LARGE_MS : TILES_MS);
+      } catch (e) { if (alive) { setErr(e.message); timer = setTimeout(ask, 5000); } }
+    };
+    ask();
+    return () => { alive = false; clearTimeout(timer); };
+  }, [runId, open, large]);
+  if (!open) return null;
+  const control = (action) => apiFetch(`/api/v1/admin/tests/${runId}/live-browser`, { method: "POST", body: JSON.stringify({ action }) })
+    .catch((e) => setErr(e.message));
+  const tile = d?.tiles.find((t) => t.browser === large);
+  const c = d?.controls || {};
+  return (
+    <div className="live-browser">
+      {err && <p className="status bad small">{err}</p>}
+      {!d ? <p className="small">Asking the test's browser to start showing its screen…</p>
+        : !d.tiles.length ? <p className="small quiet">No browser is running now (the browser checks run after the API and database checks).
+          An older test runner image cannot stream: Watch still shows the steps and the log.</p> : (<>
+          <p className="small"><b>{tile?.label}</b>{tile?.step ? ` · ${tile.step}` : ""}<br /><code className="small">{tile?.url}</code></p>
+          {frame && frame.browser === large ? <img className="live-frame" alt={`What the test's browser shows: ${tile?.step || ""}`}
+            src={`data:image/jpeg;base64,${frame.jpeg}`} />
+            : <p className="small quiet">Waiting for the first picture (it comes when the page changes)…</p>}
+          {c.slow && <p className="row-gap small">{c.paused ? <b>Paused after each step</b> : "Running"}
+            <button className="small" onClick={() => control("step")}>Step</button>
+            <button className="small" onClick={() => control(c.paused ? "continue" : "pause")}>{c.paused ? "Continue" : "Pause"}</button></p>}
+          {d.tiles.length > 1 && <div className="live-tiles">{d.tiles.map((t) => (
+            <button key={t.browser} className={`live-tile${t.browser === large ? " on" : ""}`} onClick={() => { seq.current = 0; setFrame(null); setLarge(t.browser); }}>
+              {t.thumb ? <img alt="" src={`data:image/jpeg;base64,${t.thumb}`} /> : <span className="quiet small">{t.label}</span>}
+              <span className="small">{t.label}</span></button>))}</div>}
+        </>)}
+    </div>
+  );
+}
+
 const KEEP = 400;          // the newest checks and log lines kept on screen
 
 export function mergeLive(prev, s) {
@@ -20,12 +76,13 @@ export function mergeLive(prev, s) {
   };
 }
 
-export default function TestWatch({ runId, onClose }) {
+export default function TestWatch({ runId, onClose, live = false }) {
   const [st, setSt] = useState({ snap: null, results: [], log: "", after: 0, from: 0 });
   const [err, setErr] = useState("");
   const [ask, setAsk] = useState(false);
   const [msg, setMsg] = useState("");
   const [follow, setFollow] = useState(true);
+  const [liveOpen, setLiveOpen] = useState(!!live);   // eax test watch --browser opens it at once (R5.20 (5))
   const pos = useRef({ after: 0, from: 0 });
   const logEnd = useRef(null);
   useEffect(() => {
@@ -63,6 +120,10 @@ export default function TestWatch({ runId, onClose }) {
         {s.failures?.length > 0 && <details open className="test-watch-failures">
           <summary className="bad-text">Failures so far ({s.failures.length})</summary>
           {s.failures.map((x) => <p key={x.id} className="small"><b>{x.suite} · {x.name}</b>: {x.detail}</p>)}</details>}
+        {s.open && <details className="test-watch-live" open={liveOpen} onToggle={(e) => setLiveOpen(e.currentTarget.open)}>
+          <summary>Live browser: what the test's Chromium shows, its clicks marked (nothing is captured until this is open)</summary>
+          <LiveBrowser runId={runId} open={liveOpen} />
+        </details>}
         <div className="test-watch-panes">
           <div className="test-watch-checks">
             <h4>Checks as they are recorded</h4>

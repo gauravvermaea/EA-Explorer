@@ -108,6 +108,7 @@ def create(conn, kind: str, model: Any, user, label: str, params: dict, link: st
 
 
 def add_file(conn, task_id: int, data: bytes, name: str, ctype: str, role: str = "result") -> None:
+    """Keeps a file with a background task (its result, or an upload it needs)."""
     conn.execute(text("""INSERT INTO core.task_files (task_id, name, content_type, content, role)
                          VALUES (:t, :n, :c, :b, :r)"""), {"t": task_id, "n": name, "c": ctype, "b": data, "r": role})
 
@@ -144,6 +145,7 @@ def cleanup(conn) -> int:
 
 
 def set_job(conn, task_id: str, job_id: int) -> None:
+    """Records the job that runs a background task."""
     conn.execute(text("UPDATE core.tasks SET job_id = :j WHERE guid = CAST(:g AS uuid)"), {"j": job_id, "g": task_id})
 
 
@@ -152,6 +154,7 @@ def _visible(user) -> bool:
 
 
 def get(conn, user, task: Any) -> dict:
+    """One background task, for the person who asked for it (or an admin)."""
     g = repo._as_guid(task)
     t = _one(conn, SELECT + " WHERE t.guid = CAST(:g AS uuid)", g=str(g)) if g else None
     if not t or (t["requested_by"] != user.username.lower() and not _visible(user)):
@@ -317,6 +320,7 @@ WORK = {"tag.create": _tag_create, "sheet.build": _sheet_build, "load.preview": 
 
 
 def file_of(conn, user, task: Any) -> dict:
+    """A background task's result file."""
     t = get(conn, user, task)
     f = _one(conn, f"""SELECT f.name, f.content_type, f.content FROM core.task_files f JOIN core.tasks t ON t.id = f.task_id
                         WHERE t.guid = CAST(:g AS uuid) AND f.role = 'result'

@@ -50,6 +50,7 @@ def list_views(conn, model: Any = None) -> list[dict]:
 
 
 def get_view(conn, code: str) -> dict:
+    """One viewpoint, by code or guid."""
     rows = _rows(conn, """SELECT guid AS id, code, name, category, purpose, concerns, stakeholders, element_types,
                                  relationship_types, heat_attribute, audiences, is_builtin, source, default_view, togaf_artifact, created_by, modified_at
                             FROM core.viewpoints WHERE code = :c OR guid::text = :c""", c=str(code))
@@ -103,6 +104,7 @@ def save_view(conn, data: dict, actor: str, code: str | None = None) -> dict:
 
 
 def delete_view(conn, code: str) -> dict:
+    """Deletes a viewpoint (never a built-in one)."""
     cur = get_view(conn, code)
     if cur["is_builtin"]:
         raise EditError(f"{cur['code']} is a built-in view and cannot be deleted.", 403)
@@ -265,6 +267,7 @@ def roadmap(conn, model: Any) -> dict:
 
 # ---------------------------------------------------------------- audiences
 def audiences(conn) -> list[dict]:
+    """The report audiences with their reports."""
     return _rows(conn, """SELECT a.code, a.name, a.audience_group AS "group",
                                  coalesce(array_agg(l.report_code ORDER BY l.report_code) FILTER (WHERE l.report_code IS NOT NULL),
                                           '{}') AS reports

@@ -58,6 +58,8 @@ def _external(conn, run_id: int) -> bool:
 
 @blp.route("/runs")
 class NewRun(MethodView):
+    """/api/v1/admin/testbench/runs: POST {level, suites, target, version, trigger (eax|ci)}: a run in the Self-test
+    history for the outside test bench's results (published with --publish), marked "external…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -82,6 +84,8 @@ class NewRun(MethodView):
 
 @blp.route("/runs/<int:run_id>/finish")
 class Finish(MethodView):
+    """/api/v1/admin/testbench/runs/{run_id}/finish: POST counts the results of an external testbench run and closes
+    it (passed, or failed when any check failed)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -129,6 +133,8 @@ def ids_of(conn, run_id: int, run_guid: str) -> dict[str, str]:
 
 @blp.route("/runs/<int:run_id>/session")
 class Session(MethodView):
+    """/api/v1/admin/testbench/runs/{run_id}/session: GET the run's fixtures, sign-in ticket and test tokens, for the
+    test bench that started it (D580)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -150,6 +156,9 @@ class Session(MethodView):
 
 @blp.route("/runs/<int:run_id>/results")
 class Results(MethodView):
+    """/api/v1/admin/testbench/runs/{run_id}/results: POST {suite, results: [{name, outcome, detail, ms, browser,
+    screenshot (PNG base64), request, response}], done}: results into the run, marked "external testbench"; done
+    ends…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -183,6 +192,8 @@ class Results(MethodView):
 
 @blp.route("/db-checks")
 class DbChecks(MethodView):
+    """/api/v1/admin/testbench/db-checks: POST the self-test's read-only database checks, by name, with their results
+    (for the outside test bench, D581)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -206,6 +217,8 @@ class DbChecks(MethodView):
 
 @blp.route("/state")
 class State(MethodView):
+    """/api/v1/admin/testbench/state: GET the installation's version, its database migration (alembic) and a few row
+    counts: what an upgrade must keep (the outside test bench compares them before and after an…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")

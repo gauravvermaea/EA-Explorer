@@ -36,12 +36,14 @@ _token: dict = {"key": None}
 
 
 class MayanError(Exception):
+    """Documents (Mayan EDMS) refused or could not be reached, with the HTTP status to answer."""
     def __init__(self, message: str, status: int = 503):
         super().__init__(message)
         self.status = status
 
 
 def enabled() -> bool:
+    """Whether Documents is switched on."""
     from . import services
     return services.enabled("documents")
 
@@ -124,6 +126,7 @@ def _multipart(fields: dict, file_name: str, content: bytes, ctype: str = "appli
 
 
 def ping() -> bool:
+    """Whether Documents answers."""
     try:
         _json("GET", "/document_types/?page_size=1")
         return True
@@ -182,6 +185,7 @@ def cabinet_path(path: str, root: int) -> int:
 
 
 def add_to_cabinet(cabinet_id: int, document_id: int) -> None:
+    """Puts a document in a cabinet (a project's folder in Documents)."""
     _json("POST", f"/cabinets/{cabinet_id}/documents/add/", {"document": document_id})
 
 
@@ -219,6 +223,7 @@ def new_version(document_id: int, file_name: str, content: bytes, comment: str, 
 
 
 def latest(document_id: int) -> dict:
+    """A document's newest file: its id, name and label."""
     d = _json("GET", f"/documents/{document_id}/")
     f = d.get("file_latest") or {}
     return {"file_id": f.get("id"), "file_name": f.get("filename") or d.get("label"), "label": d.get("label"),
@@ -268,6 +273,7 @@ def check_out(document_id: int, hours: int = 24 * 30) -> None:
 
 
 def check_in(document_id: int) -> None:
+    """Checks a document back in (nothing when it was not checked out)."""
     try:
         _request("DELETE", f"/documents/{document_id}/checkout/")
     except MayanError as exc:
@@ -276,6 +282,7 @@ def check_in(document_id: int) -> None:
 
 
 def tag(document_id: int, label: str, color: str = "#999999") -> None:
+    """Tags a document, making the tag when it is not there."""
     tid = None
     page, found = f"/tags/?page_size={PAGE}", []          # Mayan's tag list does not filter by label: page through it
     while page:

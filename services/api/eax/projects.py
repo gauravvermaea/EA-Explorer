@@ -88,6 +88,7 @@ def _slug(s: str) -> str:
 
 # ---------------------------------------------------------------- the library (what the wizard offers)
 def library(conn) -> dict:
+    """The deliverables library: every item by phase, with its content framework areas."""
     from . import content_framework as cf
     items = _rows(conn, """SELECT id, phase, name, kind, type, default_pick, work_folder, approved_folder, templates, content_area
                              FROM proj.lib_items WHERE NOT retired ORDER BY id""")
@@ -159,6 +160,7 @@ def template_index(conn) -> dict[str, dict]:
 
 # ---------------------------------------------------------------- who may do what
 def project_row(conn, project: Any) -> dict:
+    """A project by guid, number or name, with its parent; refused when there is none."""
     key = str(project)
     p = _one(conn, f"""SELECT p.*, pp.guid::text AS parent_guid, pp.name AS parent_name FROM proj.projects p
                         LEFT JOIN proj.projects pp ON pp.id = p.parent_id
@@ -169,6 +171,7 @@ def project_row(conn, project: Any) -> dict:
 
 
 def my_roles(conn, p: dict, user) -> set[str]:
+    """The person's roles on a project."""
     return {r["role"] for r in _rows(conn, "SELECT role FROM proj.members WHERE project_id = :p AND lower(username) = lower(:u)",
                                      p=p["id"], u=user.username)}
 
@@ -239,6 +242,7 @@ def mark_project(conn, project: Any, user, complete: bool) -> dict:
 
 
 def phases_done(conn, p: dict) -> dict[str, dict]:
+    """The phases completed in the project's current cycle, by whom and when."""
     return {r["phase"]: {"by": r["completed_by"], "at": r["completed_at"], "note": r["note"]}
             for r in _rows(conn, "SELECT * FROM proj.phase_states WHERE project_id = :p AND cycle = :c", p=p["id"], c=p.get("cycle") or 1)}
 
@@ -262,6 +266,7 @@ def mark_phase(conn, project: Any, user, phase: str, complete: bool, note: str =
 
 
 def may_create(user) -> bool:
+    """Whether the person may create projects."""
     return perms.allowed(user.roles, "projects.create")
 
 
@@ -297,6 +302,7 @@ def listing(conn, user, test_data: bool = False) -> list[dict]:
 
 
 def detail(conn, project: Any, user) -> dict:
+    """A project in full for its page: phases, items, documents, members and the person's roles."""
     p = project_row(conn, project)
     roles = _need(conn, p, user, "read")
     if p.get("base_kind"):
@@ -1004,6 +1010,7 @@ MAX_TRIES = 30
 
 
 def pending_repositories(conn) -> list[int]:
+    """Projects whose repository (Documents cabinet) still has to be made, or is stuck."""
     return [r["id"] for r in _rows(conn, f"""SELECT id FROM proj.projects
                                              WHERE (repo_state IN ('pending', 'failed') AND repo_tries < {MAX_TRIES})
                                                 OR (repo_state = 'building' AND coalesce(repo_started_at, '-infinity') < now() - interval '{STALE_BUILD}')
@@ -1168,6 +1175,7 @@ def queue_rebuild(conn, project_id: int) -> None:
 
 
 def retry_repository(conn, project: Any, user) -> dict:
+    """Tries making a project's repository again."""
     p = project_row(conn, project)
     _need(conn, p, user, "admin")
     conn.execute(text("UPDATE proj.projects SET repo_state = 'pending', repo_tries = 0, repo_note = 'Asked again' WHERE id = :i"), {"i": p["id"]})
@@ -1409,6 +1417,7 @@ def set_title(conn, project: Any, user, doc: str, title: str) -> dict:
 
 
 def download(conn, project: Any, user, doc: str) -> tuple[bytes, str, str]:
+    """A project document's newest file."""
     from . import mayan
     p = project_row(conn, project)
     _need(conn, p, user, "read")
@@ -1770,6 +1779,7 @@ def versions(conn, project: Any, user, doc: str) -> list[dict]:
 
 
 def download_version(conn, project: Any, user, doc: str, version: int) -> tuple[bytes, str, str]:
+    """One version of a project document's file."""
     from . import mayan
     p = project_row(conn, project)
     _need(conn, p, user, "read")
@@ -1841,6 +1851,7 @@ def offer_template(conn, project: Any, user, item: str, template_id: int, remove
 
 
 def history(conn, project: Any, user, doc: str) -> list[dict]:
+    """A project document's versions."""
     p = project_row(conn, project)
     _need(conn, p, user, "read")
     d = _doc(conn, p, doc)
@@ -1987,6 +1998,7 @@ def add_library(conn, user, name: str, content: bytes, description: str = "") ->
 
 
 def pending_library_loads(conn) -> list[int]:
+    """Template libraries waiting to be loaded."""
     return [r["library_id"] for r in _rows(conn, "SELECT library_id FROM proj.template_library_uploads ORDER BY uploaded_at")]
 
 
@@ -2235,6 +2247,7 @@ def _store_template(conn, actor: str, template_id: int, file_name: str, content:
 
 
 def templates_in_folder() -> list[Path]:
+    """The TOGAF template files in the library folder."""
     base = LIBRARY_DIR / "templates" / "togaf"
     if not base.is_dir():
         return []
@@ -2309,6 +2322,7 @@ def library_templates(conn, user, library: Any) -> dict:
 
 
 def library_template_file(conn, user, template_id: int) -> tuple[bytes, str, str]:
+    """One library template's file."""
     t = _one(conn, """SELECT t.*, l.kind, l.name AS library, l.guid FROM proj.lib_templates t
                         JOIN proj.template_libraries l ON l.id = t.library_id WHERE t.id = :t""", t=template_id)
     if not t:

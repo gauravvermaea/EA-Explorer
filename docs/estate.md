@@ -24,6 +24,7 @@ in draw.io); System Admin › Estate draws them for the running installation.
 | Operations helper | backups, restores, updates, logs, the Command centre, the self-test | Operations |
 | Backup service | dumps and restores every database and file set | Operations |
 | Test runner | the self-test: API, browser, database, security, backups | Operations |
+| Load test (k6) | the benchmark's people at once (R5.18), started by the helper | Operations |
 | PostgreSQL | one database: the repository and its schemas (tests, operations, archive, personal, library_models, D630) | Data |
 | Files and folders | documents, imports, exports, backups, logs, persist/ | Data |
 
@@ -59,20 +60,25 @@ in draw.io); System Admin › Estate draws them for the running installation.
 | Backup service | Files and folders | archive |
 | Operations helper | Test runner | runs |
 | Test runner | Front door (nginx) | tests as people do |
+| Operations helper | Load test (k6) | runs |
+| Load test (k6) | Front door (nginx) | many people at once |
 | Documents (Mayan) | Files and folders | documents |
+| Front door (nginx) | Files and folders | web log (R5.6) |
+| Operations helper | Files and folders | container logs |
 
 ## Physical: the containers
 
 | Container | Image | Networks | Published | Mounted |
 |---|---|---|---|---|
-| setup (runs once at start) | `eaexplorer/api:dev` | none | - | eax-tls → /tls, eax-rendered → /rendered, eax-kc-import → /kc-import, ./deploy → /deploy |
-| proxy | `nginx:1.30-alpine` | frontend, terminal | 443:443, 80:80, 9443:9443 | ./deploy/proxy/templates → /etc/nginx/templates, ./deploy/proxy/static → /etc/nginx/eax, ./work/proxy → /eax-proxy, eax-tls → /etc/nginx/tls |
+| setup (runs once at start) | `eaexplorer/api:dev` | none | - | eax-tls → /tls, eax-rendered → /rendered, eax-kc-import → /kc-import, ./deploy → /deploy, ./work/proxy → /eax-proxy, ./logs → /eax-logs |
+| proxy | `nginx:1.30-alpine` | frontend, terminal | 443:443, 80:80, 9443:9443 | ./deploy/proxy/templates → /etc/nginx/templates, ./deploy/proxy/static → /etc/nginx/eax, ./work/proxy → /eax-proxy, ./logs/web → /var/log/eax-web, eax-tls → /etc/nginx/tls |
 | web | `eaexplorer/web:dev` | frontend | - | - |
-| api | `eaexplorer/api:dev` | frontend, backend | - | eax-imports → /data/imports, eax-exports → /data/exports, ./work/backups → /data/backups, ./work → /eax-work, ./library → /data/library, ./library/templates/ea-explorer → /data/ea-explorer-templates, ./library/industry-packs → /data/industry-packs, ./work/packs → /data/packs-extra, ./docs → /data/docs/docs, ./README.md → /data/docs/README.md, ./eaxcli/help.txt → /data/docs/eaxcli/help.txt, ./releases → /data/docs/releases |
+| api | `eaexplorer/api:dev` | frontend, backend | - | eax-imports → /data/imports, eax-exports → /data/exports, ./logs/web → /eax-web, ./work/backups → /data/backups, ./work → /eax-work, ./library → /data/library, ./library/templates/ea-explorer → /data/ea-explorer-templates, ./library/industry-packs → /data/industry-packs, ./work/packs → /data/packs-extra, ./docs → /data/docs/docs, ./README.md → /data/docs/README.md, ./eaxcli/help.txt → /data/docs/eaxcli/help.txt, ./releases → /data/docs/releases |
 | backup | `eaexplorer/backup:dev` | backend | - | ./work/backups → /backups, eax-docs → /mayan, eax-tls → /tls, eax-superset-home → /superset-home, eax-imports → /imports, eax-exports → /exports, ./persist → /persist |
 | library | `eaexplorer/library:dev` | frontend, backend | - | ./docs → /data/docs/docs, ./README.md → /data/docs/README.md, ./eaxcli/help.txt → /data/docs/eaxcli/help.txt, ./releases → /data/docs/releases, ./services/api/version.toml → /data/docs/version.toml |
 | views | `eaexplorer/views:dev` | frontend, backend | - | - |
 | testrunner (on demand) | `eaexplorer/testrunner:dev` | frontend, backend | - | ./work/tests → /results, ./testbench/data → /testdata, ./persist → /persist |
+| k6 (on demand) | `grafana/k6:0.54.0` | frontend | - | - |
 | testrunner-service (on demand) | `eaexplorer/testrunner:dev` | frontend, backend | - | - |
 | ops | `eaexplorer/ops:dev` | backend, terminal | - | /var/run/docker.sock → /var/run/docker.sock, ./work → /eax-work, ./persist → /eax-persist, ./logs → /eax-logs, ./work/backups → /backups, ./docker-compose.yml → /eax-repo/docker-compose.yml, ./deploy → /eax-repo/deploy, ./eaxcli → /eax-repo/eaxcli, ./services/api/version.toml → /eax-repo/services/api/version.toml |
 | db | `postgres:17-alpine` | backend | - | eax-pgdata → /var/lib/postgresql/data, ./deploy/postgres/initdb → /docker-entrypoint-initdb.d |

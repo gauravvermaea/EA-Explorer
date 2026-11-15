@@ -55,6 +55,7 @@ def _arr(v: Any) -> list[str]:
 
 
 def base_phase(phase: str | None) -> str:
+    """The ADM phase a follow-on phase belongs to."""
     ph = (phase or "").strip()
     return FOLLOWS.get(ph, ph)
 
@@ -83,6 +84,7 @@ def clean(iteration: Any, phases: Any = None) -> tuple[str, list[str]]:
 
 
 def label(code: str, phases: list[str]) -> str:
+    """An iteration's name with its phases."""
     names = ["Preliminary" if x == "P" else x for x in phases]
     return f"{ITERATIONS.get(code, ITERATIONS[DEFAULT])['name']} ({', '.join(names)})"
 
@@ -103,11 +105,13 @@ def current(conn, p: dict) -> dict:
 
 
 def enabled(it: dict, phase: str | None) -> bool:
+    """Whether a phase is part of an iteration (the ones always there included)."""
     ph = base_phase(phase)
     return ph in ALWAYS or ph not in PHASES or ph in it["phases"]
 
 
 def phase_enabled(conn, p: dict, phase: str | None) -> bool:
+    """Whether a phase is part of the project's current iteration."""
     return enabled(current(conn, p), phase)
 
 
@@ -123,6 +127,7 @@ def guard(conn, p: dict, phase: str | None) -> None:
 
 
 def guard_item(conn, p: dict, item_id: Any) -> None:
+    """Refuses work on an item whose phase is not in the project's current iteration."""
     if not item_id:
         return
     r = conn.execute(text("SELECT phase FROM proj.items WHERE id = :i"), {"i": item_id}).mappings().first()
@@ -131,10 +136,12 @@ def guard_item(conn, p: dict, item_id: Any) -> None:
 
 
 def guard_doc(conn, p: dict, d: dict) -> None:
+    """The same for a document (by its item)."""
     guard_item(conn, p, d.get("item_id"))
 
 
 def history(conn, p: dict) -> list[dict]:
+    """A project's changes of iteration, newest first."""
     rows = conn.execute(text("""SELECT cycle, iteration, phases, previous_iteration, previous_phases, by_user, at, note
                                   FROM proj.iteration_changes WHERE project_id = :p ORDER BY id DESC"""),
                         {"p": p["id"]}).mappings().all()
@@ -177,4 +184,5 @@ def set_iteration(conn, project: Any, user, iteration: Any, phases: Any = None, 
 
 
 def catalogue() -> list[dict]:
+    """The iterations a project can work in, with their phases."""
     return [{"code": k, "name": v["name"], "phases": v["phases"], "about": v["about"]} for k, v in ITERATIONS.items()]

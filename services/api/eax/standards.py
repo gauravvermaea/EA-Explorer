@@ -31,6 +31,7 @@ def _may(conn, p: dict, user) -> bool:
 
 
 def listing(conn, project: Any, user) -> dict:
+    """A project's standards."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "read")
     rows = _rows(conn, """SELECT guid::text AS id, area, name, description, status, source, mandatory, origin_guid IS NOT NULL AS from_base,
@@ -53,6 +54,7 @@ def _vals(d: dict) -> dict:
 
 
 def add(conn, project: Any, user, d: dict) -> dict:
+    """Adds a standard to a project."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
     v = _vals(d)
@@ -74,6 +76,7 @@ def _row(conn, p: dict, sid: str) -> dict:
 
 
 def update(conn, project: Any, user, sid: str, d: dict) -> dict:
+    """Changes a standard."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
     r = _row(conn, p, sid)
@@ -84,6 +87,7 @@ def update(conn, project: Any, user, sid: str, d: dict) -> dict:
 
 
 def delete(conn, project: Any, user, sid: str) -> dict:
+    """Deletes a standard."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
     r = _row(conn, p, sid)

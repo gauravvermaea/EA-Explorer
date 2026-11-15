@@ -49,6 +49,7 @@ MAX_BYTES = 50 * 1024 * 1024
 
 
 def root() -> Path:
+    """Where the delivery folders are."""
     return Path(os.environ.get("EAX_DELIVERIES_DIR") or "/data/imports/deliveries")
 
 
@@ -62,11 +63,13 @@ def _one(conn, sql: str, **p) -> dict | None:
 
 
 def slug(name: str) -> str:
+    """A folder name made from a source's name."""
     s = re.sub(r"[^a-z0-9]+", "-", (name or "").lower()).strip("-")[:60]
     return s if s and s[0].isalnum() else ("source-" + s)[:60].strip("-") or "source"
 
 
 def folder_of(model_guid: str, folder: str) -> Path:
+    """An import source's delivery folder."""
     return root() / str(model_guid) / folder
 
 
@@ -133,6 +136,7 @@ def _source_out(conn, s: dict) -> dict:
 
 
 def list_sources(conn, user, model: Any) -> dict:
+    """A model's import sources with their newest deliveries."""
     m = repo.get_model(conn, model)
     rows = _rows(conn, """SELECT s.*, m.guid AS model_guid, m.name AS model_name FROM core.import_sources s
                            JOIN core.models m ON m.id = s.model_id WHERE s.model_id = :m ORDER BY lower(s.name)""", m=m["_id"])
@@ -345,6 +349,7 @@ def accept(conn, user, load: Any) -> dict:
 
 
 def decline(conn, user, load: Any, note: str = "") -> dict:
+    """Declines a delivery waiting for review, with a note (Committer, Model Sub Admin or Model Admin)."""
     r, m = _delivery(conn, load)
     if not may_accept(conn, user, m):
         raise EditError(f"Declining a delivery needs the Committer, Model Sub Admin or Model Admin role on {m['name']}.", 403)

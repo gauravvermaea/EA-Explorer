@@ -24,9 +24,12 @@ from pathlib import Path
 from . import persist
 
 ROOT = Path(__file__).resolve().parent.parent
-DAY = re.compile(r"^\d{4}-\d{2}-\d{2}\.log$")
+# a day's file, or a part of it closed at its size (2026-11-15.1.log), compressed once closed (.log.gz) (R5.6)
+DAY = re.compile(r"^\d{4}-\d{2}-\d{2}(\.\d+)?\.log(\.gz)?$")
 ZIP = re.compile(r"^\d{8}T\d{6}Z-logs(-[a-z0-9-]+)?\.zip$")
-LEVELS = ("debug", "info", "warning", "error")
+LEVELS = ("debug", "info", "warning", "error", "critical")
+MAX_MB = 50                 # a file is closed and a new one begun past this size (R5.6; EAX_LOG_FILE_MB)
+KEEP_DAYS = 7               # logs older than this are deleted every night (R5.6; System Admin > Settings)
 _MASKS = [(re.compile(r"((?:PASSWORD|SECRET|TOKEN|_KEY|URLENC)[A-Za-z_]*\s*[:=]\s*)\S+", re.I), r"\1****"),
           (re.compile(r"(postgres(?:ql)?(?:\+\w+)?://[^:/\s]+:)[^@\s]+@"), r"\1****@"),
           (re.compile(r"(Bearer\s+)[A-Za-z0-9._~+/=-]{8,}"), r"\1****"),
@@ -44,6 +47,9 @@ def folder(root: Path | str | None = None) -> Path:
     """The logs folder: EAX_LOGS_DIR from the environment or the config file, else logs/ beside work/."""
     root = Path(root) if root else ROOT
     given = os.environ.get("EAX_LOGS_DIR") or persist._config_value(root, "EAX_LOGS_DIR")
+    if not given:                                    # one base folder for the data (R5.4, D687): <base>/logs
+        from . import datafolders
+        given = next((p.value for p in datafolders.resolve(root=root)[1] if p.key == "EAX_LOGS_DIR" and p.source == "base"), "")
     p = Path(given) if given else root / "logs"
     return p if p.is_absolute() else root / p
 
@@ -51,7 +57,9 @@ def folder(root: Path | str | None = None) -> Path:
 def level_of(line: str) -> str:
     """debug, info, warning or error, from the words a line carries (info when it says none)."""
     low = line.lower()
-    if re.search(r"\b(error|exception|traceback|critical|fatal|failed)\b", low):
+    if re.search(r"\b(critical|fatal|panic|emerg(ency)?)\b", low):
+        return "critical"
+    if re.search(r"\b(error|exception|traceback|failed)\b", low):
         return "error"
     if re.search(r"\b(warn|warning)\b", low):
         return "warning"
@@ -80,16 +88,83 @@ def ship(base: Path, containers: list[dict], read_since, now: float | None = Non
             day = ln[:10] if re.match(r"^\d{4}-\d{2}-\d{2}T", ln) else datetime.fromtimestamp(now, UTC).strftime("%Y-%m-%d")
             f = base / "containers" / c["service"] / f"{day}.log"
             f.parent.mkdir(parents=True, exist_ok=True)
+            rotate(f)
             with open(f, "a", encoding="utf-8") as fh:
                 fh.write(mask(ln.rstrip("\n")) + "\n")
             n += 1
             state[c["id"]] = ln.split(" ", 1)[0][:30]
         out[c["service"]] = out.get(c["service"], 0) + n
     base.mkdir(parents=True, exist_ok=True)
+    compress_closed(base, now)
     tmp = state_file.with_name(".shipped.json.tmp")
     tmp.write_text(json.dumps(state), encoding="utf-8")
     os.replace(tmp, state_file)
     return out
+
+
+def max_bytes() -> int:
+    """How large a log file grows before it is rolled over."""
+    try:
+        return max(1, int(os.environ.get("EAX_LOG_FILE_MB") or MAX_MB)) * 1024 * 1024
+    except ValueError:
+        return MAX_MB * 1024 * 1024
+
+
+def rotate(f: Path, limit: int | None = None) -> Path | None:
+    """A day's file past its size is closed (renamed <day>.<n>.log and compressed) and a new one begun (R5.6)."""
+    limit = limit or max_bytes()
+    if not f.is_file() or f.stat().st_size < limit:
+        return None
+    day = f.name[:10]
+    n = 1
+    while (f.parent / f"{day}.{n}.log.gz").exists() or (f.parent / f"{day}.{n}.log").exists():
+        n += 1
+    closed = f.with_name(f"{day}.{n}.log")
+    os.replace(f, closed)
+    return _gzip(closed)
+
+
+def _gzip(f: Path) -> Path:
+    import gzip
+    import shutil
+    out = f.with_name(f.name + ".gz")
+    with open(f, "rb") as src, gzip.open(out, "wb") as dst:
+        shutil.copyfileobj(src, dst)
+    f.unlink()
+    return out
+
+
+def compress_closed(base: Path, now: float | None = None) -> int:
+    """Every file of a day before today compressed (R5.6: "compressed when closed"); the web log's too."""
+    today = datetime.fromtimestamp(now or time.time(), UTC).strftime("%Y-%m-%d")
+    n = 0
+    for sub in ("containers", "web"):
+        root = base / sub
+        if not root.is_dir():
+            continue
+        for f in root.rglob("*.log"):
+            if DAY.match(f.name) and f.name[:10] < today:
+                try:
+                    _gzip(f)
+                    n += 1
+                except OSError:
+                    pass
+    return n
+
+
+def _lines(f: Path):
+    import gzip
+    opener = gzip.open if f.name.endswith(".gz") else open
+    with opener(f, "rt", encoding="utf-8", errors="replace") as fh:
+        yield from fh
+
+
+def _day_files(folder: Path, day: str) -> list[Path]:
+    """A day's files in order: its closed parts, then the open one."""
+    if not folder.is_dir():
+        return []
+    found = [f for f in folder.iterdir() if DAY.match(f.name) and f.name[:10] == day]
+    return sorted(found, key=lambda f: (0, int(f.name.split(".")[1])) if f.name.split(".")[1].isdigit() else (1, 0))
 
 
 # ---------------------------------------------------------------- reading (the web, R2.31)
@@ -102,9 +177,11 @@ def files(base: Path, service: str = "") -> list[dict]:
     for d in sorted(root.iterdir()):
         if not d.is_dir() or (service and d.name != service):
             continue
+        sizes: dict[str, int] = {}
         for f in d.iterdir():
             if DAY.match(f.name):
-                out.append({"service": d.name, "day": f.name[:10], "size": f.stat().st_size})
+                sizes[f.name[:10]] = sizes.get(f.name[:10], 0) + f.stat().st_size
+        out += [{"service": d.name, "day": day, "size": size} for day, size in sizes.items()]
     return sorted(out, key=lambda x: (x["day"], x["service"]), reverse=True)
 
 
@@ -119,19 +196,15 @@ def read(base: Path, services: list[str], day: str, level: str = "", q: str = ""
     for s in services:
         if not re.match(r"^[a-z0-9_-]+$", s):
             raise ValueError(f"No container {s!r}.")
-        f = base / "containers" / s / f"{day}.log"
-        if not f.is_file():
-            continue
-        with open(f, encoding="utf-8", errors="replace") as fh:
-            for ln in fh:
-                ln = ln.rstrip("\n")
-                t = ln[11:16]
-                if (since and t < since) or (until and t > until):
-                    continue
-                lv = level_of(ln)
-                if lv not in worse or (q and q.lower() not in ln.lower()):
-                    continue
-                rows.append({"service": s, "line": ln, "level": lv})
+        for ln in (x for f in _day_files(base / "containers" / s, day) for x in _lines(f)):
+            ln = ln.rstrip("\n")
+            t = ln[11:16]
+            if (since and t < since) or (until and t > until):
+                continue
+            lv = level_of(ln)
+            if lv not in worse or (q and q.lower() not in ln.lower()):
+                continue
+            rows.append({"service": s, "line": ln, "level": lv})
     rows.sort(key=lambda r: r["line"][:30])
     total = len(rows)
     start = max(0, int(page)) * size
@@ -146,7 +219,7 @@ def backup(base: Path, own_logs: Path, dest: Path, tag: str = "") -> dict:
     name = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + "-logs" + (f"-{re.sub(r'[^a-z0-9-]', '', tag.lower())}" if tag else "") + ".zip"
     n = 0
     with zipfile.ZipFile(dest / name, "w", zipfile.ZIP_DEFLATED) as z:
-        for src, arc in ((base / "containers", "containers"), (own_logs, "eax")):
+        for src, arc in ((base / "containers", "containers"), (base / "web", "web"), (own_logs, "eax")):
             if not src.is_dir():
                 continue
             for f in sorted(src.rglob("*")):
@@ -163,10 +236,11 @@ def clean(base: Path, own_logs: Path, zips: Path, days: int, now: float | None =
     cut = (now or time.time()) - int(days) * 86400
     cut_day = datetime.fromtimestamp(cut, UTC).strftime("%Y-%m-%d")
     gone: list[str] = []
-    for f in (base / "containers").rglob("*.log") if (base / "containers").is_dir() else []:
-        if DAY.match(f.name) and f.name[:10] < cut_day:
-            f.unlink()
-            gone.append(f"containers/{f.parent.name}/{f.name}")
+    for sub in ("containers", "web"):
+        for f in (base / sub).rglob("*.log*") if (base / sub).is_dir() else []:
+            if (DAY.match(f.name) or WEB_DAY.match(f.name)) and f.name.removeprefix("debug-")[:10] < cut_day:
+                f.unlink()
+                gone.append(f"{sub}/{f.relative_to(base / sub).as_posix()}")
     for d, label in ((own_logs, "work/logs"), (zips, "backups/logs")):
         if not d.is_dir():
             continue
@@ -183,11 +257,159 @@ def kept_backups(base: Path) -> Path:
 
 
 def default_keep_days(deployment: str) -> int:
-    """14 days on a laptop, 90 on a server or in the cloud (R2.30)."""
-    return 14 if (deployment or "laptop").lower() == "laptop" else 90
+    """7 days, laptop and server alike (R5.6; owner, 14 Nov 2026: "Logs are deleted once every 7 days in schedule";
+    R2.30 had 14 on a laptop and 90 on a server)."""
+    return KEEP_DAYS
+
+
+def clear(base: Path) -> list[str]:
+    """Every container log and web log deleted (clean-run and clean-restart, R5.6: "Logs get cleaned in clean-run"),
+    after a log backup into the logs folder's own backups/ (which stays)."""
+    import shutil
+    gone = []
+    for sub in ("containers", "web"):
+        if (base / sub).is_dir():
+            shutil.rmtree(base / sub, ignore_errors=True)
+            gone.append(sub)
+    (base / ".shipped.json").unlink(missing_ok=True)
+    return gone
+
+
+def clean_range(base: Path, what: str, start: str = "", end: str = "") -> dict:
+    """Deleted from the page (R5.6): a period of days (start to end, inclusive), everything before a day, or all; the
+    container logs and the web log alike. A log backup is taken first by the caller."""
+    if what not in ("period", "before", "all"):
+        raise ValueError("what: period, before or all.")
+    for d in ([start, end] if what == "period" else [start] if what == "before" else []):
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", d or ""):
+            raise ValueError("Give the days as YYYY-MM-DD.")
+    gone: list[str] = []
+    for sub in ("containers", "web"):
+        for f in (base / sub).rglob("*.log*") if (base / sub).is_dir() else []:
+            if not (DAY.match(f.name) or WEB_DAY.match(f.name)):
+                continue
+            day = f.name.removeprefix("debug-")[:10]
+            if what == "all" or (what == "before" and day < start) or (what == "period" and start <= day <= end):
+                f.unlink()
+                gone.append(f"{sub}/{f.relative_to(base / sub).as_posix()}")
+    return {"deleted": sorted(gone), "what": what, "start": start, "end": end}
+
+
+# ---------------------------------------------------------------- the web log (R5.6)
+# logs/web/<YYYY-MM-DD>.log: one JSON line for every call to the API and MCP, written by the front door (nginx):
+#   {time, address, who, method, path, status, seconds, bytes, request_id, host}
+# logs/web/debug-<YYYY-MM-DD>.log: with web log debug on (off by default, for a time), the API's input and answer too,
+# every password, secret, token, key and personal field masked.
+WEB_DAY = re.compile(r"^(debug-)?\d{4}-\d{2}-\d{2}(\.\d+)?\.log(\.gz)?$")
+WEB_FIELDS = ("time", "address", "who", "method", "path", "status", "seconds", "bytes", "request_id", "host")
+
+
+def web_files(base: Path) -> list[dict]:
+    """The web log's days, with their sizes."""
+    root = base / "web"
+    if not root.is_dir():
+        return []
+    sizes: dict[tuple[str, bool], int] = {}
+    for f in root.iterdir():
+        if WEB_DAY.match(f.name):
+            debug = f.name.startswith("debug-")
+            day = f.name.removeprefix("debug-")[:10]
+            sizes[(day, debug)] = sizes.get((day, debug), 0) + f.stat().st_size
+    return sorted(({"day": d, "debug": dbg, "size": s} for (d, dbg), s in sizes.items()),
+                  key=lambda x: (x["day"], x["debug"]), reverse=True)
+
+
+def web_rows(base: Path, day: str) -> list[dict]:
+    """A day of the web log as rows."""
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", day or ""):
+        raise ValueError("Give the day as YYYY-MM-DD.")
+    rows = []
+    for f in _day_files(base / "web", day):
+        for ln in _lines(f):
+            try:
+                r = json.loads(ln)
+            except ValueError:
+                continue
+            try:
+                r["status"] = int(r.get("status") or 0)
+                r["seconds"] = float(r.get("seconds") or 0)
+            except (TypeError, ValueError):
+                continue
+            rows.append({k: r.get(k, "") for k in WEB_FIELDS})
+    return rows
+
+
+def web_read(base: Path, day: str, since: str = "", until: str = "", who: str = "", path: str = "", status: str = "",
+             sort: str = "time", page: int = 0, size: int = 500) -> dict:
+    """The web log of a day, filtered by time (HH:MM), person, path (words), status (a code, 4xx, 5xx or errors) and
+    sorted by time or slowest first; with what is slowest and most failing summed."""
+    rows = web_rows(base, day)
+    out = []
+    for r in rows:
+        t = str(r["time"])[11:16]
+        if (since and t < since) or (until and t > until):
+            continue
+        if who and who.lower() not in str(r["who"]).lower():
+            continue
+        if path and path.lower() not in str(r["path"]).lower():
+            continue
+        s = r["status"]
+        if status == "errors" and s < 400 or status in ("4xx", "5xx") and s // 100 != int(status[0]) \
+                or status.isdigit() and s != int(status):
+            continue
+        out.append(r)
+    out.sort(key=(lambda r: -r["seconds"]) if sort == "slowest" else (lambda r: str(r["time"])))
+    start = max(0, int(page)) * size
+    return {"day": day, "total": len(out), "page": int(page), "pages": (len(out) + size - 1) // size,
+            "rows": out[start:start + size], "summary": web_summary(out)}
+
+
+def _route(path: str) -> str:
+    """A path with its ids made general, so calls to the same route add up (/api/v1/models/<id>/entities)."""
+    return re.sub(r"/([0-9a-f]{8}-[0-9a-f-]{27,}|\d+|[0-9a-f]{24,})(?=/|$)", "/<id>", str(path))
+
+
+def web_summary(rows: list[dict]) -> dict:
+    """The web log's rows by route: calls, errors and times."""
+    by: dict[str, list] = {}
+    for r in rows:
+        by.setdefault(f"{r['method']} {_route(r['path'])}", []).append(r)
+    stats = []
+    for route, rs in by.items():
+        times = sorted(x["seconds"] for x in rs)
+        p95 = times[min(len(times) - 1, int(len(times) * 0.95))]
+        stats.append({"route": route, "calls": len(rs), "average": round(sum(times) / len(times), 3), "p95": p95,
+                      "errors": sum(1 for x in rs if x["status"] >= 500), "refused": sum(1 for x in rs if 400 <= x["status"] < 500)})
+    return {"calls": len(rows), "errors": sum(1 for r in rows if r["status"] >= 500),
+            "slowest": sorted(stats, key=lambda x: -x["p95"])[:10],
+            "failing": sorted((x for x in stats if x["errors"]), key=lambda x: -x["errors"])[:10]}
+
+
+def web_csv(rows: list[dict]) -> str:
+    """Web log rows as CSV."""
+    import csv
+    import io
+    buf = io.StringIO()
+    w = csv.DictWriter(buf, fieldnames=list(WEB_FIELDS))
+    w.writeheader()
+    for r in rows:
+        w.writerow({k: r.get(k, "") for k in WEB_FIELDS})
+    return buf.getvalue()
+
+
+def web_zip(base: Path, start: str, end: str) -> bytes:
+    """The raw web log files of a period, zipped."""
+    import io
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        for f in sorted((base / "web").iterdir()) if (base / "web").is_dir() else []:
+            if WEB_DAY.match(f.name) and start <= f.name.removeprefix("debug-")[:10] <= end:
+                z.write(f, f"web/{f.name}")
+    return buf.getvalue()
 
 
 def older_than(days: int) -> str:
+    """The day `days` days ago."""
     return (datetime.now(UTC) - timedelta(days=days)).strftime("%Y-%m-%d")
 
 

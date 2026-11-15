@@ -67,6 +67,7 @@ def send(base: str, method: str, path: str, token: str, raw: bytes | None, timeo
 
 
 def judge(status: int, kind: str) -> tuple[str, str]:
+    """Judges a negative test's answer: refused passes, a server error or a success fails."""
     if status in GOOD:
         return "passed", f"refused: {status}"
     if status >= 500 and status != 599:

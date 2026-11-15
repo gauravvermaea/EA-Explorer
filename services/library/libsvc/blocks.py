@@ -20,10 +20,12 @@ MAX_BLOCKS, MAX_CELLS, MAX_TEXT = 400, 4000, 20000
 
 
 class Bad(ValueError):
+    """A page block that is not allowed."""
     pass
 
 
 def good_href(href: str) -> bool:
+    """Whether a link may go in a page (http, https, mailto or an EA Explorer address)."""
     href = (href or "").strip()
     return bool(re.match(r"^(https?://|mailto:)\S+$", href, re.I) or EA.match(href))
 

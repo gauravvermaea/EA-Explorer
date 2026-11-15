@@ -57,10 +57,12 @@ MENU = [
 
 # ---------------------------------------------------------------- plain helpers
 def say(text: str = "") -> None:
+    """Prints a line at once."""
     print(text, flush=True)
 
 
 def ask(prompt: str) -> str:
+    """Asks a question (empty without a terminal)."""
     try:
         return input(prompt).strip()
     except EOFError:
@@ -68,6 +70,7 @@ def ask(prompt: str) -> str:
 
 
 def note(what: str) -> None:
+    """Writes a line in the console's log."""
     try:
         os.makedirs(os.path.dirname(LOG), exist_ok=True)
         with open(LOG, "a", encoding="utf-8") as f:
@@ -77,6 +80,7 @@ def note(what: str) -> None:
 
 
 def choose(title: str, items: list[str]) -> int | None:
+    """Shows numbered choices and returns the one chosen (None to go back)."""
     say("")
     say(title)
     for i, it in enumerate(items, 1):
@@ -92,11 +96,13 @@ def choose(title: str, items: list[str]) -> int | None:
 
 
 def confirm(what: str) -> bool:
+    """Says what will happen and asks for YES."""
     say(f"\n{what}")
     return ask("Type YES to go ahead (anything else stops): ") == "YES"
 
 
 def pause() -> None:
+    """Waits for Enter."""
     ask("\nPress Enter to go back to the menu ")
 
 
@@ -107,6 +113,7 @@ def new_password() -> str:
 
 
 def password_from_person(what: str) -> str | None:
+    """A new password: made (24 letters and digits) or typed twice."""
     i = choose(f"The new {what}:", ["Make one for me (24 letters and digits; recommended)", "I will type it"])
     if i is None:
         return None
@@ -120,6 +127,7 @@ def password_from_person(what: str) -> str | None:
 
 
 def running(service: str) -> dict | None:
+    """A running container of a service, or None."""
     c = ops._container(service)
     return c if c and c["state"] == "running" else None
 
@@ -211,6 +219,7 @@ def set_config(key: str, value: str, why: str) -> str:
 
 # ---------------------------------------------------------------- 1 status, 3 restart, 5 problems
 def status() -> None:
+    """The console's status page: every container and its state."""
     rows = ops.containers()
     if not rows:
         say("\nNothing is set up yet: choose 2 (Start everything).")
@@ -236,6 +245,7 @@ def status() -> None:
 
 
 def restart() -> None:
+    """Restarts everything or one container, asked first."""
     names = sorted({c["service"] for c in ops.containers() if c["state"] == "running" and not c["self"]})
     i = choose("Restart what?", ["Everything (one after the other, the database first)"] + names)
     if i is None:
@@ -259,6 +269,7 @@ def restart() -> None:
 
 
 def problems() -> None:
+    """Containers stopped or unhealthy, with their last log lines."""
     rows = [c for c in ops.containers() if ((c["state"] != "running" and c["service"] not in ("setup", "reports-init"))
                                             or "unhealthy" in c["status"])]
     for c in ops.containers():
@@ -284,6 +295,7 @@ def problems() -> None:
 
 # ---------------------------------------------------------------- 6 back up, 7 restore
 def back_up(version: str) -> None:
+    """Backs up the infrastructure or the application."""
     i = choose("Back up what?", [("Infrastructure: every database, the documents, the certificate and the config file "
                                   "(what you need to rebuild the machine)"), "Application: every model, one file each"])
     if i is None:
@@ -302,6 +314,7 @@ def back_up(version: str) -> None:
 
 
 def restore(version: str) -> None:
+    """The console's restore menu."""
     i = choose("Restore what?", ["Infrastructure backup (guided: choose the backup, then what to put back)",
                                  "Every model from an application backup", "One model (as a new model or over itself)",
                                  "List the backups", "The restores so far, with their status"])
@@ -334,6 +347,7 @@ class Kc:
         self.password = v.get("EAX_KC_ADMIN_PASSWORD", "")
 
     def start(self, user: str = "", password: str = "") -> bool:
+        """Signs in to Keycloak's admin tool inside its container."""
         self.c = need("keycloak", "passwords and roles are kept there")
         if not self.c:
             return False
@@ -348,6 +362,7 @@ class Kc:
         return False
 
     def run(self, *args: str, pw: str = "", quiet: bool = False) -> subprocess.CompletedProcess:
+        """Runs one kcadm command (the password passed by the environment)."""
         cmd = " ".join(f'"{a}"' if a != "$KCPW" else '"$KCPW"' for a in args)
         r = subprocess.run(["docker", "exec", "-e", f"KCPW={pw}", self.c["id"], "bash", "-c",
                             f"/opt/keycloak/bin/kcadm.sh {cmd} --config /tmp/eax-console-kcadm.config"],
@@ -357,20 +372,24 @@ class Kc:
         return r
 
     def json(self, *args: str) -> list | dict:
+        """A kcadm command's answer as JSON."""
         out = self.run(*args).stdout
         return json.loads(out) if out.strip() else []
 
     def users(self, search: str = "") -> list[dict]:
+        """Keycloak's users (those matching a search)."""
         args = ["get", "users", "-r", self.realm, "--fields", "id,username,email,enabled,firstName,lastName", "-q", "max=200"]
         if search:
             args += ["-q", f"search={search}"]
         return self.json(*args)
 
     def roles_of(self, username: str) -> list[str]:
+        """A user's realm roles."""
         rows = self.json("get-roles", "-r", self.realm, "--uusername", username)
         return sorted(r["name"] for r in rows if not r["name"].startswith("default-roles-") and r["name"] not in ("offline_access", "uma_authorization"))
 
     def realm_roles(self) -> list[str]:
+        """The realm's roles (not Keycloak's own)."""
         return sorted(r["name"] for r in self.json("get", "roles", "-r", self.realm, "--fields", "name")
                       if not r["name"].startswith("default-roles-") and r["name"] not in ("offline_access", "uma_authorization"))
 
@@ -387,6 +406,7 @@ def _pick_user(kc: Kc) -> dict | None:
 
 
 def passwords() -> int:
+    """Resets a password: a person's, Keycloak's administrator's, the break-glass account's or a service's."""
     i = choose("Reset which password?", ["A person's sign-in (a temporary one: they choose their own at the next sign-in)",
                                          "Keycloak's administrator", "The break-glass account (signs in when Keycloak is down)",
                                          "A service password (the databases' logins)"])
@@ -484,6 +504,7 @@ def _bootstrap_admin(user: str, pw: str) -> bool:
 
 
 def users() -> None:
+    """The console's users page: find a person, their roles, give or take a role."""
     kc = Kc()
     if not kc.start():
         say("  Keycloak did not accept its administrator's password: choose 8 (Reset a password), then 2.")
@@ -538,6 +559,7 @@ def users() -> None:
 
 # ---------------------------------------------------------------- 10 settings, 11 tasks, 12 health (in the api container)
 def app_part(area: str) -> None:
+    """Runs one of the API's console pages in its container."""
     c = running("api")
     if not c:
         say("  The API is not running: choose 2 (Start everything) or 3 (Restart) first.")
@@ -546,6 +568,7 @@ def app_part(area: str) -> None:
 
 
 def settings() -> None:
+    """The console's settings and switches."""
     i = choose("Settings and switches", ["Projects, Repository, References and the system settings",
                                          "Optional services on or off (reports, documents, draw.io, MCP, change log, backups)"])
     if i == 0:
@@ -571,6 +594,7 @@ def settings() -> None:
 
 
 def tasks() -> None:
+    """The console's background tasks and job servers."""
     i = choose("Background tasks and job servers", ["Background tasks: waiting and running; cancel a queued one",
                                                     "API and job servers: how many run"])
     if i == 0:
@@ -589,6 +613,7 @@ def tasks() -> None:
 
 
 def maintenance_mode() -> None:
+    """Switches the maintenance page on or off."""
     on = bool(ops.maintenance()) or os.path.exists(ops.PROXY_FLAG)
     if any(r.get("status") == "running" for r in ops.list_restores()):
         say("\nA restore is running: it switches the maintenance page off itself when it is done.")
@@ -602,6 +627,7 @@ def maintenance_mode() -> None:
 
 # ---------------------------------------------------------------- the menu
 def menu(version: str, kind: str) -> int:
+    """The console's main menu."""
     say(f"\nEA Explorer console  ({kind}, {version})")
     for i, it in enumerate(MENU, 1):
         say(f" {i:>2}  {it}")
@@ -660,6 +686,7 @@ def menu(version: str, kind: str) -> int:
 
 
 def main(argv: list[str]) -> int:
+    """The console (eax console): the menu until exit."""
     version = argv[argv.index("--version") + 1] if "--version" in argv else os.environ.get("EAX_VERSION", "")
     kind = config().get("EAX_DEPLOYMENT", "laptop")
     note("console opened")

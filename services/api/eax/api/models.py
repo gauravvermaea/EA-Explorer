@@ -50,16 +50,19 @@ def _plain(v):
 
 # api/tasks.py imports Free from here, so the task helpers are looked up when called, not at import (a cycle)
 def start(*a, **k):
+    """Starts a background task (eax/api/tasks.py's start, imported late to keep the start-up light)."""
     from .tasks import start as _start
     return _start(*a, **k)
 
 
 def upload(*a, **k):
+    """Takes an uploaded file for a background task (eax/api/tasks.py's upload, imported late)."""
     from .tasks import upload as _upload
     return _upload(*a, **k)
 
 
 def waiting(*a, **k):
+    """The background tasks waiting for a person (eax/api/tasks.py's waiting, imported late)."""
     from .tasks import waiting as _waiting
     return _waiting(*a, **k)
 
@@ -69,6 +72,7 @@ class Free(Schema):
     needs a Schema here; a bare marshmallow field has no dump() and every call would end in a 500."""
 
     def dump(self, obj, *, many=None):  # noqa: ARG002
+        """Writes any answer as it is (dates as ISO text): the schema for answers whose shape varies."""
         return _plain(obj)
 
 
@@ -81,6 +85,8 @@ class FreeIn(Schema):
 
 
 class CreateIn(Schema):
+    """The shape of create sent to the API: kind, name, source, parent, copy, version_label, industry, description,
+    owner, framework, wait."""
     kind = fields.String(load_default="project", metadata={"description": "root, project or library (Library Admins)"})
     name = fields.String(required=True)
     source = fields.String(load_default=None, metadata={"description": "The model to start from (guid or name): a root "
@@ -97,12 +103,14 @@ class CreateIn(Schema):
 
 
 class CreateOut(Schema):
+    """The shape of create sent to the API: model, copied, job."""
     model = fields.Nested(ModelOut)
     copied = fields.Dict(metadata={"description": "Rows copied now, by kind"})
     job = fields.Integer(allow_none=True, metadata={"description": "The background job copying the content (GET /api/v1/jobs/<id>)"})
 
 
 class PromoteIn(Schema):
+    """The shape of promote sent to the API: name, copy, version_label, industry, description, owner."""
     name = fields.String(load_default=None)
     copy = fields.String(load_default=None, metadata={"description": "metamodel, content (default) or history (deep copy)"})
     version_label = fields.String(load_default="1.0")
@@ -112,16 +120,19 @@ class PromoteIn(Schema):
 
 
 class DeleteQuery(Schema):
+    """The shape of delete query in the API's answers: confirm."""
     confirm = fields.String(required=True, metadata={"description": "The model's name, typed"})
 
 
 class PackageQuery(Schema):
+    """The shape of package query in the API's answers: format, content."""
     format = fields.String(load_default="zip", metadata={"description": "zip (manifest, metamodel JSON, CSV) or xlsx (one workbook)"})
     content = fields.String(load_default="content", metadata={"description": "metamodel (no data), content (with the data) or history "
                                                                              "(deep: the data, its change history and the metamodel's history, D132)"})
 
 
 class MoveIn(Schema):
+    """The shape of move sent to the API: target, mode, map, name, with_data."""
     target = fields.String(required=True, metadata={"description": "The root metamodel to move to"})
     mode = fields.String(load_default="copy", metadata={"description": "copy (a new model) or in_place"})
     map = fields.Dict(load_default=None, metadata={"description": "Entity type code -> target type code (null: leave out)"})
@@ -130,11 +141,13 @@ class MoveIn(Schema):
 
 
 class MovePreviewQuery(Schema):
+    """The shape of move preview query in the API's answers: target, map."""
     target = fields.String(required=True)
     map = fields.String(load_default=None, metadata={"description": "JSON object: entity type code -> target type code"})
 
 
 class DraftIn(Schema):
+    """The shape of draft sent to the API: kind, name, base, target, version, framework, note, spec."""
     class Meta:
         unknown = INCLUDE
     kind = fields.String(load_default="root", metadata={"description": "root (a new root metamodel) or changes (to target)"})
@@ -148,6 +161,7 @@ class DraftIn(Schema):
 
 
 class DraftEditIn(Schema):
+    """The shape of draft edit sent to the API: action, section, item, code, spec."""
     action = fields.String(required=True, metadata={"description": "set, remove or replace"})
     section = fields.String(load_default=None, metadata={"description": "domains, pick_lists, attributes, entity_types, "
                                                                         "relationship_types, allowed or rules"})
@@ -157,6 +171,7 @@ class DraftEditIn(Schema):
 
 
 class DraftApplyIn(Schema):
+    """The shape of draft apply sent to the API: name, version_label, description, create_model, remove_missing."""
     name = fields.String(load_default=None, metadata={"description": "root drafts: the new root's name"})
     version_label = fields.String(load_default=None)
     description = fields.String(load_default=None)
@@ -165,24 +180,29 @@ class DraftApplyIn(Schema):
 
 
 class RejectIn(Schema):
+    """The shape of reject sent to the API: reason."""
     reason = fields.String(load_default="")
 
 
 class NoteIn(Schema):
+    """The shape of note sent to the API: note."""
     note = fields.String(load_default="", metadata={"description": "Shown to everyone on the draft as a comment"})
 
 
 class CommentIn(Schema):
+    """The shape of comment sent to the API: body, section, code."""
     body = fields.String(required=True)
     section = fields.String(load_default=None, metadata={"description": "On one item: its section (entity_types, ...)"})
     code = fields.String(load_default=None, metadata={"description": "On one item: its code"})
 
 
 class ResolveIn(Schema):
+    """The shape of resolve sent to the API: resolved."""
     resolved = fields.Boolean(load_default=True)
 
 
 class DraftQuery(Schema):
+    """The shape of draft query in the API's answers: status."""
     status = fields.String(load_default=None, metadata={"description": "draft, applied or rejected"})
 
 
@@ -231,6 +251,8 @@ def _user_can(permission: str) -> bool:
 
 @blp.route("/models")
 class Models(MethodView):
+    """/api/v1/models: POST create a model: a root metamodel, a project model or a library model root: from Root
+    (empty) or a copy of another root (Model Creators)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(CreateIn)
     @blp.response(201, CreateOut)
@@ -261,6 +283,7 @@ class Models(MethodView):
 
 @blp.route("/models/<uuid:model_id>/reactivate")
 class Reactivate(MethodView):
+    """/api/v1/models/{model_id}/reactivate: POST bring an archived model back (its Model Admin)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, ModelOut)
     @require_auth()
@@ -271,6 +294,7 @@ class Reactivate(MethodView):
 
 @blp.route("/models/<uuid:model_id>")
 class DeleteModel(MethodView):
+    """/api/v1/models/{model_id}: DELETE delete a model (Super Admins, D121) Type its name in `confirm`."""
     @blp.doc(security=SECURITY)
     @blp.arguments(DeleteQuery, location="query")
     @blp.response(200, Free)
@@ -288,6 +312,8 @@ class DeleteModel(MethodView):
 # ---------------------------------------------------------------- publishing a draft model (D131, D134)
 @blp.route("/models/<uuid:model_id>/publishing")
 class Publishing(MethodView):
+    """/api/v1/models/{model_id}/publishing: GET a model's publishing state, its steps so far (requested, sent back,
+    approved) and what you may do next."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -303,6 +329,8 @@ class Publishing(MethodView):
 # ---------------------------------------------------------------- reports (phase 5, D71, D137)
 @blp.route("/models/<uuid:model_id>/reports")
 class ModelReports(MethodView):
+    """/api/v1/models/{model_id}/reports: GET the model's standard reports (dashboard links) and report catalogue:
+    every entity type and attribute with the report view and column it is in (rpt.t_<type>), and which…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -325,6 +353,8 @@ def _publish_step(action: str, fn):
 
 @blp.route("/models/<uuid:model_id>/request-publish")
 class RequestPublish(MethodView):
+    """/api/v1/models/{model_id}/request-publish: POST ask for a draft model to be published (its Model Admin); an
+    approver then approves or sends it back."""
     @blp.doc(security=SECURITY)
     @blp.arguments(NoteIn)
     @blp.response(200, ModelOut)
@@ -336,6 +366,8 @@ class RequestPublish(MethodView):
 
 @blp.route("/models/<uuid:model_id>/publish")
 class Publish(MethodView):
+    """/api/v1/models/{model_id}/publish: POST approve a requested draft and publish it (D134): Library Admins for
+    roots and library models (locked into the library); for a project model its Model Admins or those of…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(NoteIn)
     @blp.response(200, ModelOut)
@@ -348,6 +380,8 @@ class Publish(MethodView):
 
 @blp.route("/models/<uuid:model_id>/send-back-publish")
 class SendBackPublish(MethodView):
+    """/api/v1/models/{model_id}/send-back-publish: POST send a requested draft back to its makers with a note
+    (approvers)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(NoteIn)
     @blp.response(200, ModelOut)
@@ -359,6 +393,8 @@ class SendBackPublish(MethodView):
 
 @blp.route("/models/<uuid:model_id>/withdraw-publish-request")
 class WithdrawPublishRequest(MethodView):
+    """/api/v1/models/{model_id}/withdraw-publish-request: POST take back a request to publish (the model's Model
+    Admin)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(NoteIn)
     @blp.response(200, ModelOut)
@@ -370,6 +406,8 @@ class WithdrawPublishRequest(MethodView):
 
 @blp.route("/models/<uuid:model_id>/withdraw")
 class Withdraw(MethodView):
+    """/api/v1/models/{model_id}/withdraw: POST withdraw a library model: gone from the library, kept for the models
+    built on it (Library Admins)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, ModelOut)
     @require_auth("library.curate")
@@ -380,6 +418,7 @@ class Withdraw(MethodView):
 
 @blp.route("/models/<uuid:model_id>/restore")
 class Restore(MethodView):
+    """/api/v1/models/{model_id}/restore: POST put a withdrawn library model back in the library (Library Admins)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, ModelOut)
     @require_auth("library.curate")
@@ -390,6 +429,8 @@ class Restore(MethodView):
 
 @blp.route("/models/<uuid:model_id>/promote")
 class Promote(MethodView):
+    """/api/v1/models/{model_id}/promote: POST promote a model into the library (Library Admins, D118) A copy of it
+    (metamodel and content) becomes a published library model; a root makes a root."""
     @blp.doc(security=SECURITY)
     @blp.arguments(PromoteIn)
     @blp.response(201, Free)
@@ -409,6 +450,8 @@ class Promote(MethodView):
 
 @blp.route("/models/<uuid:model_id>/package")
 class Package(MethodView):
+    """/api/v1/models/{model_id}/package: GET download a model as a package (D116): a zip (manifest.json,
+    metamodel.json, one CSV per entity type, relationships.csv) or one Excel workbook."""
     @blp.doc(security=SECURITY, responses={"200": {"description": "The package file"}})
     @blp.arguments(PackageQuery, location="query")
     @require_auth()
@@ -432,6 +475,8 @@ class Package(MethodView):
 
 @blp.route("/models/<uuid:model_id>/metamodel-spec")
 class Spec(MethodView):
+    """/api/v1/models/{model_id}/metamodel-spec: GET a model's metamodel as one JSON document (eax-metamodel/1), as
+    packages and drafts use it."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -458,6 +503,8 @@ def _uploaded() -> dict:
 
 @blp.route("/packages/analyse")
 class Analyse(MethodView):
+    """/api/v1/packages/analyse: POST look at a package before uploading it (D108): what it holds, its checks, and
+    where it can go: under its root metamodel (found by name and version, and matching it…"""
     @blp.doc(security=SECURITY, requestBody={"content": {"multipart/form-data": {"schema": {
         "type": "object", "properties": {"file": {"type": "string", "format": "binary"}}}}}})
     @blp.response(200, Free)
@@ -476,6 +523,8 @@ class Analyse(MethodView):
 
 @blp.route("/packages/import")
 class Import(MethodView):
+    """/api/v1/packages/import: POST upload a package (D108): placement root (under the root metamodel `root`, which
+    it must match completely) or own_root (its metamodel becomes a root of its own under Root)."""
     @blp.doc(security=SECURITY, requestBody={"content": {"multipart/form-data": {"schema": {
         "type": "object", "properties": {"file": {"type": "string", "format": "binary"},
                                          "placement": {"type": "string", "enum": ["root", "own_root"]},
@@ -511,11 +560,14 @@ class Import(MethodView):
 
 
 def repo_model_out(m):
+    """A model as the API answers it: its fields without the internal ones (those starting with an underscore)."""
     return None if m is None else {k: v for k, v in m.items() if not k.startswith("_")}
 
 
 @blp.route("/models/<uuid:model_id>/framework-preview")
 class MovePreview(MethodView):
+    """/api/v1/models/{model_id}/framework-preview: GET what moving the model to another root metamodel (a new
+    framework version) would do: each entity type and the type it maps to, and what would be left out."""
     @blp.doc(security=SECURITY)
     @blp.arguments(MovePreviewQuery, location="query")
     @blp.response(200, Free)
@@ -535,6 +587,8 @@ class MovePreview(MethodView):
 
 @blp.route("/models/<uuid:model_id>/framework-move")
 class Move(MethodView):
+    """/api/v1/models/{model_id}/framework-move: POST move the model to another root metamodel (D121): copy (a new
+    model, the content mapped across) or in_place (the model takes the new metamodel as one version; its Model…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(MoveIn)
     @blp.response(200, Free)
@@ -555,6 +609,9 @@ class Move(MethodView):
 
 @blp.route("/metamodel-drafts")
 class Drafts(MethodView):
+    """/api/v1/metamodel-drafts: GET your metamodel drafts, and drafts of changes to models you are Model Admin of;
+    POST start a metamodel draft: a new root (empty, or from a copy of `base`) or changes to `target`; give `spec` to
+    upload a whole metamodel document at once."""
     @blp.doc(security=SECURITY)
     @blp.arguments(DraftQuery, location="query")
     @blp.response(200, Free(many=True))
@@ -578,6 +635,8 @@ class Drafts(MethodView):
 
 @blp.route("/metamodel-drafts/<uuid:draft_id>")
 class Draft(MethodView):
+    """/api/v1/metamodel-drafts/{draft_id}: GET a draft: its metamodel, its checks, and what it changes against the
+    model it starts from."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -592,6 +651,8 @@ class Draft(MethodView):
 
 @blp.route("/metamodel-drafts/<uuid:draft_id>/edit")
 class DraftEdit(MethodView):
+    """/api/v1/metamodel-drafts/{draft_id}/edit: POST change a draft: set or remove one item, or replace the whole
+    document; it is checked again."""
     @blp.doc(security=SECURITY)
     @blp.arguments(DraftEditIn)
     @blp.response(200, Free)
@@ -605,6 +666,8 @@ class DraftEdit(MethodView):
 
 @blp.route("/metamodel-drafts/<uuid:draft_id>/apply")
 class DraftApply(MethodView):
+    """/api/v1/metamodel-drafts/{draft_id}/apply: POST apply a reviewed draft (D115): a new root metamodel (and
+    optionally a model from it), or one new metamodel version of the model it changes."""
     @blp.doc(security=SECURITY)
     @blp.arguments(DraftApplyIn)
     @blp.response(200, Free)
@@ -624,6 +687,8 @@ class DraftApply(MethodView):
 
 @blp.route("/metamodel-drafts/<uuid:draft_id>/reject")
 class DraftReject(MethodView):
+    """/api/v1/metamodel-drafts/{draft_id}/reject: POST reject a draft (from waiting for review or sent back); it is
+    kept, and can be reopened as a new round."""
     @blp.doc(security=SECURITY)
     @blp.arguments(RejectIn)
     @blp.response(200, Free)
@@ -643,6 +708,8 @@ def _round(action: str, fn):
 
 @blp.route("/metamodel-drafts/<uuid:draft_id>/send-back")
 class DraftSendBack(MethodView):
+    """/api/v1/metamodel-drafts/{draft_id}/send-back: POST send a draft back to its maker for changes (reviewers): it
+    becomes editable, with your note and comments."""
     @blp.doc(security=SECURITY)
     @blp.arguments(NoteIn)
     @blp.response(200, Free)
@@ -654,6 +721,7 @@ class DraftSendBack(MethodView):
 
 @blp.route("/metamodel-drafts/<uuid:draft_id>/resubmit")
 class DraftResubmit(MethodView):
+    """/api/v1/metamodel-drafts/{draft_id}/resubmit: POST send a fixed draft back for review: a new round."""
     @blp.doc(security=SECURITY)
     @blp.arguments(NoteIn)
     @blp.response(200, Free)
@@ -665,6 +733,7 @@ class DraftResubmit(MethodView):
 
 @blp.route("/metamodel-drafts/<uuid:draft_id>/reopen")
 class DraftReopen(MethodView):
+    """/api/v1/metamodel-drafts/{draft_id}/reopen: POST open a rejected draft again for changes, as a new round."""
     @blp.doc(security=SECURITY)
     @blp.arguments(NoteIn)
     @blp.response(200, Free)
@@ -676,6 +745,8 @@ class DraftReopen(MethodView):
 
 @blp.route("/metamodel-drafts/<uuid:draft_id>/comments")
 class DraftComments(MethodView):
+    """/api/v1/metamodel-drafts/{draft_id}/comments: POST comment on a draft, or on one of its items (section and
+    code)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(CommentIn)
     @blp.response(201, Free)
@@ -688,6 +759,8 @@ class DraftComments(MethodView):
 
 @blp.route("/metamodel-drafts/<uuid:draft_id>/comments/<uuid:comment_id>/resolve")
 class DraftCommentResolve(MethodView):
+    """/api/v1/metamodel-drafts/{draft_id}/comments/{comment_id}/resolve: POST mark a comment fixed (resolved true)
+    or open again (false)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(ResolveIn)
     @blp.response(200, Free)

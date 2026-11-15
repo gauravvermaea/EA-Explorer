@@ -65,6 +65,7 @@ def tag_first(conn, model: Any, user, why: str) -> dict:
 
 # ---------------------------------------------------------------- 7: freeze (final) and unfreeze (Super Admins)
 def freeze(conn, model: Any, user, note: str = "") -> dict:
+    """Freezes a model (nothing more changes in it), with a note."""
     m = repo.get_model(conn, model)
     _admin(conn, user, m, "Freezing a model")
     if m.get("frozen_at"):
@@ -79,6 +80,7 @@ def freeze(conn, model: Any, user, note: str = "") -> dict:
 
 
 def unfreeze(conn, model: Any, user) -> dict:
+    """Unfreezes a model (a Super Admin)."""
     m = repo.get_model(conn, model)
     if perms.SUPER_ADMIN not in (user.roles or ()):
         raise EditError("Only a Super Admin unfreezes a model.", 403)
@@ -92,6 +94,7 @@ def unfreeze(conn, model: Any, user) -> dict:
 
 # ---------------------------------------------------------------- 13: detach and re-parent
 def detach(conn, model: Any, user) -> dict:
+    """Detaches a model from its parent."""
     m = repo.get_model(conn, model)
     _admin(conn, user, m, "Detaching a model")
     if not m.get("parent_model_id"):
@@ -101,6 +104,7 @@ def detach(conn, model: Any, user) -> dict:
 
 
 def reparent(conn, model: Any, user, parent: Any) -> dict:
+    """Moves a model under another parent."""
     m = repo.get_model(conn, model)
     p = repo.get_model(conn, parent)
     _admin(conn, user, m, "Moving a model under another")
@@ -164,6 +168,7 @@ def split(conn, model: Any, user, d: dict) -> dict:
 
 # ---------------------------------------------------------------- 18: extend the metamodel from another model
 def extend_preview(conn, model: Any, source: Any) -> dict:
+    """What extending a model's metamodel from another would add."""
     from . import model_ops as mo
     have = mo.metamodel_spec(conn, str(repo.get_model(conn, model)["id"]))
     src = mo.metamodel_spec(conn, str(repo.get_model(conn, source)["id"]))

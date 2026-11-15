@@ -98,6 +98,10 @@ def _tidy() -> list[int]:
 
 @blp.route("/tests")
 class Tests(MethodView):
+    """/api/v1/admin/tests: GET self-test runs, newest first; the test runner (built, a run going on); the choices
+    (levels, suites, roles, areas) and how long each kind of run takes; POST starts a self-test now (never scheduled)
+    {level: smoke|detailed, suites: [api, ui, db, security] (detailed), role, area, watch}: it makes its own
+    fixtures…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -161,7 +165,9 @@ class Tests(MethodView):
                          details={"level": level, "suites": suites, "role": role, "area": area, "watch": watch,
                                   "journeys": journeys, "pages_only": pages_only})
         body = {"run_id": run_id, "level": level, "suites": suites, "role": role, "area": area, "watch": watch,
-                "journeys": journeys, "pages_only": pages_only, "by": g.user.username}
+                "journeys": journeys, "pages_only": pages_only, "by": g.user.username,
+                "live_slow": bool(data.get("live_slow")) and "ui" in suites,      # to be watched (R5.20)
+                **{f"bench_{k}": data.get(f"bench_{k}") for k in ("size", "users", "minutes") if data.get(f"bench_{k}")}}
         from ..testing import waiter
         if waiter.platform_managed():          # no Docker socket (R2.44, D635): the always-on runner service takes it
             with store.engine().begin() as conn:
@@ -189,6 +195,8 @@ class Tests(MethodView):
 
 @blp.route("/tests/build")
 class TestRunnerBuild(MethodView):
+    """/api/v1/admin/tests/build: POST builds the test runner image (about 1.5 GB, 5 to 15 minutes): `eax test
+    --build` in the operations helper's short-lived command container; follow it with GET…"""
     @blp.doc(security=SECURITY)
     @blp.response(202, Free)
     @require_auth("system.operate")
@@ -207,6 +215,8 @@ class TestRunnerBuild(MethodView):
 
 @blp.route("/tests/build/<string:build_id>")
 class TestRunnerBuildRun(MethodView):
+    """/api/v1/admin/tests/build/{build_id}: GET a test-runner build: its record, its log from byte ?from=, its steps
+    (base image, Python packages, Chromium, scanners, the code), whether it ended and, if it failed, why."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -224,6 +234,8 @@ class TestRunnerBuildRun(MethodView):
 
 @blp.route("/tests/settings")
 class TestRunnerSettings(MethodView):
+    """/api/v1/admin/tests/settings: PUT {auto_build: true|false, keep_days: N}: build the test runner automatically
+    after each start or update when its image is missing; keep test results N days, 0 always…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -252,6 +264,8 @@ class TestRunnerSettings(MethodView):
 
 @blp.route("/tests/delete")
 class TestDelete(MethodView):
+    """/api/v1/admin/tests/delete: POST delete test results for good (R2.43) {runs: [ids] | "all", older_than_days}:
+    each run's test data, its results and screenshots, its reports, logs and videos in work/tests."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -286,8 +300,57 @@ class TestDelete(MethodView):
         return {**out, "message": cleanup.message(out)}
 
 
+@blp.route("/tests/security")
+class TestSecurity(MethodView):
+    """/api/v1/admin/tests/security: GET the security trend (R5.17): failed and warnings per run and kind, the newest
+    gate and the accepted findings with their reasons and dates."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def get(self):
+        """The security trend (R5.17): failed and warnings per run and kind, the newest gate and the accepted findings with
+        their reasons and dates"""
+        from datetime import date
+
+        from .. import settings as st
+        from ..testing import security_gate as sg
+        with store.engine().connect() as conn:
+            rows = [dict(r) for r in conn.execute(text("""
+                SELECT x.run_id AS run, r.finished_at AS at, x.name, x.outcome FROM tests.test_results x
+                  JOIN tests.test_runs r ON r.id = x.run_id
+                 WHERE x.suite = 'security' AND x.run_id IN (SELECT run_id FROM tests.test_results WHERE suite = 'security'
+                                                             GROUP BY run_id ORDER BY run_id DESC LIMIT 20)""")).mappings()]
+            gate = conn.execute(text("SELECT run_id, outcome, detail FROM tests.test_results WHERE name = :n ORDER BY id DESC LIMIT 1"),
+                                {"n": sg.GATE}).mappings().first()
+        today = date.today().isoformat()
+        return {"trend": [{**t, "at": t["at"].isoformat() if t["at"] else None} for t in sg.trend(rows)],
+                "gate": dict(gate) if gate else None, "weekly": bool(st.values().get("security_test_weekly", True)),
+                "accepted": [{**a, "expired": a["until"] < today} for a in sg.accepted()]}
+
+
+@blp.route("/tests/performance")
+class TestPerformance(MethodView):
+    """/api/v1/admin/tests/performance: GET the benchmark's trend (R5.18): each operation's median per run of one
+    data size, oldest first, and the baseline of each release."""
+    @blp.doc(security=SECURITY, parameters=[{"in": "query", "name": "size", "schema": {"type": "string"}}])
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def get(self):
+        """The benchmark's trend (R5.18): each operation's median per run of one data size, oldest first, and the baseline
+        of each release"""
+        from ..testing import benchmark
+        out = benchmark.trend(WORK_TESTS, request.args.get("size", ""))
+        out["operations"] = [{"key": k, "label": label} for k, label, _p in benchmark.OPERATIONS] + [
+            {"key": "add_elements", "label": "adding elements"}, {"key": "add_relationships", "label": "adding relationships"},
+            {"key": "commit", "label": "a commit"}]
+        out["margin"] = benchmark.MARGIN
+        return out
+
+
 @blp.route("/tests/coverage")
 class TestCoverage(MethodView):
+    """/api/v1/admin/tests/coverage: GET the code coverage over the last runs that kept it (?scope= one kind of run),
+    oldest first, with the trend drawn."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -303,6 +366,8 @@ class TestCoverage(MethodView):
 
 @blp.route("/tests/<int:run_id>")
 class TestRun(MethodView):
+    """/api/v1/admin/tests/{run_id}: GET a run: its results (failures first; ?outcome=passed|failed|skipped|warning,
+    ?suite=), its files, its fixtures; while it waits for a watching browser also its ticket and…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -338,6 +403,8 @@ class TestRun(MethodView):
 
 @blp.route("/tests/<int:run_id>/repeat")
 class TestRepeat(MethodView):
+    """/api/v1/admin/tests/{run_id}/repeat: POST runs the failed ones again (R2.36, D605) {warnings: false}: a new
+    run of only the checks that failed in this run (and its warnings, if asked), as the same roles, in…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(202, Free)
@@ -383,6 +450,8 @@ class TestRepeat(MethodView):
 
 @blp.route("/tests/<int:run_id>/live")
 class TestLive(MethodView):
+    """/api/v1/admin/tests/{run_id}/live: GET watching a run as it happens (R3.2): the step now running, the counts
+    and how many are left, each check recorded since ?after=<result id>, every failure so far with its…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -402,8 +471,40 @@ class TestLive(MethodView):
         return s
 
 
+@blp.route("/tests/<int:run_id>/live-browser")
+class TestLiveBrowser(MethodView):
+    """/api/v1/admin/tests/{run_id}/live-browser: GET the Live browser panel's ask (R5.20): every browser of the
+    running run watched for 30 seconds more (the one shown large, ?large=, at full rate); the tiles and the large…;
+    POST {action: pause | step | continue}: a run started to be watched, paused after each step, stepped or let go."""
+    @blp.doc(security=SECURITY, parameters=[{"in": "query", "name": "large", "schema": {"type": "string"}},
+                                           {"in": "query", "name": "since", "schema": {"type": "integer"}}])
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def get(self, run_id):
+        """The Live browser panel's ask (R5.20): every browser of the running run watched for 30 seconds more (the one
+        shown large, ?large=, at full rate); the tiles and the large one's newest frame when newer than ?since="""
+        from ..testing import screencast
+        with store.engine().begin() as conn:
+            return screencast.view(conn, run_id, request.args.get("large", ""), int(request.args.get("since") or 0))
+
+    @blp.doc(security=SECURITY)
+    @blp.arguments(FreeIn)
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def post(self, data, run_id):
+        """{action: pause | step | continue}: a run started to be watched, paused after each step, stepped or let go"""
+        from ..testing import screencast
+        try:
+            with store.engine().begin() as conn:
+                return screencast.set_controls(conn, run_id, str((data or {}).get("action") or ""), g.user.username)
+        except ValueError as exc:
+            abort(400, message=str(exc))
+
+
 @blp.route("/tests/<int:run_id>/stop")
 class TestStop(MethodView):
+    """/api/v1/admin/tests/{run_id}/stop: POST stops a running self-test: it ends at its next step, keeps what it
+    found, and its tokens are revoked; one no one is running any more (its test runner was restarted or…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -425,6 +526,8 @@ class TestStop(MethodView):
 
 @blp.route("/tests/<int:run_id>/browser")
 class TestBrowser(MethodView):
+    """/api/v1/admin/tests/{run_id}/browser: POST journeys watched in this browser {results: [{name, outcome, detail,
+    ms, browser, screenshot: PNG base64}], done}."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -455,6 +558,8 @@ class TestBrowser(MethodView):
 
 @blp.route("/tests/<int:run_id>/report")
 class TestReport(MethodView):
+    """/api/v1/admin/tests/{run_id}/report: GET the run's report: ?format=html (default; one page, screenshots
+    inside) or xlsx (Excel)."""
     @blp.doc(security=SECURITY)
     @require_auth("system.operate")
     def get(self, run_id):
@@ -476,6 +581,7 @@ class TestReport(MethodView):
 
 @blp.route("/tests/<int:run_id>/screenshot/<int:result_id>")
 class TestScreenshot(MethodView):
+    """/api/v1/admin/tests/{run_id}/screenshot/{result_id}: GET a failed browser journey's screenshot (PNG)."""
     @blp.doc(security=SECURITY)
     @require_auth("system.operate")
     def get(self, run_id, result_id):
@@ -491,6 +597,8 @@ class TestScreenshot(MethodView):
 
 @blp.route("/tests/<int:run_id>/files/<path:name>")
 class TestFile(MethodView):
+    """/api/v1/admin/tests/{run_id}/files/{name}: GET a file of the run from work/tests/<folder>: run.log, a failed
+    journey's video, the ZAP and Trivy reports."""
     @blp.doc(security=SECURITY)
     @require_auth("system.operate")
     def get(self, run_id, name):
@@ -518,6 +626,8 @@ class TestFile(MethodView):
 
 @blp.route("/tests/fixtures")
 class Fixtures(MethodView):
+    """/api/v1/admin/tests/fixtures: GET every self-test fixture still there (models, projects, service accounts,
+    credentials), with its run, kind, name, when it was made and its size (?run=<id> for one run…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -531,6 +641,8 @@ class Fixtures(MethodView):
 
 @blp.route("/tests/fixtures/purge")
 class FixturesPurge(MethodView):
+    """/api/v1/admin/tests/fixtures/purge: POST purges self-test fixtures, for good (cannot be undone) {runs: [ids]
+    or "all", fixtures: [fixture ids] (or every fixture of those runs), confirm: "DELETE"}: a background…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(202, Free)
@@ -583,6 +695,10 @@ class FixturesPurge(MethodView):
 
 @blp.route("/scaling")
 class Scaling(MethodView):
+    """/api/v1/admin/scaling: GET the scaling rules of the API and job servers (fixed or by rules: fewest and most
+    servers, people per server, CPU up and down, minutes, cool-down), the load seen and the…; PUT saves the scaling
+    rules {settings: {EAX_SCALE_MODE: fixed|auto, EAX_SCALE_MIN, ...}} in the config file (a dated copy first); in
+    auto mode the operations helper applies…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -609,6 +725,8 @@ class Scaling(MethodView):
 
 @blp.route("/scaling/load")
 class ScalingLoad(MethodView):
+    """/api/v1/admin/scaling/load: GET for the operations helper only (its X-Ops-Token): how many people the API has
+    seen in the last 15 minutes."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     def get(self):

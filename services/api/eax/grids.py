@@ -18,6 +18,7 @@ def _rows(conn, sql: str, **p) -> list[dict]:
 
 
 def metamodel_grid(conn, model: Any, kind: str) -> dict:
+    """One of a model's metamodel grids (entity types, relationship types, attributes, mappings, pick lists, rules)."""
     if kind not in KINDS:
         raise EditError(f"Unknown grid {kind!r}. Known: {', '.join(KINDS)}.", 404)
     m = repo.get_model(conn, model)

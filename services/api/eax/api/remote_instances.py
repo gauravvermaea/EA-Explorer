@@ -39,6 +39,8 @@ def _run(fn, write: bool = False):
 
 @personal_blp.route("/remote-instances")
 class MyInstances(MethodView):
+    """/remote-instances: GET my remote EA Explorer instances (the site picker), and how SSH sign-in works on this
+    installation; POST add an instance to my list {name, url, note, ssh_host, ssh_port, ssh_user, ssh_key}."""
     @personal_blp.doc(security=SECURITY)
     @personal_blp.response(200, Free)
     @require_auth()
@@ -57,6 +59,7 @@ class MyInstances(MethodView):
 
 @personal_blp.route("/remote-instances/<uuid:ident>")
 class MyInstance(MethodView):
+    """/remote-instances/{ident}: PATCH change one of my instances; DELETE take an instance off my list."""
     @personal_blp.doc(security=SECURITY)
     @personal_blp.arguments(FreeIn)
     @personal_blp.response(200, Free)
@@ -75,6 +78,8 @@ class MyInstance(MethodView):
 
 @blp.route("/remote-instances/<uuid:ident>/ssh")
 class InstanceSsh(MethodView):
+    """/api/v1/remote-instances/{ident}/ssh: POST an SSH session to the instance's host (Super Admins; recorded): a
+    one-time address for the browser's terminal."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -99,6 +104,8 @@ class InstanceSsh(MethodView):
 
 @blp.route("/admin/ssh-sessions")
 class SshSessions(MethodView):
+    """/api/v1/admin/ssh-sessions: GET every recorded SSH session to a remote instance's host, newest first (Super
+    Admins)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -114,6 +121,8 @@ class SshSessions(MethodView):
 
 @blp.route("/admin/ssh-sessions/<string:session>")
 class SshTranscript(MethodView):
+    """/api/v1/admin/ssh-sessions/{session}: GET one recorded session's transcript (what the host showed; Super
+    Admins)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -127,6 +136,8 @@ class SshTranscript(MethodView):
 
 @blp.route("/admin/ssh-key")
 class SshKey(MethodView):
+    """/api/v1/admin/ssh-key: GET this installation's own SSH key's public part, to put on remote hosts
+    (EAX_REMOTE_SSH_AUTH=server_key)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")

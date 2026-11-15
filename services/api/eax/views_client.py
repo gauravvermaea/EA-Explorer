@@ -21,6 +21,7 @@ TIMEOUT = 60
 
 
 class ViewsDown(Exception):
+    """The drawn views' service did not answer or refused."""
     def __init__(self, message: str, status: int = 503, details: dict | None = None):
         super().__init__(message)
         self.status = status
@@ -28,6 +29,7 @@ class ViewsDown(Exception):
 
 
 def service_on() -> bool:
+    """Whether the drawn views' service is switched on."""
     return os.environ.get("EAX_SERVICE_VIEWS", "on").strip().lower() not in ("off", "false", "0", "no", "disabled")
 
 
@@ -64,10 +66,12 @@ def _m(model: Any) -> str:
 
 
 def list_views(model: Any, marker: Any = None) -> dict:
+    """A model's drawn views, from the views service."""
     return _call("GET", f"/internal/models/{_m(model)}/drawn-views", query={"marker": marker})
 
 
 def get_view(model: Any, view: Any, version: int | None = None, with_xml: bool = True, marker: Any = None) -> dict:
+    """One drawn view (a version of it, with its XML when asked)."""
     return _call("GET", f"/internal/models/{_m(model)}/drawn-views/{_m(view)}",
                  query={"version": version, "xml": "1" if with_xml else "0", "marker": marker})
 
@@ -78,32 +82,39 @@ def create(model: Any, data: dict, actor: str, marker: Any = None) -> dict:
 
 
 def save(model: Any, view: Any, data: dict, actor: str, marker: Any = None) -> dict:
+    """Saves a drawn view."""
     return _call("PUT", f"/internal/models/{_m(model)}/drawn-views/{_m(view)}", {**data, "actor": actor, "marker": marker})
 
 
 def hold_for_tag(model: Any, tag: Any) -> list[dict]:
+    """Keeps the drawn views as they are for a tag."""
     return (_call("POST", f"/internal/models/{_m(model)}/tags/{_m(tag)}") or {}).get("drawn_views") or []
 
 
 def tag_view(model: Any, tag: Any, view: Any) -> dict:
+    """A drawn view as it was at a tag."""
     return _call("GET", f"/internal/models/{_m(model)}/tags/{_m(tag)}/drawn-views/{_m(view)}")
 
 
 def export_model(model: Any, all_versions: bool = True) -> dict:
+    """A model's drawn views for a package or backup."""
     return _call("GET", f"/internal/models/{_m(model)}/export", query={"all": "1" if all_versions else "0"}) or {}
 
 
 def import_model(model: Any, views: dict, actor: str, ent_map: dict | None = None, rel_map: dict | None = None,
                  only_new: bool = False, source: str = "package", latest_only: bool = False, replace: bool = False) -> dict:
+    """Imports drawn views into a model, mapping their elements."""
     return _call("POST", f"/internal/models/{_m(model)}/import", {"views": views, "actor": actor, "ent_map": ent_map or {},
                                                                   "rel_map": rel_map or {}, "only_new": only_new, "source": source,
                                                                   "latest_only": latest_only, "replace": replace})
 
 
 def copy_model(src: Any, dst: Any, actor: str, ent_map: dict, rel_map: dict, only_new: bool = False, source: str = "model-copy") -> dict:
+    """Copies a model's drawn views to another model."""
     return _call("POST", f"/internal/models/{_m(src)}/copy-to/{_m(dst)}", {"actor": actor, "ent_map": ent_map, "rel_map": rel_map,
                                                                           "only_new": only_new, "source": source})
 
 
 def delete_model(model: Any, actor: str) -> dict:
+    """Deletes a model's drawn views."""
     return _call("DELETE", f"/internal/models/{_m(model)}", {"actor": actor})

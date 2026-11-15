@@ -36,6 +36,8 @@ def _record(action: str, object_id: str, details: dict) -> None:
 
 @blp.route("")
 class Catalogue(MethodView):
+    """/api/v1/admin/commands: GET every eax command from eaxcli/help.txt, grouped as in the help: summary, full
+    help, examples, the form's fields, its kind (run, offline, wipe, host, interactive), who…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -49,6 +51,8 @@ class Catalogue(MethodView):
 
 @blp.route("/run")
 class Run(MethodView):
+    """/api/v1/admin/commands/run: POST run one command now ({argv} or {name, values}; for the wipe commands also
+    {confirm: {typed, understood}})."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(202, Free)
@@ -65,6 +69,8 @@ class Run(MethodView):
 
 @blp.route("/runs")
 class Runs(MethodView):
+    """/api/v1/admin/commands/runs: GET the history: every run and console session, newest first (who, when, the
+    command, its exit code)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -75,6 +81,8 @@ class Runs(MethodView):
 
 @blp.route("/runs/<run_id>")
 class RunDetail(MethodView):
+    """/api/v1/admin/commands/runs/{run_id}: GET a run's record and its output from byte ?from= (the page asks again
+    for what is new), or a console session's transcript and the commands typed in it."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -87,6 +95,8 @@ class RunDetail(MethodView):
 
 @blp.route("/runs/<run_id>/stop")
 class Stop(MethodView):
+    """/api/v1/admin/commands/runs/{run_id}/stop: POST stop a run that may be stopped halfway (logs, debug, status,
+    test...)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -100,6 +110,8 @@ class Stop(MethodView):
 
 @blp.route("/console")
 class Console(MethodView):
+    """/api/v1/admin/commands/console: POST open the Console: a one-time address (30 seconds) for the browser's
+    WebSocket; {cols, rows} the screen size."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -118,6 +130,10 @@ class Console(MethodView):
 # ---------------------------------------------------------------- scheduled commands (D559)
 @blp.route("/schedules")
 class Schedules(MethodView):
+    """/api/v1/admin/commands/schedules: GET every scheduled eax command (persist/schedules.json): its command, when
+    in words, on or off, the next run and the last run with its result; any warning about the file (a…; POST a new
+    schedule: {name, argv | command + values, cron | preset {kind nightly|weekly|hourly|once, time_, day, minute,
+    at}, enabled, backup_first, keep, banner, confirm…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -146,6 +162,8 @@ class Schedules(MethodView):
 
 @blp.route("/schedules/<sid>/<what>")
 class ScheduleChange(MethodView):
+    """/api/v1/admin/commands/schedules/{sid}/{what}: POST on, off, remove, or run (run it now; recorded like any
+    run)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -162,6 +180,9 @@ class ScheduleChange(MethodView):
 
 @blp.route("/reset-survival")
 class ResetSurvival(MethodView):
+    """/api/v1/admin/commands/reset-survival: GET the reset-survival test's results (D561), from
+    persist/test-results: started from the Self-test page or `eax test --reset-survival` (a real clean-restart; Super
+    Admins…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")

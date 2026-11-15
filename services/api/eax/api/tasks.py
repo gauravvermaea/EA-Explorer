@@ -26,6 +26,9 @@ SECURITY = [{"bearerAuth": []}]
 
 @blp.route("/tasks")
 class Tasks(MethodView):
+    """/api/v1/tasks: GET your background tasks, newest first: what, status (queued, running, done, failed) and the
+    outcome in words; DELETE delete your finished tasks from your history: {ids: [...]} for some, or {all: true} for
+    every one."""
     @blp.doc(security=SECURITY, parameters=[{"in": "query", "name": "active", "schema": {"type": "boolean"},
                                              "description": "only running ones and those finished in the last ten minutes"}])
     @blp.response(200, Free)
@@ -56,6 +59,7 @@ class Tasks(MethodView):
 
 @blp.route("/tasks/<task_id>")
 class Task(MethodView):
+    """/api/v1/tasks/{task_id}: GET one background task: follow it until done is true; message says what happened."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()

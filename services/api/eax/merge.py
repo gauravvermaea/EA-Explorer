@@ -455,6 +455,7 @@ def apply(conn, model: Any, session: Any, user, decisions: dict | None = None, a
 
 
 def cancel(conn, model: Any, session: Any, user) -> dict:
+    """Cancels a merge session."""
     m = repo.get_model(conn, model)
     s = _session(conn, m, session, user)
     conn.execute(text("UPDATE core.merge_sessions SET status = 'cancelled' WHERE id = :i"), {"i": s["id"]})

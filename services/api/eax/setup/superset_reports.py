@@ -139,6 +139,7 @@ HEAT = {
 
 
 def heat_sql(name: str) -> str:
+    """The SQL of a heat map's dataset."""
     base, _measure, band, extra = HEAT[name]
     more = ", round((end_of_life - current_date) / 30.0, 1) AS months_to_end_of_life" if extra else ""
     return f"SELECT b.*{more}, {band} AS band\nFROM rpt.{base} b"
@@ -198,6 +199,7 @@ def _metric(name: str, label: str, expression: str, kind: str) -> dict:
 
 
 def dataset(view: str, public_url: str) -> dict:
+    """A Reports dataset over a report view."""
     names = {n for n, _ in VIEWS[view]}
     cols = [_column(n, t) for n, t in VIEWS[view]]
     if view in LINKED:
@@ -232,6 +234,7 @@ def _chart(key: str, title: str, view: str, viz: str, params: dict, about: str =
 
 def table_chart(key: str, title: str, view: str, columns: list[str], order: str | None = None,
                 filters: list[dict] | None = None, about: str = "", desc: bool = False) -> dict:
+    """A Reports table chart."""
     cols = [c for c in columns if c in {n for n, _ in VIEWS[view]}]
     if view in LINKED:
         cols.append("open")
@@ -244,6 +247,7 @@ def table_chart(key: str, title: str, view: str, columns: list[str], order: str 
 def pivot_chart(key: str, title: str, view: str, rows: list[str], columns: list[str], metric: str = "count",
                 filters: list[dict] | None = None, about: str = "", width: int = 12) -> dict:
     # several models can be chosen at once: each model gets its own block of rows (unless models are the columns)
+    """A Reports pivot table chart."""
     if "model_name" not in rows + columns:
         rows = ["model_name", *rows]
     return _chart(key, title, view, "pivot_table_v2", {
@@ -257,6 +261,7 @@ def pivot_chart(key: str, title: str, view: str, rows: list[str], columns: list[
 
 def bar_chart(key: str, title: str, view: str, x: str, metric: str = "count", group: list[str] | None = None,
               filters: list[dict] | None = None, about: str = "", width: int = 12, limit: int = 30) -> dict:
+    """A Reports bar chart."""
     return _chart(key, title, view, "echarts_timeseries_bar", {
         "x_axis": x, "metrics": [metric], "groupby": group or [], "adhoc_filters": filters or [],
         "row_limit": 10000, "series_limit": limit, "orientation": "horizontal", "stack": True,
@@ -266,6 +271,7 @@ def bar_chart(key: str, title: str, view: str, x: str, metric: str = "count", gr
 
 def line_chart(key: str, title: str, view: str, x: str, metric: str = "count", group: list[str] | None = None,
                grain: str = "P1W", about: str = "", width: int = 12) -> dict:
+    """A Reports line chart over time."""
     return _chart(key, title, view, "echarts_timeseries_line", {
         "x_axis": x, "time_grain_sqla": grain, "metrics": [metric], "groupby": group or [], "adhoc_filters": [],
         "row_limit": 10000, "show_legend": True, "rich_tooltip": True, "markerEnabled": True,
@@ -481,6 +487,7 @@ def _native(slug: str, name: str, kind: str, view: str | None, column: str | Non
 
 
 def dataset_for(chart: dict) -> str:
+    """The report view a chart's dataset is over."""
     return next(v for v in VIEWS if uid("dataset", v) == chart["dataset_uuid"])
 
 
@@ -508,6 +515,7 @@ def _standard_filters(report: dict, charts: list[dict]) -> list[dict]:
 
 
 def dashboard(report: dict, charts: list[dict]) -> dict:
+    """A report's Reports dashboard: its title, charts laid out and filters."""
     slug = report["slug"]
     title = report["title"] if report["code"] in ("MO", "HM") or report["code"].startswith("AU-") \
         else f"{report['code']} {report['title']}"
@@ -563,6 +571,7 @@ def _name(text_: str) -> str:
 
 
 def bundle(report: dict, db_password: str, db_name: str, public_url: str) -> dict[str, dict]:
+    """A report as a Reports import bundle (database, datasets, charts, dashboard), file by file."""
     charts = charts_for(report)
     files: dict[str, dict] = {
         "metadata.yaml": {"version": "1.0.0", "type": "Dashboard", "timestamp": datetime.now(UTC).isoformat()},
@@ -633,12 +642,14 @@ def graph_chart(key: str, title: str, view: str, source: str, target: str, sourc
 
 def sankey_chart(key: str, title: str, view: str, source: str, target: str, filters: list[dict] | None = None,
                  about: str = "", width: int = 12) -> dict:
+    """A Reports Sankey chart (flows from a source column to a target)."""
     return _chart(key, title, view, "sankey_v2", {"source": source, "target": target, "metric": "count",
                                                    "adhoc_filters": filters or [], "row_limit": 2000}, about, width)
 
 
 def treemap_chart(key: str, title: str, view: str, groupby: list[str], metric: str = "count",
                   filters: list[dict] | None = None, about: str = "", width: int = 12) -> dict:
+    """A Reports tree map."""
     return _chart(key, title, view, "treemap_v2", {"groupby": groupby, "metric": metric, "adhoc_filters": filters or [],
                                                     "row_limit": 5000, "show_labels": True, "show_upper_labels": True,
                                                     "label_type": "key_value", "number_format": "SMART_NUMBER"}, about, width)
@@ -646,6 +657,7 @@ def treemap_chart(key: str, title: str, view: str, groupby: list[str], metric: s
 
 def bubble_chart(key: str, title: str, view: str, entity: str, x: str, y: str, size: str, series: str,
                  about: str = "", width: int = 12) -> dict:
+    """A Reports bubble chart (functional fit against technical fit)."""
     return _chart(key, title, view, "bubble_v2", {"entity": entity, "x": x, "y": y, "size": size, "series": series,
                                                    "adhoc_filters": [], "row_limit": 2000, "max_bubble_size": "25",
                                                    "x_axis_label": "Functional fit", "y_axis_label": "Technical fit",
@@ -900,6 +912,7 @@ def _kpi_charts(report: dict) -> list[dict]:
 
 
 def charts_for(report: dict) -> list[dict]:
+    """A report's charts, by its family (standard, KPI trends, heat maps and the rest)."""
     family = report.get("family", "Standard")
     if family == "KPI trends":
         return _kpi_charts(report)
@@ -922,6 +935,7 @@ def charts_for(report: dict) -> list[dict]:
 
 
 def dashboard_filters(report: dict, charts: list[dict]) -> list[dict]:
+    """A report dashboard's native filters (the model first)."""
     family = report.get("family", "Standard")
     slug, n = report["slug"], len(charts)
     if family == "Standard":

@@ -22,6 +22,7 @@ HERE = Path(__file__).resolve().parent
 
 
 def data() -> dict:
+    """The deliverables library's data."""
     return json.loads((HERE / "project_library.json").read_text(encoding="utf-8"))
 
 
@@ -57,6 +58,7 @@ CF_ITEMS: dict[str, str] = json.loads((HERE / "content_framework_map.json").read
 
 
 def library_sql(d: dict | None = None) -> str:
+    """The deliverables library as SQL to load."""
     d = d or data()
     out = [
         _ins("proj.lib_purposes", ["code", "name", "standard", "sort_order"],
@@ -108,6 +110,7 @@ def library_sql(d: dict | None = None) -> str:
 
 
 def sample_principles_sql() -> str:
+    """The sample principles as SQL to load."""
     d = json.loads((HERE / "sample_principles.json").read_text(encoding="utf-8"))
     return _ins("proj.lib_principles", ["code", "set_name", "category", "name", "statement", "rationale", "implications", "tier", "owner",
                                         "measure", "source"],

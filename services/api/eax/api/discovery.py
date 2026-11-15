@@ -70,6 +70,8 @@ def _with_preview(out: dict, model) -> dict:
 
 @blp.route("/models/<uuid:model_id>/discovery-sources")
 class Sources(MethodView):
+    """/api/v1/models/{model_id}/discovery-sources: POST adds a discovery source {name, kind (odata, push or ai),
+    url, auth_ref (the name of a setting holding the sign-in, never the secret), schedule (off, daily, weekly)…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(201, Free)
@@ -83,6 +85,10 @@ class Sources(MethodView):
 
 @blp.route("/discovery-sources/<source_id>")
 class Source(MethodView):
+    """/api/v1/discovery-sources/{source_id}: GET the discovery source: its kind, address, schedule, mapping, last
+    run and the matches waiting to be confirmed; PATCH changes it {kind, url, auth_ref, schedule, mapping,
+    values_win, active}; DELETE deletes the source: refused while a delivery of it waits for review; what it
+    delivered stays in Loads and the model; what it saw and the matches confirmed go with it."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -116,6 +122,8 @@ class Source(MethodView):
 
 @blp.route("/discovery-sources/<source_id>/look")
 class Look(MethodView):
+    """/api/v1/discovery-sources/{source_id}/look: POST reads the source now and says what is in it (sets, fields,
+    keys, links) with the mapping suggested; changes nothing."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -127,6 +135,8 @@ class Look(MethodView):
 
 @blp.route("/discovery-sources/<source_id>/run")
 class Run(MethodView):
+    """/api/v1/discovery-sources/{source_id}/run: POST runs it now {full}: what is new or changed since the last
+    delivery becomes a delivery (previewed in the background, then accepted or declined); the found names that may…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(202, Free)
@@ -142,6 +152,8 @@ class Run(MethodView):
 
 @blp.route("/discovery-sources/<source_id>/matches")
 class Matches(MethodView):
+    """/api/v1/discovery-sources/{source_id}/matches: POST a person's answer to a suggested match {entity_type,
+    found, entity}: the element (its id) or new (no entity)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -157,6 +169,8 @@ class Matches(MethodView):
 
 @blp.route("/import-sources/<source_id>/push")
 class Push(MethodView):
+    """/api/v1/import-sources/{source_id}/push: POST a system sends what it has, as JSON {"<set>": [records]} or
+    {"value": [records], "set": "<set>"}: what is new or changed becomes a delivery to review."""
     @blp.doc(security=SECURITY)
     @blp.response(202, Free)
     @basic_or_token
@@ -173,6 +187,8 @@ class Push(MethodView):
 
 @blp.route("/discovery-sources/<source_id>/kit")
 class Kit(MethodView):
+    """/api/v1/discovery-sources/{source_id}/kit: GET a push source's Python kit as a zip: push_to_eax.py,
+    requirements.txt, a README (a venv, the command with this source's address) and sample CSV files made from the…"""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self, source_id):
@@ -184,6 +200,8 @@ class Kit(MethodView):
 
 @blp.route("/discovery-sources/<source_id>/kit/code")
 class KitCode(MethodView):
+    """/api/v1/discovery-sources/{source_id}/kit/code: GET the kit's script, requirements, command and samples, to
+    show and copy on the Discovery tab."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -194,6 +212,9 @@ class KitCode(MethodView):
 
 @blp.route("/admin/ai-engine")
 class AiEngine(MethodView):
+    """/api/v1/admin/ai-engine: GET the AI engine discovery uses: off, cloud (the organisation's own key, named by a
+    setting) or local (Super Admins); PUT chooses it {mode, url (its chat-completions interface), model, key_ref}:
+    Super Admins."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("settings.manage")

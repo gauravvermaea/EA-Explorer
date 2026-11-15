@@ -46,6 +46,8 @@ def _routes():
 
 @blp.route("/areas")
 class Areas(MethodView):
+    """/api/v1/machine-access/areas: GET the API areas a credential is given read or read-write on, with the
+    addresses in each."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -59,6 +61,8 @@ class Areas(MethodView):
 
 @blp.route("/credentials")
 class Credentials(MethodView):
+    """/api/v1/machine-access/credentials: GET my credentials; with ?all=1, every credential (Super Admins and IT
+    Admins); POST a new token or API key (the secret is shown once), or an uploaded client certificate."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -77,6 +81,8 @@ class Credentials(MethodView):
 
 @blp.route("/credentials/<ident>")
 class Credential(MethodView):
+    """/api/v1/machine-access/credentials/{ident}: PATCH change its areas, limits or name, or bring its expiry
+    forward."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -88,6 +94,8 @@ class Credential(MethodView):
 
 @blp.route("/credentials/<ident>/revoke")
 class Revoke(MethodView):
+    """/api/v1/machine-access/credentials/{ident}/revoke: POST revoke it at once (its owner, a Super Admin or an IT
+    Admin)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -99,6 +107,8 @@ class Revoke(MethodView):
 
 @blp.route("/service-accounts")
 class ServiceAccounts(MethodView):
+    """/api/v1/machine-access/service-accounts: GET every service account (Super Admins and IT Admins); POST a new
+    service account: svc-<name>, with global roles (model roles are given on each model's People tab)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth("system.operate")
@@ -117,6 +127,8 @@ class ServiceAccounts(MethodView):
 
 @blp.route("/service-accounts/<username>")
 class ServiceAccount(MethodView):
+    """/api/v1/machine-access/service-accounts/{username}: PATCH change its roles or description, or disable it (its
+    credentials stop working) or enable it again."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)

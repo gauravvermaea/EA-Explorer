@@ -47,6 +47,7 @@ def _field(text: str, lo: int, hi: int) -> set[int]:
 
 
 def parse(cron: str) -> tuple[set[int], ...]:
+    """A cron expression's five parts as sets of numbers."""
     parts = (cron or "").split()
     if len(parts) != 5:
         raise ScheduleError("A cron expression has five parts: minute hour day-of-month month day-of-week.")
@@ -79,6 +80,7 @@ def next_after(cron: str, after: datetime) -> datetime:
 
 
 def parts_star(cron: str) -> tuple[bool, bool]:
+    """Whether day of month and day of week are each *."""
     p = cron.split()
     return p[2] == "*", p[4] == "*"
 
@@ -136,6 +138,7 @@ def preset(kind: str, time_: str = "02:00", day: int = 1, minute: int = 0, at: s
 
 # ---------------------------------------------------------------- the time zone and the file
 def zone(root: Path | str | None = None):
+    """The time zone schedules run in."""
     import os
     name = (os.environ.get("EAX_TIMEZONE") or persist._config_value(Path(root) if root else persist.ROOT, "EAX_TIMEZONE")
             or "UTC")
@@ -147,16 +150,19 @@ def zone(root: Path | str | None = None):
 
 
 def path(root: Path | str | None = None) -> Path:
+    """Where schedules are kept (persist/schedules.json)."""
     return persist.folder(root) / "schedules.json"
 
 
 def load(root: Path | str | None = None) -> tuple[list[dict], str]:
+    """The schedules, with any problem reading them."""
     data, warn = persist.read_json(path(root), {"version": persist.VERSION, "schedules": []})
     items = [s for s in data.get("schedules") or [] if isinstance(s, dict) and s.get("id")]
     return items, warn
 
 
 def save(items: list[dict], root: Path | str | None = None) -> None:
+    """Writes the schedules."""
     persist.write_json(path(root), {"version": persist.VERSION, "_comment": COMMENT, "schedules": items})
 
 
@@ -170,6 +176,7 @@ def _when(s: dict, tz) -> datetime | None:
 
 
 def next_run(s: dict, tz, now: datetime | None = None) -> datetime | None:
+    """When a schedule runs next (None when it is off)."""
     if not s.get("enabled"):
         return None
     now = now or datetime.now(tz)
@@ -183,6 +190,7 @@ def next_run(s: dict, tz, now: datetime | None = None) -> datetime | None:
 
 
 def listing(root: Path | str | None = None, now: datetime | None = None) -> dict:
+    """Every schedule with its next run, in words."""
     tz = zone(root)
     items, warn = load(root)
     out = []
@@ -254,6 +262,7 @@ def demo_reset(by: str, roles: list[str], installation: str, typed: str, underst
 
 
 def change(sid: str, what: str, by: str, roles: list[str], root: Path | str | None = None) -> dict:
+    """Switches a schedule on or off, or removes it (by those allowed)."""
     items, _ = load(root)
     s = next((x for x in items if x.get("id") == sid), None)
     if not s:
@@ -275,6 +284,7 @@ def change(sid: str, what: str, by: str, roles: list[str], root: Path | str | No
 
 
 def find(sid: str, root: Path | str | None = None) -> dict:
+    """A schedule by its id or name."""
     items, _ = load(root)
     for s in items:
         if s.get("id") == sid or s.get("name") == sid:
@@ -284,6 +294,7 @@ def find(sid: str, root: Path | str | None = None) -> dict:
 
 def record(sid: str, last: dict, root: Path | str | None = None, checked: datetime | None = None,
            disable: bool = False) -> None:
+    """Records how a schedule's last run went."""
     items, _ = load(root)
     for s in items:
         if s.get("id") == sid:
@@ -368,4 +379,5 @@ def _set(sid: str, key: str, value, root) -> None:
 
 
 def banner_text(s: dict) -> str:
+    """The banner a demo-reset schedule shows."""
     return f"This demo resets {describe(s)}: everything entered is deleted then."

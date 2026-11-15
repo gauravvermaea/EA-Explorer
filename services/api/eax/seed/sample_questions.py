@@ -163,6 +163,7 @@ def _p(name, roles=("user",)):
 
 
 def run() -> list[str]:
+    """Loads the sample key questions."""
     from .. import key_questions as kq
     from .. import notify
     from .. import permissions as perms

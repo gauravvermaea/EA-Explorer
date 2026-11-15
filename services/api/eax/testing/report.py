@@ -26,6 +26,7 @@ def _shots(conn, run_id: int) -> dict[int, bytes]:
 
 
 def options_line(run: dict[str, Any]) -> str:
+    """A run's options in one line, for its report."""
     bits = [", ".join(run["suites"]), run.get("mode") or "full"]
     if run.get("repeat_of"):
         bits.append(f"the failed checks of self-test {run['repeat_of']} again" + (" (and its warnings)" if run.get("repeat_warnings") else ""))
@@ -228,6 +229,7 @@ def _coverage_sheet(wb, files: dict, points: list[dict], Font) -> None:
 
 
 def to_xlsx(conn, run_id: int, files: dict | None = None, points: list[dict] | None = None) -> bytes:
+    """A run's report as an Excel workbook."""
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill
     d = store.run_detail(conn, run_id)

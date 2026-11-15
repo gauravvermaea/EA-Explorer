@@ -33,10 +33,12 @@ SOURCE = "console (on the machine)"
 
 # ---------------------------------------------------------------- plain console helpers
 def say(text: str = "") -> None:
+    """Prints a line at once."""
     print(text, flush=True)
 
 
 def ask(prompt: str) -> str:
+    """Asks a question in the terminal; empty when there is no terminal."""
     try:
         return input(prompt).strip()
     except EOFError:
@@ -60,15 +62,18 @@ def choose(title: str, items: list[str]) -> int | None:
 
 
 def confirm(what: str) -> bool:
+    """Says what will happen and asks for YES before it does."""
     say(f"\n{what}")
     return ask("Type YES to go ahead (anything else stops): ") == "YES"
 
 
 def pause() -> None:
+    """Waits for Enter before going back to the menu."""
     ask("\nPress Enter to go back to the menu ")
 
 
 def table(rows: list[dict], cols: list[tuple[str, str, int]]) -> None:
+    """Prints rows as a table with the columns given (key, heading, width)."""
     if not rows:
         say("  (none)")
         return
@@ -95,6 +100,7 @@ def _audit(conn, action: str, object_type: str = "", object_id: str = "", detail
 
 
 def local_settings() -> int:
+    """The console's settings menu, on this machine's database."""
     from . import settings as st
     from .db import get_engine
     user = _console_user()
@@ -140,6 +146,7 @@ def local_settings() -> int:
 
 
 def local_tasks() -> int:
+    """The console's background tasks menu, on this machine's database."""
     from sqlalchemy import text
 
     from .db import get_engine
@@ -188,6 +195,7 @@ def local_tasks() -> int:
 
 
 def local_health() -> int:
+    """The console's health page, on this machine."""
     from sqlalchemy import text
 
     from . import health
@@ -254,6 +262,7 @@ class Remote:
         return json.loads(body) if body else {}
 
     def sign_in(self) -> str:
+        """Signs in to another installation's Keycloak (asking the name and password) and keeps the token."""
         base = f"{self.server}/auth/realms/{self.realm}/protocol/openid-connect"
         form = lambda d: urllib.parse.urlencode(d).encode()  # noqa: E731
         hdr = {"Content-Type": "application/x-www-form-urlencoded"}
@@ -280,12 +289,15 @@ class Remote:
         return self._call(method, self.server + path, data, {"Authorization": f"Bearer {self.token}", "Content-Type": "application/json"})
 
     def get(self, path: str) -> Any:
+        """A GET to the other installation's API."""
         return self._api("GET", path)
 
     def post(self, path: str, body: Any = None) -> Any:
+        """A POST to the other installation's API."""
         return self._api("POST", path, body if body is not None else {})
 
     def put(self, path: str, body: Any) -> Any:
+        """A PUT to the other installation's API."""
         return self._api("PUT", path, body)
 
 
@@ -295,6 +307,7 @@ REMOTE_MENU = ["Status: every service's health", "Restart everything / one servi
 
 
 def remote(server: str, realm: str, insecure: bool) -> int:
+    """The console run against another installation, through its API."""
     r = Remote(server, realm, insecure)
     say(f"EA Explorer console, through the API of {r.server}")
     try:
@@ -398,6 +411,7 @@ def _remote_item(r: Remote, i: int) -> None:  # noqa: C901 - one branch per menu
 
 # ---------------------------------------------------------------- the command line
 def main(argv: list[str]) -> int:
+    """python -m eax.console_cli: the text console's commands (settings, tasks, health, remote)."""
     cmd = argv[0] if argv else "help"
     try:
         if cmd == "settings":

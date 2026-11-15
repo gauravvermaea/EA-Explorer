@@ -30,7 +30,7 @@ SEEDS = [
     "#/merge-requests", "#/archive", "#/project-admin", "#/metamodel", "#/metamodel/{m}", "#/model-admin/{m}", "#/projects",
     "#/projects/{p}", "#/mcp", "#/library", "#/project-library", "#/principles", "#/compare", "#/compare/gaps", "#/compare/common", "#/change-log",
     "#/notifications", "#/surveys", "#/maturity", "#/change-documents", "#/admin", "#/search?q=self_test", "#/farm",
-    "#/farm/connect", "#/more",
+    "#/farm/connect", "#/more", "#/service-desk/ask", "#/service-desk/mine", "#/service-desk/queue",
 ]
 # pages the sweep does not open, and why
 SKIP_ROUTES = {
@@ -45,6 +45,7 @@ _LEAVE = re.compile(r"^#/break-glass\b|logout|sign-?out", re.I)
 
 
 def seeds(ids: dict[str, str]) -> list[str]:
+    """The pages the sweep starts from, with the run's ids filled in."""
     m, p = ids.get("model", ""), ids.get("project", "")
     out = []
     for s in SEEDS:
@@ -63,6 +64,7 @@ def in_scope(route: str, ids: dict[str, str]) -> bool:
 
 
 def norm(route: str) -> str:
+    """A route in one form, to tell pages apart."""
     r = route.strip()
     r = re.sub(r"/+(\?|$)", r"\1", r)
     return r or "#/"

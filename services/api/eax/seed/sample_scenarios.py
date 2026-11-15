@@ -25,6 +25,7 @@ def _p(name, roles=("user",)):
 
 
 def run() -> list[str]:
+    """Loads the sample scenarios."""
     from .. import permissions as perms
     from .. import projects as pj
     said: list[str] = []

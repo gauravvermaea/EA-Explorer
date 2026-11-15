@@ -20,7 +20,7 @@ that is there (run `cleanup` first to start again).
 **Server** (this machine is the server; Linux shown, `.\eax` on Windows Server works the same):
 
 ```bash
-./eax.sh init server        # the server template; asks for the backups folder (a mounted share or volume, EAX_BACKUP_DIR)
+./eax.sh init server        # the server template; asks for the base folder for all the data (EAX_DATA_ROOT, R5.4)
 nano work/eaexplorer.env    # replace EVERY change-me value: EAX_HOSTNAME, the passwords, the certificate settings
 ./eax.sh check              # Docker, the config file and the compose files are valid; starts nothing
 ./eax.sh up                 # build and start

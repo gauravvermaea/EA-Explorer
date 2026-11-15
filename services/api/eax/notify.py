@@ -162,6 +162,7 @@ def _visible(username: str) -> str:
 
 
 def counts(conn, username: str) -> dict:
+    """A person's unread notifications and open actions."""
     r = P.one(conn, """
         SELECT count(*) FILTER (WHERE r.read_at IS NULL AND r.dismissed_at IS NULL AND n.resolved_at IS NULL) AS unread,
                count(*) FILTER (WHERE n.needs_action AND n.resolved_at IS NULL) AS open_actions
@@ -228,6 +229,7 @@ def listing(conn, username: str, *, show: str = "open", category: str = "", mode
 
 
 class NotFound(Exception):
+    """No such notification for this person."""
     pass
 
 
@@ -250,6 +252,7 @@ def mark_read(conn, username: str, guids: list | None = None) -> int:
 
 
 def dismiss(conn, username: str, guid) -> dict:
+    """Dismisses a notification (one needing action is resolved instead)."""
     n = _mine(conn, username, guid)
     if n["needs_action"] and n["resolved_at"] is None:
         raise ValueError("This one needs action: resolve it with a note of what you did.")
@@ -270,6 +273,7 @@ def dismiss_all(conn, username: str, category: str = "") -> dict:
 
 
 def resolve(conn, username: str, guid, note: str) -> dict:
+    """Resolves a notification that needed action, with a note of what was done."""
     n = _mine(conn, username, guid)
     if not n["needs_action"]:
         raise ValueError("Only notifications that need action are resolved; dismiss this one.")
@@ -294,4 +298,5 @@ def payload(conn, nid: int) -> dict:
 
 
 def jsonable(v):
+    """A value made plain JSON (dates as text)."""
     return json.loads(json.dumps(v, default=str))

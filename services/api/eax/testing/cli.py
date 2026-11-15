@@ -96,6 +96,7 @@ def pick_watch(runs: list[dict], args: list[str]) -> dict | None:
 
 
 def watch(teng, runs: list[dict], args: list[str], out=print, every: float = 2.0) -> int:
+    """eax test watch: follows a run as it happens in the terminal."""
     from . import live
     from .run import RESULTS
     pick = pick_watch(runs, args)
@@ -117,6 +118,7 @@ def watch(teng, runs: list[dict], args: list[str], out=print, every: float = 2.0
 
 
 def stop(eng, runs: list[dict], args: list[str], out=print) -> int:
+    """eax test stop: asks the run going on (or the one named) to stop."""
     import getpass
 
     from .. import audit
@@ -145,6 +147,8 @@ def _results_root(default):
 
 
 def main(argv: list[str]) -> int:
+    """python -m eax.testing.cli: the self-test's commands run in the api container (last, status, report, watch, stop,
+    api, delete, clean)."""
     cmd, args = (argv[0] if argv else "last"), argv[1:]
     if cmd == "api":                                  # the API test harness, one call (R3.16): no run list needed
         return api_call(args)

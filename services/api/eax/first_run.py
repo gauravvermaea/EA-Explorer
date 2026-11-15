@@ -71,6 +71,7 @@ def _seen(conn) -> dict[str, bool]:
 
 
 def status(conn, user) -> dict:
+    """What the first-run guide shows this person: the steps done and still to do."""
     st_ = _state(conn)
     seen = _seen(conn)
     org = seen.pop("_org", None)

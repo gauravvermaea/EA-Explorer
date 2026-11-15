@@ -104,6 +104,7 @@ def _pick(models: list[dict], ref: Any, what: str) -> dict:
 
 
 def baseline_of(models: list[dict], baseline: Any = None) -> dict:
+    """A scenario's baseline model (the one named, or the project's baseline)."""
     if baseline:
         return _pick(models, baseline, "baseline")
     cur = [m for m in models if m["role"] == BASELINE_ROLE]
@@ -487,11 +488,13 @@ _ASSESS_SQL = """SELECT a.*, d.guid::text AS doc_guid, coalesce(nullif(d.title, 
 
 
 def assessments(pc, p: dict, user) -> list[dict]:
+    """A project's scenario assessments, newest first."""
     pj._need(pc, p, user, "read")
     return [_out(r) for r in _rows(pc, _ASSESS_SQL + " ORDER BY a.created_at DESC, a.id DESC", p=p["id"])]
 
 
 def get_assessment(pc, project: Any, user, aid: str) -> dict:
+    """One scenario assessment."""
     p = pj.project_row(pc, project)
     pj._need(pc, p, user, "read")
     r = _one(pc, _ASSESS_SQL + " AND a.guid = CAST(:g AS uuid)", p=p["id"], g=aid) if repo._as_guid(aid) else None
@@ -509,6 +512,7 @@ def _fmt(v: Any) -> str:
 
 
 def assessment_docx(a: dict, project_name: str) -> bytes:
+    """A scenario assessment as a Word document."""
     from .gaps import _p, _table, docx_from
     body = [_p(a["title"], "Title"), _p(f"{a['ref']} · project {project_name} · baseline {a['baseline']} · by {a['created_by']} · "
                                         f"{str(a['created_at'])[:16]}")]
@@ -653,6 +657,7 @@ def record_assessment(pc, project: Any, user, title: str, scenarios: list[dict],
 
 
 def assessment_file(pc, project: Any, user, aid: str) -> tuple[bytes, str]:
+    """A scenario assessment's Word file and its name."""
     p = pj.project_row(pc, project)
     a = get_assessment(pc, project, user, aid)
     return assessment_docx(a, p["name"]), re.sub(r"[^\w .()-]+", "-", f"{a['ref']} {a['title']}")[:120] + ".docx"

@@ -41,6 +41,7 @@ def take(conn) -> dict | None:
 
 
 def argv_for(r: dict, folder: str) -> list[str]:
+    """The runner's command for a queued run (the scanners left out: no Docker socket)."""
     suites = [s for s in (r["suites"] or ["api", "ui", "db"]) if s != "security"]   # the scanners need the Docker socket
     cmd = [sys.executable, "-m", "eax.testing", "run", "--level", r["level"] or "smoke", "--suites", ",".join(suites) or "api",
            "--trigger", "web", "--folder", folder, "--run-id", str(r["id"]), "--by", r["started_by"] or ""]
@@ -60,6 +61,7 @@ def argv_for(r: dict, folder: str) -> list[str]:
 
 
 def run_one(r: dict) -> int:
+    """Runs one queued run in this service."""
     folder = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime()) + f"-run{r['id']}"
     results = tempfile.mkdtemp(prefix="eax-test-results-")
     env = {**os.environ, "EAX_TEST_RESULTS": results}
@@ -69,6 +71,7 @@ def run_one(r: dict) -> int:
 
 
 def main() -> int:
+    """The test runner service: waits for queued runs and runs them, one at a time."""
     from . import store
     print("EA Explorer test runner service: waiting for runs", flush=True)
     while True:

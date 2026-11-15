@@ -33,6 +33,7 @@ MAX_FUZZY = 800          # a type with more entities is matched on exact names o
 
 
 def norm(s: str) -> str:
+    """A name made comparable: lower case, letters and digits only."""
     return re.sub(r"[^a-z0-9]+", " ", (s or "").lower()).strip()
 
 
@@ -82,12 +83,14 @@ class _Groups:
         self.why: dict[tuple[str, str], tuple[str, float]] = {}
 
     def find(self, x: str) -> str:
+        """The group an item is in (with the path shortened as it goes)."""
         while self.parent[x] != x:
             self.parent[x] = self.parent[self.parent[x]]
             x = self.parent[x]
         return x
 
     def join(self, a: dict, b: dict, reason: str, score: float) -> None:
+        """Puts two likely duplicates in one group, keeping why and how sure."""
         ra, rb = self.find(a["id"]), self.find(b["id"])
         if ra != rb:
             self.parent[rb] = ra

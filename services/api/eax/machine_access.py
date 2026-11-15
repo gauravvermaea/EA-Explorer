@@ -92,19 +92,23 @@ def area_of(path: str) -> str | None:
 
 
 def is_read(method: str) -> bool:
+    """Whether an HTTP method only reads."""
     return method.upper() in ("GET", "HEAD", "OPTIONS")
 
 
 # ---------------------------------------------------------------- secrets and certificates
 def new_secret(kind: str) -> str:
+    """A new API key or token: its kind's prefix and 30 random bytes."""
     return (TOKEN_PREFIX if kind == "token" else KEY_PREFIX) + secrets.token_urlsafe(30)
 
 
 def hash_secret(secret: str) -> str:
+    """The SHA-256 a secret is kept as (the secret itself is never kept)."""
     return hashlib.sha256(secret.strip().encode()).hexdigest()
 
 
 def looks_like_secret(value: str) -> bool:
+    """Whether a value looks like one of our API keys or tokens."""
     v = (value or "").strip()
     return v.startswith((TOKEN_PREFIX, KEY_PREFIX)) and 20 <= len(v) <= 200
 
@@ -166,6 +170,7 @@ class Machine:
 
 
 class Refused(Exception):
+    """A machine credential refused, with the HTTP status to answer."""
     def __init__(self, status: int, message: str):
         super().__init__(message)
         self.status, self.message = status, message
@@ -196,8 +201,9 @@ def presented(headers, bearer: str | None) -> tuple[str, str] | None:
     return None
 
 
-def authenticate(conn, kind: str, value: str) -> tuple[Machine, tuple[str, ...]]:
-    """The credential and the global roles it acts with; raises Refused (401 or 403) with why."""
+def authenticate(conn, kind: str, value: str, address: str | None = None) -> tuple[Machine, tuple[str, ...]]:
+    """The credential and the global roles it acts with; raises Refused (401 or 403) with why. A credential limited to
+    its own addresses (R5.2) is refused from any other (the caller's address as the front door saw it)."""
     if kind == "secret":
         row = conn.execute(text("SELECT * FROM core.machine_credentials WHERE secret_hash = :h"),
                            {"h": hash_secret(value)}).mappings().first()
@@ -219,6 +225,8 @@ def authenticate(conn, kind: str, value: str) -> tuple[Machine, tuple[str, ...]]
     expires = _dt(row["expires_at"])
     if expires and expires <= _now():
         raise Refused(401, f"{what} expired on {expires:%Y-%m-%d}.")
+    if address is not None and not _from_allowed(row.get("allowed_addresses"), address):
+        raise Refused(403, f"{what} may only be used from {', '.join(row['allowed_addresses'])}, not from {address}.")
     roles = owner_roles(conn, row["owner"])
     if roles is None:
         raise Refused(403, f"{what} belongs to {row['owner']}, who is disabled or not known here.")
@@ -227,6 +235,26 @@ def authenticate(conn, kind: str, value: str) -> tuple[Machine, tuple[str, ...]]
                     scopes=scopes, model_guids=[str(x) for x in row["model_guids"] or []],
                     project_guids=[str(x) for x in row["project_guids"] or []],
                     service=row["owner"].startswith("svc-")), tuple(roles))
+
+
+def _from_allowed(addresses, address: str) -> bool:
+    from .ip_allow import credential_allows
+    return credential_allows(list(addresses or []), address)
+
+
+def clean_addresses(raw) -> list[str]:
+    """A credential's own addresses (R5.2): each an address or a range; empty = from anywhere."""
+    from .ip_allow import Refused as Bad
+    from .ip_allow import network
+    out = []
+    for a in raw or []:
+        try:
+            n = str(network(a))
+        except Bad as exc:
+            raise ValueError(str(exc)) from None
+        if n not in out:
+            out.append(n)
+    return out
 
 
 def owner_roles(conn, owner: str) -> list[str] | None:
@@ -262,6 +290,7 @@ def can_manage_all(roles) -> bool:
 
 
 def clean_scopes(raw: Any) -> dict[str, str]:
+    """A credential's areas checked: each read or read-write."""
     if not isinstance(raw, dict):
         raise ValueError("Say which areas it may use: {area: read | read-write}.")
     out = {}
@@ -319,6 +348,7 @@ def create(conn, actor: str, actor_roles, body: dict) -> dict:
     scopes = clean_scopes(body.get("scopes"))
     models = _guids(conn, "core.models", body.get("model_guids"))
     projects = _guids(conn, "proj.projects", body.get("project_guids"))
+    addresses = clean_addresses(body.get("allowed_addresses"))
     secret, cert = None, None
     if kind == "certificate":
         cert = cert_info(body.get("pem") or "")
@@ -333,13 +363,14 @@ def create(conn, actor: str, actor_roles, body: dict) -> dict:
         secret = new_secret(kind)
     row = conn.execute(text("""
         INSERT INTO core.machine_credentials (owner, kind, name, secret_prefix, secret_hash, cert_fingerprint, cert_subject,
-               cert_not_after, cert_pem, scopes, model_guids, project_guids, expires_at, created_by)
-        VALUES (:o, :k, :n, :sp, :sh, :cf, :cs, :cn, :cp, CAST(:sc AS jsonb), CAST(:mg AS uuid[]), CAST(:pg AS uuid[]), :e, :by)
+               cert_not_after, cert_pem, scopes, model_guids, project_guids, expires_at, created_by, allowed_addresses)
+        VALUES (:o, :k, :n, :sp, :sh, :cf, :cs, :cn, :cp, CAST(:sc AS jsonb), CAST(:mg AS uuid[]), CAST(:pg AS uuid[]), :e, :by,
+                CAST(:aa AS text[]))
         RETURNING id"""), {"o": owner, "k": kind, "n": name[:120], "sp": secret[:12] if secret else "",
                            "sh": hash_secret(secret) if secret else None, "cf": cert and cert["fingerprint"],
                            "cs": cert["subject"] if cert else "", "cn": cert and cert["not_after"], "cp": cert["pem"] if cert else "",
                            "sc": json.dumps(scopes), "mg": "{" + ",".join(models) + "}", "pg": "{" + ",".join(projects) + "}",
-                           "e": expires, "by": actor}).mappings().one()
+                           "e": expires, "by": actor, "aa": "{" + ",".join(addresses) + "}"}).mappings().one()
     from . import audit
     out = get(conn, row["id"])
     audit.record(conn, actor=actor, action="machine.credential.create", object_type="credential", object_id=out["guid"],
@@ -364,10 +395,11 @@ def _shape(r: dict) -> dict:
             "revoked_at": r["revoked_at"] and r["revoked_at"].isoformat(), "revoked_by": r["revoked_by"],
             "revoke_reason": r["revoke_reason"], "last_used_at": r["last_used_at"] and r["last_used_at"].isoformat(),
             "last_used_from": r["last_used_from"], "last_used_path": r["last_used_path"], "use_count": r["use_count"],
-            "state": state}
+            "allowed_addresses": list(r.get("allowed_addresses") or []), "state": state}
 
 
 def get(conn, ident) -> dict:
+    """One machine credential, by id or guid."""
     r = conn.execute(text("SELECT * FROM core.machine_credentials WHERE id::text = :i OR guid::text = :i"),
                      {"i": str(ident)}).mappings().first()
     if not r:
@@ -386,6 +418,7 @@ def listing(conn, actor: str, actor_roles, everyone: bool = False) -> list[dict]
 
 
 def revoke(conn, actor: str, actor_roles, ident, reason: str = "") -> dict:
+    """Revokes a credential (its owner, a Super Admin or an IT Admin), with a reason."""
     c = get(conn, ident)
     if c["owner"] != actor.lower() and not can_manage_all(actor_roles):
         raise PermissionError("Only its owner, a Super Admin or an IT Admin revokes it.")
@@ -419,6 +452,9 @@ def change(conn, actor: str, actor_roles, ident, body: dict) -> dict:
     if "project_guids" in body:
         sets.append("project_guids = CAST(:pg AS uuid[])")
         params["pg"] = "{" + ",".join(_guids(conn, "proj.projects", body["project_guids"])) + "}"
+    if "allowed_addresses" in body:
+        sets.append("allowed_addresses = CAST(:aa AS text[])")
+        params["aa"] = "{" + ",".join(clean_addresses(body["allowed_addresses"])) + "}"
     if body.get("expires_at"):
         new = datetime.fromisoformat(str(body["expires_at"]).replace("Z", "+00:00"))
         if new.tzinfo is None:
@@ -432,7 +468,7 @@ def change(conn, actor: str, actor_roles, ident, body: dict) -> dict:
         from . import audit
         audit.record(conn, actor=actor, action="machine.credential.change", object_type="credential", object_id=c["guid"],
                      details={"name": c["name"], **{k: body[k] for k in ("name", "scopes", "model_guids", "project_guids",
-                                                                        "expires_at") if k in body}})
+                                                                        "expires_at", "allowed_addresses") if k in body}})
     return get(conn, c["id"])
 
 
@@ -441,6 +477,7 @@ SERVICE_ROLES = [perms.USER, perms.MODEL_CREATOR, perms.LIBRARY_ADMIN, perms.IT_
 
 
 def service_accounts(conn) -> list[dict]:
+    """The service accounts with how many live credentials each has."""
     rows = conn.execute(text("""
         SELECT s.*, (SELECT count(*) FROM core.machine_credentials c WHERE c.owner = s.username
                        AND c.revoked_at IS NULL AND c.expires_at > now()) AS live_credentials,
@@ -470,6 +507,7 @@ def _check_roles(roles: Any, actor_roles) -> list[str]:
 
 
 def create_service_account(conn, actor: str, actor_roles, body: dict) -> dict:
+    """Makes a service account (Super Admins and IT Admins), its name starting svc-."""
     if not can_manage_all(actor_roles):
         raise PermissionError("Service accounts are made by Super Admins and IT Admins.")
     raw = (body.get("username") or body.get("name") or "").strip().lower()
@@ -491,6 +529,7 @@ def create_service_account(conn, actor: str, actor_roles, body: dict) -> dict:
 
 
 def change_service_account(conn, actor: str, actor_roles, username: str, body: dict) -> dict:
+    """Changes a service account's name, roles or whether it is on."""
     if not can_manage_all(actor_roles):
         raise PermissionError("Service accounts are changed by Super Admins and IT Admins.")
     sa = next((s for s in service_accounts(conn) if s["username"] == username), None)

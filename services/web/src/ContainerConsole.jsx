@@ -35,6 +35,7 @@ export const PURPOSE = {
   ops: "The operations helper: reaches Docker for Containers, restarts, backups, the terminal and alerts",
   setup: "Makes the certificates and first settings at the start, then stops (a stop here is normal)",
   testrunner: "The self-test, started when a test runs",
+  k6: "The load test's many people at once, started by the performance suite (R5.18)",
   "testrunner-service": "The self-test runner that waits for runs on a managed platform",
 };
 // only current and relevant containers unless asked (owner, 13 Nov 2026: "Dead are not unless asked for"): running or
@@ -378,7 +379,7 @@ function LogLine({ line, q, level, service }) {
 }
 
 // eax's own logs (work/logs) and the log backups (work/backups/logs), opened the same way (R2.31)
-function OwnLogs() {
+export function OwnLogs() {
   const { data: list, error } = useApi("/api/v1/admin/logs/own");
   const [pick, setPick] = useState("");            // "own:<name>" or "zip:<name>"
   const [member, setMember] = useState("");
@@ -424,7 +425,7 @@ function OwnLogs() {
 // the logs kept on disk, one file a day per container (R2.31, R2.32): one or several containers merged by time, by level
 // and time of day, the words searched for highlighted, a page of 1,000 lines at a time, live, downloaded; and the logs
 // backed up or cleaned (R2.30)
-function KeptLogs({ service }) {
+export function KeptLogs({ service }) {
   const { data: files } = useApi("/api/v1/admin/logs/files");
   const all = [...new Set((files?.files || []).map((f) => f.service))].sort();
   const days = [...new Set((files?.files || []).map((f) => f.day))].sort().reverse();
@@ -485,7 +486,7 @@ function KeptLogs({ service }) {
         </select>
         <select value={level} onChange={(e) => { setLevel(e.target.value); setPage(null); }} aria-label="Level">
           <option value="">Every level</option><option value="info">Info and worse</option>
-          <option value="warning">Warnings and errors</option><option value="error">Errors only</option>
+          <option value="warning">Warnings and errors</option><option value="error">Errors and critical</option><option value="critical">Critical only</option>
         </select>
         <input type="time" value={since} onChange={(e) => setSince(e.target.value)} aria-label="Since" title="Since" />
         <input type="time" value={until} onChange={(e) => setUntil(e.target.value)} aria-label="Until" title="Until" />

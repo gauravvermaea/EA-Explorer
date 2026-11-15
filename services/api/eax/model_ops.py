@@ -167,6 +167,7 @@ def metamodel_spec(conn, model: Any) -> dict:
 
 
 def empty_spec(name: str = "", framework: str = "", version: str = "") -> dict:
+    """An empty metamodel description, to fill in."""
     return {"format": SPEC_FORMAT, "name": name, "framework": framework, "version": version, "domains": [],
             "pick_lists": [], "attributes": [], "entity_types": [], "relationship_types": [], "allowed": [], "rules": []}
 
@@ -953,6 +954,7 @@ def _is_guid(v: str) -> bool:
 
 
 def copy_failed(conn, target: str, reason: str) -> None:
+    """Marks a model copy as failed, with the reason."""
     _exec(conn, "UPDATE core.models SET copy_state = 'failed', copy_note = :n WHERE guid = CAST(:g AS uuid)",
           g=target, n=f"The copy failed: {reason}"[:500])
 
@@ -960,6 +962,7 @@ def copy_failed(conn, target: str, reason: str) -> None:
 # ================================================================ lifecycle
 
 def set_lifecycle(conn, model: Any, archived: bool, actor: str) -> dict:
+    """Archives a model or brings it back."""
     _actor(conn, actor)
     m = repo.get_model(conn, model)
     if m["is_locked"]:
@@ -1081,6 +1084,7 @@ def request_publish(conn, model: Any, actor: str, user=None, note: str = "") -> 
 
 
 def withdraw_publish_request(conn, model: Any, actor: str, user=None, note: str = "") -> dict:
+    """Withdraws a request to publish a model."""
     _actor(conn, actor)
     m = repo.get_model(conn, model)
     if m["approval_state"] != "requested":
@@ -1186,6 +1190,7 @@ def waiting_for_me(conn, user) -> list[dict]:
 
 
 def withdraw(conn, model: Any, actor: str, restore: bool = False) -> dict:
+    """Withdraws a template or reference model from use (or puts it back)."""
     _actor(conn, actor)
     m = repo.get_model(conn, model)
     if m["kind"] not in ("template", "reference"):
@@ -2007,6 +2012,7 @@ def _draft(conn, draft: Any) -> dict:
 
 
 def draft_out(d: dict, conn=None) -> dict:
+    """A metamodel draft as the screens show it."""
     spec = d["spec"] or {}
     out = {"id": d["guid"], "name": d["name"], "kind": d["kind"], "status": d["status"], "note": d["note"],
            "proposed_by": d["proposed_by"], "proposed_via": d["proposed_via"], "created_at": d["created_at"],
@@ -2072,6 +2078,7 @@ def draft_create(conn, user, p: dict, via: str = "mcp") -> dict:
 
 
 def draft_list(conn, user, status: str | None = None) -> list[dict]:
+    """The metamodel drafts the person may see (of one status, or all)."""
     rows = _rows(conn, """SELECT d.*, b.guid AS base_guid, b.name AS base_name, t.guid AS target_guid, t.name AS target_name,
                                  a.guid AS applied_guid, a.name AS applied_name,
                                  (SELECT count(*) FROM core.metamodel_draft_comments c
@@ -2092,6 +2099,7 @@ def draft_list(conn, user, status: str | None = None) -> list[dict]:
 
 
 def draft_get(conn, user, draft: Any) -> dict:
+    """One metamodel draft with its comments."""
     d = _draft(conn, draft)
     _may_see(conn, user, d)
     out = draft_out(d)
@@ -2385,6 +2393,7 @@ def draft_apply(conn, user, draft: Any, actor: str, p: dict) -> dict:
 
 
 def draft_reject(conn, user, draft: Any, actor: str, reason: str) -> dict:
+    """Rejects a metamodel draft, with a reason."""
     d = _draft(conn, draft)
     _may_review(conn, user, d)
     if d["status"] not in ("draft", "returned"):

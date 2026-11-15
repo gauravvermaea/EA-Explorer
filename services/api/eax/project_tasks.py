@@ -30,6 +30,7 @@ READ_ONLY = ("finishing", "frozen", "merged", "closed")
 
 
 def statuses(conn, p: dict) -> list[str]:
+    """A project's task statuses: the standard ones and its own."""
     own = [r["name"] for r in _rows(conn, "SELECT name FROM proj.task_statuses WHERE project_id = :p ORDER BY sort_order, name", p=p["id"])]
     return [*STANDARD, *[s for s in own if s not in STANDARD]]
 
@@ -74,6 +75,7 @@ def _out(r: dict) -> dict:
 
 
 def listing(conn, project: Any, user) -> dict:
+    """A project's tasks, newest first."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "read")
     rows = _rows(conn, _SELECT + " WHERE t.project_id = :p ORDER BY t.created_at DESC, t.id DESC", p=p["id"])
@@ -123,6 +125,7 @@ def _tell(conn, p: dict, user, title: str, who: str) -> None:
 
 
 def add(conn, project: Any, user, d: dict) -> dict:
+    """Adds a task to a project."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
     v = _clean(conn, p, d)
@@ -160,6 +163,7 @@ def update(conn, project: Any, user, tid: str, d: dict) -> dict:
 
 
 def delete(conn, project: Any, user, tid: str) -> dict:
+    """Deletes a task."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
     r = _row(conn, p, tid)
@@ -170,6 +174,7 @@ def delete(conn, project: Any, user, tid: str) -> dict:
 
 
 def add_status(conn, project: Any, user, name: str) -> dict:
+    """Adds a task status of the project's own."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
     name = " ".join((name or "").split())[:40]
@@ -184,6 +189,7 @@ def add_status(conn, project: Any, user, name: str) -> dict:
 
 
 def delete_status(conn, project: Any, user, name: str) -> dict:
+    """Removes one of the project's own task statuses (not a standard one)."""
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
     if name in STANDARD:

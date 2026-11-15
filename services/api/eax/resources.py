@@ -61,10 +61,12 @@ def interval(values: dict, now: datetime) -> tuple[int, dict | None]:
 
 
 def due(last: datetime | None, minutes: int, now: datetime) -> bool:
+    """Whether a resource sample is due."""
     return minutes > 0 and (last is None or (now - last).total_seconds() >= minutes * 60 - GRACE_SECONDS)
 
 
 def settings_of(values: dict, now: datetime | None = None) -> dict:
+    """The resource history's settings now: how often it samples, a boost while testing, how long it keeps."""
     now = now or datetime.now(UTC)
     every, boost = interval(values, now)
     return {"every_minutes": int(values.get("resource_every_minutes") or 0), "now_every_minutes": every, "boost": boost,
@@ -113,6 +115,7 @@ def database_stats(conn) -> dict:
 
 
 def record(conn, sample: dict, db: dict) -> None:
+    """Keeps one resource sample (containers, host, disks, database)."""
     databases.on("operations", conn).execute(text(f"""
         INSERT INTO {TABLE} (at, activity, containers, host, disks, database)
         VALUES (COALESCE(CAST(:at AS timestamptz), now()), :act, CAST(:c AS jsonb), CAST(:h AS jsonb), CAST(:d AS jsonb),
@@ -133,6 +136,7 @@ def take(conn, ops) -> dict:
 
 
 def last_sample(conn) -> datetime | None:
+    """When the last sample was taken."""
     return databases.on("operations", conn).execute(text(
         f"SELECT max(at) FROM {TABLE} WHERE resolution = 'sample'")).scalar()
 
@@ -237,6 +241,7 @@ def tidy(conn, values: dict, now: datetime) -> str:
 
 # ---------------------------------------------------------------- reading
 def period(start=None, end=None, days: float | None = None, now: datetime | None = None) -> tuple[datetime, datetime]:
+    """A period from its start and end (or the last `days` days), in UTC."""
     now = now or datetime.now(UTC)
     end_t = _time(end) if end else now
     start_t = _time(start) if start else end_t - timedelta(days=days or 1)
@@ -246,6 +251,7 @@ def period(start=None, end=None, days: float | None = None, now: datetime | None
 
 
 def rows_between(conn, start: datetime, end: datetime) -> list[dict]:
+    """The resource history's rows in a period."""
     out = []
     for r in databases.on("operations", conn).execute(text(f"""
             SELECT at, resolution, samples, activity, containers, host, disks, database FROM {TABLE}
@@ -354,6 +360,7 @@ def delete(conn, start=None, end=None) -> int:
 
 # ---------------------------------------------------------------- eax footprint --history [days]
 def text_summary(h: dict, days: float, start: datetime, end: datetime) -> str:
+    """A resource history summary as text, for the command line."""
     s = h["summary"]
     gb = lambda mb: "-" if mb is None else f"{mb / 1024:.1f} GB"  # noqa: E731
     if not s:
@@ -378,6 +385,7 @@ def text_summary(h: dict, days: float, start: datetime, end: datetime) -> str:
 
 
 def main(argv: list[str]) -> int:
+    """python -m eax.resources history [days]: the resource history's summary."""
     if not argv or argv[0] != "history":
         print("Usage: python -m eax.resources history [days]")
         return 2

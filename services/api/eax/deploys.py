@@ -25,6 +25,7 @@ def _row(r: dict) -> dict:
 
 
 def sync(conn, runs: list[dict]) -> int:
+    """Copies the operations helper's deployment runs into the deployments table; returns how many changed."""
     n = 0
     for r in runs:
         row = _row(r)
@@ -50,6 +51,7 @@ def sync(conn, runs: list[dict]) -> int:
 
 
 def history(conn, limit: int = 200) -> list[dict]:
+    """The deployments made from this installation, newest first."""
     rows = databases.on("operations", conn).execute(text("""SELECT run_id, target, kind, plan, version, status, started_by, started_at, finished_at, address,
                                        failed_step, kept_credentials FROM operations.deployments
                                  ORDER BY started_at DESC LIMIT :n"""), {"n": limit}).mappings().all()

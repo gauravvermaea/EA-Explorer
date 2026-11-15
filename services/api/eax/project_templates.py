@@ -41,11 +41,13 @@ def _out(r: dict) -> dict:
 
 
 def listing(conn, all_: bool = False) -> list[dict]:
+    """The project templates (the retired ones too when asked)."""
     return [_out(r) for r in _rows(conn, f"""SELECT * FROM proj.project_templates {'' if all_ else 'WHERE NOT retired'}
                                               ORDER BY sort_order, name""")]
 
 
 def get(conn, code: str) -> dict:
+    """One project template."""
     r = _one(conn, "SELECT * FROM proj.project_templates WHERE code = :c", c=code)
     if not r:
         raise EditError(f"No project template {code}.", 404)

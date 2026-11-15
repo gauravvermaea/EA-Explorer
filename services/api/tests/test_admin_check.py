@@ -57,7 +57,7 @@ def test_default_passwords_on_a_server_by_name_only():
 def test_only_it_and_super_admins_and_in_the_background():
     src = (ROOT / "eax" / "api" / "admin.py").read_text()
     i = src.index('"/admin/sign-in-check"')
-    block = src[i:i + 900]
+    block = src[i:i + 1400]   # R5.15: the class now has a docstring
     assert 'require_auth("system.operate")' in block and ".defer(" in block and "queueing_lock" in block
     assert "eax.admin_sign_in_check" in (ROOT / "eax" / "jobs.py").read_text()
     assert "'system'" in (ROOT / "migrations" / "sql" / "0018_notifications.sql").read_text()

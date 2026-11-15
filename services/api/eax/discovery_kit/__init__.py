@@ -37,6 +37,7 @@ TARGETS = ("business process", "process", "business function", "business service
 
 
 def text_of(name: str) -> str:
+    """One of the push kit's files, as text."""
     return (HERE / name).read_text(encoding="utf-8")
 
 
@@ -176,10 +177,12 @@ def _source(conn, user, source: Any) -> tuple[dict, dict]:
 
 
 def push_url(src: dict, base: str) -> str:
+    """The address a push source sends its records to."""
     return f"{base.rstrip('/')}/api/v1/import-sources/{src['guid']}/push"
 
 
 def readme(src: dict, m: dict, base: str, types: list[dict] | None = None, allowed: list[dict] | None = None) -> str:
+    """The push kit's README filled in for this source and model: its address, types, relationships and an example."""
     return (text_of("README.md").replace("{push_url}", push_url(src, base)).replace("{model}", m["name"])
             .replace("{source}", src["name"]).replace("{relationships}", relationships_text(types or [], allowed or []))
             .replace("{example}", example_text(types or [], allowed or [])))
@@ -197,6 +200,7 @@ def code(conn, user, source: Any, base: str) -> dict:
 
 
 def kit_name(m: dict, src: dict) -> str:
+    """The push kit's folder and zip name, from the model's and source's names."""
     slug = re.sub(r"[^A-Za-z0-9]+", "-", f"{m['name']} {src['name']}").strip("-").lower()[:60]
     return f"eax-push-{slug or 'kit'}"
 

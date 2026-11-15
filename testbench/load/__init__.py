@@ -24,6 +24,7 @@ HOW_TO_GET_K6 = ("k6 is not on this machine. Get it from https://grafana.com/doc
 
 
 def thresholds(path: Path = THRESHOLDS) -> dict:
+    """The load test's thresholds."""
     data = json.loads(path.read_text(encoding="utf-8"))
     return {k: v for k, v in data.items() if not k.startswith("_")}
 
@@ -57,6 +58,7 @@ def judge(summary: dict, marks: dict) -> dict:
 
 def command(target: str, tokens: list[str], model: str, users: int, minutes: float, folder: Path, insecure: bool,
             marks: dict) -> tuple[list[str], dict]:
+    """k6's command and environment for the load test."""
     env = {"TARGET": target, "TOKENS": ",".join(tokens), "MODEL": model or "", "USERS": str(users),
            "MINUTES": str(minutes), "THRESHOLDS": json.dumps(marks), "DATA": str(DATA), "INSECURE": "1" if insecure else "0"}
     argv = ["k6", "run", "--quiet", "--summary-export", str(folder / "k6-summary.json"), str(SCRIPT)]
@@ -65,6 +67,7 @@ def command(target: str, tokens: list[str], model: str, users: int, minutes: flo
 
 def run(run, target: str, tokens: list[str], model: str, users: int, minutes: float, insecure: bool = False,
         which=shutil.which, runner=subprocess.run) -> dict:
+    """The load test, judged against the thresholds."""
     marks = thresholds()
     rec = run.recorder("load")
     if not which("k6"):

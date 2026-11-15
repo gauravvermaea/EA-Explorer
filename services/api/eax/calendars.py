@@ -221,6 +221,7 @@ def _vals(d: dict) -> dict:
 
 
 def add(conn, scope: str, user, d: dict) -> dict:
+    """Adds an event to a calendar (a project's or the organisation's), repeating when asked."""
     p = _cal(conn, scope)
     _may_add(conn, p, user)
     v = _vals(d)
@@ -240,6 +241,7 @@ def _ev(conn, p, eid: str) -> dict:
 
 
 def update(conn, scope: str, user, eid: str, d: dict) -> dict:
+    """Changes an event, or leaves one occurrence of a repeating event out."""
     p = _cal(conn, scope)
     ev = _ev(conn, p, eid)
     _may_change(conn, p, user, ev)
@@ -258,6 +260,7 @@ def update(conn, scope: str, user, eid: str, d: dict) -> dict:
 
 
 def delete(conn, scope: str, user, eid: str) -> dict:
+    """Deletes an event (by those who may change it)."""
     p = _cal(conn, scope)
     ev = _ev(conn, p, eid)
     _may_change(conn, p, user, ev)
@@ -283,6 +286,7 @@ def _fold(line: str) -> str:
 
 
 def ics(conn, scope: str, name: str, events: list[dict]) -> str:
+    """A calendar's events as an iCalendar file (.ics), repeating events as rules."""
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     days = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"]
     lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//EA Explorer//Calendar//EN", "CALSCALE:GREGORIAN",
@@ -316,6 +320,7 @@ def ics(conn, scope: str, name: str, events: list[dict]) -> str:
 
 
 def download(conn, scope: str, user) -> tuple[str, str]:
+    """A calendar as an .ics file to download, with its file name."""
     p = _cal(conn, scope)
     _may_read(conn, p, user)
     name = f"{p['name'] if p else 'Organisation'} calendar"

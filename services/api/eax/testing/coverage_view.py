@@ -42,6 +42,7 @@ def run_files(folder: str, reader: Reader) -> dict:
 
 
 def colour(percent: float, goal: float = GOAL) -> str:
+    """A coverage figure's colour against the goal."""
     return GOOD if percent >= goal else NEAR if percent >= goal - 15 else LOW
 
 
@@ -61,6 +62,7 @@ def trend(runs: Iterable[dict], reader: Reader, scope: str | None = None, limit:
 
 
 def negative_totals(neg: dict | None) -> dict[str, int]:
+    """The negative tests' totals by outcome."""
     t = {"passed": 0, "warning": 0, "failed": 0}
     for counts in (neg or {}).values():
         for k in t:

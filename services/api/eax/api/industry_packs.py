@@ -39,6 +39,7 @@ def _run(fn, write: bool = False):
 
 @blp.route("/industry-packs")
 class Packs(MethodView):
+    """/api/v1/industry-packs: GET every industry and how many files its pack has."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free(many=True))
     @require_auth()
@@ -49,6 +50,7 @@ class Packs(MethodView):
 
 @blp.route("/industry-packs/<string:industry>")
 class Pack(MethodView):
+    """/api/v1/industry-packs/{industry}: GET one industry pack's tiles."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -59,6 +61,7 @@ class Pack(MethodView):
 
 @blp.route("/models/<string:model>/industry-pack")
 class ModelPack(MethodView):
+    """/api/v1/models/{model}/industry-pack: GET the pack of a library reference model, or none."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -69,6 +72,7 @@ class ModelPack(MethodView):
 
 @blp.route("/industry-packs/files/<string:file_id>/download")
 class PackFile(MethodView):
+    """/api/v1/industry-packs/files/{file_id}/download: GET download one pack file."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self, file_id):
@@ -80,6 +84,8 @@ class PackFile(MethodView):
 
 @blp.route("/industry-packs/load")
 class Load(MethodView):
+    """/api/v1/industry-packs/load: POST load a folder of packs into Documents: the shipped packs or the extra folder
+    (EAX_PACKS_DIR)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)

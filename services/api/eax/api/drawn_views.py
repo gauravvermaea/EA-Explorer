@@ -86,6 +86,8 @@ def _project(fn, action: str | None = None, obj: str = "", details: dict | None 
 
 @blp.route("/models/<uuid:model_id>/drawn-views/access")
 class Access(MethodView):
+    """/api/v1/models/{model_id}/drawn-views/access: GET for the views service (D405): the model as you see it,
+    whether you may draw its views (and why not), and its last content change {id, name, may_draw, read_only_reason…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -97,6 +99,8 @@ class Access(MethodView):
 
 @blp.route("/models/<uuid:model_id>/drawn-views/check")
 class Check(MethodView):
+    """/api/v1/models/{model_id}/drawn-views/check: POST for the views service: a view's objects are the model's own
+    entities and relationships (D354) {entities, relationships}; 400 when not; else how many are missing or…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -109,6 +113,8 @@ class Check(MethodView):
 
 @blp.route("/models/<uuid:model_id>/tags/<string:tag>/drawn-views/<string:view>")
 class TagView(MethodView):
+    """/api/v1/models/{model_id}/tags/{tag}/drawn-views/{view}: GET a drawn view as a tag keeps it (read only): its
+    file at its last version, or ?version=n."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -120,6 +126,9 @@ class TagView(MethodView):
 
 @blp.route("/models/<uuid:model_id>/drawn-views/setup")
 class Setup(MethodView):
+    """/api/v1/models/{model_id}/drawn-views/setup: GET the draw.io plugin's setup message for this model (and
+    ?view=, the own icons of its entities): types with their looks, the allowed relationships, the relationship
+    lines…"""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -131,6 +140,9 @@ class Setup(MethodView):
 
 @blp.route("/models/<uuid:model_id>/drawn-views/resync")
 class Resync(MethodView):
+    """/api/v1/models/{model_id}/drawn-views/resync: POST what is current for the objects on a view ({view} or
+    {xml}): entities (name, type, look, icon, deleted), relationships among them (committed, or yours uncommitted),
+    new…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -143,6 +155,9 @@ class Resync(MethodView):
 
 @blp.route("/models/<uuid:model_id>/drawn-views/pending")
 class Pending(MethodView):
+    """/api/v1/models/{model_id}/drawn-views/pending: POST your uncommitted changes to the relationships and
+    junctions on one view ({targets: their ids}): what the view's Commit button commits through /changes/commit (or
+    asks…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -156,6 +171,8 @@ class Pending(MethodView):
 
 @blp.route("/models/<uuid:model_id>/drawn-views/change")
 class ChangeNow(MethodView):
+    """/api/v1/models/{model_id}/drawn-views/change: POST a change made on a drawn view {op, args, view_name?,
+    message?}: in the model at once and committed as you (D413)."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -172,6 +189,9 @@ class ChangeNow(MethodView):
 
 @blp.route("/models/<uuid:model_id>/drawn-views/commit")
 class CommitMine(MethodView):
+    """/api/v1/models/{model_id}/drawn-views/commit: POST commit your uncommitted changes from a drawn view's
+    Uncommitted changes panel {changes?: ids, message?} (D413): relationships and junctions need no committer;
+    anything…"""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -185,6 +205,8 @@ class CommitMine(MethodView):
 
 @blp.route("/models/<uuid:model_id>/drawn-views/relationships-of")
 class RelationshipsOf(MethodView):
+    """/api/v1/models/{model_id}/drawn-views/relationships-of: POST when an entity is placed {entity, others}: the
+    entity (look, icon) and its relationships with the others."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -196,6 +218,8 @@ class RelationshipsOf(MethodView):
 
 @blp.route("/models/<uuid:model_id>/drawn-views/allowed")
 class Allowed(MethodView):
+    """/api/v1/models/{model_id}/drawn-views/allowed: GET the relationship types allowed from source to target
+    (entity ids, or type codes), with multiplicity; through a junction, only those its rules leave (D397)."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -207,6 +231,8 @@ class Allowed(MethodView):
 
 @blp.route("/models/<uuid:model_id>/drawn-views/generate")
 class Generate(MethodView):
+    """/api/v1/models/{model_id}/drawn-views/generate: POST the draw.io file of a view of chosen entities, laid out
+    by domain {entities, include_relationships}."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
@@ -219,6 +245,8 @@ class Generate(MethodView):
 
 @blp.route("/models/<uuid:model_id>/heat-map")
 class HeatMap(MethodView):
+    """/api/v1/models/{model_id}/heat-map: GET each entity's colour by one attribute (?attribute=), pick-list values
+    or number ranges (?ranges=0-10,10-20 or five equal bands), with the legend."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -236,6 +264,9 @@ class HeatMap(MethodView):
 
 @blp.route("/models/<uuid:model_id>/entities/<string:entity>/icon")
 class EntityIcon(MethodView):
+    """/api/v1/models/{model_id}/entities/{entity}/icon: GET the entity's own icon (SVG or PNG); 404 when it has
+    none; POST set the entity's own icon: a multipart file "file", SVG or PNG, at most 64 KB (an SVG with scripts,
+    links, styles or embedded content is refused); DELETE remove the entity's own icon (its type's icon shows again)."""
     @blp.doc(security=SECURITY)
     @require_auth()
     def get(self, model_id, entity):
@@ -269,6 +300,9 @@ class EntityIcon(MethodView):
 
 @blp.route("/projects/<string:project>/view-evidence")
 class Evidence(MethodView):
+    """/api/v1/projects/{project}/view-evidence: GET the drawn views the project uses as evidence: for which
+    deliverable or key question, the live view or which version; POST a drawn view as evidence, a link only (D408):
+    model, view, version (none: the live view), item (a deliverable) or question (a key question), note."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()
@@ -289,6 +323,7 @@ class Evidence(MethodView):
 
 @blp.route("/projects/<string:project>/view-evidence/<string:evidence>")
 class OneEvidence(MethodView):
+    """/api/v1/projects/{project}/view-evidence/{evidence}: DELETE no longer evidence."""
     @blp.doc(security=SECURITY)
     @blp.response(200, Free)
     @require_auth()

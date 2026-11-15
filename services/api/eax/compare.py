@@ -360,6 +360,7 @@ def entity_detail(left: dict, right: dict, left_entity: str | None, right_entity
 
 
 def to_xlsx(result: dict, title: str = "Comparison") -> bytes:
+    """A comparison of two models or versions as an Excel workbook: added, removed and changed, colour-marked."""
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill
     wb = Workbook()
@@ -445,6 +446,7 @@ def save_profile(conn, user, name: str, settings: dict) -> dict:
 
 
 def delete_profile(conn, user, profile: Any) -> dict:
+    """Deletes a saved comparison profile (its maker or a Super Admin)."""
     g = repo._as_guid(profile)
     p = repo._rows(conn, "SELECT guid, name, created_by FROM core.compare_profiles WHERE guid = :g", g=str(g)) if g else []
     if not p:

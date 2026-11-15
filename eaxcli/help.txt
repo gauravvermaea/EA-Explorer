@@ -140,6 +140,55 @@ $ {eax} measure --clean-restart
 $ {eax} measure
 $ {eax} measure --from 4 --yes
 $ {eax} measure --from 5 --no-full
+### ticket [list [open|all|<status>]|show REQ-n|comment REQ-n <text>|status REQ-n <status> [note]]
+> The service desk's requests: every team's, from the command line (admins).
+People ask for things from the service catalogue (Service desk in the menu; R5.11). list: the open requests (or all,
+or one status), overdue said; show: one with its details and history; comment and status act as "eax", recorded in
+the request's history. The statuses: in-progress, waiting-requester, done, declined.
+$ {eax} ticket
+$ {eax} ticket show REQ-12
+$ {eax} ticket status REQ-12 done "access given"
+
+### dev check [--quick] [--web]
+> The first thing to run before changing EA Explorer: lint, tests and the documents' cross-checks.
+For a developer (or another AI) taking the work over (R5.16): ruff, pytest in services/api (--quick: stops at the first
+failure), the decisions numbered once each, help.txt ASCII, and the handover documents there; --web also
+builds the screens. Nothing is installed or started; it says what is missing. Then read docs/handover.md.
+$ {eax} dev check
+$ {eax} dev check --quick --web
+
+### estimate --users N --models N [--size small|medium|large] --projects N [--documents N] [--override FILE] [--json]
+> The server sizing estimate: RAM, CPU and disk, per container too. A best estimate, it says so.
+For a server (or a container platform) before it is made: people at once, models and their size, projects and the
+documents each, what is switched on (--no-reports, --no-documents), backups kept (--backups N), headroom (--headroom,
+0.3) and a platform's node (--node-gb, --node-cores). It answers the server's RAM, cores and disk (a year on), each
+container's memory to reserve and its limit, the copies to run, the settings and the nodes, with its assumptions. It
+needs nothing running. --override FILE writes a compose override with the limits (R5.19; System Admin > Sizing).
+$ {eax} estimate --users 50 --models 30 --size medium --projects 40
+$ {eax} estimate --users 300 --models 100 --size large --projects 200 --override sizing.yml
+
+### optimise [report|last]
+> The optimisation report: what to change to run lighter, with the evidence; nothing changed here.
+EA Explorer measures itself on the 1st of every month (and when asked): the server's memory and CPU, models and
+projects not opened or changed for 180 days (a setting), old self-test runs, Docker's build cache, history from before
+a model's last tag, and the database check. Each suggestion has its evidence, what it saves, its risk and how to undo
+it; it is applied on System Admin > Optimisation, for a whole model or project, by the person who decides it (R5.1).
+report: measure now and print; last: the newest report.
+$ {eax} optimise
+$ {eax} optimise last
+
+### db [check|tidy [--dry-run]|compact <database> <table>|clear|locks|cancel <pid>|end <pid>] [--yes]
+> Database maintenance: every database checked and tidied, as System Admin > Database maintenance.
+check: what needs doing in every database, in plain words (swollen tables and indexes, stale statistics, unused,
+duplicate or invalid indexes, the transaction age, connections, long transactions, the cache, sequences near their
+limit, tables with no primary key, replication). tidy: what check finds, done without locking a table (VACUUM,
+ANALYZE, REINDEX CONCURRENTLY); it runs by itself every night in the window (01:00 to 05:00 by default). compact: VACUUM
+FULL of one table, which locks it while it runs (asked first). clear: the keep-for rules now. locks: who blocks whom;
+cancel or end a session (asked first). Nothing runs during a backup, a restore or a self-test (R5.12).
+$ {eax} db check
+$ {eax} db tidy --dry-run
+$ {eax} db locks
+
 ### databases
 > Lists every database EA Explorer uses: what it holds, where it lives and whether it answers.
 Each has its own setting in work/eaexplorer.env: empty = the shared PostgreSQL; set one to move that database to a
@@ -235,6 +284,23 @@ $ {eax} schedule off a1b2c3
 
 ## Updates
 
+### sign [keygen [<file>]|trust <file.pub>|<version> --key <file> [--folder <path>] [--out <folder>]]
+> Signs a version your organisation checked, so installations install only signed ones (optional).
+The project does not sign its releases (R5.10); an organisation that wants to sign: keygen makes a key pair once (kept
+by its release or security team, never on an installation; ssh-keygen asks for a passphrase); trust adds the public key
+to an installation (persist/keys/trusted); <version> --key writes <version>.manifest (every file with its SHA-256) and
+its signature into persist/keys/signatures (or --out, or the shared folder EAX_SIGNATURES_DIR). Copy both files to
+each installation. From then on update refuses a version that is not signed, does not verify or whose files differ,
+before anything changes. With no trusted key nothing changes. Needs ssh-keygen (OpenSSH: Windows 10+, Linux, macOS).
+$ {eax} sign keygen
+$ {eax} sign trust ~/.eax/eax-release-signing.pub
+$ {eax} sign 5.0.0 --key ~/.eax/eax-release-signing
+
+### verify <version> [--folder <path>]
+> Checks a version against its signature and the trusted keys, as update does.
+OK when it is signed by a trusted key and every file is as signed; REFUSED with why otherwise (exit code 1).
+$ {eax} verify 5.0.0
+
 ### update [--status] [--retry] [--channel prod|rc|latest] [--to <version>] [--at <time>] [--url <link>] [--yes]
 > Moves to a newer release from the git repository: a full backup first, then one release at a time.
 Without options it is guided: it shows the installed version and the channels, lists the versions above the installed
@@ -291,7 +357,7 @@ $ {eax} import --all
 > Checks that Docker is running and the config and compose files are valid. Starts nothing.
 $ {eax} check
 
-### test [smoke|full|reports|backup|restore|ui-review|failed [run] [--warnings]|watch [run] [--log]|stop [run]|api <method> <path>|delete <run|all> [--older-than DAYS]|clean] [--yes]
+### test [smoke|full|reports|security|performance|backup|restore|ui-review|failed [run] [--warnings]|watch [run] [--log|--browser]|stop [run]|api <method> <path>|delete <run|all> [--older-than DAYS]|clean] [--yes]
 > Test this installation: smoke or full; only what failed last time; or delete the test data.
 The same two tests as System Admin > Tools > Self-test (owner, 12 Nov 2026, D592: "Smoke or Full. Not too many
 options"); a run started in either place shows in both. Each run first removes any test data earlier runs left
@@ -302,8 +368,14 @@ and IT Admins.
   smoke   (the default) a few minutes: every role signs in, every main area answers, every page opens and the key
           journeys run once.
   full    everything: every API endpoint as every role (allowed and refused), the database checks, security, then
-          every page and every journey in a headless browser, the reports, the backup checks, and last the restore test below
+          every page and every journey in a headless browser, the reports, the benchmark, the backup checks, and last the restore test below
           (asked first; --yes skips the question; without a terminal and without --yes it is left out).
+  security  only the security suite (part of full, R5.17): the front door's headers, the dependencies, the code and
+          secrets scans, the attacks of Release 3, ZAP signed in and not, Trivy; a high or critical finding not
+          accepted (eax/testing/security_accepted.json) fails it. It also runs by itself every Sunday at 03:20.
+  performance  the benchmark (part of full, R5.18): the test model filled to --size small|medium|large, every read that
+          matters timed, then k6 with --users N people for --minutes M; slower than the last release's baseline by
+          more than 10%, errors, or a container over its memory limit fail it.
   reports  only the reports (part of full, R4.1): Keycloak test users for the run (a Super Admin, a Report Viewer and an
           IT Admin, deleted at the end) sign in to Reports in a headless browser; every report dashboard opens as the
           Super Admin and the Report Viewer with every chart answering (slower than 30 seconds a warning, not loaded after
@@ -329,7 +401,8 @@ and IT Admins.
   watch   follow a run as it happens, from a second terminal (R3.2): the step running now (what it checks), each
           check as it is recorded with its outcome, each failure with its reason, and the counts at the end; --log
           adds the run's log lines. The run going on, else the run named (watch 12), else the last one. Ctrl+C stops
-          watching, not the run. The same as Self-test > a run > Watch on the web.
+          watching, not the run. The same as Self-test > a run > Watch on the web. --browser opens the web's
+          Live browser instead: what the test's Chromium shows, its clicks marked (R5.20; streamed only while open).
   stop    stop the run going on (or the run named: stop 12): it ends at its next step and removes its test data, as
           the Stop button on the Self-test page.
   api     one call through the API test harness (R3.16): eax test api GET /api/v1/models/{model} --as architect, or
@@ -348,10 +421,12 @@ for the sample data or the industry packs; a switched-off service's checks are s
 The report: work/tests/<run>/report.html (and the Self-test page's History). The exit code is 1 when a test failed.
 $ {eax} test
 $ {eax} test full
+$ {eax} test performance --size medium --users 50
 $ {eax} test backup
 $ {eax} test restore
 $ {eax} test api GET /api/v1/models --as architect
 $ {eax} test watch
+$ {eax} test watch --browser
 $ {eax} test stop 12
 $ {eax} test ui-review
 $ {eax} test failed
@@ -415,16 +490,39 @@ certificates out again.
 $ {eax} trust
 $ {eax} trust --remove
 
+### allow [show|clear|add <place> <address> [name]|remove <place> <address>]
+> The IP allow lists from this machine: who may reach EA Explorer, place by place.
+Normally set on System Admin > Security (R5.2). Places: site (everything: the screens, the API, Reports, Documents),
+signin (the sign-in pages), admin (System Admin's API), mcp (AI), machine (the client-certificate port). An empty list
+lets everyone in. This machine (127.0.0.1) and EA Explorer's own containers are always allowed. Use it when a list
+shuts out the people who would change it: clear empties every list at once. Each change is tested by nginx first and
+taken without a restart.
+$ {eax} allow
+$ {eax} allow clear
+$ {eax} allow add site 10.20.0.0/16 head office
+
 ## Site and deploy
 
 ### init [laptop|server]
 > Creates the config file work/eaexplorer.env and the work folders. Never overwrites a config file.
 Made from the template for the deployment kind (laptop if not given). Nothing is generated: on a laptop every
 password is P^55w0rd1234&; on a server, replace every change-me value in work/eaexplorer.env before starting.
-A server asks for the folder for backups (a mounted network share or volume, EAX_BACKUP_DIR): no backups are
-taken until it is given (R2.44). A laptop keeps them in work/backups.
+A server asks for the base folder for all the data (EAX_DATA_ROOT, /srv/eax if nothing is typed; R5.4): a folder
+for each kind goes under it (see folders). A laptop keeps its Docker volumes and work/ unless EAX_DATA_ROOT is set.
 $ {eax} init
 $ {eax} init server
+
+### folders [show]
+> Where the data lives: the base folder and a folder for each kind, where each is and the space free.
+One base folder for all the data (EAX_DATA_ROOT in work/eaexplorer.env, R5.4): under it databases, documents, logs,
+backups, imports, exports, certificates and reports. Mount whatever you want onto any of them (the logs and the
+documents on a network share, the databases on the local disk): EA Explorer does not decide what goes where. A setting
+of its own (EAX_DATA_DIR, EAX_DOCS_DIR, EAX_LOGS_DIR, EAX_BACKUP_DIR, EAX_IMPORT_DIR, EAX_EXPORT_DIR, EAX_TLS_DIR,
+EAX_REPORTS_DIR) that names a path puts that kind elsewhere. On Windows the databases stay in their Docker volume
+(PostgreSQL cannot run on a Windows folder). up, run and create make any folder that is missing and check each one
+first: a base folder that is not there, or a folder that cannot be written, stops the start and says why; where a
+folder is (this machine's own disk or a mount) never does. Without EAX_DATA_ROOT nothing changes.
+$ {eax} folders
 
 ### deploy [--console|--web] [--kind laptop|server|aws|azure|digitalocean] [--plan] [--yes]
 > Guided deployment: this laptop, a server (here or over SSH), AWS, Azure or DigitalOcean.

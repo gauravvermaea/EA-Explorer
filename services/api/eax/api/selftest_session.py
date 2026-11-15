@@ -24,6 +24,8 @@ blp = Blueprint("selftest_session", __name__, url_prefix="/api/v1/selftest", des
 
 @blp.route("/session")
 class Session(MethodView):
+    """/api/v1/selftest/session: GET the running self-test's token for one role (its ticket needed; nothing without
+    it)."""
     @blp.doc(security=[])
     @blp.response(200, Free)
     def get(self):

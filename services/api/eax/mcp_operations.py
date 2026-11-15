@@ -262,6 +262,7 @@ def findings(db: dict, health: dict, tasks: list[dict], res: dict) -> list[dict]
 
 
 def long_tasks(conn) -> list[dict]:
+    """Background tasks running or waiting for long, with how many minutes."""
     rows = conn.execute(text(f"""
         SELECT kind, label, status, requested_by,
                round(extract(epoch FROM now() - coalesce(started_at, requested_at)) / 60)::int AS minutes
@@ -566,5 +567,19 @@ async def ops_archive(model: str = "", project: str = "", note: str = "", confir
     return await mcp_ops.operate("ops_archive", args, confirm, preview, apply, label="archive")
 
 
+@mcp.tool()
+async def ops_alerts() -> Any:
+    """The alerts (R5.9; Super Admins and IT Admins): every check with its state (OK, WARNING, CRITICAL, UNKNOWN),
+    since when, what it measured, whether acknowledged; the open alerts first; the silences. Read only."""
+    def go(conn):
+        from . import alerts
+        _operator()
+        o = alerts.overview(conn)
+        keep = ("check_key", "what", "state", "since", "value", "message", "acked_by", "ack_note", "flapping")
+        return {"open": o["open"], "critical": o["critical"], "unacknowledged": o["unacknowledged"],
+                "checks": [{k: c.get(k) for k in keep} for c in o["checks"]], "silences": o["silences"]}
+    return await _run(go)
+
+
 TOOLS = ("ops_status", "ops_resources", "ops_find_slow", "ops_logs", "ops_backups", "ops_unused",
-         "ops_backup", "ops_restore", "ops_scale", "ops_archive")
+         "ops_backup", "ops_restore", "ops_scale", "ops_archive", "ops_alerts")

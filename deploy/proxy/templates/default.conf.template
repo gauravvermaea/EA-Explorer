@@ -38,12 +38,57 @@ ssl_protocols       TLSv1.2 TLSv1.3;
 # the version of nginx is not told in any answer (R2.0.1, the self-test's header checks)
 server_tokens off;
 
+# ---- IP allow-listing (R5.2, D686): System Admin › Security (or eax allow on the machine) writes the lists into
+# work/proxy/allow (this proxy's /eax-proxy, read only here); the setup service makes them, empty, at every start. For
+# each place $eax_deny_<place> is 1 for an address not on its list ("default 0;" in a file with no list: everyone in).
+# The site's list applies to everything on 80 and 443; the sign-in pages, System Admin's API and MCP also need their own
+# list's yes; the client-certificate port has a list of its own. A refusal is a plain 403 here, written to
+# /var/log/nginx/eax-refused.log (System Admin › Security counts them). realip.conf: the load balancers trusted to say
+# who the caller is (X-Forwarded-For from them alone).
+include /eax-proxy/allow/realip.conf;
+geo $eax_deny_site    { include /eax-proxy/allow/site.geo; }
+geo $eax_deny_signin  { include /eax-proxy/allow/signin.geo; }
+geo $eax_deny_admin   { include /eax-proxy/allow/admin.geo; }
+geo $eax_deny_mcp     { include /eax-proxy/allow/mcp.geo; }
+geo $eax_deny_machine { include /eax-proxy/allow/machine.geo; }
+map $uri $eax_place {
+    ~^/api/v1/(admin|operations)/  admin;
+    ~^/mcp                         mcp;
+    ~^/auth/                       signin;
+    default                        "";
+}
+map "$eax_place:$eax_deny_admin:$eax_deny_mcp:$eax_deny_signin" $eax_place_refused {
+    ~^admin:1:                     admin;
+    ~^mcp:[^:]*:1:                 mcp;
+    ~^signin:[^:]*:[^:]*:1$        signin;
+    default                        "";
+}
+map $eax_refused $eax_refused_log { "" 0; default 1; }
+log_format eax_refused "$time_iso8601\t$remote_addr\t$eax_refused\t$request_uri";
+
+# ---- the web log (R5.6): one JSON line for every call to the API and MCP, a file a day in logs/web (mounted at
+# /var/log/eax-web): when, from which address, who (the API and MCP say it in X-EAX-Actor, never passed on to the
+# caller), the method and path (never the query: it can carry a token), the status, how long, how many bytes, the
+# request id. Read, filtered and downloaded on System Admin > Logs > Web log; deleted after 7 days like the others.
+map $time_iso8601 $eax_day { ~^(\d{4}-\d{2}-\d{2}) $1; default undated; }
+map $uri $eax_web_logged { ~^/(api|mcp) 1; default 0; }
+log_format eax_web escape=json '{"time":"$time_iso8601","address":"$remote_addr","who":"$upstream_http_x_eax_actor",'
+                               '"method":"$request_method","path":"$uri","status":"$status","seconds":"$request_time",'
+                               '"bytes":"$bytes_sent","request_id":"$upstream_http_x_request_id","host":"$host"}';
+open_log_file_cache max=8 inactive=60s valid=60s;
+access_log /var/log/eax-web/$eax_day.log eax_web if=$eax_web_logged;
+proxy_hide_header X-EAX-Actor;
+access_log /var/log/nginx/eax-refused.log eax_refused if=$eax_refused_log;
+
 # ---- plain HTTP (D107): the API (with Swagger) and the MCP server answer on http too when
 # EAX_HTTP_API_MCP is true (laptops: for MCP clients and tools that cannot use a certificate; the laptop
 # binds port 80 to this computer only). Everything else, and everything on servers, goes to HTTPS.
 server {
     listen 80 default_server;
     server_name _;
+    set $eax_refused "";
+    if ($eax_deny_site = 1) { set $eax_refused site; return 403 "This address may not reach EA Explorer.\n"; }   # R5.2
+    if ($eax_place_refused != "") { set $eax_refused $eax_place_refused; return 403 "This address may not reach this part of EA Explorer.\n"; }
     client_max_body_size 100m;   # model packages are uploaded to the API (phase 4)
     set $plain_api "${EAX_HTTP_API_MCP}";
 
@@ -168,6 +213,9 @@ server {
 server {
     listen 443 ssl default_server;
     server_name ${EAX_HOSTNAME};
+    set $eax_refused "";
+    if ($eax_deny_site = 1) { set $eax_refused site; return 403 "This address may not reach EA Explorer.\n"; }   # R5.2
+    if ($eax_place_refused != "") { set $eax_refused $eax_place_refused; return 403 "This address may not reach this part of EA Explorer.\n"; }
     client_max_body_size 100m;
 
     # ---- maintenance (D230)
@@ -320,6 +368,8 @@ server {
 server {
     listen 443 ssl;
     server_name reports.${EAX_HOSTNAME};
+    set $eax_refused "";
+    if ($eax_deny_site = 1) { set $eax_refused site; return 403 "This address may not reach EA Explorer.\n"; }   # R5.2
     client_max_body_size 50m;
 
     # ---- maintenance (D230)
@@ -340,6 +390,8 @@ server {
 server {
     listen 443 ssl;
     server_name docs.${EAX_HOSTNAME};
+    set $eax_refused "";
+    if ($eax_deny_site = 1) { set $eax_refused site; return 403 "This address may not reach EA Explorer.\n"; }   # R5.2
     client_max_body_size 100m;
 
     # ---- maintenance (D230)
@@ -363,6 +415,9 @@ server {
 server {
     listen 9443 ssl;
     server_name _;
+    set $eax_refused "";
+    if ($eax_deny_machine = 1) { set $eax_refused machine; return 403 "This address may not reach EA Explorer.\n"; }   # R5.2
+    if ($eax_place_refused != "") { set $eax_refused $eax_place_refused; return 403 "This address may not reach this part of EA Explorer.\n"; }
     client_max_body_size 100m;
     ssl_verify_client optional_no_ca;
     ssl_verify_depth 3;

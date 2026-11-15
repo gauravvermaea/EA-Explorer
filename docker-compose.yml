@@ -50,6 +50,19 @@ x-secrets: &secrets
   EAX_SUPERSET_ADMIN_PASSWORD: ${EAX_SUPERSET_ADMIN_PASSWORD:-}
   EAX_MAYAN_ADMIN_PASSWORD: ${EAX_MAYAN_ADMIN_PASSWORD:-}
 
+# Where the data lives (R5.4, D687): with one base folder (EAX_DATA_ROOT) eax works out each folder and gives it to
+# docker compose in its own environment; the containers that read the config file take the same values here.
+x-folders: &folders
+  EAX_DATA_ROOT: ${EAX_DATA_ROOT:-}
+  EAX_DATA_DIR: ${EAX_DATA_DIR:-}
+  EAX_DOCS_DIR: ${EAX_DOCS_DIR:-}
+  EAX_LOGS_DIR: ${EAX_LOGS_DIR:-}
+  EAX_BACKUP_DIR: ${EAX_BACKUP_DIR:-}
+  EAX_IMPORT_DIR: ${EAX_IMPORT_DIR:-}
+  EAX_EXPORT_DIR: ${EAX_EXPORT_DIR:-}
+  EAX_TLS_DIR: ${EAX_TLS_DIR:-}
+  EAX_REPORTS_DIR: ${EAX_REPORTS_DIR:-}
+
 networks:
   frontend:
   backend:
@@ -80,12 +93,14 @@ services:
     user: "0"            # writes the certificate and rendered files into volumes owned by root
     env_file: work/eaexplorer.env
     environment:
-      <<: *secrets
+      <<: [*secrets, *folders]
     volumes:
       - ${EAX_TLS_DIR:-eax-tls}:/tls
       - eax-rendered:/rendered
       - eax-kc-import:/kc-import
       - ./deploy:/deploy:ro
+      - ./work/proxy:/eax-proxy        # the IP allow lists' files, made empty if missing (R5.2)
+      - ${EAX_LOGS_DIR:-./logs}:/eax-logs   # logs/web made, writable by the front door, for the web log (R5.6)
     network_mode: none
     <<: *logging
 
@@ -123,6 +138,7 @@ services:
       - ./deploy/proxy/templates:/etc/nginx/templates:ro
       - ./deploy/proxy/static:/etc/nginx/eax:ro          # the maintenance page (D230)
       - ./work/proxy:/eax-proxy:ro                        # work/proxy/maintenance switches it on (restores, upgrades)
+      - ${EAX_LOGS_DIR:-./logs}/web:/var/log/eax-web      # the web log, a file a day (R5.6)
       - ${EAX_TLS_DIR:-eax-tls}:/etc/nginx/tls:ro
     networks: [frontend, terminal]
 
@@ -151,7 +167,7 @@ services:
     stop_grace_period: 2m
     env_file: work/eaexplorer.env
     environment:
-      <<: *secrets          # the passwords and keys (the vault's when it is used, R4.19)
+      <<: [*secrets, *folders]          # the passwords and keys (the vault's when it is used, R4.19)
       EAX_ROLE: api            # entrypoint runs migrations, then the web API and the job runner
       EAX_SERVE: ${EAX_API_SERVE:-all}   # everything, the operations and personal data parts too (D677, R3.5-M1b)
       EAX_OPS_URL: http://ops:8090                       # the operations helper (phase 10, D183)
@@ -168,6 +184,7 @@ services:
       # set EAX_IMPORT_DIR to a host folder to map it to SFTP or a share
       - ${EAX_IMPORT_DIR:-eax-imports}:/data/imports
       - ${EAX_EXPORT_DIR:-eax-exports}:/data/exports
+      - ${EAX_LOGS_DIR:-./logs}/web:/eax-web   # web log debug: the input and answer of each call, while on (R5.6)
       - ${EAX_BACKUP_DIR:-./work/backups}:/data/backups   # every backup: work/backups, or the mounted folder EAX_BACKUP_DIR (D226, R2.44)
       - ./work:/eax-work:ro      # services.env: which optional services are on (D191); maintenance.json while restoring
       # the project library's template files (phase 13, D262): library/templates, or the folder EAX_LIBRARY_DIR names;
@@ -199,7 +216,7 @@ services:
     <<: [*restart, *logging]
     env_file: work/eaexplorer.env
     environment:          # where the library's and the views' databases are (their own servers in production, D410)
-      <<: *secrets          # the passwords and keys (the vault's when it is used, R4.19)
+      <<: [*secrets, *folders]          # the passwords and keys (the vault's when it is used, R4.19)
       EAX_LIBRARY_DB_HOST: ${EAX_LIBRARY_DB_HOST:-db}
       EAX_VIEWS_DB_HOST: ${EAX_VIEWS_DB_HOST:-db}
     depends_on:
@@ -209,7 +226,7 @@ services:
       - ${EAX_BACKUP_DIR:-./work/backups}:/backups
       - ${EAX_DOCS_DIR:-eax-docs}:/mayan           # written only by a restore (D216)
       - ${EAX_TLS_DIR:-eax-tls}:/tls               # the certificate, backed up and restored with the rest
-      - eax-superset-home:/superset-home           # Superset's home: its secret key and uploads
+      - ${EAX_REPORTS_DIR:-eax-superset-home}:/superset-home           # Superset's home: its secret key and uploads
       - ${EAX_IMPORT_DIR:-eax-imports}:/imports    # the API's import folder
       - ${EAX_EXPORT_DIR:-eax-exports}:/exports    # the API's export folder
       - ${EAX_PERSIST_DIR:-./persist}:/persist     # the settings that survive resets (D558), the vault's keys (R4.19)
@@ -225,7 +242,7 @@ services:
     <<: [*restart, *logging]
     env_file: work/eaexplorer.env
     environment:
-      <<: *secrets          # the passwords and keys (the vault's when it is used, R4.19)
+      <<: [*secrets, *folders]          # the passwords and keys (the vault's when it is used, R4.19)
       EAX_API_INTERNAL_URL: http://api:8000
       EAX_LIBRARY_DB_HOST: ${EAX_LIBRARY_DB_HOST:-db}
     depends_on:
@@ -256,7 +273,7 @@ services:
     <<: [*restart, *logging]
     env_file: work/eaexplorer.env
     environment:
-      <<: *secrets          # the passwords and keys (the vault's when it is used, R4.19)
+      <<: [*secrets, *folders]          # the passwords and keys (the vault's when it is used, R4.19)
       EAX_API_INTERNAL_URL: http://api:8000
       EAX_VIEWS_DB_HOST: ${EAX_VIEWS_DB_HOST:-db}
     depends_on:
@@ -286,7 +303,7 @@ services:
     image: eaexplorer/testrunner:${EAX_VERSION:-dev}
     env_file: work/eaexplorer.env
     environment:
-      <<: *secrets          # the passwords and keys (the vault's when it is used, R4.19)
+      <<: [*secrets, *folders]          # the passwords and keys (the vault's when it is used, R4.19)
       EAX_TEST_RESULTS: /results
       EAX_TEST_DATA: /testdata                      # the test data, shared with the outside test bench (D580)
     volumes:
@@ -294,6 +311,16 @@ services:
       - ./testbench/data:/testdata:ro               # testbench/data: deliveries, workbooks, uploads, expected results
       - ${EAX_PERSIST_DIR:-./persist}:/persist:ro   # read only: the self-test checks the settings there are valid JSON (D577)
     networks: [frontend, backend]
+    <<: *logging
+
+  # The load test's k6 (R5.18, D695): in the test profile only, never running otherwise. The operations helper starts it
+  # for the self-test's performance suite (the benchmark: eax test performance, and part of the full test) on the front
+  # door's network with the run's plan and script in its folder; it is removed when the load test ends.
+  k6:
+    profiles: ["test"]
+    image: ${EAX_IMAGE_K6:-grafana/k6:0.54.0}
+    entrypoint: ["k6", "version"]
+    networks: [frontend]
     <<: *logging
 
   # The test runner as an always-on service (R2.44, D635): on a container platform with no Docker socket
@@ -306,7 +333,7 @@ services:
     entrypoint: ["python", "-m", "eax.testing.waiter"]
     env_file: work/eaexplorer.env
     environment:
-      <<: *secrets          # the passwords and keys (the vault's when it is used, R4.19)
+      <<: [*secrets, *folders]          # the passwords and keys (the vault's when it is used, R4.19)
       EAX_PLATFORM: managed
       EAX_TEST_DATA: /testdata
     networks: [frontend, backend]
@@ -394,6 +421,7 @@ services:
         condition: service_completed_successfully
     environment:
       KC_DB: postgres
+      KC_LOG_LEVEL: ${EAX_KC_LOG_LEVEL:-info}   # R5.6: info by default (debug, info, warn, error)
       KC_DB_URL: jdbc:postgresql://${EAX_KEYCLOAK_DB_HOST:-db}:${EAX_KEYCLOAK_DB_PORT:-5432}/keycloak   # R2.50: its own server when set
       KC_DB_USERNAME: keycloak
       KC_DB_PASSWORD: ${EAX_KEYCLOAK_DB_PASSWORD}
@@ -444,7 +472,7 @@ services:
       disable: true
     env_file: work/eaexplorer.env
     environment:
-      <<: *secrets          # the passwords and keys (the vault's when it is used, R4.19)
+      <<: [*secrets, *folders]          # the passwords and keys (the vault's when it is used, R4.19)
       SUPERSET_CONFIG_PATH: /app/eax/superset_config.py
     depends_on:
       db:
@@ -456,7 +484,7 @@ services:
     volumes:
       - ./deploy/superset:/app/eax:ro
       - eax-rendered:/rendered:ro
-      - eax-superset-home:/app/superset_home
+      - ${EAX_REPORTS_DIR:-eax-superset-home}:/app/superset_home
     networks: [backend]
     <<: *logging
 
@@ -473,7 +501,7 @@ services:
     command: ["/bin/sh", "/app/eax/reports-start.sh"]
     env_file: work/eaexplorer.env
     environment:
-      <<: *secrets          # the passwords and keys (the vault's when it is used, R4.19)
+      <<: [*secrets, *folders]          # the passwords and keys (the vault's when it is used, R4.19)
       SUPERSET_CONFIG_PATH: /app/eax/superset_config.py
     depends_on:
       reports-init:
@@ -481,7 +509,7 @@ services:
     volumes:
       - ./deploy/superset:/app/eax:ro
       - eax-rendered:/rendered:ro                  # the report bundles the setup made: imported in the background
-      - eax-superset-home:/app/superset_home
+      - ${EAX_REPORTS_DIR:-eax-superset-home}:/app/superset_home
     networks: [frontend, backend]
 
   # ---------------------------------------------------------------- documents (out of the box)

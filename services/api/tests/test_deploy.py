@@ -67,7 +67,7 @@ def test_server_config_generates_every_password():
     text, made = D.server_config({"hostname": "ea.acme.test", "org_name": "Acme Mutual", "data_dir": "/data/eax/",
                                   "admin_email": "it@acme.test", "vault": "aws", "vault_name": "acme/eax"})
     assert not re.search(r"^[A-Z0-9_]+=change-me", text, re.M) and "EAX_HOSTNAME=ea.acme.test" in text and "EAX_ORG_NAME='Acme Mutual'" in text
-    assert "EAX_DATA_DIR=/data/eax/postgres" in text and "EAX_TLS_DIR=/data/eax/tls" in text
+    assert "EAX_DATA_ROOT=/data/eax" in text and re.search(r"^EAX_DATA_DIR=$", text, re.M)       # one base folder (R5.4)
     assert "EAX_SECRETS_FROM=aws:acme/eax" in text and "EAX_FIRST_ADMIN_EMAIL=it@acme.test" in text
     assert made["EAX_DMS_BROKER_PASSWORD_URLENC"] == made["EAX_DMS_BROKER_PASSWORD"]
     assert all(len(v) >= 28 and v.isalnum() for v in made.values())

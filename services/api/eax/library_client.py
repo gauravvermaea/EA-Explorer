@@ -16,10 +16,12 @@ TIMEOUT = 60
 
 
 class LibraryDown(Exception):
+    """The library service did not answer."""
     pass
 
 
 def service_on() -> bool:
+    """Whether the library service is switched on."""
     return os.environ.get("EAX_SERVICE_LIBRARY", "on").strip().lower() not in ("off", "false", "0", "no", "disabled")
 
 
@@ -70,6 +72,7 @@ def import_project(project_guid: str, project_name: str, data: dict, actor: str,
 
 
 def seed(data: dict) -> dict:
+    """Loads the library's starting content through its internal API."""
     return _call("POST", "/internal/seed", data)
 
 
@@ -79,4 +82,5 @@ def export_org() -> dict | None:
 
 
 def import_org(data: dict, actor: str) -> dict:
+    """Imports an organisation's library through the library service."""
     return _call("POST", "/internal/org/import", {"library": data, "actor": actor})

@@ -35,6 +35,7 @@ def _may_read(conn, p, user) -> None:
 
 
 def may_write(conn, p, user) -> bool:
+    """Whether the person may change tracking sheets here (a project's, or the organisation's)."""
     if p is None:
         return pj._super_or_library(user)
     try:
@@ -89,6 +90,7 @@ def _cells(v: Any) -> dict:
 
 # ---------------------------------------------------------------- reading
 def listing(conn, scope: str, user) -> dict:
+    """The tracking sheets of a project or the organisation."""
     p = _scope(conn, scope)
     _may_read(conn, p, user)
     rows = _rows(conn, f"""SELECT s.guid::text AS id, s.name, s.description, s.columns, s.created_by, s.created_at,
@@ -105,6 +107,7 @@ def listing(conn, scope: str, user) -> dict:
 
 
 def get(conn, scope: str, user, sid: str) -> dict:
+    """One tracking sheet with its rows."""
     p = _scope(conn, scope)
     _may_read(conn, p, user)
     s = _sheet(conn, p, sid)
@@ -121,6 +124,7 @@ def _touch(conn, s: dict, user, columns: list[str] | None = None) -> None:
 
 
 def create(conn, scope: str, user, d: dict) -> dict:
+    """Makes a tracking sheet with its columns."""
     p = _scope(conn, scope)
     _need_write(conn, p, user)
     name = " ".join((d.get("name") or "").split())[:200]
@@ -179,6 +183,7 @@ def update(conn, scope: str, user, sid: str, d: dict) -> dict:
 
 
 def delete(conn, scope: str, user, sid: str) -> dict:
+    """Deletes a tracking sheet."""
     p = _scope(conn, scope)
     _need_write(conn, p, user)
     s = _sheet(conn, p, sid)

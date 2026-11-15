@@ -66,6 +66,7 @@ def _http(name: str, kind: str, host: str, port: int, path: str, ok=lambda s, b:
 
 # ---------------------------------------------------------------- the checks
 def check_database() -> dict:
+    """Whether the database answers, and how fast."""
     started = time.perf_counter()
     s = get_settings()
     target = f"postgresql://{s.db_host}:{s.db_port}/{s.db_name}"
@@ -120,6 +121,7 @@ def check_jobs() -> dict:
 
 
 def check_keycloak() -> dict:
+    """Whether sign-in (Keycloak) answers with its realm."""
     realm = get_settings().realm
     return _http("Sign-in", "Keycloak", "keycloak", 8080, f"/auth/realms/{realm}/.well-known/openid-configuration",
                  ok=lambda s, b: s == 200 and b"issuer" in b,
@@ -135,6 +137,7 @@ def _off(name: str, kind: str, key: str) -> dict | None:
 
 
 def check_reports() -> dict:
+    """Whether Reports (Superset) answers, or that it is switched off."""
     if (off := _off("Reports", "Apache Superset", "reports")):
         return off
     return _http("Reports", "Apache Superset", "reports", 8088, "/health",
@@ -143,6 +146,7 @@ def check_reports() -> dict:
 
 def check_dms() -> dict:
     # Mayan answers its login page (or a redirect to it) when it is up
+    """Whether Documents (Mayan EDMS) answers, or that it is switched off."""
     if (off := _off("Documents", "Mayan EDMS", "documents")):
         return off
     # said in words (the owner, 14 Nov 2026: "documents is 302"): a redirect is Mayan sending to its sign-in page, so up
@@ -176,6 +180,7 @@ def check_dms_broker() -> dict:
 
 
 def check_drawio() -> dict:
+    """Whether draw.io answers, or that it is switched off."""
     if (off := _off("Diagrams", "draw.io", "drawio")):
         return off
     return _http("Diagrams", "draw.io", "drawio", 8080, "/")
@@ -245,15 +250,18 @@ def check_personal() -> dict:
 
 
 def check_web() -> dict:
+    """Whether the screens' web server answers."""
     return _http("Web screens", "nginx (ours)", "web", 8080, "/")
 
 
 def check_proxy() -> dict:
     # the proxy answers plain http with a redirect to https
+    """Whether the front door answers."""
     return _http("Entry point", "nginx proxy", "proxy", 80, "/", ok=lambda s, b: s < 500)
 
 
 def check_mcp() -> dict:
+    """Whether the MCP server answers, or that it is switched off."""
     if (off := _off("MCP server", "MCP (ours)", "mcp")):
         return off
     # without a token it must refuse with 401: that proves it is up and guarded
@@ -300,6 +308,7 @@ def check_backup() -> dict:
 
 
 def check_api() -> dict:
+    """The API itself: up, its version and deployment."""
     started = time.perf_counter()
     return _result("API", "Flask (ours)", "up", f"version {__version__}, {get_settings().deployment}", started)
 
@@ -329,6 +338,7 @@ CHECKS = [check_api, check_database, check_jobs, check_keycloak, check_web, chec
 
 
 def check_all() -> dict:
+    """Every service checked at once, with the overall state."""
     started = time.perf_counter()
     with ThreadPoolExecutor(max_workers=len(CHECKS)) as pool:
         services = list(pool.map(lambda f: f(), CHECKS))
@@ -345,6 +355,7 @@ def check_all() -> dict:
 
 
 def to_json(result: dict) -> str:  # for the command line: python -m eax.health
+    """A health result as JSON text."""
     return json.dumps(result, default=str, indent=2)
 
 

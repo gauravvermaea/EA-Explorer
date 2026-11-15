@@ -68,6 +68,7 @@ AUTH_ROLES_MAPPING = {
     "eax-super-admin": ["Admin"],
     "eax-it-admin": ["Gamma"],
     "eax-keycloak-admin": ["Gamma"],
+    "eax-audit": ["Gamma", READER],      # the Auditor reads every model's reports, changes none (R5.22)
     "eax-user-admin": ["Gamma", READER],
     "eax-model-creator": ["Gamma", READER],
     "eax-library-admin": ["Gamma", READER],

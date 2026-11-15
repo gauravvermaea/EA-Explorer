@@ -19,6 +19,7 @@ IMAGES = ("api", "web", "ops", "library", "views", "drawio")
 
 
 def run(run, target: str, version: str, zap: bool = True, trivy: bool = True) -> None:
+    """The security checks from outside: headers, cookies, ZAP and Trivy."""
     security = shared.module("security")
     rec = run.recorder("security")
     run.log("security: headers and cookies at the front door")

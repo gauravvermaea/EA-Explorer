@@ -35,9 +35,9 @@ def test_migration_adds_rows_only():
 # ---------------------------------------------------------------- suites
 def test_suites_are_checked():
     from eax.testing import store
-    assert store.clean_suites(None) == ["api", "ui", "db", "security", "reports", "backup", "restore"]   # restore: R3.8
+    assert store.clean_suites(None) == ["api", "ui", "db", "security", "reports", "performance", "backup", "restore"]   # restore: R3.8; performance: R5.18
     assert store.clean_suites("db, api") == ["api", "db"]
-    assert store.clean_suites(["all"]) == ["api", "ui", "db", "security", "reports", "backup", "restore"]
+    assert store.clean_suites(["all"]) == ["api", "ui", "db", "security", "reports", "performance", "backup", "restore"]
     with pytest.raises(ValueError):
         store.clean_suites(["api", "load"])
     assert store.clean_options("detailed", "user_architect", "models") == ("detailed", "architect", "models")
@@ -46,7 +46,7 @@ def test_suites_are_checked():
             store.clean_options(*bad)
     assert store.estimate_minutes("smoke", [])[1] <= 5 and store.short("c08f9f97-2965-4a0b-8c1d-000000000000") == "c08f9f972965"
     t = _ops_module("testruns")
-    assert t.suites_of("security") == ["security"] and t.suites_of([]) == ["api", "ui", "db", "security", "reports", "backup", "restore"]
+    assert t.suites_of("security") == ["security"] and t.suites_of([]) == ["api", "ui", "db", "security", "reports", "performance", "backup", "restore"]
     with pytest.raises(ValueError):
         t.suites_of(["nope"])
 
@@ -151,7 +151,8 @@ def test_scan_reports(tmp_path):
         {"Severity": "CRITICAL", "PkgName": "openssl", "InstalledVersion": "3.0.1", "VulnerabilityID": "CVE-1", "FixedVersion": "3.0.2"}]}]}))
     (tmp_path / "trivy-web.json").write_text(json.dumps({"Results": []}))
     s.read_trivy(tmp_path, rec)
-    assert got["image api (Trivy)"] == "failed" and got["image web (Trivy)"] == "passed"
+    # listed as a warning: the security gate fails the run on it unless it is accepted (R5.17, security_gate.py)
+    assert got["image api (Trivy)"] == "warning" and got["image web (Trivy)"] == "passed"
 
 
 def test_db_checks_are_queries_that_find_problems():
@@ -294,7 +295,7 @@ def test_build_command_in_every_form():
     assert '$RestArgs -contains "--build"' in ps
     helptext = (REPO / "eaxcli/help.txt").read_text()
     # --build still works for scripts but is no longer shown (R2.0.1, D592): the help shows smoke, full and clean
-    assert "### test [smoke|full|reports|backup|restore|ui-review|failed [run] [--warnings]|watch [run] [--log]|stop [run]|api <method> <path>|delete <run|all> [--older-than DAYS]|clean] [--yes]" in helptext and "$ {eax} test full" in helptext and "$ {eax} test clean" in helptext
+    assert "### test [smoke|full|reports|security|performance|backup|restore|ui-review|failed [run] [--warnings]|watch [run] [--log|--browser]|stop [run]|api <method> <path>|delete <run|all> [--older-than DAYS]|clean] [--yes]" in helptext and "$ {eax} test full" in helptext and "$ {eax} test clean" in helptext
     sys.path.insert(0, str(REPO))
     from eaxcli import commands as C
     assert C.check_argv(["test", "--build"]) == ["test", "--build"]

@@ -150,6 +150,7 @@ def disks(paths: list[Path]) -> list[dict]:
 
 
 def gb(n: int) -> str:
+    """Bytes in GB."""
     return f"{n / 1e9:.1f} GB"
 
 
