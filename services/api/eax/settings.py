@@ -55,6 +55,15 @@ REGISTRY: dict[str, tuple] = {
     "logs_keep_days": ("system", "Delete logs older than (days)", "int", 7, (0, 3650),
                        "The containers' daily logs, the web log, eax's own logs (work/logs) and the log backups are deleted "
                        "when older, every night (R2.30); 7 days by default (R5.6); 0 keeps them."),
+    "jobs_slots_tasks": ("system", "Job slots per API server: people's work", "int", 4, (1, 32),
+                         "Backups, deliveries, merges... at once on each API server; taken when the servers restart "
+                         "(System Admin › Scaling, Apply now) (R5.33)."),
+    "jobs_slots_scheduled": ("system", "Job slots per API server: scheduled jobs", "int", 2, (1, 16),
+                             "The scheduled housekeeping at once on each API server; taken when the servers restart (R5.33)."),
+    "jobs_waiting_minutes": ("system", "A background job is stuck after waiting (minutes)", "int", 5, (1, 1440),
+                             "System Admin › Jobs and the alert 'jobs stuck' count a job waiting longer as stuck (R5.30)."),
+    "jobs_running_minutes": ("system", "A background job is stuck after running (minutes)", "int", 60, (5, 1440),
+                             "Backups, restores and the self-test may run three times as long (R5.30)."),
     "web_log_debug_until": ("hidden", "Web log debug until", "text", "", (0, 40),
                             "Set on System Admin › Logs: while it lasts, each API call's input and answer are written too "
                             "(masked), R5.6. Empty: off."),

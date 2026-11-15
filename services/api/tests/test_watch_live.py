@@ -44,6 +44,7 @@ def _patch(monkeypatch, run=RUN):
     monkeypatch.setattr(store, "run_row", lambda conn, rid: dict(run) if run and rid == run["id"] else None)
     monkeypatch.setattr(store, "tally", lambda conn, rid: {"passed": 4, "failed": 1, "skipped": 0, "warning": 0})
     monkeypatch.setattr(store, "progress", lambda conn, r, done: {"done": done, "total": 20, "left": 20 - done})
+    monkeypatch.setattr(store, "phases", lambda conn, r: [{"suite": "api", "done": 5, "total": 20, "left": 15, "state": "running"}])   # R5.5.3
 
 
 def test_snapshot_gives_what_is_new_and_every_failure(monkeypatch):

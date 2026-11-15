@@ -149,6 +149,19 @@ $ {eax} ticket
 $ {eax} ticket show REQ-12
 $ {eax} ticket status REQ-12 done "access given"
 
+### jobs [list|history [N]|cancel|kill|up|down <id>|clear-stuck [--restart]|restart|delete-history [--older-than DAYS]|slots [<work> <scheduled>]]
+> The background job queue: what runs, what waits, what is stuck; cancel, kill, reorder (admins).
+As System Admin > Running > Jobs (R5.30 to R5.34). list: what is being worked on and waiting, stuck ones marked, and
+what to do; history: the newest finished; cancel takes a waiting job off the queue, kill stops one being worked on
+(its work ends when the job runner restarts), up and down change the order; clear-stuck kills every stuck one
+(--restart then restarts the job runner); delete-history deletes finished jobs; slots shows or sets each API
+server's job slots (taken at the next restart). Nothing is killed or restarted unless asked. Every action audited.
+$ {eax} jobs
+$ {eax} jobs kill 609
+$ {eax} jobs clear-stuck --restart
+$ {eax} jobs delete-history --older-than 7
+$ {eax} jobs slots 6 2
+
 ### dev check [--quick] [--web]
 > The first thing to run before changing EA Explorer: lint, tests and the documents' cross-checks.
 For a developer (or another AI) taking the work over (R5.16): ruff, pytest in services/api (--quick: stops at the first

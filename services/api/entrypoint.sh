@@ -40,8 +40,19 @@ gunicorn --bind 0.0.0.0:8000 --workers "${EAX_API_WORKERS:-2}" --timeout "${EAX_
 API_PID=$!
 # four jobs at once (was two): long ones (a project repository, the industry packs) no longer hold up a delivery preview
 # or a merge (R2.0.1, the laptop's full run)
-procrastinate --app=eax.jobs.app worker --concurrency "${EAX_JOB_CONCURRENCY:-4}" &
+# three queues, each with slots of its own (R5.30: the full test's backup waited an hour behind scheduled jobs): what
+# people ask for (tasks), the scheduled housekeeping (default), and the alert checks (watch), so a stuck scheduled job
+# never holds up a backup, and the alerts still run, and say so, when everything else is stuck (System Admin > Jobs)
+# how many of each: System Admin > Scaling (the settings jobs_slots_tasks and jobs_slots_scheduled), read at each start
+# (R5.33); else the config file's EAX_JOB_CONCURRENCY and EAX_SCHEDULED_CONCURRENCY; else 4 and 2
+SLOTS=$(python -m eax.jobqueue slots 2>/dev/null || echo "${EAX_JOB_CONCURRENCY:-4} ${EAX_SCHEDULED_CONCURRENCY:-2}")
+TASK_SLOTS=$(echo "$SLOTS" | awk '{print $1}')
+SCHEDULED_SLOTS=$(echo "$SLOTS" | awk '{print $2}')
+echo "EA Explorer: job slots: ${TASK_SLOTS:-4} for people's work, ${SCHEDULED_SLOTS:-2} for scheduled jobs, 1 for the alerts"
+procrastinate --app=eax.jobs.app worker --concurrency "${TASK_SLOTS:-4}" --queues tasks --name tasks &
 JOBS_PID=$!
+procrastinate --app=eax.jobs.app worker --concurrency "${SCHEDULED_SLOTS:-2}" --queues default --name scheduled &
+procrastinate --app=eax.jobs.app worker --concurrency 1 --queues watch --name watch &
 # the change log (phase 9, D180): ships finished changes to its own database every few seconds; it logs and retries
 # on errors and never stops the API. Switched off: no new entries (D191)
 if python -m eax.services is-on change_log; then

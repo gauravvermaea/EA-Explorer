@@ -23,6 +23,7 @@ import json
 import mimetypes
 import os
 import re
+import time
 import zipfile
 from pathlib import Path
 from typing import Any
@@ -246,7 +247,8 @@ def _cabinet(code: str) -> int:
     return mayan.cabinet(BY_CODE[code][1], mayan.cabinet(CABINET))
 
 
-def load_folder(conn, root: Path, actor: str, dry_run: bool = False, begin=None, progress=None) -> dict:
+def load_folder(conn, root: Path, actor: str, dry_run: bool = False, begin=None, progress=None,
+                deadline: float | None = None) -> dict:
     """Load every pack file under root into Documents: new files uploaded, changed ones a new version, unchanged ones
     skipped, restricted ones refused (D547). Returns what happened, file by file.
 
@@ -254,11 +256,15 @@ def load_folder(conn, root: Path, actor: str, dry_run: bool = False, begin=None,
     what is loaded stays loaded and shows at once, and one file that fails is reported and the rest carry on (R2.23:
     in one transaction for all 97 files, the start-up showed "0 of 97" until the very end, and one failure threw away
     the record of every file already uploaded, so the next start uploaded them all again). progress(done, total,
-    label) is told after each file."""
-    loaded, replaced, skipped, refused, failed = [], [], [], [], []
+    label) is told after each file. deadline (time.monotonic()): past it, the files not reached are left for the next
+    run (R5.32: a run never holds a job slot for hours)."""
+    loaded, replaced, skipped, refused, failed, left = [], [], [], [], [], []
     files = scan(root)
     for n, f in enumerate(files, 1):
         label = f"{BY_CODE[f['industry']][1]}: {f['name']}"
+        if deadline is not None and time.monotonic() > deadline:
+            left = [f"{BY_CODE[x['industry']][1]}: {x['name']}" for x in files[n - 1:]]
+            break
         if progress:
             progress(n - 1, len(files), label)
         try:
@@ -281,10 +287,11 @@ def load_folder(conn, root: Path, actor: str, dry_run: bool = False, begin=None,
             audit.record(conn, actor=actor, action="industry_packs.loaded", object_type="industry_packs",
                          object_id=str(root), details=details)
     return {"folder": str(root), "loaded": loaded, "replaced": replaced, "unchanged": skipped, "refused": refused,
-            "failed": failed, "total": len(files),
+            "failed": failed, "left": left, "total": len(files),
             "message": (f"{len(loaded)} loaded, {len(replaced)} replaced, {len(skipped)} unchanged"
                         + (f", {len(refused)} refused (marked not for AI use)" if refused else "")
-                        + (f", {len(failed)} failed (tried again at the next start)" if failed else "") + ".")}
+                        + (f", {len(failed)} failed (tried again at the next start)" if failed else "")
+                        + (f", {len(left)} left for the next run" if left else "") + ".")}
 
 
 def _one_file(conn, begin, f, label: str, actor: str, dry_run: bool, loaded: list, replaced: list, skipped: list,
@@ -446,12 +453,31 @@ def load_shipped(conn, actor: str = "system:seed") -> dict:
 
 
 LOCK_KEY = 7_465_546            # one loader at a time across the start-up step, the 10-minute job and the API servers
+RUN_BUDGET = 8 * 60             # a run loads for at most 8 minutes, the next 10-minute run carries on (R5.32)
+UPLOAD_TIMEOUT = 120            # one file to Documents: given up after 2 minutes, tried again next run (was 5, R5.32)
+
+
+def another_running(engine) -> bool:
+    """Whether another loader holds the packs' lock now (R5.32): looked at without taking it and without waiting."""
+    from sqlalchemy import text as _t
+    with engine.connect() as c:
+        return bool(c.execute(_t("""SELECT EXISTS (SELECT 1 FROM pg_locks WHERE locktype = 'advisory' AND granted
+                                             AND objid = :k AND classid = 0)"""), {"k": LOCK_KEY}).scalar())
+
+
+def timeouts(conn) -> None:
+    """Short waits for the loader's own connection (R5.32): a lock it cannot get in 30 s or a statement over 2 minutes is
+    an error, logged and tried again next run, never a job slot held for hours."""
+    from sqlalchemy import text as _t
+    conn.execute(_t("SET lock_timeout = '30s'"))
+    conn.execute(_t("SET statement_timeout = '120s'"))
 PART = "packs"
 
 
 def _part(engine, state: str, done: int, total: int, detail: str, start: bool = False, finish: bool = False) -> None:
     """The 'packs' row of operations.startup_parts: what the start-up status shows for the industry packs."""
     with engine.begin() as c:
+        c.execute(text("SET LOCAL lock_timeout = '30s'"))      # never a job slot held waiting on this row (R5.32)
         databases.on("operations", c).execute(text("""INSERT INTO operations.startup_parts (part, name, state, done, total, detail, started_at, finished_at, updated_at)
                           VALUES (:p, 'Industry packs', :s, :d, :t, :x, now(), NULL, now())
                           ON CONFLICT (part) DO UPDATE SET state = :s, done = :d, total = :t, detail = :x, updated_at = now(),
@@ -485,9 +511,13 @@ def load_shipped_each(actor: str = "system:seed", engine=None) -> dict:
             def told(done: int, total: int, label: str) -> None:
                 if done < total:
                     _part(engine, "starting", done, total, f"loading ({done} of {total}): {label}"[:300])
-            out = load_folder(None, PACKS_DIR, actor, begin=engine.begin, progress=told)
+            out = load_folder(None, PACKS_DIR, actor, begin=engine.begin, progress=told,
+                              deadline=time.monotonic() + RUN_BUDGET if actor == "system:job" else None)
             total = out["total"]
-            if out["failed"]:
+            if out.get("left"):                            # its time was up: the next run carries on (R5.32)
+                _part(engine, "starting", total - len(out["left"]), total,
+                      f"{total - len(out['left'])} of {total} loaded; the rest in the next 10 minutes")
+            elif out["failed"]:
                 _part(engine, "down", total, total, f"{len(out['failed'])} not loaded, tried again in 10 minutes: "
                       + "; ".join(out["failed"][:3]), finish=True)
             else:

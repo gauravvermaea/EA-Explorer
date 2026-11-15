@@ -50,13 +50,13 @@ def test_the_backup_suite_backs_up_restores_and_cleans_up(monkeypatch):
     got, fixtures = [], []
     out = bc.run("http://x", "tok", {"model": "M", "sid": "abc"}, lambda n, o, d="", ms=0: got.append((n, o)),
                  lambda m: None, None, 7, lambda k, i, n: fixtures.append((k, i, n)), call=call)
-    assert out == {"passed": 6, "failed": 0}
-    assert [n for n, _ in got] == ["backup: an infrastructure backup", "backup: trial restore: checksums",
-                                   "backup: trial restore: database eaexplorer", "backup: an application backup of the test model",
+    # R5.31: the full test takes no infrastructure backup any more (eax test backup-restore does)
+    assert out == {"passed": 3, "failed": 0}
+    assert [n for n, _ in got] == ["backup: an application backup of the test model",
                                    "backup: the test model restored from its backup", "backup: the test's backups removed"]
     assert fixtures == [("model", "NEW", "self_test_abc_4")]                     # the restored model is purged with the run
-    assert ("POST", "/api/v1/admin/backups/infrastructure/INF/delete") in calls and \
-        ("POST", "/api/v1/admin/backups/application/APP/delete") in calls        # nothing left behind (D593)
+    assert not any(p.startswith("/api/v1/admin/backups/infrastructure") for _m, p in calls)
+    assert ("POST", "/api/v1/admin/backups/application/APP/delete") in calls     # nothing left behind (D593)
 
 
 def test_a_failed_backup_is_a_failed_check(monkeypatch):
@@ -64,15 +64,16 @@ def test_a_failed_backup_is_a_failed_check(monkeypatch):
     monkeypatch.setattr(bc.time, "sleep", lambda s: None)
 
     def call(base, method, path, token, body=None, timeout=60):
-        if path.endswith("/infrastructure"):
+        if path.endswith("/application"):
             return 202, {"id": "t1"}
         if path == "/api/v1/tasks/t1":
             return 200, {"done": True, "status": "failed", "message": "files reports could not be read: ./x: Permission denied"}
         return 409, {"message": "no"}
     got = []
-    bc.run("http://x", "tok", {}, lambda n, o, d="", ms=0: got.append((n, o, d)), lambda m: None, None, 7,
+    bc.run("http://x", "tok", {"model": "M"}, lambda n, o, d="", ms=0: got.append((n, o, d)), lambda m: None, None, 7,
            lambda *a: None, call=call)
-    assert got == [("backup: an infrastructure backup", "failed", "files reports could not be read: ./x: Permission denied")]
+    assert got == [("backup: an application backup of the test model", "failed",
+                    "files reports could not be read: ./x: Permission denied")]
 
 
 def test_backup_is_the_last_suite_of_a_full_test_and_eax_test_backup():
@@ -169,7 +170,7 @@ def test_the_backups_page_disables_its_buttons_with_the_reason_until_the_web_is_
     assert "Use them anyway" in page and '"/api/v1/admin/backups/override"' in page
     assert "const ready = proven || override;" in page
     api = (REPO / "services/api/eax/api/backups.py").read_text()
-    assert "def web_proven(conn)" in api and '"web": proven' in api and "x.suite = 'backup'" in api
+    assert "def web_proven(conn)" in api and '"web": proven' in api and "x.suite IN ('backup', 'restore')" in api
     assert '@blp.route("/admin/backups/override")' in api and '_audit("backup.web_override"' in api and "return record_override(" in api
 
 

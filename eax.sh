@@ -799,7 +799,7 @@ case "$CMD" in
   menu) EAX_FORM=sh exec "$BASH" ./eaxpy.sh menu ;;   # the numbered menu (R2.29), one Python program for every form
   screen) EAX_FORM=sh exec "$BASH" ./eaxpy.sh screen ;;   # the full screen (R3.1), Python with Textual
   measure) EAX_FORM=sh exec "$BASH" ./eaxpy.sh "$@" ;;   # memory measured in one go (R3.5-M1); eax commands run back here
-  deploy|secrets|packs|schedule|persist|folders|allow|sign|verify|db|ticket|optimise|estimate|dev)   # packs (D546); schedule (D559); persist (R2.26); folders (R5.4); allow (R5.2)
+  deploy|secrets|packs|schedule|persist|folders|allow|sign|verify|db|ticket|jobs|optimise|estimate|dev)   # packs (D546); schedule (D559); persist (R2.26); folders (R5.4); allow (R5.2)
     # phase 36 (D498, D504): one Python program for every form (D500): eaxpy.sh fetches uv and Python into work/tools
     exec "$BASH" ./eaxpy.sh "$@" ;;
   restart)

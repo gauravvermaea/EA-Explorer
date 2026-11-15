@@ -69,6 +69,7 @@ def snapshot(conn, run_id: int, after: int = 0, log_from: int = 0, read_log: Log
         "open": run["state"] in store.OPEN,
         "tally": t,
         "progress": store.progress(conn, run, done),
+        "phases": store.phases(conn, run),                      # each phase: done and left (R5.5.3)
         "results": [{**dict(r), "detail": (r["detail"] or "")[:400]} for r in rows],
         "after": rows[-1]["id"] if rows else int(after or 0),
         "failures": [{**dict(r), "detail": (r["detail"] or "")[:400]} for r in fails],

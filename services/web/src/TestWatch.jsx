@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "./auth";
 import { Modal } from "./ModelOps";
+import { Phases } from "./TestPhases";
 
 // The Live browser panel (R5.20; owner, 14 Nov 2026: "view how testing is going I mean actual clicks etc in chromium";
 // "stream to start only on demand"): nothing is captured until it is opened; while open it asks every LARGE_MS for the
@@ -113,6 +114,7 @@ export default function TestWatch({ runId, onClose, live = false }) {
       {err && <p className="status bad">{err}</p>}
       {!s && !err && <p>Loading…</p>}
       {s && <div className="test-watch" aria-live="polite">
+        {s.open && <Phases phases={s.phases} />}
         <p className="test-watch-step">{s.open && <span className="spinner" aria-hidden="true" />}{" "}
           <b>{r.stop_asked ? `Stopping (asked by ${r.stop_asked})…` : r.step || (s.open ? "Starting…" : "Finished")}</b></p>
         <p className="small"><b className="ok-text">{t.passed || 0}</b> passed · <b className={t.failed ? "bad-text" : ""}>{t.failed || 0}</b> failed ·

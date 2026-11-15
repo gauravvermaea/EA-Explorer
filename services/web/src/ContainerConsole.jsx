@@ -9,6 +9,7 @@ import { StartupCell, StartupLine, TONE, WORD, containerStartup } from "./Startu
 import { apiFetch, can } from "./auth";
 import { fmtDateTime } from "./fmt";
 import { useApi } from "./ModelViews";
+import { JobSlots } from "./Jobs";
 
 const mb = (b) => (b == null ? "" : b >= 1e9 ? `${(b / 1e9).toFixed(1)} GB` : `${Math.round(b / 1e6)} MB`);
 
@@ -620,6 +621,7 @@ function ApiServers() {
       </div>
       {data.job && !data.busy && (data.job.log?.length > 0 || data.job.error) && <p className={`small ${data.job.error ? "status bad" : "quiet"}`}>{data.job.error || data.job.log.join(" · ")}</p>}
       {msg && <p className="small status warn">{msg}</p>}
+      <JobSlots compact key={data.wanted} />
       <table className="grid-table">
         <thead><tr><th>#</th><th>Container</th><th>State</th><th>Health</th><th>Started</th></tr></thead>
         <tbody>{data.servers.map((s) => (

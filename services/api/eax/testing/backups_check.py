@@ -2,10 +2,9 @@
 and infra backup in your testing? If not it should be. Please test it atleast in command line at the end of test as a
 last test"). As a Super Admin, through the same API the Backups page uses:
 
-  1. an infrastructure backup, tagged self-test-<run>, followed until it is made
-  2. a trial restore of it (the operations helper's verify.sh): the checksums, every file set readable, every database
-     restored into a scratch copy (<name>_restore_test), its tables counted against the live one's, and dropped;
-     nothing live is touched
+  (1 and 2, an infrastructure backup and its trial restore, left the full test on 15 Nov 2026, R5.31; owner: "from this
+  full test remove backup and restore testing of infrastructure, application is ok. We will test backup and restore
+  using a test backup-restore which can run from command line": `eax test backup-restore`, restore_check.py)
   3. an application backup of the run's own model (self_test_<id>_1)
   4. that model restored from it as a new model (self_test_<id>_4, a fixture of the run), its entities and
      relationships counted against the original's
@@ -70,20 +69,9 @@ def run(base: str, token: str, ids: dict[str, str], record: Record, log: Callabl
         t = wait_task(base, token, b, minutes * 60, call=call)
         return t.get("status") == "done", t, int((time.time() - t0) * 1000)
 
-    # 1 and 2: an infrastructure backup and its trial restore
-    log("backups: an infrastructure backup (every database and file set)")
-    ok, t, ms = task("/api/v1/admin/backups/infrastructure", {"tag": tag}, 120)
-    infra = (t.get("result") or {}).get("name") if ok else ""
-    rec("an infrastructure backup", ok and bool(infra), t.get("message") or t.get("status") or "", ms)
-    if infra:
-        log(f"backups: a trial restore of {infra} into scratch copies")
-        ok, t, ms = task(f"/api/v1/admin/backups/infrastructure/{infra}/verify", {}, 120)
-        checks = (t.get("result") or {}).get("checks") or []
-        if not checks:
-            rec("the trial restore", False, t.get("message") or t.get("status") or "no checks came back", ms)
-        for c in checks:
-            rec(f"trial restore: {c.get('name')}", bool(c.get("ok")), str(c.get("detail") or ""))
-
+    # 1 and 2 (the infrastructure backup and its trial restore) are tested from the command line only (R5.31):
+    # eax test backup-restore
+    infra = ""
     # 3 and 4: an application backup of the run's model, and that model restored from it as a new model
     model = ids.get("model", "")
     app = ""

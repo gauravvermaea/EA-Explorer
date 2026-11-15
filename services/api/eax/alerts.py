@@ -56,6 +56,7 @@ DEFAULTS: dict[str, tuple[str, str, float, float, bool]] = {
     "self_test": ("The last finished self-test", "checks failed", 1, 1000000, True),
     "db_maintenance": ("Database maintenance findings (R5.12)", "findings", 1, 5, True),
     "security": ("High or critical security findings the gate fails on (R5.17)", "findings", 1, 1000000, True),
+    "jobs_stuck": ("Background jobs stuck: waiting or running too long (R5.30; System Admin › Jobs)", "jobs", 1, 3, True),
 }
 
 
@@ -259,6 +260,8 @@ def seen_now(conn, cfg: dict[str, dict]) -> dict[str, dict]:
         put("db_connections", None, str(exc)[:160])
     try:
         put("db_maintenance", *measure_db_maintenance(conn))
+        from . import jobqueue
+        put("jobs_stuck", *jobqueue.measure(conn))
     except Exception as exc:  # noqa: BLE001
         put("db_maintenance", None, str(exc)[:160])
     for key, c in cfg.items():

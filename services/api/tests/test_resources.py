@@ -188,7 +188,7 @@ def test_wired_in_everywhere():
     from eax import databases
     assert "operations.resource_samples" in databases.TABLES["operations"]
     jobs = (REPO / "services/api/eax/jobs.py").read_text()
-    assert '@app.task(name="eax.resource_sample", queue="default", queueing_lock="resource_sample")' in jobs
+    assert '@app.task(name="eax.resource_sample", queue="default", queueing_lock="resource_sample", lock="resource_sample")' in jobs
     admin = (REPO / "services/api/eax/api/admin.py").read_text()
     for route in ('"/admin/resources"', '"/admin/resources/csv"', '"/admin/resources/sample"', '"/admin/resources/settings"'):
         assert f"@blp.route({route})" in admin

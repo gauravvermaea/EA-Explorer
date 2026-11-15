@@ -217,7 +217,43 @@ def get(conn, ident, me: str, roles) -> dict:
                                                                            WHERE ticket_id = :t ORDER BY at, id""", t=n)]
     s["files"] = _rows(conn, "SELECT id, name, mime, size, added_by, added_at FROM core.service_ticket_files WHERE ticket_id = :t ORDER BY id", t=n)
     s["type"] = _one(conn, "SELECT key, name, form, wizard FROM core.service_types WHERE key = :k", k=t["type_key"])
+    s["shown"] = shown_fields(conn, (s["type"] or {}).get("form") or [], s.get("fields") or {})
     return s
+
+
+def _model_names(conn, guids: list[str]) -> dict[str, str]:
+    if not guids:
+        return {}
+    try:
+        return {r["g"]: r["name"] for r in _rows(conn, """SELECT guid::text AS g, name FROM core.models
+                                                          WHERE guid::text = ANY (CAST(:gs AS text[]))""", gs=guids)}
+    except Exception:  # noqa: BLE001 - shown as given
+        return {}
+
+
+def _project_names(guids: list[str]) -> dict[str, str]:
+    if not guids:
+        return {}
+    try:
+        from . import projects as pj
+        with pj.connections() as pc:
+            return {r[0]: r[1] for r in pc.execute(text("""SELECT guid::text, name FROM proj.projects
+                                                             WHERE guid::text = ANY (CAST(:gs AS text[]))"""), {"gs": guids}).all()}
+    except Exception:  # noqa: BLE001 - projects switched off: shown as given
+        return {}
+
+
+def shown_fields(conn, form: list[dict], fields: dict) -> dict:
+    """The request's answers as people read them: a model or a project by its name, not its identifier (R5.37).
+    Something no longer there (deleted, or the projects part off) shows as it was given."""
+    kinds = {f.get("name"): f.get("kind") for f in form or []}
+    pick = lambda kind: [str(v) for k, v in (fields or {}).items() if kinds.get(k) == kind and v]  # noqa: E731
+    models, projects = _model_names(conn, pick("model")), _project_names(pick("project"))
+    out = {}
+    for k, v in (fields or {}).items():
+        names = models if kinds.get(k) == "model" else projects if kinds.get(k) == "project" else {}
+        out[k] = names.get(str(v), v)
+    return out
 
 
 def _event(conn, ticket_id: int, by: str, kind: str, body: str = "", data: dict | None = None) -> None:

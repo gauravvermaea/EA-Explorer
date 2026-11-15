@@ -348,16 +348,33 @@ def stop(token: str) -> dict:
     return {**what, "done": bool(ok)}
 
 
+IDLE_SQL = """SELECT pid FROM pg_stat_activity
+              WHERE datname = current_database() AND backend_type = 'client backend'
+                AND state = 'idle in transaction' AND pid <> pg_backend_pid()
+                AND state_change < now() - make_interval(mins => %s)"""
+
+
 def end_idle(minutes: int) -> list[int]:
-    """Sessions idle in a transaction longer than `minutes` ended (they hold locks and stop tidying)."""
+    """Sessions of EA Explorer's own database idle in a transaction longer than `minutes` ended (they hold locks and stop
+    tidying).
+
+    R5.36 (owner, 15 Nov 2026, 22:25: "sample data doesnt seem to be loading and I cant see projects"): this was one
+    statement with pg_terminate_backend(pid) in its WHERE, and PostgreSQL does not promise to test the other conditions
+    first: every 5 minutes it ended every session on the server, of every database (Keycloak's, Reports', Documents'
+    too), this job's own included. The sample data's loader died at 2 of 32, the change log and the alerts lost their
+    connections; very likely also the stuck industry packs and the Keycloak test users not deleted in the full test.
+    Now the sessions are chosen first, in a query of their own, and only then ended one by one; only client sessions of
+    EA Explorer's own database are ever considered."""
     if minutes <= 0:
         return []
     from .config import get_settings
     with connect(get_settings().db_name) as c:
-        return [r[0] for r in c.execute("""SELECT pid FROM pg_stat_activity
-                                             WHERE state = 'idle in transaction' AND pid <> pg_backend_pid()
-                                               AND state_change < now() - make_interval(mins => %s)
-                                               AND pg_terminate_backend(pid)""", (int(minutes),))]
+        pids = [r[0] for r in c.execute(IDLE_SQL, (int(minutes),)).fetchall()]
+        ended = []
+        for pid in pids:
+            if c.execute("SELECT pg_terminate_backend(%s)", (int(pid),)).fetchone()[0]:
+                ended.append(pid)
+        return ended
 
 
 def clear(conn, actor: str) -> dict:

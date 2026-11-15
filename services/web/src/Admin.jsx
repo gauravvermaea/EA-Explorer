@@ -56,6 +56,7 @@ const AlertsPage = lazy(() => import("./AlertsPage"));
 const DbMaintenancePage = lazy(() => import("./DbMaintenance"));
 const OptimisationPage = lazy(() => import("./Optimisation"));
 const SizingPage = lazy(() => import("./Sizing"));
+const JobsPage = lazy(() => import("./Jobs"));   // R5.30
 const QualityAdmin = lazy(() => import("./Quality").then((x) => ({ default: x.QualityAdmin })));
 
 const TABS = [
@@ -73,6 +74,7 @@ const TABS = [
   ["databases", "Databases", () => can("system.operate"), ["it-admin", "super-admin"]],   // where each lives (R2.50)
   ["db-maintenance", "Database maintenance", () => can("system.operate"), ["it-admin", "super-admin", "auditor"]],   // R5.12
   ["optimisation", "Optimisation", () => true, null],
+  ["jobs", "Jobs", () => can("system.operate"), ["it-admin", "super-admin"]],   // the job queue, stuck jobs (R5.30)
   ["sizing", "Sizing", () => can("system.operate"), ["it-admin", "super-admin", "auditor"]],   // R5.19   // R5.1: a Model Admin sees what is theirs to decide
   ["persist", "Persist", () => can("system.operate"), ["it-admin", "super-admin"]],       // what survives resets (R2.26)
   ["footprint", "Footprint", () => can("system.operate"), ["it-admin", "super-admin"]],   // how much each takes (R2.22)
@@ -126,6 +128,7 @@ export default function Admin({ route }) {
                 : t[0] === "db-maintenance" ? <DbMaintenancePage />
                 : t[0] === "optimisation" ? <OptimisationPage />
                 : t[0] === "sizing" ? <SizingPage />
+                : t[0] === "jobs" ? <JobsPage />
                 : t[0] === "persist" ? <PersistPage />
                 : t[0] === "footprint" ? <FootprintPage />
                 : t[0] === "estate" ? <EstatePage />

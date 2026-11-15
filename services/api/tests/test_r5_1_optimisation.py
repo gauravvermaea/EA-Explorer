@@ -99,7 +99,7 @@ def test_it_runs_monthly_on_the_web_and_on_the_command_line():
     for route in ('"/admin/optimisation"', '"/admin/optimisation/<int:report_id>/apply"', '"/admin/optimisation/<int:report_id>/xlsx"'):
         assert route in admin
     assert '"python", "-m", "eax.optimise"' in (REPO / "eaxcli/optimise_cli.py").read_text()
-    assert "|optimise|" in (REPO / "eax.sh").read_text() and '"ticket", "optimise"' in (REPO / "eax.ps1").read_text()
+    assert "|optimise|" in (REPO / "eax.sh").read_text() and '"jobs", "optimise"' in (REPO / "eax.ps1").read_text()   # jobs (R5.30)
     assert "### optimise " in (REPO / "eaxcli/help.txt").read_text()
     sql = (REPO / "services/api/migrations/sql/0083_r5_optimisation.sql").read_text()
     assert "core.optimisation_reports" in sql and "FUNCTION" not in sql

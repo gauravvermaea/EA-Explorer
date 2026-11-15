@@ -230,7 +230,7 @@ function TicketPage({ ident }) {
           <section className="desk-box">
             <h3>What was asked</h3>
             <dl className="desk-facts">
-              {Object.entries(t.fields || {}).map(([k, v]) => <div key={k}><dt>{label(k)}</dt><dd>{String(v)}</dd></div>)}
+              {Object.entries(t.fields || {}).map(([k, v]) => <div key={k}><dt>{label(k)}</dt><dd>{String(t.shown?.[k] ?? v)}</dd></div>)}
             </dl>
           </section>
           <section className="desk-box">

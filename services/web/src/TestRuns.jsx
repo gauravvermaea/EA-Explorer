@@ -16,6 +16,7 @@ import { useEffect, useRef, useState } from "react";
 import ApiHarness from "./ApiHarness";
 import CoverageCharts from "./CoverageCharts";
 import TestWatch from "./TestWatch";
+import { Phases } from "./TestPhases";
 import { journey, makeFrame, sweep } from "./selfTestDriver.js";
 import { apiBlobUrl, apiDownload, apiFetch, can } from "./auth";
 import { Modal } from "./ModelOps";
@@ -372,6 +373,7 @@ function LiveRun({ runId, onChange, onOpen }) {
         <div className="kpi"><b>{t.warning}</b><span>warnings</span></div>
         <div className="kpi"><b>{t.skipped}</b><span>skipped</span></div>
       </div>
+      <Phases phases={d.phases} />
       <Progress p={d.progress} />
       <HealthPanel h={d.health} />
       <p className="self-test-step"><span className="spinner" aria-hidden="true" /> {r.stop_asked ? `Stopping (asked by ${r.stop_asked})...` : r.step || "Starting..."}</p>

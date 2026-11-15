@@ -32,7 +32,8 @@ def test_d596_requests_may_take_two_minutes_and_four_jobs_run_at_once():
     once held a delivery preview up behind the long ones."""
     entry = _read("services", "api", "entrypoint.sh")
     assert '--timeout "${EAX_API_TIMEOUT:-120}"' in entry
-    assert '--concurrency "${EAX_JOB_CONCURRENCY:-4}"' in entry
+    # four for people's work still, now set on screen (R5.33): the setting, else EAX_JOB_CONCURRENCY, else 4
+    assert '--concurrency "${TASK_SLOTS:-4}" --queues tasks' in entry and "${EAX_JOB_CONCURRENCY:-4}" in entry
 
 
 def test_d596_the_test_bench_state_counts_each_table_on_its_own():

@@ -3,6 +3,7 @@ import { apiFetch, can, signedIn } from "./auth";
 import { fmtDateTime, fmtTime } from "./fmt";
 import { LastSelfTest } from "./TestRuns";
 import { AlertSummary } from "./AlertsPage";
+import { JobsSummary } from "./Jobs";
 
 function Status({ ok, children }) {
   return <span className={ok ? "status ok" : "status bad"}>{children}</span>;
@@ -131,6 +132,7 @@ export default function Heartbeat() {
       )}
       {signedIn() && <Services />}
       <AlertSummary />
+      <JobsSummary />
       <LastSelfTest />
       <Integrate />
       <h2>Background job</h2>

@@ -568,6 +568,9 @@ def main(argv: list[str]) -> int:
         if command == "document":
             document(rest)
             return 0
+        if command == "jobs":                   # the background job queue (R5.30 to R5.34): every form
+            from . import jobs_cli
+            return jobs_cli.main(rest)
         if command == "ticket":                 # the service desk's requests (R5.11, D692): every form
             from . import ticket_cli
             return ticket_cli.main(rest)

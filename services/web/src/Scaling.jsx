@@ -7,6 +7,7 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "./auth";
 import { fmtDateTime } from "./fmt";
+import { JobSlots } from "./Jobs";
 
 const FIELDS = [
   ["EAX_SCALE_MIN", "Fewest servers", "Never fewer than this."],
@@ -74,6 +75,7 @@ export default function Scaling() {
         {changed && <button onClick={() => setForm({ ...d.settings })}>Undo changes</button>}
         {msg && <span className="small">{msg}</span>}
       </div>
+      <JobSlots />
       <h2>Changes made by the rules</h2>
       {d.events.length === 0 ? <p className="quiet">None yet.</p> : (
         <table className="grid-table">

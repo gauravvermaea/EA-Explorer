@@ -197,6 +197,7 @@ export function menuTree() {
       { label: "Running", ok: ops, items: [
         { label: "Health", href: "#/admin/health" },
         { label: "Alerts", href: "#/admin/alerts" },        // every check, the open alerts (R5.9)
+        { label: "Jobs", href: "#/admin/jobs" },            // the job queue, stuck jobs (R5.30)
         { label: "Containers", href: "#/admin/containers" },
         { label: "Logs", href: "#/admin/logs" },            // every log, the web log (R5.6)
         { label: "Hosts", href: "#/admin/hosts" },          // the Docker engine (R2.16)

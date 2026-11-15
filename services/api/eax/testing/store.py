@@ -299,6 +299,49 @@ def progress(conn, run: dict[str, Any], done: int) -> dict[str, Any]:
             "percent": round(100 * done / total) if total else 100}
 
 
+PHASE_NAMES = {"api": "API", "ui": "Browser", "db": "Database", "security": "Security", "reports": "Reports",
+               "performance": "Performance", "backup": "Backups", "restore": "Restore", "smoke": "Smoke"}
+
+
+def phases(conn, run: dict[str, Any]) -> list[dict[str, Any]]:
+    """Each phase (suite) of a run going on, in the order it runs: done so far, about how many in all and left (from the
+    newest finished run that had the phase, at the same level), and whether it is finished, running or waiting (R5.5.3;
+    owner, 15 Nov 2026: "How many have run and how many are left in this phase"; "Make it big and fat on screen")."""
+    rows = conn.execute(text("SELECT suite, count(*) AS n, max(id) AS last FROM tests.test_results WHERE run_id = :id "
+                             "GROUP BY suite"), {"id": run["id"]}).mappings().all()
+    done = {r["suite"]: int(r["n"]) for r in rows}
+    last = {r["suite"]: int(r["last"]) for r in rows}
+    order = [x for x in (run.get("suites") or []) if x in SUITES]
+    order += [x for x in sorted(done, key=lambda k: last[k]) if x not in order]
+    current = max(last, key=lambda k: last[k]) if last else (order[0] if order else "")
+    out, seen_current = [], False
+    for x in order:
+        if run.get("repeat_of"):
+            total = conn.execute(text("SELECT count(DISTINCT name) FROM tests.test_results WHERE run_id = :r AND suite = :s "
+                                      "AND outcome = ANY(:o)"), {"r": run["repeat_of"], "s": x,
+                                      "o": ["failed", "warning"] if run.get("repeat_warnings") else ["failed"]}).scalar()
+        else:
+            total = conn.execute(text("""SELECT (SELECT count(*) FROM tests.test_results x WHERE x.run_id = r.id AND x.suite = :s)
+                                           FROM tests.test_runs r
+                                          WHERE r.id <> :id AND r.state IN ('passed', 'failed') AND r.level = :l
+                                            AND r.repeat_of IS NULL
+                                            AND EXISTS (SELECT 1 FROM tests.test_results y WHERE y.run_id = r.id AND y.suite = :s)
+                                          ORDER BY r.id DESC LIMIT 1"""),
+                                 {"id": run["id"], "l": run.get("level") or "", "s": x}).scalar()
+        n = done.get(x, 0)
+        total = max(int(total), n) if total else None
+        if x == current and run.get("state") in OPEN:
+            state, seen_current = "running", True
+        elif n and not seen_current:
+            state = "finished"
+        else:
+            state = "waiting" if run.get("state") in OPEN else ("finished" if n else "not run")
+        out.append({"suite": x, "name": PHASE_NAMES.get(x, x), "done": n, "total": total,
+                    "left": (total - n) if total is not None else None,
+                    "percent": round(100 * n / total) if total else None, "state": state})
+    return out
+
+
 GONE = "EA Explorer, as its test runner was no longer running (restarted or removed)"
 
 
@@ -384,7 +427,8 @@ def run_detail(conn, run_id: int, outcome: str = "", suite: str = "") -> dict[st
     return {"run": run, "results": [dict(r) for r in results], "tally": tally(conn, run_id),
             "health": health.summary(every),                   # critical and non-critical, and the health (R2.35)
             "repeat": repeat.compare(conn, run_id),            # a repeat: each check then and now (R2.36)
-            "progress": progress(conn, run, len(every)) if run["state"] in OPEN else None}   # checks left (R2.40)
+            "progress": progress(conn, run, len(every)) if run["state"] in OPEN else None,   # checks left (R2.40)
+            "phases": phases(conn, run) if run["state"] in OPEN else None}   # each phase: done and left (R5.5.3)
 
 
 def screenshot(conn, result_id: int) -> bytes | None:

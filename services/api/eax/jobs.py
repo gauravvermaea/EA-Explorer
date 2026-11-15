@@ -77,9 +77,11 @@ def copy_model(context, source: str, target: str, actor: str, roles: list[str], 
         permissions.current.reset(token)
 
 
-@app.task(name="eax.run_task", queue="default")
+@app.task(name="eax.run_task", queue="tasks")
 def run_task(task_id: str, actor: str, roles: list[str]) -> None:
-    """Long work in the background (D192): tagging a model, ... (eax/tasks.py)."""
+    """Long work in the background (D192): tagging a model, ... (eax/tasks.py). On a queue of its own with slots of its
+    own (R5.30): what people ask for (a backup, a delivery, a merge) never waits behind the scheduled housekeeping, which
+    held every slot when the full test's backup waited for an hour (15 Nov 2026)."""
     from . import tasks
     tasks.run(task_id, actor, roles)
 
@@ -92,8 +94,11 @@ def admin_sign_in_check(context, username: str) -> None:
     log.info("sign-in check for %s: %s", username, f"notification {nid}" if nid else "all well")
 
 
+# Every scheduled job carries a lock of its own name (R5.32, owner, 15 Nov 2026: "if a job already exists like we had
+# exactly the 4 jobs of loading industry pack then can we ensure it doesnt load again?"): queueing_lock lets only one
+# wait, lock lets only one run; the next waits for it without taking a slot, so the same job never runs twice at once.
 @app.periodic(cron="* * * * *")
-@app.task(name="eax.record_terminal_ends", queue="default", queueing_lock="record_terminal_ends")
+@app.task(name="eax.record_terminal_ends", queue="default", queueing_lock="record_terminal_ends", lock="record_terminal_ends")
 def record_terminal_ends(timestamp: int) -> None:
     """D214: interactive terminal sessions that ended go into the audit trail, every minute."""
     from .api.admin import record_terminal_ends as record
@@ -103,7 +108,7 @@ def record_terminal_ends(timestamp: int) -> None:
 
 
 @app.periodic(cron="17 3 * * *")
-@app.task(name="eax.test_results_cleanup", queue="default", queueing_lock="test_results_cleanup")
+@app.task(name="eax.test_results_cleanup", queue="default", queueing_lock="test_results_cleanup", lock="test_results_cleanup")
 def test_results_cleanup(timestamp: int) -> None:
     """R2.43: test runs older than the days set on the Self-test page go, once a day (their data, results, reports,
     logs and videos); 0 keeps them."""
@@ -126,7 +131,7 @@ def test_results_cleanup(timestamp: int) -> None:
 
 
 @app.periodic(cron="*/10 * * * *")
-@app.task(name="eax.task_files_cleanup", queue="default", queueing_lock="task_files_cleanup")
+@app.task(name="eax.task_files_cleanup", queue="default", queueing_lock="task_files_cleanup", lock="task_files_cleanup")
 def task_files_cleanup(timestamp: int) -> None:
     """D273: a background task's file is kept 24 hours; the uploaded files of finished tasks go at once."""
     from . import tasks
@@ -138,7 +143,7 @@ def task_files_cleanup(timestamp: int) -> None:
 
 
 @app.periodic(cron="* * * * *")
-@app.task(name="eax.deliver_webhooks", queue="default", queueing_lock="deliver_webhooks")
+@app.task(name="eax.deliver_webhooks", queue="default", queueing_lock="deliver_webhooks", lock="deliver_webhooks")
 def deliver_webhooks(timestamp: int) -> None:
     """Phase 8.1: sends the webhook deliveries that are due (D209), every minute."""
     from . import webhooks
@@ -149,7 +154,7 @@ def deliver_webhooks(timestamp: int) -> None:
 
 
 @app.periodic(cron="* * * * *")
-@app.task(name="eax.personal_flush", queue="default", queueing_lock="personal_flush")
+@app.task(name="eax.personal_flush", queue="default", queueing_lock="personal_flush", lock="personal_flush")
 def personal_flush(timestamp: int) -> None:
     """R2.53 (D632): the notifications made while the personal data service could not be reached, sent now it is back."""
     from . import personal
@@ -161,7 +166,7 @@ def personal_flush(timestamp: int) -> None:
 
 
 @app.periodic(cron="* * * * *")
-@app.task(name="eax.resource_sample", queue="default", queueing_lock="resource_sample")
+@app.task(name="eax.resource_sample", queue="default", queueing_lock="resource_sample", lock="resource_sample")
 def resource_sample(timestamp: int) -> None:
     """R3.5-M8: the resource history: a sample when one is due (every 15 minutes unless set, System Admin > Footprint),
     old samples made hourly and deleted; quiet when the operations helper is not there (tried again next minute)."""
@@ -177,7 +182,7 @@ def resource_sample(timestamp: int) -> None:
 
 
 @app.periodic(cron="*/5 * * * *")
-@app.task(name="eax.library_models_move", queue="default", queueing_lock="library_models_move")
+@app.task(name="eax.library_models_move", queue="default", queueing_lock="library_models_move", lock="library_models_move")
 def library_models_move(timestamp: int) -> None:
     """R2.42 (D633): a library model made since (published, uploaded, an industry pack) has its content moved into the
     library schema; nothing to do most of the time."""
@@ -188,7 +193,7 @@ def library_models_move(timestamp: int) -> None:
 
 
 @app.periodic(cron="*/5 * * * *")
-@app.task(name="eax.sites_health", queue="default", queueing_lock="sites_health")
+@app.task(name="eax.sites_health", queue="default", queueing_lock="sites_health", lock="sites_health")
 def sites_health(timestamp: int) -> None:
     """R2.1 (D646): each site's health (green, amber, red) from its public heartbeat; sites deployed since are added."""
     from . import deploys, sites
@@ -200,7 +205,7 @@ def sites_health(timestamp: int) -> None:
 
 # ---------------------------------------------------------------- backups (phase 8.4, D216, D222)
 @app.periodic(cron="* * * * *")
-@app.task(name="eax.announce_restores", queue="default", queueing_lock="announce_restores")
+@app.task(name="eax.announce_restores", queue="default", queueing_lock="announce_restores", lock="announce_restores")
 def announce_restores(timestamp: int) -> None:
     """Every minute: a restore that ended (or one running that was not announced) is told to everyone (D229); after a
     full restore this is how the restored database hears of it. A model lock left by a restore that stopped is lifted."""
@@ -215,7 +220,7 @@ def announce_restores(timestamp: int) -> None:
 
 
 @app.periodic(cron="*/10 * * * *")
-@app.task(name="eax.discovery_scheduler", queue="default", queueing_lock="discovery_scheduler")
+@app.task(name="eax.discovery_scheduler", queue="default", queueing_lock="discovery_scheduler", lock="discovery_scheduler")
 def discovery_scheduler(timestamp: int) -> None:
     """Every 10 minutes: the discovery sources due on their schedules (daily, weekly) run, each as the person who set it
     up; what changed becomes a delivery, previewed here, waiting for review (the Release 3 epic, D670)."""
@@ -225,7 +230,7 @@ def discovery_scheduler(timestamp: int) -> None:
 
 
 @app.periodic(cron="* * * * *")
-@app.task(name="eax.backup_scheduler", queue="default", queueing_lock="backup_scheduler")
+@app.task(name="eax.backup_scheduler", queue="default", queueing_lock="backup_scheduler", lock="backup_scheduler")
 def backup_scheduler(timestamp: int) -> None:
     """Every minute: the backups due on their schedules (operations.backup_schedules, set on Administration > Backups) start.
     Infrastructure: in the operations helper; application: here, as the system. The oldest beyond 'keep' go after each."""
@@ -261,7 +266,7 @@ def backup_scheduler(timestamp: int) -> None:
 
 
 @app.periodic(cron="* * * * *")
-@app.task(name="eax.record_backup_events", queue="default", queueing_lock="record_backup_events")
+@app.task(name="eax.record_backup_events", queue="default", queueing_lock="record_backup_events", lock="record_backup_events")
 def record_backup_events(timestamp: int) -> None:
     """Every minute: backups, restores and clean-ups done by the operations helper go into the audit trail."""
     from .api.admin import _ops_raw
@@ -283,7 +288,7 @@ def record_backup_events(timestamp: int) -> None:
 
 # ---------------------------------------------------------------- data quality (phase 12, D239)
 @app.periodic(cron="* * * * *")
-@app.task(name="eax.quality_scheduler", queue="default", queueing_lock="quality_scheduler")
+@app.task(name="eax.quality_scheduler", queue="default", queueing_lock="quality_scheduler", lock="quality_scheduler")
 def quality_scheduler(timestamp: int) -> None:
     """Every minute: each model whose quality is due on its schedule (every Sunday at 03:00 by default, D244) is measured, the
     measurement kept, and its responsible people told about new problems (stale entities among them)."""
@@ -322,7 +327,7 @@ def quality_measure(request_id: str) -> None:
 
 
 @app.periodic(cron="*/2 * * * *")
-@app.task(name="eax.quality_watch", queue="default", queueing_lock="quality_watch")
+@app.task(name="eax.quality_watch", queue="default", queueing_lock="quality_watch", lock="quality_watch")
 def quality_watch(timestamp: int) -> None:
     """Every two minutes: models changed lately are checked and the people responsible told about new problems as they
     happen (D239.3); each problem is told once until it is fixed."""
@@ -342,7 +347,7 @@ def quality_watch(timestamp: int) -> None:
 
 
 @app.periodic(cron="0 * * * *")
-@app.task(name="eax.quality_digest", queue="default", queueing_lock="quality_digest")
+@app.task(name="eax.quality_digest", queue="default", queueing_lock="quality_digest", lock="quality_digest")
 def quality_digest(timestamp: int) -> None:
     """On Mondays at 07:00 in the installation's time zone: each responsible person's weekly data quality digest."""
     from datetime import datetime
@@ -359,7 +364,7 @@ def quality_digest(timestamp: int) -> None:
 
 # ---------------------------------------------------------------- KPI trends (phase 24, D365, D431)
 @app.periodic(cron="7 * * * *")
-@app.task(name="eax.kpi_monthly", queue="default", queueing_lock="kpi_monthly")
+@app.task(name="eax.kpi_monthly", queue="default", queueing_lock="kpi_monthly", lock="kpi_monthly")
 def kpi_monthly(timestamp: int) -> None:
     """Every hour: each live model with no KPI snapshot for this month yet gets one, dated the 1st of the month; on the 1st
     that is in the first hour, and a month missed while the server was off is taken as soon as it is back."""
@@ -393,7 +398,7 @@ def template_library_load(library_id: int) -> None:
 
 
 @app.periodic(cron="* * * * *")
-@app.task(name="eax.project_repositories", queue="default", queueing_lock="project_repositories")
+@app.task(name="eax.project_repositories", queue="default", queueing_lock="project_repositories", lock="project_repositories")
 def project_repositories(timestamp: int) -> None:
     """Every minute: uploaded template libraries still to store, then the repositories still to build (made while
     Documents was starting or off) once Mayan answers; each failure is kept on the project and tried again (up to 30 times)."""
@@ -425,13 +430,23 @@ def project_repositories(timestamp: int) -> None:
 
 
 @app.periodic(cron="*/10 * * * *")
-@app.task(name="eax.industry_packs", queue="default", queueing_lock="industry_packs")
+@app.task(name="eax.industry_packs", queue="default", queueing_lock="industry_packs", lock="industry_packs")
 def industry_packs(timestamp: int) -> None:
     """Every 10 minutes: when the shipped industry packs are not all in Documents (the start-up step ran before Documents
-    answered, some files failed, or a loader was stopped half way), they are loaded, each file on its own (D546, R2.23)."""
+    answered, some files failed, or a loader was stopped half way), they are loaded, each file on its own (D546, R2.23).
+
+    R5.32 (the full test of 15 Nov 2026: the backup waited an hour because the job runner's four slots were all held by
+    this job, started at 17:50, 18:00, 18:20 and 18:30 and never ended): a run that finds another one still going leaves
+    at once, before it reads or waits on anything (queueing_lock only stops a second one waiting, not a second one
+    running); a run loads for at most ip.RUN_BUDGET seconds and leaves the rest to the next; its database waits are short
+    (ip.timeouts)."""
     from . import industry_packs as ip
+    if ip.another_running(get_engine()):
+        log.info("industry packs: another run is still loading; this one leaves")
+        return
     try:
         with get_engine().connect() as conn:
+            ip.timeouts(conn)
             state = databases.on("operations", conn).execute(text("SELECT state FROM operations.startup_parts WHERE part = :p"), {"p": ip.PART}).scalar()
             if state in ("up", "skipped") or (state is None and not ip.missing_shipped(conn)):
                 return
@@ -443,7 +458,7 @@ def industry_packs(timestamp: int) -> None:
 # ---------------------------------------------------------------- surveys (phase 38.1, D448)
 
 @app.periodic(cron="7 * * * *")
-@app.task(name="eax.surveys", queue="default", queueing_lock="surveys")
+@app.task(name="eax.surveys", queue="default", queueing_lock="surveys", lock="surveys")
 def surveys(timestamp: int) -> None:
     """Every hour: surveys past their closing date close (a maturity assessment keeps its evidence and scores), and
     automatic reminders go to those who have not answered."""
@@ -457,7 +472,7 @@ def surveys(timestamp: int) -> None:
 # ---------------------------------------------------------------- housekeeping (phase 35.1, D371, D444)
 
 @app.periodic(cron="40 2 * * *")
-@app.task(name="eax.housekeeping", queue="default", queueing_lock="housekeeping")
+@app.task(name="eax.housekeeping", queue="default", queueing_lock="housekeeping", lock="housekeeping")
 def housekeeping(timestamp: int) -> None:
     """Every night: the retention rules applied once a dry run of them is confirmed; until then, a dry run that waits
     for an IT Admin or Super Admin to confirm it (System admin > Operations > Housekeeping)."""
@@ -471,7 +486,7 @@ def housekeeping(timestamp: int) -> None:
 
 # ---------------------------------------------------------------- the logs (R2.30)
 @app.periodic(cron="43 2 * * *")
-@app.task(name="eax.logs_clean", queue="default", queueing_lock="logs_clean")
+@app.task(name="eax.logs_clean", queue="default", queueing_lock="logs_clean", lock="logs_clean")
 def logs_clean(timestamp: int) -> None:
     """Every night: the containers' daily log files, eax's own logs and the log backups older than the days set in
     System Admin > Settings ("Delete logs older than"; 0 keeps them) deleted by the operations helper; in the audit trail."""
@@ -493,7 +508,7 @@ def logs_clean(timestamp: int) -> None:
 
 # ---------------------------------------------------------------- the typed report views (D139)
 @app.periodic(cron="*/10 * * * *")
-@app.task(name="eax.reports_refresh", queue="default", queueing_lock="reports_refresh")
+@app.task(name="eax.reports_refresh", queue="default", queueing_lock="reports_refresh", lock="reports_refresh")
 def reports_refresh(timestamp: int) -> None:
     """Every 10 minutes: the typed report views brought in line with every metamodel, for a change that saved without
     them because they were busy (reports.refresh_typed_views waits only seconds). Nothing changes when they are."""
@@ -507,7 +522,7 @@ def reports_refresh(timestamp: int) -> None:
 # ---------------------------------------------------------------- updates (phase 36, D417, D515)
 
 @app.periodic(cron="*/5 * * * *")
-@app.task(name="eax.update_watch", queue="default", queueing_lock="update_watch")
+@app.task(name="eax.update_watch", queue="default", queueing_lock="update_watch", lock="update_watch")
 def update_watch(timestamp: int) -> None:
     """Every 5 minutes: the operations helper's record of updates copied into the database, and the Super Admins and
     IT Admins told once when an update fails, finishes or is rolled back. Once a day (at 06:15): whether the installed
@@ -538,7 +553,7 @@ def update_watch(timestamp: int) -> None:
 
 
 @app.periodic(cron="41 * * * *")
-@app.task(name="eax.keycloak_upkeep", queue="default", queueing_lock="keycloak_upkeep")
+@app.task(name="eax.keycloak_upkeep", queue="default", queueing_lock="keycloak_upkeep", lock="keycloak_upkeep")
 def keycloak_upkeep(timestamp: int) -> None:
     """Every hour (R5.3, R5.22): multi-factor sign-in applied to whoever the setting wants (new admins, new people)
     and the Auditor role made when the realm lacks it. Nothing happens when Keycloak's administrator cannot sign in."""
@@ -556,9 +571,10 @@ def keycloak_upkeep(timestamp: int) -> None:
 
 
 @app.periodic(cron="* * * * *")
-@app.task(name="eax.alerts_run", queue="default", queueing_lock="alerts_run")
+@app.task(name="eax.alerts_run", queue="watch", queueing_lock="alerts_run", lock="alerts_run")
 def alerts_run(timestamp: int) -> None:
-    """Every minute (R5.9): every alert check once; states kept, the history written, people told."""
+    """Every minute (R5.9): every alert check once; states kept, the history written, people told. On a queue of its
+    own (watch) with a job slot of its own, so the alerts still run, and say so, when every other slot is stuck (R5.30)."""
     import logging
 
     from . import alerts
@@ -570,7 +586,7 @@ def alerts_run(timestamp: int) -> None:
 
 
 @app.periodic(cron="20 3 * * 0")
-@app.task(name="eax.security_weekly", queue="default", queueing_lock="security_weekly")
+@app.task(name="eax.security_weekly", queue="default", queueing_lock="security_weekly", lock="security_weekly")
 def security_weekly(timestamp: int) -> None:
     """Every Sunday at 03:20 (R5.17 (1)): the security suite, detailed, by itself (the setting security_test_weekly):
     the scans, the attacks and the gate; nothing waits for a person. Not while another self-test runs."""
@@ -599,7 +615,7 @@ def security_weekly(timestamp: int) -> None:
 
 
 @app.periodic(cron="30 2 1 * *")
-@app.task(name="eax.optimise_report", queue="default", queueing_lock="optimise_report")
+@app.task(name="eax.optimise_report", queue="default", queueing_lock="optimise_report", lock="optimise_report")
 def optimise_report(timestamp: int) -> None:
     """The 1st of every month at 02:30 (R5.1, D697): the platform measured and a report of suggestions kept; the admins
     (and each Model Admin, for their models) told. Nothing is changed: every suggestion waits for a person's yes."""
@@ -616,7 +632,7 @@ def optimise_report(timestamp: int) -> None:
 
 
 @app.periodic(cron="50 0 * * *")
-@app.task(name="eax.db_check", queue="default", queueing_lock="db_check")
+@app.task(name="eax.db_check", queue="default", queueing_lock="db_check", lock="db_check")
 def db_check(timestamp: int) -> None:
     """Every day at 00:50 (R5.12): every database checked, the findings kept (and the alert db_maintenance fed)."""
     import logging
@@ -631,7 +647,7 @@ def db_check(timestamp: int) -> None:
 
 
 @app.periodic(cron="*/15 * * * *")
-@app.task(name="eax.db_tidy", queue="default", queueing_lock="db_tidy")
+@app.task(name="eax.db_tidy", queue="default", queueing_lock="db_tidy", lock="db_tidy")
 def db_tidy(timestamp: int) -> None:
     """Every 15 minutes (R5.12): once a night, inside the window and when nothing must not be disturbed, the tables
     and indexes that need it tidied (nothing locked)."""
@@ -658,7 +674,7 @@ def db_tidy(timestamp: int) -> None:
 
 
 @app.periodic(cron="*/5 * * * *")
-@app.task(name="eax.db_idle_sessions", queue="default", queueing_lock="db_idle_sessions")
+@app.task(name="eax.db_idle_sessions", queue="default", queueing_lock="db_idle_sessions", lock="db_idle_sessions")
 def db_idle_sessions(timestamp: int) -> None:
     """Every 5 minutes (R5.12): sessions idle in a transaction longer than the setting ended, and recorded."""
     import logging
@@ -676,7 +692,7 @@ def db_idle_sessions(timestamp: int) -> None:
 
 
 @app.periodic(cron="*/15 * * * *")
-@app.task(name="eax.servicedesk_overdue", queue="default", queueing_lock="servicedesk_overdue")
+@app.task(name="eax.servicedesk_overdue", queue="default", queueing_lock="servicedesk_overdue", lock="servicedesk_overdue")
 def servicedesk_overdue(timestamp: int) -> None:
     """Every 15 minutes (R5.11): open requests past their target time, told to their team once."""
     import logging

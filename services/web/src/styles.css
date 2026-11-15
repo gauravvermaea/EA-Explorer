@@ -2766,3 +2766,39 @@ th.sortable { cursor: pointer; }
 .desk-status.s-done { background: #e7f5ec; border-color: #9fd3b0; color: var(--ok); }
 .desk-status.s-declined, .desk-status.s-cancelled { color: var(--quiet); }
 .desk-prio.p-high, .desk-prio.p-urgent { border-color: #f0b8b4; color: var(--bad); }
+
+/* ---- the self-test's phases, big (R5.5.3): the phase running now, done and left; every phase in a row */
+.test-phases { margin: 14px 0; }
+.test-phase-now { background: var(--card); border: 2px solid var(--accent); border-radius: 12px; padding: 16px 20px; margin-bottom: 12px; }
+.test-phase-now .label { display: block; font-size: 15px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .04em; }
+.test-phase-now .big { font-size: 56px; font-weight: 800; line-height: 1.1; margin-right: 12px; }
+.test-phase-now .of { font-size: 22px; color: var(--ink); }
+.test-phase-now .of b { font-size: 28px; }
+.test-progress-bar.big { height: 16px; margin-top: 10px; }
+.test-phase-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.test-phase { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); }
+.test-phase .name { font-weight: 700; }
+.test-phase .count { font-size: 26px; font-weight: 800; }
+.test-phase .count small { font-size: 15px; font-weight: 600; color: var(--quiet); }
+.test-phase.running { border: 2px solid var(--accent); background: var(--accent-soft); }
+.test-phase.finished { border-color: #9fd3b0; background: #e7f5ec; }
+.test-phase.waiting, .test-phase.not\ run { opacity: .6; }
+
+/* ---- the job queue (R5.30): the counts big, stuck in red, the advice; the tables */
+.jobs-summary { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; margin: 12px 0; }
+.jobs-summary.stuck { border: 2px solid var(--bad); background: #fdf2f1; }
+.jobs-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.jobs-kpi { display: flex; flex-direction: column; }
+.jobs-kpi b { font-size: 40px; font-weight: 800; line-height: 1.1; }
+.jobs-kpi span { color: var(--quiet); font-size: 14px; }
+.jobs-kpi.bad b { color: var(--bad); }
+.jobs-advice { margin: 10px 0 0; padding-left: 20px; }
+.jobs-advice li { margin: 4px 0; font-weight: 600; }
+.jobs-table tr.stuck td { background: #fdf2f1; }
+.jobs-page .button-link { padding: 6px 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); text-decoration: none; color: var(--ink); }
+
+/* ---- job slots on each API server (R5.33) */
+.job-slots { margin: 12px 0; }
+.job-slots.warn { border-color: #ecd08f; background: #fffdf6; }
+.job-slot { font-weight: 600; margin-right: 18px; }
+.job-slot input { width: 64px; text-align: center; }

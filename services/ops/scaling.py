@@ -217,6 +217,7 @@ def describe() -> dict:
     """The scaling page: rules, limits, servers wanted and running."""
     s = settings()
     return {"settings": s, "defaults": DEFAULTS, "limits": LIMITS, "servers": H["servers_wanted"](),
+            "host_cpus": H["host_cpus"]() if "host_cpus" in H else None,       # the job slots' warning (R5.33)
             "running": len([x for x in H["api_servers"]() if x["state"] == "running"]),
             "last_sample": state["last"], "samples": samples[-30:], "events": events(), "error": state["error"],
             "last_change": state["last_change"]}

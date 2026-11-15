@@ -2867,7 +2867,7 @@
   "button:Withdraw": "Withdraw it.",
   "button:Withdraw the request": "Withdraw the request.",
   "button:Won't need": "Mark it not needed.",
-  "button:Yes, delete": "Delete it.",
+  "button:Yes, delete": "Yes: delete them.",
   "button:Zip (JSON and CSV)": "Download a zip of JSON and CSV files.",
   "button:all": "All.",
   "button:cancel": "Cancel.",
@@ -3814,5 +3814,29 @@
   },
   "field:Log files roll over at (KB)": "The size at which a log file is closed (and compressed) and a new one begun: the containers' logs, the web log and its debug lines.",
   "field:Docker's own copy rolls over at (KB)": "Docker keeps each container's output until it is copied into the logs every minute; its files roll at this size from the next eax up.",
-  "field:Kept for (days)": "Every log file and log backup older than this is deleted every night; 0 keeps them."
+  "field:Kept for (days)": "Every log file and log backup older than this is deleted every night; 0 keeps them.",
+  "button:Cancel it": "Takes the job off the queue: it never starts and whoever asked sees it cancelled.",
+  "button:Kill": "Stops a job being worked on: marked stopped at once; its work ends when the job runner restarts.",
+  "button:Kill it": "Yes, stop this job: it is marked stopped at once.",
+  "button:Restart it": "Yes, restart the job runner (with the API): the screens are back within a minute.",
+  "button:Restart the job runner": "Restarts the API and its job runner: every job being worked on stops and the waiting ones start; nothing waiting is lost.",
+  "tab:Jobs": {
+    "what": "The background job queue: what is being worked on, what is waiting and in which order, what finished lately, and which jobs are stuck.",
+    "how": [
+      "The counts at the top: being worked on, waiting, stuck, and the free job slots; when something is stuck, what to do is said beneath.",
+      "Kill stops a job being worked on; Cancel takes a waiting one off the queue; Move up and Move down change the order the waiting ones start in.",
+      "Restart the job runner when every slot is held by stuck jobs; add API servers (System Admin › Scaling) when the queue is simply too long."
+    ],
+    "example": "A backup has waited 40 minutes and four jobs have run for hours: kill the four, restart the job runner, and the backup starts."
+  },
+  "button:Clear the stuck jobs": "Kills every stuck job being worked on and restarts the job runner, so their work ends and the waiting jobs start.",
+  "button:Yes, clear them": "Yes: kill the stuck jobs and restart the job runner (the screens are back within a minute).",
+  "button:Apply now (restart the API servers)": "Restarts the API servers so they take the new job slots; jobs being worked on stop, the screens are back within a minute.",
+  "button:Yes, restart": "Yes: restart the API servers now.",
+  "field:People's work": "How many jobs people ask for (backups, deliveries, merges) each API server works on at once.",
+  "field:Scheduled jobs": "How many scheduled jobs each API server works on at once.",
+  "button:Fewer: *": "One job slot fewer on each API server (Save, then Apply now).",
+  "button:More: *": "One job slot more on each API server (Save, then Apply now).",
+  "button:Delete job history": "Deletes the finished jobs (done, failed, cancelled, stopped) from the history: all, or those older than the days given. Waiting and running jobs stay.",
+  "field:Delete the finished jobs that ended more than": "How many days of finished jobs to keep; 0 deletes every finished job. Waiting and running jobs are never deleted."
 }
