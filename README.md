@@ -27,9 +27,9 @@ documentation**, refreshed at every start (D550 to D552). On the command line, `
 **All the documentation, listed with what each covers: [docs/index.md](docs/index.md).** Backup and restore
 commands: [below](#backup-and-restore-from-the-command-line) and in [docs/operations.md](docs/operations.md#backup-and-restore-from-the-command-line-d227).
 
-**Status: version 3.5.0, Release 3.5, released 14 Nov 2026** (tag `v3.5.0` on the `release` branch; release notes:
-[releases/3.5.0.md](releases/3.5.0.md); Release 3: [releases/3.0.0.md](releases/3.0.0.md); Release 2: [releases/2.0.0.md](releases/2.0.0.md);
-Release 1: [releases/1.0.0.md](releases/1.0.0.md)). Next: Release 4 (the R4 rows in
+**Status: version 4.0.0, Release 4, released 15 Nov 2026** (tag `v4.0.0` on the `release` branch; release notes:
+[releases/4.0.0.md](releases/4.0.0.md); Release 3.5: [releases/3.5.0.md](releases/3.5.0.md); Release 3: [releases/3.0.0.md](releases/3.0.0.md); Release 2: [releases/2.0.0.md](releases/2.0.0.md);
+Release 1: [releases/1.0.0.md](releases/1.0.0.md)). Next: Release 5 (the R5 rows in
 [docs/build-phases.md](docs/build-phases.md)). The short list is
 below; every phase in detail: [docs/build-phases.md](docs/build-phases.md). Database design:
 [docs/database.md](docs/database.md). How it is built (for developers and AI agents):

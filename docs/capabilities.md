@@ -1,4 +1,4 @@
-# What EA Explorer does today (version 3.5.0)
+# What EA Explorer does today (version 4.0.0)
 
 One page for anyone weighing EA Explorer up: what is **built and in the box today**, area by area, and what is still
 **planned**, with its build phase. "Planned" adds to what is already there; it does not mean an area is missing.
@@ -16,6 +16,16 @@ Every phase in detail: [build-phases.md](build-phases.md). Decisions: [decisions
 | Documents and libraries | Document management (Mayan EDMS) inside projects, the reference library, the enterprise and project libraries with search |
 | Integration | A REST API (OpenAPI), signed webhooks, Excel and CSV in and out with mappings, model packages, the MCP server; discovery: OData feeds read, pushes taken and documents read by AI, proposed as deliveries to review (Release 3, in progress) |
 | Operations | One command (`eax`, full screen or numbered menu) and a console, start-up in two tiers, health, tagged backups and restores, every service switchable, a file explorer in every container |
+
+## New in 4.0.0 (Release 4)
+
+- **Reports** on Apache Superset 6.1.0; a model's report links open their dashboard directly; a self-test suite signs in to
+  Reports as people do and opens every dashboard (R4.1, R4.7).
+- **AI (MCP)** is a menu of its own; Super Admins and IT Admins can run the installation through MCP: its state, what is
+  slowing it down, logs, backups and restores, the number of servers and archiving, each change previewed and confirmed
+  (R4.20, R4.22).
+- **Project steps** in your own order within a phase (R4.21).
+- Release notes: [../releases/4.0.0.md](../releases/4.0.0.md).
 
 ## The main screens
 Since R2.0 ([r2-0-menu.md](r2-0-menu.md), D586–D591) the top bar has two rows. Row 1: the **site picker** (● Local,
