@@ -30,54 +30,30 @@ commands: [below](#backup-and-restore-from-the-command-line) and in [docs/operat
 **Status: version 4.0.0, Release 4, released 15 Nov 2026** (tag `v4.0.0` on the `release` branch; release notes:
 [releases/4.0.0.md](releases/4.0.0.md); Release 3.5: [releases/3.5.0.md](releases/3.5.0.md); Release 3: [releases/3.0.0.md](releases/3.0.0.md); Release 2: [releases/2.0.0.md](releases/2.0.0.md);
 Release 1: [releases/1.0.0.md](releases/1.0.0.md)). Next: Release 5 (the R5 rows in
-[docs/build-phases.md](docs/build-phases.md)). The short list is
-below; every phase in detail: [docs/build-phases.md](docs/build-phases.md). Database design:
+[docs/build-phases.md](docs/build-phases.md)). The releases in short are
+[below](#releases); every phase in detail: [docs/build-phases.md](docs/build-phases.md). Database design:
 [docs/database.md](docs/database.md). How it is built (for developers and AI agents):
 [docs/architecture.md](docs/architecture.md), [AGENTS.md](AGENTS.md); the high-level technical architecture (under 10 pages):
 [docs/requirements/EA_Explorer_Technical_Architecture.docx](docs/requirements/EA_Explorer_Technical_Architecture.docx). Requirements and the build plan:
 [docs/requirements](docs/requirements). Decisions: [docs/decisions.md](docs/decisions.md). Open items:
 [docs/todo.md](docs/todo.md).
 
-## Build phases
+## Releases
 
-The major phases; each line covers its sub-phases. **In detail (every sub-phase, version and notes):
-[docs/build-phases.md](docs/build-phases.md).**
+A summary; every story in detail, with its decisions: [docs/build-phases.md](docs/build-phases.md). What it does today,
+area by area: [docs/capabilities.md](docs/capabilities.md).
 
-| Phase | What it is | State |
-| --- | --- | --- |
-| 0 | Foundations: the platform, sign-in, health, jobs, backups | closed |
-| 1 | The metamodel store and the ArchiMate 4 seed | closed |
-| 2 | Insurance reference model, locked models, the library | closed |
-| 3 | Metamodel editing and versions; roles and permissions | accepted |
-| 4 | Creating and copying models, library models and packages | closed |
-| 5 | Report views and the thirty standard reports | closed |
-| 6 | Data entry in forms | closed |
-| 7 | Grids, search and saved views | closed |
-| 8 | Commits; notifications and webhooks; views and TOGAF reports; tags, comparison and gap analysis; backups | closed |
-| 9 | The change log | closed |
-| 10 | Administration console; import and export sheets | closed |
-| 12 | Validation and data quality; start-up in two tiers | closed |
-| 13 | Architecture projects: library, wizard, repository, sign-off, content framework, bases, governance, charter, the Architecture Repository, tracking sheets, the console, eaxpy | accepted and closed (8 Nov 2026) |
-| 15.2 | The enterprise library and project libraries (a separate service); skills on each user's profile | accepted and closed (9 Nov 2026) |
-| 15.3 (part) | Business architecture: Business Model Canvases, the TOGAF Phase B artifacts and their views; key questions | accepted and closed (9 Nov 2026); the rest replaced by an *Other views and documents* project tab of sample templates (D358, D415; built in 0.17.0, D429, to be accepted) |
-| 16.3 | Guided wizards | accepted and closed (9 Nov 2026) |
-| 28, 29 | Drawn views in draw.io: ArchiMate notation, from the model's own entities, relationships added from the canvas; "view" everywhere (D354, D355) | released in 1.0.0 |
-| 19, 20 | Merge a child into its parent: a wizard with three-way review and approval, then freeze or refresh the child (D359, D422 to D425) | released in 1.0.0 |
-| 21 | Dedupe within a model: a wizard, committed like any change; old IDs still find the one kept (D361, D426 to D428) | released in 1.0.0 |
-| 24 | KPI trends, an OData feed, a report designer opening Superset (D365) | released in 1.0.0 |
-| 25 | Machine access: tokens, API keys and client certificates with API areas set by admins (D366) | released in 1.0.0 |
-| 26, 27, 27.1 | MCP: OAuth remote connector, AI activity log, citations (D368); scenario planning with AI in projects (D364) | released in 1.0.0 |
-| 33, 33.1 | ArchiMate exchange and conformance: dropped until the ArchiMate 4 exchange specification is published (D385, D386) | dropped |
-| 34 | Published import formats (ArchiMate 4, Excel, a CSV format close to the Excel imports), delivered by file drop, upload or API; no ETL (D370) | released in 1.0.0 |
-| 35, 35.1 | Usage insight, metrics, retention and housekeeping, database health (D371) | released in 1.0.0 |
-| 36, 36.1 | Deployment kinds, upgrades with rollback (in place from GitHub releases), moving installations, key vault, AD groups (D372); test automation with security tests (D367) | released in 1.0.0 |
-| 8.5, 36.3 | Release process, scaling out set in the web application (D373, D378); 36.2 removed (D380) | released in 1.0.0 |
-| 38.1 | Surveys: designer with conditions, recipients by person, role, model or project, task list and link, anonymous, results and Excel (D375, D446 to D449) | released in 1.0.0 |
-| 40 | EA capability maturity: assessments as surveys on nine elements and six levels, scores, targets, gaps, evidence and trend (D377, D450 to D453) | released in 1.0.0 |
-| 37, 38 | Release candidate: in-page help and guides (D374); version 1.0 (D375) | released in 1.0.0 |
-| 39 | Industry models from the owner's documents (D376) | released in 1.0.0 |
-| 22, 23, 30, 31 | Closed as covered (D357, D362, D363) | closed |
-| R2 | Release 2, first: a usable UI with a simple nine-area menu (R2.0); then the full self-test working end to end and every bug it finds fixed (R2.0.1); then the self-test and test bench in their own container, stable start-up, on-screen help showing, layout switching, stencil and explorer on standard views in draw.io, remote instances, farms of installations | planned |
+| Release | Version | What it brought | State |
+| --- | --- | --- | --- |
+| 1 | [1.0.0](releases/1.0.0.md) | The platform: metamodels (ArchiMate 4, TOGAF 10), models, forms and grids, commits and the change log, views and the standard reports, merges, TOGAF ADM projects, drawn views in draw.io, surveys and maturity, machine access, MCP, imports, upgrades and backups | released |
+| 2 | [2.0.0](releases/2.0.0.md) | A menu that reaches every screen, the full self-test in one command, sites and remote instances, Docker from the web with alerts, the archive, databases split by purpose | released 13 Nov 2026 |
+| 3 | [3.0.0](releases/3.0.0.md) | Data discovery and ingestion, guided import and export, testing that proves the whole installation | released 14 Nov 2026 |
+| 3.5 | [3.5.0](releases/3.5.0.md) | Memory: measured all the time (the resource history), two containers fewer on a laptop | released 14 Nov 2026 |
+| 4 | [4.0.0](releases/4.0.0.md) | Reports on Superset 6.1 with their own test suite, an AI (MCP) menu and MCP tools to run the installation, project steps in your own order | released 15 Nov 2026 |
+| 5 | | Optimisation report, MFA, IP allow-listing, data locations, logging and alerts, signed deployments, a service desk, database maintenance, backup and restore testing | planned |
+| 5.5 | | Enterprise discovery | planned |
+| 6 | | Help and videos | planned |
+| 7 | | The key vault (OpenBao), once its details are agreed | planned |
 
 ## Quick start (laptop)
 

@@ -1,7 +1,7 @@
 # Build phases in detail
 
 Every phase with what it delivers, its version and its state; each has its own notes page. The short list is on the
-[README](../README.md#build-phases). What EA Explorer does today, area by area: [capabilities.md](capabilities.md).
+[README](../README.md#releases). What EA Explorer does today, area by area: [capabilities.md](capabilities.md).
 
 
 Each phase has its own notes: what it delivers, a demo, checks, how to upgrade and what is not in it.
