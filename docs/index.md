@@ -1,7 +1,8 @@
 # Documentation
 
 Every document of EA Explorer, in one place. Start with the [README](../README.md): what EA Explorer is, the quick start,
-the `eax` commands (backups and restores included) and the phase table.
+the `eax` commands (backups and restores included) and the phase table. Videos: the YouTube channel
+[EA Explorer](https://www.youtube.com/@ea-explorer-os) (EA Explorer in five minutes, and more).
 
 ## Running it
 

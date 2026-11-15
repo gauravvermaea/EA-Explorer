@@ -1,7 +1,8 @@
 # Starting EA Explorer: the first time and every time after
 
 Step by step, for a laptop (Windows, then Linux or macOS) and for a server. Every command in full:
-[command-line-and-console.md](command-line-and-console.md); the kinds of environment: [setting-up.md](setting-up.md).
+[command-line-and-console.md](command-line-and-console.md); the kinds of environment: [setting-up.md](setting-up.md). To see it working first, watch EA Explorer in five
+minutes on the YouTube channel [EA Explorer](https://www.youtube.com/@ea-explorer-os).
 
 Every password and key is in the config file, `work/eaexplorer.env`. (Release 4 built a key vault, OpenBao, to keep
 them instead, R4.19; it is **switched off for now**, owner, 14 Nov 2026: no installation uses it until he decides.)

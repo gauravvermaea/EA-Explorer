@@ -16,6 +16,8 @@ A free, open-source enterprise architecture platform you run yourself:
 - **integration and operations**: a REST API, signed webhooks, Excel and CSV loads, one `eax` command, health,
   tagged backups and restores; single sign-on through Keycloak.
 
+**Watch it:** EA Explorer in five minutes, and more videos, on the YouTube channel **[EA Explorer](https://www.youtube.com/@ea-explorer-os)**.
+
 Everything runs in Docker containers from one config file. **What it does today, area by area, and what is still
 planned: [docs/capabilities.md](docs/capabilities.md).**
 
