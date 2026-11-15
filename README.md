@@ -50,8 +50,9 @@ area by area: [docs/capabilities.md](docs/capabilities.md).
 | 3 | [3.0.0](releases/3.0.0.md) | Data discovery and ingestion, guided import and export, testing that proves the whole installation | released 14 Nov 2026 |
 | 3.5 | [3.5.0](releases/3.5.0.md) | Memory: measured all the time (the resource history), two containers fewer on a laptop | released 14 Nov 2026 |
 | 4 | [4.0.0](releases/4.0.0.md) | Reports on Superset 6.1 with their own test suite, an AI (MCP) menu and MCP tools to run the installation, project steps in your own order | released 15 Nov 2026 |
-| 5 | | Optimisation report, MFA, IP allow-listing, data locations, logging and alerts, signed deployments, a service desk, database maintenance, backup and restore testing | planned |
+| 5 | | Optimisation report, MFA, IP allow-listing, data locations, logging and alerts, signed deployments, a service desk, database maintenance; from Release 4: the code documented and handed over, security and performance testing, server sizing, watching the screen tests live, the three-monthly version review | planned |
 | 5.5 | | Enterprise discovery | planned |
+| 5.6 | | Backup and restore, tested and fixed (nothing else) | planned |
 | 6 | | Help and videos | planned |
 | 7 | | The key vault (OpenBao), once its details are agreed | planned |
 
