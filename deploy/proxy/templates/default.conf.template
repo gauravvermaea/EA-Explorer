@@ -70,7 +70,11 @@ log_format eax_refused "$time_iso8601\t$remote_addr\t$eax_refused\t$request_uri"
 # /var/log/eax-web): when, from which address, who (the API and MCP say it in X-EAX-Actor, never passed on to the
 # caller), the method and path (never the query: it can carry a token), the status, how long, how many bytes, the
 # request id. Read, filtered and downloaded on System Admin > Logs > Web log; deleted after 7 days like the others.
-map $time_iso8601 $eax_day { ~^(\d{4}-\d{2}-\d{2}) $1; default undated; }
+# the regular expression is quoted: unquoted, nginx reads its { } as a block and the proxy never starts (R5.24)
+map $time_iso8601 $eax_day {
+    "~^(\d{4}-\d{2}-\d{2})"  $1;
+    default                   undated;
+}
 map $uri $eax_web_logged { ~^/(api|mcp) 1; default 0; }
 log_format eax_web escape=json '{"time":"$time_iso8601","address":"$remote_addr","who":"$upstream_http_x_eax_actor",'
                                '"method":"$request_method","path":"$uri","status":"$status","seconds":"$request_time",'

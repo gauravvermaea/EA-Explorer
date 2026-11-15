@@ -35,9 +35,9 @@ def test_migration_adds_rows_only():
 # ---------------------------------------------------------------- suites
 def test_suites_are_checked():
     from eax.testing import store
-    assert store.clean_suites(None) == ["api", "ui", "db", "security", "reports", "performance", "backup", "restore"]   # restore: R3.8; performance: R5.18
+    assert store.clean_suites(None) == ["api", "ui", "db", "security", "reports", "backup", "restore"]   # restore: R3.8; performance only by name (R5.29)
     assert store.clean_suites("db, api") == ["api", "db"]
-    assert store.clean_suites(["all"]) == ["api", "ui", "db", "security", "reports", "performance", "backup", "restore"]
+    assert store.clean_suites(["all"]) == ["api", "ui", "db", "security", "reports", "backup", "restore"]
     with pytest.raises(ValueError):
         store.clean_suites(["api", "load"])
     assert store.clean_options("detailed", "user_architect", "models") == ("detailed", "architect", "models")
@@ -46,7 +46,7 @@ def test_suites_are_checked():
             store.clean_options(*bad)
     assert store.estimate_minutes("smoke", [])[1] <= 5 and store.short("c08f9f97-2965-4a0b-8c1d-000000000000") == "c08f9f972965"
     t = _ops_module("testruns")
-    assert t.suites_of("security") == ["security"] and t.suites_of([]) == ["api", "ui", "db", "security", "reports", "performance", "backup", "restore"]
+    assert t.suites_of("security") == ["security"] and t.suites_of([]) == ["api", "ui", "db", "security", "reports", "backup", "restore"]   # performance only by name (R5.29)
     with pytest.raises(ValueError):
         t.suites_of(["nope"])
 

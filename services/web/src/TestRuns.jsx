@@ -27,7 +27,7 @@ const SUITES = [
   ["ui", "Browser", "the main journeys through the screens"],
   ["db", "Database", "read-only checks of the database"],
   ["security", "Security", "headers, cookies, the dependencies, code and secrets scans, Release 3's attacks, OWASP ZAP (signed in and not) and Trivy; a gate on high and critical findings (R5.17)"],
-  ["performance", "Performance", "the benchmark: the test model filled, every read timed, then k6 with many people at once, against the last release's baseline (R5.18)"],
+  ["performance", "Performance", "the benchmark: the test model filled, every read timed, then k6 with many people at once, against the last release's baseline (R5.18); only when chosen on its own, never in the full test (R5.29)", true],
   ["backup", "Backups", "the last: an infrastructure and an application backup, each restored into a scratch copy, then removed (R2.45)"],
 ];
 const STATE = { queued: "Starting", running: "Running", passed: "Passed", failed: "Failed", error: "Could not finish", stopped: "Stopped" };
@@ -122,12 +122,12 @@ function PerformanceTrend() {
   const last = versions.length ? d.baselines[versions[versions.length - 1]] : {};
   return (
     <div className="performance-trend">
-      <p className="quiet small">The benchmark runs with the full test, nightly in CI and on <code>eax test performance</code>: the run's test
+      <p className="quiet small">The benchmark runs only when asked for (never with the full test): <code>eax test performance</code>, and nightly in CI: the run's test
         model filled to a fixed size, every read that matters timed alone, then k6 with many people at once. An operation more than
         {" "}{d.margin}% slower than the last release's baseline, errors, or a container over its memory limit fail the run. Medians in ms.</p>
       {d.sizes.length > 1 && <label>Data <select value={size || d.size} onChange={(e) => setSize(e.target.value)}>
         {d.sizes.map((s) => <option key={s}>{s}</option>)}</select></label>}
-      {!d.runs.length ? <p>No benchmark yet: run <code>eax test performance</code> or the full test.</p> : (
+      {!d.runs.length ? <p>No benchmark yet: run <code>eax test performance</code>.</p> : (
         <table className="grid-table small">
           <thead><tr><th>Operation</th>{versions.length > 0 && <th>Baseline {versions[versions.length - 1]}</th>}
             {d.runs.slice(-8).map((r) => <th key={r.folder} title={r.folder}>{r.version} {r.folder.slice(4, 8)}</th>)}</tr></thead>
@@ -209,12 +209,12 @@ function Chooser({ data, onStarted }) {
   const [slow, setSlow] = useState(false);
   const runner = data.runner || {};
   const est = (k) => (k === "smoke" ? data.estimates.smoke
-    : SUITES.reduce((a, [s]) => [a[0] + data.estimates[s][0] - 1, a[1] + data.estimates[s][1] - 2], [1, 2]));
+    : SUITES.filter((x) => !x[3]).reduce((a, [s]) => [a[0] + data.estimates[s][0] - 1, a[1] + data.estimates[s][1] - 2], [1, 2]));
   const start = async () => {
     setBusy(true); setMsg("");
     try {
       const r = await apiFetch("/api/v1/admin/tests", { method: "POST", body: JSON.stringify({ ...(ask === "smoke"
-        ? { level: "smoke", suites: [] } : { level: "detailed", suites: SUITES.map(([k]) => k) }), live_slow: slow }) });
+        ? { level: "smoke", suites: [] } : { level: "detailed", suites: SUITES.filter((x) => !x[3]).map(([k]) => k) }), live_slow: slow }) });
       setMsg(r.message); setAsk(""); onStarted();
     } catch (e) { setMsg(e.message); setAsk(""); } finally { setBusy(false); }
   };

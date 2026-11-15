@@ -35,6 +35,9 @@ import time
 
 H: dict = {}                                   # ops.py's globals: docker, containers, jobs, _in_background...
 SUITES = ("api", "ui", "db", "security", "reports", "performance", "backup", "restore")   # performance (R5.18); backup (R2.45), then restore (R3.8, the command line only)
+# only when asked for by name, never in the full test (owner, 15 Nov 2026: "I dont want full test to run performance test"; R5.29)
+ON_DEMAND = ("performance",)
+FULL_SUITES = tuple(s for s in SUITES if s not in ON_DEMAND)
 ALIASES = {"backup-restore": "restore"}
 ZAP_IMAGE = os.environ.get("EAX_IMAGE_ZAP", "ghcr.io/zaproxy/zaproxy:2.16.1")     # R5.17: 2.15.0 was out of date
 TRIVY_IMAGE = os.environ.get("EAX_IMAGE_TRIVY", "aquasec/trivy:0.60.0")
@@ -50,12 +53,12 @@ def bind(ns: dict) -> None:
 
 
 def suites_of(args: list[str] | str | None) -> list[str]:
-    """The suites asked for, checked (all when none)."""
+    """The suites asked for, checked (the full test's when none or all: every suite but performance, R5.29)."""
     if isinstance(args, str):
         args = args.replace(",", " ").split()
     asked = [ALIASES.get(a.lower(), a.lower()) for a in (args or []) if a and not a.startswith("--")]
     if not asked or "all" in asked:
-        return list(SUITES)
+        return list(FULL_SUITES)
     bad = [a for a in asked if a not in SUITES]
     if bad:
         raise ValueError(f"Unknown suite {', '.join(bad)}: choose from {', '.join(SUITES)} (or all).")
@@ -797,7 +800,7 @@ def cli(args: list[str]) -> int:
         suites, level = ["ui"], "detailed"
     if picked and level == "smoke":
         level = "detailed"                            # choosing suites means the detailed tests
-    shown = "smoke test" if level == "smoke" else "full test" if len(suites) == len(SUITES) else f"detailed ({', '.join(suites)})"
+    shown = "smoke test" if level == "smoke" else "full test" if set(FULL_SUITES) <= set(suites) else f"detailed ({', '.join(suites)})"
     print(f"Self-test now: {shown}" + (f", role {role}" if role else "")
           + (f", area {area}" if area else "") + ". It removes test data left by earlier runs, starts its own test container, "
           "makes its own self_test_<id>_<n> models, project and accounts and tests in them; nothing else changes. The container "
@@ -833,7 +836,7 @@ def _cli_failed(args: list[str]) -> int:
            + (" and its warnings" if warnings else "") + ". It removes test data left by earlier runs, makes fresh test "
            "models, project and accounts, and runs only those checks. Results: System Admin > Tools > Self-test, and "
            "work/tests."), flush=True)
-    r = run_sequence("smoke", list(SUITES), by="eax test", trigger="ci" if "--ci" in args else "eax",
+    r = run_sequence("smoke", list(FULL_SUITES), by="eax test", trigger="ci" if "--ci" in args else "eax",
                      follow=lambda line: print(line, flush=True), repeat=of, warnings=warnings)
     if r.get("error"):
         print(f"The self-test could not finish: {r['error']}")

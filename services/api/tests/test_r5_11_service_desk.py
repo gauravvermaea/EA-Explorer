@@ -39,8 +39,9 @@ def test_the_catalogue_as_proposed_with_more_defaults():
 def test_a_request_type_is_checked():
     with pytest.raises(sd.DeskError, match="key"):
         sd.clean_type({"name": "x"})
-    with pytest.raises(sd.DeskError, match="team"):
-        sd.clean_type({"key": "x", "name": "x", "team": "everyone"})
+    # R5.27: every type goes to the Super Admins with no approval, whatever is sent
+    t = sd.clean_type({"key": "x", "name": "x", "team": "it-admin", "approval": "model-admins"})
+    assert t["team"] == P.SUPER_ADMIN and t["approval"] == ""
     with pytest.raises(sd.DeskError, match="kind"):
         sd.clean_type({"key": "x", "name": "x", "form": [{"name": "a", "kind": "rocket"}]})
     t = sd.clean_type({"key": "Odd Key!", "name": "X", "form": [{"name": "Why Now", "kind": "textarea", "required": True}]})

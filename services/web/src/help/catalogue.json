@@ -3709,13 +3709,14 @@
   "button:Who blocks whom": "The sessions holding or waiting for locks, on every database.",
   "page:#/service-desk": {
     "title": "Service desk",
-    "what": "Ask for things (a model, access, a project, a report, help) and follow your requests; teams work on what is asked of them.",
+    "what": "Ask for things (a model, a copy, access, a project, a new person, anything else) and follow your requests. Every request goes to the Super Admins, who pass it to the right person.",
     "how": [
-      "Ask for something: pick a request type, fill in its form, send it: it becomes REQ-<number>.",
+      "Ask for something: choose a group (Models, Projects, Access or Something else), then what you need, then fill in its details: it becomes REQ-<number>.",
+      "Not in the list? Choose \"Something not listed here\" in a group, or \"Something else\".",
       "My requests: what you asked for, with comments both ways.",
-      "To work on: what your teams do or approve; take a request, do it, mark it done."
+      "To work on: Super Admins see what nobody has yet and assign it to a person; everyone else sees what is assigned to them, does it and marks it done, or hands it back."
     ],
-    "example": "Ask for Access to a model: its Model Admins approve, and access is given at once."
+    "example": "Ask for Access to a model: a Super Admin assigns it to the model's admin, who presses Do it, and access is given at once."
   },
   "tab:All requests": {
     "what": "Every request, with how many are open, done and on time (Super Admins and Auditors).",
@@ -3792,5 +3793,14 @@
   "button:Compose override": "Download a compose file with each service memory and CPU limits (and the API copies), to use beside docker-compose.yml.",
   "button:Estimate": "Work out the estimate from the figures above (nothing is saved).",
   "button:Estimate and save": "Work out the estimate and keep it under the name given, with its inputs and assumptions.",
-  "button:Step": "A run started to be watched and paused after each step: take one more step, then pause again."
+  "button:Step": "A run started to be watched and paused after each step: take one more step, then pause again.",
+  "field:A short title": "A few words that say what you need; it is how the request shows in lists.",
+  "field:How urgent": "How much it holds you up: low, normal, high, or urgent when you cannot work.",
+  "field:In a few words": "A few words that say what you need.",
+  "field:Write a comment": "A message on the request: the person who asked, the person on it and the Super Admins see it.",
+  "button:Assign": "Give the request to the person chosen; they are told and it moves to in progress.",
+  "button:Hand it back to the Super Admins": "You cannot do it: it goes back to the Super Admins to assign again.",
+  "button:Mark it done": "The request is finished; the person who asked is told.",
+  "button:Send the comment": "Adds your comment to the request and tells the others on it.",
+  "button:Take it myself": "Assigns the request to you and starts it."
 }

@@ -1,11 +1,13 @@
 """The service desk (R5.11, D692): the catalogue and the requests (eax/servicedesk.py).
 
-GET  /service-desk/catalogue                 what people can ask for (enabled types; ?all=1 every type, Super Admins)
+GET  /service-desk/catalogue                 what people can ask for: the groups, then the types (enabled; ?all=1 every
+                                             type, Super Admins)
+GET  /service-desk/people                    who a request can be assigned to (Super Admins, R5.27)
 PUT  /service-desk/catalogue/<key>           add or change a request type (Super Admin)
 GET  /service-desk/tickets                   ?view=mine|queue|all&status=open|all|<status>&q=
-POST /service-desk/tickets                   raise one {type, title, fields, priority, note}
+POST /service-desk/tickets                   raise one {type, title, fields, priority, note, group (for "other")}
 GET  /service-desk/tickets/<id>              one request with its history and files (REQ-12 or 12)
-POST /service-desk/tickets/<id>/<action>     comment {note} | assign {to} | status {status, note} | approve {note} |
+POST /service-desk/tickets/<id>/<action>     comment {note} | assign {to; "" hands it back} | status {status, note} | approve {note} |
                                              decline {note} | cancel {note} | priority {priority}
 POST /service-desk/tickets/<id>/do           what it asks for, done (or the wizard's address with its details)
 POST /service-desk/tickets/<id>/files        a file (multipart, 10 MB at most);  GET .../files/<f> to download it
@@ -42,26 +44,41 @@ class Catalogue(MethodView):
         """What people can ask for, by area"""
         everything = request.args.get("all") == "1" and g.user.can("settings.manage")
         with get_engine().connect() as conn:
-            return {"types": sd.catalogue(conn, everything), "teams": list(sd.TEAMS), "field_kinds": list(sd.FIELD_KINDS),
+            types = sd.catalogue(conn, everything)
+            return {"groups": sd.groups(types), "types": types, "other": sd.OTHER, "field_kinds": list(sd.FIELD_KINDS),
                     "may_change": g.user.can("settings.manage")}
+
+
+@blp.route("/people")
+class People(MethodView):
+    """/api/v1/service-desk/people: GET who a request can be assigned to: everyone who has signed in (Super Admins)."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth()
+    def get(self):
+        """Who a request can be assigned to: everyone who has signed in (Super Admins)"""
+        if "super-admin" not in set(g.user.roles or []):
+            abort(403, message="Only a Super Admin assigns requests.")
+        with get_engine().connect() as conn:
+            return {"people": sd.people(conn)}
 
 
 @blp.route("/catalogue/<string:key>")
 class CatalogueType(MethodView):
-    """/api/v1/service-desk/catalogue/{key}: PUT adds or changes a request type: {name, area, about, form: [{name,
-    label, kind, required, choices}], team, approval, target_hours, wizard, enabled}."""
+    """/api/v1/service-desk/catalogue/{key}: PUT adds or changes a request type: {name, area (its group), about, form:
+    [{name, label, kind, required, choices}], target_hours, wizard, enabled}."""
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
     @require_auth("settings.manage")
     def put(self, data, key):
-        """Adds or changes a request type: {name, area, about, form: [{name, label, kind, required, choices}], team,
-        approval, target_hours, wizard, enabled}"""
+        """Adds or changes a request type: {name, area (its group), about, form: [{name, label, kind, required,
+        choices}], target_hours, wizard, enabled}"""
         try:
             with get_engine().begin() as conn:
                 out = sd.save_type(conn, {**(data or {}), "key": key}, g.user.username)
                 audit.record(conn, actor=g.user.username, action="servicedesk.type", object_type="service_type", object_id=key,
-                             details={k: (data or {}).get(k) for k in ("name", "team", "approval", "enabled")})
+                             details={k: (data or {}).get(k) for k in ("name", "area", "enabled")})
                 return out
         except sd.DeskError as exc:
             _fail(exc)

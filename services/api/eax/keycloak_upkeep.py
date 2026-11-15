@@ -6,8 +6,9 @@ Release 5:
     browser sign-in already asks for a code from anyone who has set one up, so turning it on is asking people to set
     one up ("Configure OTP", a required action at their next sign-in). Admins are the Super, IT, User and Keycloak
     Admins and the Auditors. Applied when the setting changes and every hour (new admins, new people). People whose
-    set-up EA Explorer asked for carry the attribute eax_mfa_asked, so turning it off takes back only what it asked
-    (codes people set up themselves stay). An admin can reset a person's device: their code is removed and they set
+    set-up EA Explorer asked for carry the attribute eax_mfa_asked, so turning it off takes back only what it asked:
+    the request and the code they set up because of it (Keycloak asks for a code from anyone who has one, so a code
+    left behind kept asking after MFA was off: R5.25). Codes people set up themselves stay. An admin can reset a person's device: their code is removed and they set
     up a new one at the next sign-in.
   * **the Auditor role** (R5.22, D693): the realm role eax-audit is made when it is missing (realms made before
     Release 5 do not have it; Keycloak imports a realm only once).
@@ -88,7 +89,7 @@ def apply_mfa(mode: str, kc: Keycloak | None = None) -> dict:
     kc._call("PUT", f"/authentication/required-actions/{ACTION}",
              {"alias": ACTION, "name": "Configure OTP", "providerId": ACTION, "enabled": True,
               "defaultAction": mode == "everyone", "priority": 10, "config": {}})
-    asked, released, have = 0, 0, 0
+    asked, released, have, removed = 0, 0, 0, 0
     for u in _users(kc):
         name = u.get("username", "")
         if skipped(name):
@@ -106,8 +107,20 @@ def apply_mfa(mode: str, kc: Keycloak | None = None) -> dict:
         elif mine:
             attrs.pop(ASKED, None)
             kc._call("PUT", f"/users/{uid}", {"requiredActions": [a for a in actions if a != ACTION], "attributes": attrs})
+            removed += _remove_codes(kc, uid)
             released += 1
-    return {"mode": mode, "asked": asked, "released": released, "set_up": have}
+    return {"mode": mode, "asked": asked, "released": released, "set_up": have, "codes_removed": removed}
+
+
+def _remove_codes(kc: Keycloak, uid: str) -> int:
+    """A person's authenticator-app codes removed; how many."""
+    s, creds, _ = kc._call("GET", f"/users/{uid}/credentials")
+    n = 0
+    for c in (creds or []) if s == 200 else []:
+        if c.get("type") == "otp":
+            kc._call("DELETE", f"/users/{uid}/credentials/{c['id']}")
+            n += 1
+    return n
 
 
 def reset_device(username: str, kc: Keycloak | None = None) -> dict:
@@ -117,12 +130,7 @@ def reset_device(username: str, kc: Keycloak | None = None) -> dict:
     if s != 200 or not found:
         raise UpkeepError(f"No person {username} in Keycloak.")
     u = found[0]
-    s, creds, _ = kc._call("GET", f"/users/{u['id']}/credentials")
-    removed = 0
-    for c in creds or []:
-        if c.get("type") == "otp":
-            kc._call("DELETE", f"/users/{u['id']}/credentials/{c['id']}")
-            removed += 1
+    removed = _remove_codes(kc, u["id"])
     actions = list(u.get("requiredActions") or [])
     if ACTION not in actions:
         kc._call("PUT", f"/users/{u['id']}", {"requiredActions": actions + [ACTION]})

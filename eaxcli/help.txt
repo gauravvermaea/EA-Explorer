@@ -368,12 +368,12 @@ and IT Admins.
   smoke   (the default) a few minutes: every role signs in, every main area answers, every page opens and the key
           journeys run once.
   full    everything: every API endpoint as every role (allowed and refused), the database checks, security, then
-          every page and every journey in a headless browser, the reports, the benchmark, the backup checks, and last the restore test below
+          every page and every journey in a headless browser, the reports, the backup checks, and last the restore test below
           (asked first; --yes skips the question; without a terminal and without --yes it is left out).
   security  only the security suite (part of full, R5.17): the front door's headers, the dependencies, the code and
           secrets scans, the attacks of Release 3, ZAP signed in and not, Trivy; a high or critical finding not
           accepted (eax/testing/security_accepted.json) fails it. It also runs by itself every Sunday at 03:20.
-  performance  the benchmark (part of full, R5.18): the test model filled to --size small|medium|large, every read that
+  performance  the benchmark (only when asked for, never in full, R5.29): the test model filled to --size small|medium|large, every read that
           matters timed, then k6 with --users N people for --minutes M; slower than the last release's baseline by
           more than 10%, errors, or a container over its memory limit fail it.
   reports  only the reports (part of full, R4.1): Keycloak test users for the run (a Super Admin, a Report Viewer and an

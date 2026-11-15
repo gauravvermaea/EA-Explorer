@@ -69,12 +69,26 @@ def people():
 def test_admins_mode_asks_admins_without_a_code_and_off_takes_it_back():
     kc = FakeKc(people())
     r = ku.apply_mfa("admins", kc)
-    assert r == {"mode": "admins", "asked": 1, "released": 0, "set_up": 1}
+    assert r == {"mode": "admins", "asked": 1, "released": 0, "set_up": 1, "codes_removed": 0}
     assert kc.users["1"]["requiredActions"] == [ku.ACTION] and kc.users["1"]["attributes"][ku.ASKED] == ["1"]
     assert kc.users["2"]["requiredActions"] == [] and kc.users["4"]["requiredActions"] == []   # not an admin; a test user
     assert ("PUT", f"/authentication/required-actions/{ku.ACTION}") in [(m, p) for m, p, _b in kc.calls]
     r = ku.apply_mfa("off", kc)
     assert r["released"] == 1 and kc.users["1"]["requiredActions"] == [] and ku.ASKED not in kc.users["1"]["attributes"]
+
+
+def test_off_removes_the_code_people_set_up_because_they_were_asked():
+    """R5.25 (owner, 15 Nov 2026, 19:09): MFA on, signed in once (the code set up), MFA off: still asked for a code,
+    because Keycloak asks anyone who has one. Off removes the code EA Explorer asked for; one set up unasked stays."""
+    kc = FakeKc(people())
+    ku.apply_mfa("admins", kc)
+    kc.users["1"]["otp"] = True                                  # ann signs in and sets up her authenticator
+    kc.users["1"]["requiredActions"] = []                        # Keycloak clears the request once done
+    assert ku.apply_mfa("admins", kc)["set_up"] == 2             # the hourly upkeep leaves her as she is
+    r = ku.apply_mfa("off", kc)
+    assert r["released"] == 1 and r["codes_removed"] == 1
+    assert not kc.users["1"]["otp"] and ku.ASKED not in kc.users["1"]["attributes"]
+    assert kc.users["3"]["otp"]                                  # cat set hers up herself: kept
 
 
 def test_everyone_mode_asks_everyone_and_new_people():

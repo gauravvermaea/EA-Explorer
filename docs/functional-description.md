@@ -81,7 +81,7 @@ access** (API keys, tokens, client certificates, `eax/machine_access.py`) for ot
 ## Collaboration
 
 Notifications (`eax/notify.py`), requests between people (`eax/tickets.py`), the **service desk** with its catalogue
-(R5.11, `eax/servicedesk.py`), surveys and maturity assessments (`eax/surveys.py`, `eax/maturity.py`), saved views and
+(R5.11, `eax/servicedesk.py`; R5.27: a group, then the request; every request to the Super Admins, who assign it), surveys and maturity assessments (`eax/surveys.py`, `eax/maturity.py`), saved views and
 favourites (`eax/workspace.py`), skills (`eax/skills.py`).
 
 ## Operations
@@ -120,7 +120,7 @@ expire (`eax/testing/security_gate.py`, `eax/testing/codescan.py`, `eax/testing/
 The installation tests itself (`eax/testing/`), in test data of its own that it removes afterwards: smoke or full;
 suites api (every endpoint as every role, writes, negative tests), ui (every page and journey in Chromium), db,
 security, reports, **performance** (R5.18: the benchmark with k6 against the last release's baseline,
-`eax/testing/benchmark.py`), backup and restore. A run can be watched step by step, **its browsers live** (R5.20,
+`eax/testing/benchmark.py`; only when asked for by name, never in the full test, R5.29), backup and restore. A run can be watched step by step, **its browsers live** (R5.20,
 `eax/testing/screencast.py`), repeated for what failed, and reported as HTML and Excel. The outside **test bench**
 (`testbench/`) runs the same checks from another machine and in CI.
 

@@ -17,7 +17,7 @@ from typing import Any
 
 from sqlalchemy import text
 
-from . import SUITES, WEB_SUITES
+from . import FULL_SUITES, SUITES, WEB_SUITES
 
 
 def engine():
@@ -47,12 +47,13 @@ OPEN = ("queued", "running")
 
 
 def clean_suites(suites: list[str] | str | None) -> list[str]:
-    """The suites asked for, in the usual order; empty or 'all' means every suite."""
+    """The suites asked for, in the usual order; empty or 'all' means the full test's (every suite but the ones run only
+    when asked for by name: performance, R5.29)."""
     if isinstance(suites, str):
         suites = [s for s in suites.replace(",", " ").split() if s]
     asked = [s.strip().lower() for s in (suites or []) if s and s.strip()]
     if not asked or "all" in asked:
-        return list(SUITES)
+        return list(FULL_SUITES)
     bad = [s for s in asked if s not in SUITES]
     if bad:
         raise ValueError(f"Unknown suite {', '.join(bad)}: choose from {', '.join(SUITES)} (or all).")

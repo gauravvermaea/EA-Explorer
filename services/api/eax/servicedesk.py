@@ -1,17 +1,20 @@
-"""The service desk (R5.11, D692: the catalogue as proposed, editable, "add more defaults as needed").
+"""The service desk (R5.11, D692: the catalogue as proposed, editable, "add more defaults as needed"; reworked in R5.27,
+D700: a group first, then the request; every request to the Super Admins, who assign it; no approvals; "Something else").
 
-People ask for things from a **service catalogue**: each request type has its own form, a team that works on it, an
-optional approval (and by whom) and a target time. A **ticket** (REQ-<n>) moves through: new, waiting for approval,
-approved, in progress, waiting for the requester, done, declined, cancelled; with a priority, who raised it, who it is
-assigned to, comments both ways, small attachments, the history of every change, and what it is about (a model, a
-project). Teams:
-  a global role   super-admin, it-admin, user-admin, model-creator, library-admin: anyone with it works the queue
-  model-admins    the Model Admins of the ticket's model
-  project-admins  the Project Admins of the ticket's project
-Approving runs the matching wizard where one exists: access to a model is given at once (as the approver, so the
-database's own rules still decide); for the others the approver is taken to the wizard with the request's details.
-Super Admins add, change and switch off request types (System Admin > Service catalogue). Notifications go to the team
-and the requester at each step (category request). Tables only in the database (D248): core.service_*, migration 0082.
+People ask for things from a **service catalogue** in **groups** (Models, Projects, Access, Other): each request type has
+its own form and a target time. **Every request goes to the Super Admins** (owner, 15 Nov 2026: "Tiket gets assigned to
+Super admin always. They can assign it to someone else"): a Super Admin reads it and assigns it to a person, or declines
+it; the person it is assigned to works on it and may hand it back. There is no approval step (owner: "Super Admin
+decides"). "Something else" is in every group and is a group of its own, for what the catalogue does not have.
+A **ticket** (REQ-<n>) moves through: new, in progress, waiting for the requester, done, declined, cancelled (waiting
+for approval and approved remain only for requests raised before R5.27, decided by a Super Admin); with a priority, who
+raised it, who it is assigned to (nobody: the Super Admins), comments both ways, small attachments, the history of every
+change, and what it is about (a model, a project). "Do it" runs the matching wizard where one exists: access to a model
+is given at once (as the person doing it, so the database's own rules still decide); for the others they are taken to
+the wizard with the request's details. Super Admins add, change and switch off request types (Service desk > Service
+catalogue). Notifications go to the Super Admins, the person assigned and the requester at each step (category
+request). Tables only in the database (D248): core.service_*, migrations 0082 and 0087. The team and approval columns
+stay and always hold super-admin and nothing.
 """
 
 from __future__ import annotations
@@ -31,6 +34,12 @@ TEAMS = (P.SUPER_ADMIN, P.IT_ADMIN, P.USER_ADMIN, P.MODEL_CREATOR, P.LIBRARY_ADM
 FIELD_KINDS = ("text", "textarea", "model", "project", "person", "model-role", "project-role", "global-role", "date", "choice", "number")
 MAX_FILE = 10 * 1024 * 1024
 LINK = "#/service-desk"
+# the groups, in order, with what each is for (R5.27); a request type's area is its group
+GROUPS = (("Models", "New models, copies, access to a model, changes to a metamodel, data loads, restores and archiving"),
+          ("Projects", "New architecture projects, access to a project, project templates and restores"),
+          ("Access", "New people, global roles, keys for other systems and addresses allowed in"),
+          ("Other", "Anything that is not in the catalogue: describe what you need"))
+OTHER = "other"
 
 
 class DeskError(Exception):
@@ -58,10 +67,9 @@ def clean_type(body: dict) -> dict:
     name = str(body.get("name") or "").strip()[:120]
     if not name:
         raise DeskError("name: what people ask for.")
-    team = str(body.get("team") or P.SUPER_ADMIN)
-    approval = str(body.get("approval") or "")
-    if team not in TEAMS or (approval and approval not in TEAMS):
-        raise DeskError(f"team and approval: one of {', '.join(TEAMS)} (approval may be empty).")
+    # every request goes to the Super Admins, with no approval step (R5.27, D700): the columns stay, always these
+    team, approval = P.SUPER_ADMIN, ""
+    area = str(body.get("area") or "Other").strip()[:40] or "Other"
     fields = []
     for f in body.get("form") or []:
         kind = f.get("kind") or "text"
@@ -76,7 +84,7 @@ def clean_type(body: dict) -> dict:
     hours = int(body.get("target_hours") or 24)
     if not 1 <= hours <= 24 * 90:
         raise DeskError("target_hours: 1 to 2,160.")
-    return {"key": key, "area": str(body.get("area") or "Help")[:40], "name": name, "about": str(body.get("about") or "")[:500],
+    return {"key": key, "area": area, "name": name, "about": str(body.get("about") or "")[:500],
             "form": fields, "team": team, "approval": approval, "target_hours": hours,
             "wizard": str(body.get("wizard") or "")[:200], "enabled": body.get("enabled", True) is not False,
             "sort": int(body.get("sort") or 100)}
@@ -86,6 +94,26 @@ def catalogue(conn, everything: bool = False) -> list[dict]:
     """The service catalogue (the switched-off types too when asked)."""
     rows = _rows(conn, "SELECT * FROM core.service_types" + ("" if everything else " WHERE enabled") + " ORDER BY area, sort, name")
     return rows
+
+
+def groups(types: list[dict]) -> list[dict]:
+    """The groups in order with what each is for and how many request types it has; a group the Super Admins made
+    (an area not in GROUPS) comes before Other. "Something else" is counted in Other only."""
+    known = [g for g, _a in GROUPS]
+    extra = sorted({t["area"] for t in types if t["area"] not in known})
+    about = dict(GROUPS)
+    order = known[:-1] + extra + known[-1:]
+    out = []
+    for g in order:
+        n = sum(1 for t in types if t["area"] == g and t["key"] != OTHER)
+        if n or g == "Other":
+            out.append({"name": g, "about": about.get(g, ""), "types": n})
+    return out
+
+
+def people(conn) -> list[str]:
+    """Who a request can be assigned to: everyone who has signed in, but service accounts."""
+    return [r["u"] for r in _rows(conn, "SELECT lower(username) AS u FROM core.known_users ORDER BY 1") if not r["u"].startswith(("svc-", "service-account-"))]
 
 
 def type_of(conn, key: str) -> dict:
@@ -166,9 +194,13 @@ def _shape(conn, t: dict, me: str = "", roles=()) -> dict:
         if t.get(k):
             t[k] = t[k].isoformat()
     if me:
+        boss = P.SUPER_ADMIN in set(roles or [])
         t["mine"] = t["raised_by"] == me.lower()
-        t["can_work"] = in_team(conn, t["team"], me, roles, t)
-        t["can_approve"] = bool(t["approval"]) and t["status"] == "waiting-approval" and in_team(conn, t["approval"], me, roles, t)
+        t["assigned_to_me"] = bool(t.get("assigned_to")) and t["assigned_to"] == me.lower()
+        t["can_work"] = boss or t["assigned_to_me"]
+        t["can_assign"] = boss
+        # requests raised before R5.27 may still wait for an approval: a Super Admin decides them
+        t["can_approve"] = boss and t["status"] == "waiting-approval"
     return t
 
 
@@ -179,8 +211,7 @@ def get(conn, ident, me: str, roles) -> dict:
     if not t:
         raise DeskError(f"No request REQ-{n}.", 404)
     s = _shape(conn, t, me, roles)
-    if not (s["mine"] or s["can_work"] or (t["approval"] and in_team(conn, t["approval"], me, roles, t))
-            or t.get("assigned_to") == me.lower() or P.AUDITOR in set(roles or [])):
+    if not (s["mine"] or s["can_work"] or P.AUDITOR in set(roles or [])):
         raise DeskError("This request is not yours to see.", 403)
     s["events"] = [{**e, "at": e["at"].isoformat()} for e in _rows(conn, """SELECT id, at, by_whom, kind, body, data FROM core.service_ticket_events
                                                                            WHERE ticket_id = :t ORDER BY at, id""", t=n)]
@@ -236,18 +267,19 @@ def raise_ticket(conn, me: str, body: dict) -> dict:
     priority = body.get("priority") or "normal"
     if priority not in PRIORITIES:
         raise DeskError(f"priority: one of {', '.join(PRIORITIES)}.")
+    if ty["key"] == OTHER and body.get("group"):
+        fields = {"group": str(body["group"])[:40], **fields}         # which group's "Something else"
     title = str(body.get("title") or ty["name"]).strip()[:200]
-    status = "waiting-approval" if ty["approval"] else "new"
+    status = "new"                                                       # no approval step (R5.27, D700)
     row = _one(conn, """INSERT INTO core.service_tickets (type_key, title, fields, status, priority, raised_by, team, approval,
                                model_guid, project_guid, due_at)
                         VALUES (:k, :t, CAST(:f AS jsonb), :s, :p, :u, :team, :a, CAST(:m AS uuid), CAST(:pr AS uuid),
                                 now() + make_interval(hours => :h))
                         RETURNING *""",
-               k=ty["key"], t=title, f=json.dumps(fields), s=status, p=priority, u=me.lower(), team=ty["team"], a=ty["approval"],
+               k=ty["key"], t=title, f=json.dumps(fields), s=status, p=priority, u=me.lower(), team=P.SUPER_ADMIN, a="",
                m=model, pr=project, h=int(ty["target_hours"]))
     _event(conn, row["id"], me, "raised", str(body.get("note") or ""), {"fields": fields})
-    who = team_people(conn, ty["approval"] or ty["team"], row)
-    _tell(conn, row, who, ("Approve: " if ty["approval"] else "New: ") + title, me, needs_action=True)
+    _tell(conn, row, team_people(conn, P.SUPER_ADMIN, row), "New: " + title, me, needs_action=True)
     return _shape(conn, row, me, ())
 
 
@@ -259,7 +291,7 @@ def listing(conn, me: str, roles, view: str = "mine", status: str = "open", q: s
         s = _shape(conn, t, me, roles)
         if view == "mine" and not s["mine"]:
             continue
-        if view == "queue" and not (s["can_work"] or s["can_approve"] or t.get("assigned_to") == me.lower()):
+        if view == "queue" and not (s["assigned_to_me"] or (s["can_assign"] and not t.get("assigned_to"))):
             continue
         if view == "all" and not (P.SUPER_ADMIN in set(roles or []) or P.AUDITOR in set(roles or [])):
             continue
@@ -282,7 +314,7 @@ def act(conn, ident, me: str, roles, action: str, body: dict) -> dict:
         _event(conn, tid, me, "comment", note)
         others = ({t["raised_by"]} | ({t["assigned_to"]} if t.get("assigned_to") else set())) - {me.lower()}
         if t["mine"] and not t.get("assigned_to"):
-            others |= set(team_people(conn, t["team"], t))
+            others |= set(team_people(conn, P.SUPER_ADMIN, t))
         _tell(conn, t, others, f"{me} wrote: {note[:120]}", me)
     elif action == "cancel":
         if not t["mine"] or t["status"] not in OPEN:
@@ -290,18 +322,27 @@ def act(conn, ident, me: str, roles, action: str, body: dict) -> dict:
         _set_status(conn, t, "cancelled", me, note)
     elif action in ("approve", "decline"):
         if not t["can_approve"]:
-            raise DeskError("You do not approve this request (or it is not waiting for approval).", 403)
+            raise DeskError("Only a Super Admin decides a request still waiting for an approval.", 403)
         conn.execute(text("UPDATE core.service_tickets SET approved_by = :b, approved_at = now() WHERE id = :t"), {"b": me, "t": tid})
         _set_status(conn, t, "approved" if action == "approve" else "declined", me, note)
-        if action == "approve":
-            _tell(conn, t, team_people(conn, t["team"], t), f"Approved by {me}: work on it", me, needs_action=True)
     elif action == "assign":
-        if not t["can_work"]:
-            raise DeskError("Only the team that works on it assigns it.", 403)
-        to = str(body.get("to") or me).lower()
+        if t["status"] not in OPEN:
+            raise DeskError("The request is closed.", 409)
+        to = str(body.get("to") if body.get("to") is not None else me).strip().lower()
+        if not to:                                                       # handed back to the Super Admins
+            if not (t["can_assign"] or t["assigned_to_me"]):
+                raise DeskError("Only a Super Admin or the person it is assigned to hands it back.", 403)
+            conn.execute(text("UPDATE core.service_tickets SET assigned_to = NULL WHERE id = :t"), {"t": tid})
+            _event(conn, tid, me, "assigned", note, {"to": "the Super Admins"})
+            _tell(conn, t, set(team_people(conn, P.SUPER_ADMIN, t)) - {me.lower()}, f"Handed back by {me}", me, needs_action=True)
+            return get(conn, tid, me, roles)
+        if not t["can_assign"]:
+            raise DeskError("Only a Super Admin assigns a request.", 403)
+        if to not in people(conn) and to != me.lower():
+            raise DeskError(f"No person {to}: someone who has signed in to EA Explorer.")
         conn.execute(text("UPDATE core.service_tickets SET assigned_to = :a WHERE id = :t"), {"a": to, "t": tid})
         _event(conn, tid, me, "assigned", note, {"to": to})
-        if t["status"] in ("new", "approved"):
+        if t["status"] in ("new", "approved", "waiting-approval"):
             _set_status(conn, {**t, "assigned_to": to}, "in-progress", me, "")
         _tell(conn, t, {to, t["raised_by"]} - {me.lower()}, f"Assigned to {to}", me, needs_action=to != me.lower())
     elif action == "status":
@@ -309,14 +350,12 @@ def act(conn, ident, me: str, roles, action: str, body: dict) -> dict:
         if new not in STATUSES or new in ("waiting-approval", "approved", "cancelled"):
             raise DeskError("status: in-progress, waiting-requester, done or declined.")
         if not t["can_work"]:
-            raise DeskError("Only the team that works on it changes its status.", 403)
-        if t["approval"] and not t.get("approved_by") and new == "done":
-            raise DeskError("It needs its approval first.", 409)
+            raise DeskError("Only a Super Admin or the person it is assigned to changes its status.", 403)
         _set_status(conn, t, new, me, note)
     elif action == "priority":
         p = str(body.get("priority") or "")
         if p not in PRIORITIES or not t["can_work"]:
-            raise DeskError(f"priority: one of {', '.join(PRIORITIES)} (the team sets it).")
+            raise DeskError(f"priority: one of {', '.join(PRIORITIES)} (a Super Admin or the person on it sets it).")
         conn.execute(text("UPDATE core.service_tickets SET priority = :p WHERE id = :t"), {"p": p, "t": tid})
         _event(conn, tid, me, "priority", note, {"priority": p})
     else:
@@ -340,9 +379,7 @@ def run_wizard(conn, ident, me: str, roles) -> dict:
     doing it, so the database's own rules decide), else the address of the wizard to finish it with its details."""
     t = get(conn, ident, me, roles)
     if not t["can_work"]:
-        raise DeskError("Only the team that works on it does it.", 403)
-    if t["approval"] and t["status"] not in ("approved", "in-progress"):
-        raise DeskError("It needs its approval first.", 409)
+        raise DeskError("Only a Super Admin or the person it is assigned to does it.", 403)
     f = t["fields"] or {}
     wizard = (t.get("type") or {}).get("wizard") or ""
     if wizard == "model-access":

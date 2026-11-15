@@ -41,7 +41,7 @@ from sqlalchemy import text
 from .. import audit
 from ..auth import require_auth
 from ..db import get_engine
-from ..testing import SUITES, WEB_SUITES, report, store
+from ..testing import SUITES, WEB_FULL_SUITES, WEB_SUITES, report, store
 from .admin import _ops, _ops_raw
 from .models import Free, FreeIn
 
@@ -124,7 +124,7 @@ class Tests(MethodView):
                 "roles": store.TEST_ROLES, "areas": [{"code": c, "label": lbl} for c, lbl, _ in AREAS],
                 "estimates": {"smoke": store.estimate_minutes("smoke", []),
                               **{s: store.estimate_minutes("detailed", [s]) for s in SUITES},
-                              "detailed_all": store.estimate_minutes("detailed", list(WEB_SUITES))}}
+                              "detailed_all": store.estimate_minutes("detailed", list(WEB_FULL_SUITES))}}
 
     @blp.doc(security=SECURITY)
     @blp.arguments(FreeIn)

@@ -25,3 +25,8 @@ run recorded (fixtures.py). The report (HTML and Excel) stays after the purge, m
 
 SUITES = ("api", "ui", "db", "security", "reports", "performance", "backup", "restore")   # reports (R4.1); performance (R5.18); backup (R2.45), then restore (R3.8): the last
 WEB_SUITES = SUITES[:-1]       # restore runs from the command line only (it stops the services the web runs on)
+# run only when asked for by name, never as part of the full test (owner, 15 Nov 2026, 19:22: "I dont want full test to
+# run performance test"; R5.29): eax test performance, Performance alone on the Self-test page, and CI's nightly job
+ON_DEMAND = ("performance",)
+FULL_SUITES = tuple(s for s in SUITES if s not in ON_DEMAND)
+WEB_FULL_SUITES = tuple(s for s in WEB_SUITES if s not in ON_DEMAND)
