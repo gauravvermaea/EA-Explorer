@@ -3802,5 +3802,17 @@
   "button:Hand it back to the Super Admins": "You cannot do it: it goes back to the Super Admins to assign again.",
   "button:Mark it done": "The request is finished; the person who asked is told.",
   "button:Send the comment": "Adds your comment to the request and tells the others on it.",
-  "button:Take it myself": "Assigns the request to you and starts it."
+  "button:Take it myself": "Assigns the request to you and starts it.",
+  "tab:Size and keeping": {
+    "what": "How large each log file grows before a new one starts, the same for Docker's own copy of each container's output, and how many days logs are kept.",
+    "how": [
+      "Log files roll over at: 100 KB by default; the full file is compressed and a new one begins, at once.",
+      "Docker's own copy: 100 KB by default; Docker takes a new size at the next .\\eax up.",
+      "Kept for: every file is kept this many days, however many files that is, then deleted in the night (7 by default)."
+    ],
+    "example": "Set 500 KB for fewer, larger files; nothing already written changes."
+  },
+  "field:Log files roll over at (KB)": "The size at which a log file is closed (and compressed) and a new one begun: the containers' logs, the web log and its debug lines.",
+  "field:Docker's own copy rolls over at (KB)": "Docker keeps each container's output until it is copied into the logs every minute; its files roll at this size from the next eax up.",
+  "field:Kept for (days)": "Every log file and log backup older than this is deleted every night; 0 keeps them."
 }

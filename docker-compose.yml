@@ -18,7 +18,9 @@ x-logging: &logging
   logging:
     driver: json-file
     options:
-      max-size: "10m"
+      # Docker's own copy of each container's output, read every minute into logs/ (R2.32): rolled at the size set on
+      # System Admin > Logs, 100 KB by default (R5.26; written into the config file, taken at the next eax up)
+      max-size: "${EAX_DOCKER_LOG_KB:-100}k"
       max-file: "5"
 
 # Every password and key (each value the server template holds as change-me), for the services that read the config

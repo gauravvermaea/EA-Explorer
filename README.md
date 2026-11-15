@@ -29,9 +29,9 @@ documentation**, refreshed at every start (D550 to D552). On the command line, `
 **All the documentation, listed with what each covers: [docs/index.md](docs/index.md).** Backup and restore
 commands: [below](#backup-and-restore-from-the-command-line) and in [docs/operations.md](docs/operations.md#backup-and-restore-from-the-command-line-d227).
 
-**Status: version 4.0.0, Release 4, released 15 Nov 2026** (tag `v4.0.0` on the `release` branch; release notes:
-[releases/4.0.0.md](releases/4.0.0.md); Release 3.5: [releases/3.5.0.md](releases/3.5.0.md); Release 3: [releases/3.0.0.md](releases/3.0.0.md); Release 2: [releases/2.0.0.md](releases/2.0.0.md);
-Release 1: [releases/1.0.0.md](releases/1.0.0.md)). Next: Release 5 (the R5 rows in
+**Status: version 5.0.0, Release 5, released 15 Nov 2026** (tag `v5.0.0` on the `release` branch; release notes:
+[releases/5.0.0.md](releases/5.0.0.md); Release 4: [releases/4.0.0.md](releases/4.0.0.md); Release 3.5: [releases/3.5.0.md](releases/3.5.0.md); Release 3: [releases/3.0.0.md](releases/3.0.0.md); Release 2: [releases/2.0.0.md](releases/2.0.0.md);
+Release 1: [releases/1.0.0.md](releases/1.0.0.md)). Next: Release 5.5 (the R5.5 rows in
 [docs/build-phases.md](docs/build-phases.md)). The releases in short are
 [below](#releases); every phase in detail: [docs/build-phases.md](docs/build-phases.md). Database design:
 [docs/database.md](docs/database.md). How it is built (for developers and AI agents):
@@ -52,7 +52,7 @@ area by area: [docs/capabilities.md](docs/capabilities.md).
 | 3 | [3.0.0](releases/3.0.0.md) | Data discovery and ingestion, guided import and export, testing that proves the whole installation | released 14 Nov 2026 |
 | 3.5 | [3.5.0](releases/3.5.0.md) | Memory: measured all the time (the resource history), two containers fewer on a laptop | released 14 Nov 2026 |
 | 4 | [4.0.0](releases/4.0.0.md) | Reports on Superset 6.1 with their own test suite, an AI (MCP) menu and MCP tools to run the installation, project steps in your own order | released 15 Nov 2026 |
-| 5 | | Optimisation report, MFA, IP allow-listing, data locations, logging and alerts, signed deployments, a service desk, database maintenance; from Release 4: the code documented and handed over, security and performance testing, server sizing, watching the screen tests live, the three-monthly version review; an Auditor role (eax-audit): sees everything, changes nothing | planned |
+| 5 | [5.0.0](releases/5.0.0.md) | Optimisation report, MFA, IP allow-listing, data locations, logging and alerts, signed deployments, a service desk (groups, the Super Admins assign), database maintenance; from Release 4: the code documented and handed over, security and performance testing, server sizing, watching the screen tests live, the three-monthly version review; an Auditor role (eax-audit): sees everything, changes nothing ; log files rolling at a size set on the Logs page | released 15 Nov 2026 |
 | 5.5 | | Enterprise discovery | planned |
 | 5.6 | | Backup and restore, tested and fixed (nothing else) | planned |
 | 6 | | The key vault (OpenBao), once its details are agreed | planned |

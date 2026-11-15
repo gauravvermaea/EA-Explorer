@@ -4,6 +4,8 @@
 //                   request id), filtered, slowest first, the slowest and most failing routes summed; CSV and zip
 //   Web log debug   off by default; on for a while (each call's input and answer too, masked), said here while on
 //   eax's own logs  work/logs and the log backups
+//   Size and keeping how large each log file grows before a new one starts (100 KB by default), the same for Docker's
+//                   own copy of each container's output (from the next eax up), and the days kept (R5.26)
 //   Delete          a period, everything before a day, or all (Super Admin; a log backup first). Logs older than
 //                   7 days go by themselves every night; clean-run and clean-restart delete them after a backup.
 import { useEffect, useState } from "react";
@@ -11,22 +13,66 @@ import { apiFetch, can } from "./auth";
 import { KeptLogs, OwnLogs } from "./ContainerConsole";
 import { fmtDateTime } from "./fmt";
 
-const TABS = [["containers", "Container logs"], ["web", "Web log"], ["own", "eax's own logs"], ["delete", "Delete logs"]];
+const TABS = [["containers", "Container logs"], ["web", "Web log"], ["own", "eax's own logs"], ["rolling", "Size and keeping"], ["delete", "Delete logs"]];
 
 export default function Logs() {
   const [tab, setTab] = useState("containers");
   return (
     <div className="logs-admin">
-      <p className="quiet">Every log in one place. Kept for 7 days unless System Admin › System settings says otherwise; levels from
-        debug to critical, info by default.</p>
+      <p className="quiet">Every log in one place. Each file rolls over at 100 KB and is kept for 7 days unless changed under Size and
+        keeping; levels from debug to critical, info by default.</p>
       <div className="row-gap small-tabs" role="tablist" aria-label="Which logs">
         {TABS.map(([k, l]) => <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>{l}</button>)}
       </div>
       {tab === "containers" && <KeptLogs service="api" />}
       {tab === "web" && <WebLog />}
       {tab === "own" && <OwnLogs />}
+      {tab === "rolling" && <Rolling />}
       {tab === "delete" && <DeleteLogs />}
     </div>
+  );
+}
+
+// Size and keeping (R5.26): every log file rolls over at a size (a new file begins, the full one is compressed); Docker's
+// own copy of each container's output too, from the next eax up; the days every file is kept, however many there are.
+function Rolling() {
+  const [d, setD] = useState(null);
+  const [f, setF] = useState(null);
+  const [err, setErr] = useState("");
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const may = can("settings.manage");
+  const load = () => apiFetch("/api/v1/admin/logs/rolling").then((x) => { setD(x); setF({ file_kb: x.file_kb, docker_kb: x.docker_kb, keep_days: x.keep_days }); })
+    .catch((e) => setErr(e.message));
+  useEffect(() => { load(); }, []);
+  if (!d) return err ? <p className="status bad">{err}</p> : <p><span className="spinner" aria-hidden="true" /> Reading…</p>;
+  async function save(e) {
+    e.preventDefault();
+    setBusy(true); setErr(""); setMsg("");
+    try {
+      const x = await apiFetch("/api/v1/admin/logs/rolling", { method: "PUT", body: JSON.stringify({ file_kb: Number(f.file_kb), docker_kb: Number(f.docker_kb), keep_days: Number(f.keep_days) }) });
+      setD(x);
+      setMsg(x.docker_kb_running != null && x.docker_kb_running !== x.docker_kb
+        ? "Saved. The log files roll at the new size from now; Docker's copy takes its new size at the next .\\eax up."
+        : "Saved and applied.");
+    } catch (x) { setErr(x.message); }
+    setBusy(false);
+  }
+  const field = (k, label, help, min, max) => (
+    <p><label>{label}<br /><input type="number" min={min} max={max} value={f[k]} disabled={!may}
+      onChange={(e) => setF({ ...f, [k]: e.target.value })} /></label><br /><span className="small quiet">{help}</span></p>);
+  return (
+    <form className="logs-rolling" onSubmit={save}>
+      <p className="quiet">Each log file grows to its size, then a new one begins and the full one is compressed. Every file is
+        kept for the days below, however many files that is, then deleted in the night.</p>
+      {field("file_kb", "Log files roll over at (KB)", "The containers' logs, the web log and its debug lines. 100 KB by default; from 10 KB to 1 GB (1048576).", 10, 1048576)}
+      {field("docker_kb", "Docker's own copy rolls over at (KB)", `Docker keeps each container's output until it is copied here every minute (5 files a container). 100 KB by default; taken at the next .\\eax up${d.docker_kb_running != null ? ` (running now: ${d.docker_kb_running} KB)` : ""}.`, 10, 1048576)}
+      {field("keep_days", "Kept for (days)", "Every log file and log backup older than this is deleted every night; 0 keeps them.", 0, 3650)}
+      {d.set_by && <p className="small quiet">Last set by {d.set_by}{d.set_at ? ` on ${fmtDateTime(d.set_at)}` : ""}.</p>}
+      {err && <p className="status bad" role="alert">{err}</p>}
+      {msg && <p className="status ok">{msg}</p>}
+      {may ? <button className="primary" disabled={busy}>{busy ? "Saving…" : "Save"}</button> : <p className="small quiet">Only a Super Admin changes these.</p>}
+    </form>
   );
 }
 

@@ -306,6 +306,23 @@ def _who(by: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]", "-", by or "console")[:40]
 
 
+def set_config_value(key: str, value: str, by: str, why: str) -> str:
+    """One value written into the config file (a dated copy first); the name of the copy."""
+    with config_lock:
+        name = copy_config(by, why)
+        out, done = [], False
+        for line in _read_config():
+            if line.replace(" ", "").startswith(f"{key}="):
+                out.append(f"{key}={value}")
+                done = True
+            else:
+                out.append(line)
+        if not done:
+            out.append(f"{key}={value}")
+        _write(out)
+    return name
+
+
 def copy_config(by: str, why: str) -> str:
     """A dated copy of the config file before it changes: config-history/eaexplorer.env.<UTC time>.<who>.<why>."""
     os.makedirs(HISTORY, exist_ok=True)
@@ -2309,6 +2326,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(400, {"message": str(exc)})
             except RuntimeError as exc:
                 return self._send(409, {"message": str(exc)})
+        if self.path == "/logs/rolling":                       # the sizes the logs roll at (R5.26)
+            try:
+                return self._send(200, logsops.rolling())
+            except RuntimeError as exc:
+                return self._send(409, {"message": str(exc)})
         if self.path.split("?")[0] in ("/logs/files", "/logs/read", "/logs/own"):   # the logs kept on disk (R2.31, R2.32)
             from urllib.parse import parse_qs, urlparse
             q = {k: v[0] for k, v in parse_qs(urlparse(self.path).query).items()}
@@ -2544,6 +2566,13 @@ class Handler(BaseHTTPRequestHandler):
             return self._banner("POST")
         if self.path == "/footprint":                          # measure now (R2.22)
             return self._send(200, footprint.measure(str(self._body().get("label") or "")))
+        if self.path == "/logs/rolling":                       # {file_kb, docker_kb, by}: the sizes the logs roll at (R5.26)
+            try:
+                return self._send(200, logsops.set_rolling(self._body()))
+            except (ValueError, OSError) as exc:
+                return self._send(400, {"message": str(exc)})
+            except RuntimeError as exc:
+                return self._send(409, {"message": str(exc)})
         if self.path in ("/logs/backup", "/logs/clean", "/logs/clean-range"):   # back up or clean the logs (R2.30, R5.6)
             try:
                 b = self._body()
@@ -2951,7 +2980,7 @@ commandcentre.hooks.update(docker=docker, me=updates._me, read_config=_read_conf
 import deploys  # noqa: E402 - deploying EA Explorer elsewhere from the page (phase 36, D555)
 import logsops  # noqa: E402 - the logs on disk: written every minute, read, backed up and cleaned (R2.30 to R2.32)
 
-logsops.hooks.update(containers=containers)
+logsops.hooks.update(containers=containers, set_config=set_config_value)
 import footprint  # noqa: E402 - how much each container takes (R2.22)
 
 footprint.hooks.update(stats=stats, docker=docker, project=project, _size=_size, cpus=host_cpus, filesystems=filesystems,

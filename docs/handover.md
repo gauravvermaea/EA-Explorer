@@ -4,7 +4,7 @@ The state of the work, for whoever picks it up next: a person or another AI with
 13 Nov 2026: "what happens if I need another ai to work on this"). **Updated at the end of every working session.**
 Read [AGENTS.md](../AGENTS.md) first, run `eax dev check`, then read this.
 
-Last updated: 15 Nov 2026, Release 5 being built.
+Last updated: 15 Nov 2026, Release 5 released (5.0.0).
 
 ## How the owner works
 
@@ -26,35 +26,34 @@ The working rules, written once (AGENTS.md has them in full):
 
 ## What was just done
 
-Release 5 built, story by story, with its tests (D685 to D698): R5.1 the optimisation report (with the names of each
-model's and project's creator and admins), R5.2 IP allow lists, R5.3 multi-factor sign-in (a setting, off), R5.4 where
-the data lives, R5.6 to R5.8 logs and the web log, R5.9 alerts, R5.10 signed deployments, R5.11 the service desk, R5.12
-database maintenance, R5.14 and R5.15 every module, class and function documented (and a test that keeps it so), this
-handover (R5.16), R5.17 automated security testing, R5.18 performance testing with k6, R5.19 the sizing estimate, R5.20
-watching the self-test's browsers live, R5.21 the version review as a scheduled task (1 Feb, May, Aug and Nov),
-R5.22 the Auditor role. Recorded for Release 5.5: R5.5.1 decision records and dispensations (notified on their end date).
+Release 5 released as 5.0.0 (owner, 15 Nov 2026, 19:31; D702): R5.1 the optimisation report, R5.2 IP allow lists,
+R5.3 multi-factor sign-in, R5.4 where the data lives, R5.6 to R5.8 logs and the web log, R5.9 alerts, R5.10 signed
+deployments, R5.11 and R5.27 the service desk (groups, every request to the Super Admins, who assign it), R5.12
+database maintenance, R5.14 to R5.16 the code documented and this handover, R5.17 security testing, R5.18 performance
+testing (only when asked for, never in the full test: R5.29), R5.19 the sizing estimate, R5.20 the live browser,
+R5.21 the version review, R5.22 the Auditor role, R5.26 log files rolling at a size set on the Logs page (100 KB).
+Fixed while testing: R5.23 (the Reports image's Pillow, accepted until 1 Feb 2027, D699), R5.24 (the front door's
+configuration), R5.25 (MFA off still asked for a code), R5.28 (a duplicate index).
 
 ## In progress
 
-- Closing Release 5: version 5.0.0, its migration, release notes, the build-phases rows, the full test run by the
-  owner with the automation, then the bugs it finds (D696: nothing carried forward).
+Nothing.
 
 ## Next
 
-The owner tests Release 5 with the automation (`eax test full`), the bugs found are fixed (each with its test), then
-the release. Then Release 6 (docs/build-phases.md).
+Release 5.5: enterprise discovery and R5.5.1 decision records and dispensations (docs/build-phases.md), discussed
+with the owner one question at a time before building. Then Release 5.6 (backup and restore), Release 6.
 
 ## Open questions
 
-None waiting on the owner for Release 5. Decisions taken while building it without asking, to confirm when testing:
-D698 (the security gate lists Trivy findings with no fix released instead of failing on them).
+None.
 
 ## The laptop and GitHub
 
 - The owner's repository: `C:\Users\gaura\Github\EA-Enterpise`, branch `main` (the work); releases on `rc` and
   `release` with tags (docs/release-process.md).
 - Changes are copied to the laptop when it is linked, then the owner commits and pushes.
-- Not yet on the laptop: the Release 5 work of 15 Nov 2026 (to be copied at the end of the build).
+- Everything of Release 5 is on the laptop (15 Nov 2026).
 
 ## The trial (R5.16)
 

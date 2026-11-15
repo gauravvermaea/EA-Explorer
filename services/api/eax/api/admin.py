@@ -156,6 +156,47 @@ class LogKeep(MethodView):
         return out
 
 
+@blp.route("/admin/logs/rolling")
+class LogRolling(MethodView):
+    """/api/v1/admin/logs/rolling: GET the sizes the logs roll at and the days they are kept {file_kb, docker_kb,
+    docker_kb_running, keep_days}; PUT changes them (Super Admin; R5.26, owner, 15 Nov 2026: "The logs in the entire
+    system should be configurable form a log page. Default being rolling with 100kb size")."""
+    @blp.doc(security=[{"bearerAuth": []}])
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def get(self):
+        """The sizes the logs roll at and the days they are kept"""
+        from .. import settings as st
+        out = _ops("GET", "/logs/rolling", timeout=30)
+        return {**out, "keep_days": int(st.values().get("logs_keep_days") or 0)}
+
+    @blp.doc(security=[{"bearerAuth": []}])
+    @blp.arguments(FreeIn)
+    @blp.response(200, Free)
+    @require_auth("settings.manage")
+    def put(self, data):
+        """{file_kb, docker_kb, keep_days}: our log files roll at file_kb at once; Docker's copy at docker_kb from the next
+        eax up; files older than keep_days deleted every night (0 keeps them). In the audit trail"""
+        from .. import settings as st
+        data = data or {}
+        if "keep_days" in data:
+            try:
+                st.check("logs_keep_days", data.get("keep_days"))         # wrong days change nothing
+            except st.EditError as exc:
+                abort(getattr(exc, "status", 400), message=str(exc))
+        out = _ops("POST", "/logs/rolling", {"file_kb": data.get("file_kb"), "docker_kb": data.get("docker_kb"),
+                                             "by": g.user.username}, timeout=30)
+        with get_engine().begin() as conn:
+            if "keep_days" in data:
+                try:
+                    st.update(conn, g.user, {"logs_keep_days": data.get("keep_days")})
+                except st.EditError as exc:
+                    abort(getattr(exc, "status", 400), message=str(exc))
+            audit.record(conn, actor=g.user.username, action="logs.rolling", object_type="logs", object_id="rolling",
+                         details={k: data.get(k) for k in ("file_kb", "docker_kb", "keep_days")})
+        return {**out, "keep_days": int(st.values().get("logs_keep_days") or 0)}
+
+
 @blp.route("/admin/footprint")
 class Footprint(MethodView):
     """/api/v1/admin/footprint: GET how much each container takes (R2.22): the newest measurement and the one before

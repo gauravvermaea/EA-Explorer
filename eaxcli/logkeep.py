@@ -28,7 +28,15 @@ ROOT = Path(__file__).resolve().parent.parent
 DAY = re.compile(r"^\d{4}-\d{2}-\d{2}(\.\d+)?\.log(\.gz)?$")
 ZIP = re.compile(r"^\d{8}T\d{6}Z-logs(-[a-z0-9-]+)?\.zip$")
 LEVELS = ("debug", "info", "warning", "error", "critical")
-MAX_MB = 50                 # a file is closed and a new one begun past this size (R5.6; EAX_LOG_FILE_MB)
+MAX_MB = 50                 # R5.6's size, kept only for a config file that still sets EAX_LOG_FILE_MB
+# R5.26 (owner, 15 Nov 2026, 19:03: "The logs in the entire system should be configurable form a log page. Default being
+# rolling with 100kb size"; 19:31: Docker's own copy included): every log file rolls at this size, set on System Admin >
+# Logs and kept in the logs folder (.rolling.json), so it outlives a clean-restart like the logs themselves
+FILE_KB = 100               # our log files: the containers', the web log and its debug lines
+DOCKER_KB = 100             # Docker's own copy of each container's output (taken at the next eax up)
+DOCKER_FILES = 5            # how many of Docker's files each container keeps
+KB_RANGE = (10, 1024 * 1024)
+ROLLING = ".rolling.json"
 KEEP_DAYS = 7               # logs older than this are deleted every night (R5.6; System Admin > Settings)
 _MASKS = [(re.compile(r"((?:PASSWORD|SECRET|TOKEN|_KEY|URLENC)[A-Za-z_]*\s*[:=]\s*)\S+", re.I), r"\1****"),
           (re.compile(r"(postgres(?:ql)?(?:\+\w+)?://[^:/\s]+:)[^@\s]+@"), r"\1****@"),
@@ -79,6 +87,7 @@ def ship(base: Path, containers: list[dict], read_since, now: float | None = Non
     except (OSError, ValueError):
         state = {}
     now = now or time.time()
+    limit = max_bytes(base)
     out: dict[str, int] = {}
     for c in containers:
         last = state.get(c["id"]) or datetime.fromtimestamp(now - 600, UTC).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
@@ -88,13 +97,14 @@ def ship(base: Path, containers: list[dict], read_since, now: float | None = Non
             day = ln[:10] if re.match(r"^\d{4}-\d{2}-\d{2}T", ln) else datetime.fromtimestamp(now, UTC).strftime("%Y-%m-%d")
             f = base / "containers" / c["service"] / f"{day}.log"
             f.parent.mkdir(parents=True, exist_ok=True)
-            rotate(f)
+            rotate(f, limit)
             with open(f, "a", encoding="utf-8") as fh:
                 fh.write(mask(ln.rstrip("\n")) + "\n")
             n += 1
             state[c["id"]] = ln.split(" ", 1)[0][:30]
         out[c["service"]] = out.get(c["service"], 0) + n
     base.mkdir(parents=True, exist_ok=True)
+    roll_web(base, now)
     compress_closed(base, now)
     tmp = state_file.with_name(".shipped.json.tmp")
     tmp.write_text(json.dumps(state), encoding="utf-8")
@@ -102,26 +112,89 @@ def ship(base: Path, containers: list[dict], read_since, now: float | None = Non
     return out
 
 
-def max_bytes() -> int:
-    """How large a log file grows before it is rolled over."""
+def _kb(value, default: int) -> int:
     try:
-        return max(1, int(os.environ.get("EAX_LOG_FILE_MB") or MAX_MB)) * 1024 * 1024
-    except ValueError:
-        return MAX_MB * 1024 * 1024
+        v = int(value)
+    except (TypeError, ValueError):
+        return default
+    return min(max(v, KB_RANGE[0]), KB_RANGE[1])
 
 
-def rotate(f: Path, limit: int | None = None) -> Path | None:
-    """A day's file past its size is closed (renamed <day>.<n>.log and compressed) and a new one begun (R5.6)."""
+def rolling(base: Path | None = None) -> dict:
+    """The sizes the logs roll at: {file_kb, docker_kb, docker_files, set_by, set_at}. The logs folder's .rolling.json
+    (the Logs page) wins; else the config file (EAX_LOG_FILE_KB, or R5.6's EAX_LOG_FILE_MB); else 100 KB (R5.26)."""
+    out = {"file_kb": FILE_KB, "docker_kb": DOCKER_KB, "docker_files": DOCKER_FILES, "set_by": "", "set_at": ""}
+    if os.environ.get("EAX_LOG_FILE_KB"):
+        out["file_kb"] = _kb(os.environ["EAX_LOG_FILE_KB"], FILE_KB)
+    elif os.environ.get("EAX_LOG_FILE_MB"):
+        out["file_kb"] = _kb(_kb(os.environ["EAX_LOG_FILE_MB"], 0) and int(os.environ["EAX_LOG_FILE_MB"]) * 1024, FILE_KB)
+    if os.environ.get("EAX_DOCKER_LOG_KB"):
+        out["docker_kb"] = _kb(os.environ["EAX_DOCKER_LOG_KB"], DOCKER_KB)
+    if base is not None:
+        try:
+            got = json.loads((Path(base) / ROLLING).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            got = {}
+        if isinstance(got, dict):
+            for k, d in (("file_kb", out["file_kb"]), ("docker_kb", out["docker_kb"])):
+                if k in got:
+                    out[k] = _kb(got[k], d)
+            out["set_by"], out["set_at"] = str(got.get("set_by") or ""), str(got.get("set_at") or "")
+    return out
+
+
+def set_rolling(base: Path, file_kb, docker_kb, by: str) -> dict:
+    """Saves the sizes the logs roll at (System Admin > Logs, R5.26): KB, 10 to 1,048,576 (1 GB)."""
+    clean = {}
+    for k, v in (("file_kb", file_kb), ("docker_kb", docker_kb)):
+        try:
+            n = int(v)
+        except (TypeError, ValueError):
+            raise ValueError(f"{k}: a whole number of KB.") from None
+        if not KB_RANGE[0] <= n <= KB_RANGE[1]:
+            raise ValueError(f"{k}: {KB_RANGE[0]} KB to {KB_RANGE[1]:,} KB (1 GB).")
+        clean[k] = n
+    Path(base).mkdir(parents=True, exist_ok=True)
+    body = {**clean, "set_by": by, "set_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")}
+    tmp = Path(base) / (ROLLING + ".tmp")
+    tmp.write_text(json.dumps(body), encoding="utf-8")
+    os.replace(tmp, Path(base) / ROLLING)
+    return rolling(base)
+
+
+def max_bytes(base: Path | None = None) -> int:
+    """How large a log file grows before it is rolled over (R5.26: 100 KB unless set)."""
+    return rolling(base)["file_kb"] * 1024
+
+
+def rotate(f: Path, limit: int | None = None, compress: bool = True) -> Path | None:
+    """A day's file past its size is closed (renamed <day>.<n>.log, or debug-<day>.<n>.log, and compressed) and a new
+    one begun (R5.6). compress=False for a file another program writes (the front door's web log): it may still write a
+    line or two to the renamed file, so that one is compressed when the day ends."""
     limit = limit or max_bytes()
     if not f.is_file() or f.stat().st_size < limit:
         return None
-    day = f.name[:10]
+    stem = f.name[:-len(".log")]                                    # 2026-11-15 or debug-2026-11-15
     n = 1
-    while (f.parent / f"{day}.{n}.log.gz").exists() or (f.parent / f"{day}.{n}.log").exists():
+    while (f.parent / f"{stem}.{n}.log.gz").exists() or (f.parent / f"{stem}.{n}.log").exists():
         n += 1
-    closed = f.with_name(f"{day}.{n}.log")
+    closed = f.with_name(f"{stem}.{n}.log")
     os.replace(f, closed)
-    return _gzip(closed)
+    return _gzip(closed) if compress else closed
+
+
+def roll_web(base: Path, now: float | None = None) -> int:
+    """The web log of today and its debug lines rolled at the size (R5.26); the operations helper does it every
+    minute. The front door reopens its file by name within a minute (open_log_file_cache valid=60s)."""
+    root = base / "web"
+    if not root.is_dir():
+        return 0
+    today = datetime.fromtimestamp(now or time.time(), UTC).strftime("%Y-%m-%d")
+    limit, n = max_bytes(base), 0
+    for name in (f"{today}.log", f"debug-{today}.log"):
+        if rotate(root / name, limit, compress=False):
+            n += 1
+    return n
 
 
 def _gzip(f: Path) -> Path:

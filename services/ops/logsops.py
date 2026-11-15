@@ -11,6 +11,9 @@ eaxcli/logkeep.py, shared with `eax logs backup | clean`.
                                   slowest and most failing (R5.6); /logs/web/files the days kept; /logs/web/csv?day=
                                   (with the same filters) as CSV; /logs/web/zip?start=&end= the raw files (base64)
   POST /logs/clean-range {what: period|before|all, start, end, by}   a log backup first, then delete (R5.6)
+  GET  /logs/rolling              the sizes the logs roll at {file_kb, docker_kb, docker_files} (R5.26)
+  POST /logs/rolling {file_kb, docker_kb, by}   saved in the logs folder; Docker's into the config file (EAX_DOCKER_LOG_KB,
+                                  a dated copy first), taken by every container at the next eax up
 """
 
 from __future__ import annotations
@@ -105,6 +108,42 @@ def backup(body: dict) -> dict:
     """Backs the logs up in one zip."""
     _need()
     return K.backup(LOGS, WORK / "logs", BACKUPS / "logs", str(body.get("tag") or ""))
+
+
+def rolling() -> dict:
+    """The sizes the logs roll at, and whether Docker's has still to be taken (the config file changed, not yet up)."""
+    _need()
+    out = K.rolling(LOGS)
+    out["docker_kb_running"] = _docker_kb_running()
+    return out
+
+
+def _docker_kb_running() -> int | None:
+    """Docker's size for the containers as they run now (the api's), in KB; None when unknown."""
+    try:
+        api = next((c for c in hooks["containers"]() if c.get("key") == "api"), None)
+        if not api:
+            return None
+        r = subprocess.run(["docker", "inspect", "--format", "{{index .HostConfig.LogConfig.Config \"max-size\"}}", api["id"]],
+                           capture_output=True, text=True, timeout=20)
+        v = r.stdout.strip().lower()
+        n = float(v[:-1]) if v[-1:] in "kmg" else float(v)
+        return int(n * {"k": 1, "m": 1024, "g": 1024 * 1024}.get(v[-1:], 1 / 1024))
+    except Exception:  # noqa: BLE001 - shown as unknown
+        return None
+
+
+def set_rolling(body: dict) -> dict:
+    """Saves the sizes (System Admin > Logs, R5.26): ours at once; Docker's in the config file, for the next eax up."""
+    _need()
+    by = str(body.get("by") or "")
+    before = K.rolling(LOGS)
+    out = K.set_rolling(LOGS, body.get("file_kb"), body.get("docker_kb"), by)
+    if out["docker_kb"] != before["docker_kb"] or not (WORK / "eaexplorer.env").exists() \
+            or f"EAX_DOCKER_LOG_KB={out['docker_kb']}" not in (WORK / "eaexplorer.env").read_text(encoding="utf-8", errors="replace"):
+        hooks["set_config"]("EAX_DOCKER_LOG_KB", str(out["docker_kb"]), by or "logs-page", "log-sizes")
+    out["docker_kb_running"] = _docker_kb_running()
+    return out
 
 
 def clean(body: dict) -> dict:
