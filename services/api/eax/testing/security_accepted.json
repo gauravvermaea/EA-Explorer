@@ -7,6 +7,13 @@
       "reason": "Content-Security-Policy style-src 'unsafe-inline' (ZAP medium, 14 Nov 2026): the screens, draw.io and Swagger set styles on elements; scripts stay strict (D672). To be looked at again by the date.",
       "until": "2027-02-15",
       "by": "R5.17"
+    },
+    {
+      "id": "package:pillow",
+      "where": "image superset",
+      "reason": "Pillow inside the Reports (Superset 6.1.0) image: the fix (Pillow 13) needs Python 3.11 and the image is Python 3.10, so it cannot be installed (clean rebuild, 15 Nov 2026). Superset uses Pillow only for thumbnails and screenshots, both off here. To clear when Superset is upgraded; looked at again in the version review (R5.23, D699).",
+      "until": "2027-02-01",
+      "by": "R5.23"
     }
   ]
 }

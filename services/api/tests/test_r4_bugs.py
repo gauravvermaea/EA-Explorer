@@ -424,10 +424,9 @@ def test_reports_api_calls_go_through_the_page_not_playwrights_own_client():
     assert s.api("/x") == (502, {})
 
 
-def test_superset_image_takes_pillow_13_and_a_fixed_uv():
-    """The full self-test's Trivy scan of the superset image: Pillow 11.3.0 (five critical CVEs, fixed in 13.0.0) and uv
-    0.12.10 (GHSA-hq85-5cpj-mr62, fixed in 0.13.4)."""
+def test_superset_image_takes_a_fixed_uv():
+    """The full self-test's Trivy scan of the superset image: uv 0.12.10 (GHSA-hq85-5cpj-mr62, fixed in 0.13.4). Pillow 13
+    was asked for here too until R5.23 (it cannot install on Superset 6.1.0's Python 3.10)."""
     df = (Path(__file__).resolve().parents[3] / "deploy/superset/Dockerfile").read_text(encoding="utf-8")
-    assert "Pillow>=13.0.0" in df.split("FIXED='", 1)[1].split("'", 1)[0]
     assert "/usr/local/bin/python -m pip install --no-cache-dir --upgrade 'uv>=0.13.4'" in df
     assert "import psycopg2, authlib, PIL" in df                                          # the build fails without it

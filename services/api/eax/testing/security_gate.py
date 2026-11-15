@@ -103,6 +103,14 @@ def accepted(files=ACCEPTED_FILES) -> list[dict]:
 
 
 def _match(f: dict, a: dict) -> bool:
+    """A finding is accepted by its own id, or (for Trivy) by "package:<name>": every finding in that package, kept to
+    one image by `where` (a package the image's maker pins and a fix cannot be installed into, R5.23)."""
+    if a["id"].startswith("package:"):
+        pkg = a["id"].split(":", 1)[1].strip().lower()
+        if f["source"] != "trivy" or not pkg or not a["where"]:
+            return False
+        name = (f.get("title") or "").split(" ", 1)[0].lower()
+        return name == pkg and a["where"].lower() in f["where"].lower()
     return f["id"] == a["id"] and (not a["where"] or a["where"].lower() in f["where"].lower())
 
 
