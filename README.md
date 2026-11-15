@@ -53,8 +53,8 @@ area by area: [docs/capabilities.md](docs/capabilities.md).
 | 5 | | Optimisation report, MFA, IP allow-listing, data locations, logging and alerts, signed deployments, a service desk, database maintenance; from Release 4: the code documented and handed over, security and performance testing, server sizing, watching the screen tests live, the three-monthly version review | planned |
 | 5.5 | | Enterprise discovery | planned |
 | 5.6 | | Backup and restore, tested and fixed (nothing else) | planned |
-| 6 | | Help and videos | planned |
-| 7 | | The key vault (OpenBao), once its details are agreed | planned |
+| 6 | | The key vault (OpenBao), once its details are agreed | planned |
+| 7 | | Help and videos | planned |
 
 ## Quick start (laptop)
 
