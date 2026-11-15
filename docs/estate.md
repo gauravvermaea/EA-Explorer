@@ -80,7 +80,7 @@ in draw.io); System Admin › Estate draws them for the running installation.
 | keycloak | `quay.io/keycloak/keycloak:26.0` | frontend, backend | - | eax-kc-import → /opt/keycloak/data/import |
 | drawio | `eaexplorer/drawio:dev` | frontend | - | - |
 | reports-init (runs once at start) | `eaexplorer/superset:dev` | backend | - | ./deploy/superset → /app/eax, eax-rendered → /rendered, eax-superset-home → /app/superset_home |
-| reports | `eaexplorer/superset:dev` | frontend, backend | - | ./deploy/superset → /app/eax, eax-superset-home → /app/superset_home |
+| reports | `eaexplorer/superset:dev` | frontend, backend | - | ./deploy/superset → /app/eax, eax-rendered → /rendered, eax-superset-home → /app/superset_home |
 | dms | `mayanedms/mayanedms:s4` | frontend, backend | - | eax-docs → /var/lib/mayan |
 
 The backend and terminal networks are internal: nothing on them is reachable from outside but through the

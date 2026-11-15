@@ -110,3 +110,17 @@ def test_overall_status(monkeypatch):
     assert r["status"] == "degraded" and r["counts"]["warning"] == 1
     monkeypatch.setattr(health, "CHECKS", [svc("Database", "down"), svc("Sign-in", "up")])
     assert health.check_all()["status"] == "down"
+
+
+def test_documents_redirect_is_said_as_up_in_words(monkeypatch):
+    """The owner, 14 Nov 2026: "documents is 302": Mayan sends to its sign-in page, which means it is up; said so."""
+    seen = {}
+
+    def fake_http(name, kind, host, port, path, ok=None, method="GET", describe=None):
+        seen["ok"], seen["describe"] = ok, describe
+        return {"status": "up", "detail": describe(302, b"")}
+    monkeypatch.setattr(health, "_off", lambda *a: None)
+    monkeypatch.setattr(health, "_http", fake_http)
+    r = health.check_dms()
+    assert r["detail"] == "answering (sends to its sign-in page)" and seen["ok"](302, b"")
+    assert seen["describe"](200, b"") == "HTTP 200" and not seen["ok"](502, b"")

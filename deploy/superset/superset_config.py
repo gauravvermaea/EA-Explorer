@@ -12,7 +12,11 @@ ECharts and v2 types, and the sign-in below works the same.
 import os
 from urllib.parse import quote
 
+from flask import g, redirect, request
+from flask_appbuilder import expose
 from flask_appbuilder.security.manager import AUTH_DB, AUTH_OAUTH
+from flask_appbuilder.security.views import AuthOAuthView
+from flask_appbuilder.utils.base import get_safe_redirect
 from superset.security import SupersetSecurityManager
 
 
@@ -88,8 +92,25 @@ OAUTH_PROVIDERS = [
 ]
 
 
+class EaxOAuthView(AuthOAuthView):
+    """Sign-in through Keycloak that keeps `next` for someone already signed in (the owner's test, 14 Nov 2026, 21:28:
+    "When I click on a specific report I am not taken to it. Instead I am taking to this dashboard"). Every report link
+    in EA Explorer is /login/keycloak?next=/superset/dashboard/<slug>/; Flask-AppBuilder sends a person already signed
+    in to the home page and drops `next`, so here they go where the link points (a path on this site only)."""
+
+    @expose("/login/")
+    @expose("/login/<provider>")
+    def login(self, provider=None):
+        wanted = request.args.get("next", "")
+        if g.user is not None and g.user.is_authenticated and wanted:
+            return redirect(get_safe_redirect(wanted))
+        return super().login(provider)
+
+
 class KeycloakSecurityManager(SupersetSecurityManager):
     """Reads the user and their realm roles from Keycloak's userinfo endpoint."""
+
+    authoauthview = EaxOAuthView
 
     def oauth_user_info(self, provider, response=None):
         if provider != "keycloak":   # Flask-AppBuilder's own (in 5.x oauth_user_info is only set when not overridden)

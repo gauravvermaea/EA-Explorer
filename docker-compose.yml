@@ -480,6 +480,7 @@ services:
         condition: service_completed_successfully
     volumes:
       - ./deploy/superset:/app/eax:ro
+      - eax-rendered:/rendered:ro                  # the report bundles the setup made: imported in the background
       - eax-superset-home:/app/superset_home
     networks: [frontend, backend]
 

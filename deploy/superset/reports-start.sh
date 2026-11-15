@@ -1,7 +1,7 @@
 #!/bin/sh
 # The Reports server (the reports service): the report content loads in the background (reports-content.sh, its output
 # in this container's log), and the server starts at once (R2.39).
-sh /app/eax/reports-content.sh 2>&1 | sed 's/^/[content] /' &
+sh /app/eax/reports-content.sh 2>&1 | sed -u 's/^/[content] /' &   # -u: each line in the log at once
 
 # Superset's own start script, wherever this image keeps it
 for s in /usr/bin/run-server.sh /app/docker/entrypoints/run-server.sh; do

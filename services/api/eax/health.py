@@ -145,7 +145,9 @@ def check_dms() -> dict:
     # Mayan answers its login page (or a redirect to it) when it is up
     if (off := _off("Documents", "Mayan EDMS", "documents")):
         return off
-    return _http("Documents", "Mayan EDMS", "dms", 8000, "/", ok=lambda s, b: s < 500)
+    # said in words (the owner, 14 Nov 2026: "documents is 302"): a redirect is Mayan sending to its sign-in page, so up
+    return _http("Documents", "Mayan EDMS", "dms", 8000, "/", ok=lambda s, b: s < 500,
+                 describe=lambda s, b: "answering (sends to its sign-in page)" if 300 <= s < 400 else f"HTTP {s}")
 
 
 def check_dms_broker() -> dict:

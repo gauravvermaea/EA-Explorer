@@ -373,3 +373,61 @@ def test_r4_16_coverage_counts_only_our_own_code():
     src = (REPO / "services/api/eax/coverage_probe.py").read_text()
     assert "source=[PACKAGE]" in src and 'omit=[f"{PACKAGE}/testing/*"]' in src
     assert 'PACKAGE = str(Path(__file__).resolve().parent)' in src          # eax itself: no library is ever measured
+
+
+# ---------------------------------------------------------------- the owner's test, 14 Nov 2026, 21:05: no report imported
+def test_reports_container_sees_the_report_bundles_it_imports():
+    """"all reports in all models are taking me to this ... I dont think reports got deployed": the reports container
+    imports /rendered/superset/reports in the background (R2.39) but had no /rendered, so nothing was imported and
+    every report link fell to Superset's welcome page. Its log showed nothing either (sed held the lines back)."""
+    import re
+
+    import yaml
+    repo = Path(__file__).resolve().parents[3]
+    compose = yaml.safe_load((repo / "docker-compose.yml").read_text(encoding="utf-8"))
+    reports = compose["services"]["reports"]
+    assert "eax-rendered:/rendered:ro" in reports["volumes"]
+    importer = (repo / "deploy/superset/eax_import_reports.py").read_text(encoding="utf-8")
+    folder = re.search(r'REPORTS = Path\("([^"]+)"\)', importer).group(1)
+    mounted = [m.split(":")[1] for m in reports["volumes"]]
+    assert any(folder.startswith(m + "/") for m in mounted), (folder, mounted)
+    assert "is not in this container" in importer                                       # said loudly if it happens again
+    start = (repo / "deploy/superset/reports-start.sh").read_text(encoding="utf-8")
+    assert "sed -u 's/^/[content] /'" in start
+
+
+# ---------------------------------------------------------------- the full self-test, 14 Nov 2026, 23:11
+def test_reports_api_calls_go_through_the_page_not_playwrights_own_client():
+    """"reports: every report opens" failed with "APIRequestContext.get: connect ECONNREFUSED 127.0.0.1:443": the sign-in
+    (in the browser, which maps reports.<host> to the proxy) passed, but page.request does not take the browser's
+    --host-resolver-rules, so it went to 127.0.0.1 inside the runner. Calls now go through the page's own fetch."""
+    from eax.testing import reports_check as rc
+    src = (Path(rc.__file__)).read_text(encoding="utf-8")
+    code = "\n".join(ln for ln in src.splitlines() if not ln.lstrip().startswith(("#", '"""')) and "Never page.request" not in ln)
+    assert "page.request" not in code
+
+    class Page:
+        def __init__(self):
+            self.calls = []
+
+        def evaluate(self, js, args):
+            self.calls.append((js, args))
+            return [200, '{"result": [{"id": 1, "slug": "eax-sr01"}]}'] if args[0] == "GET" else [200, "{}"]
+    s = rc.Session.__new__(rc.Session)
+    s.page, s.base = Page(), "https://reports.localhost"
+    assert s.api("/api/v1/dashboard/") == (200, {"result": [{"id": 1, "slug": "eax-sr01"}]})
+    assert s.dashboards() == [{"id": 1, "slug": "eax-sr01"}]
+    s.call("DELETE", "/api/v1/security/users/7", {"X-CSRFToken": "t"})
+    js, args = s.page.calls[-1]
+    assert "fetch(path" in js and 'credentials: "same-origin"' in js and args == ["DELETE", "/api/v1/security/users/7", {"X-CSRFToken": "t"}]
+    s.page.evaluate = lambda js, args: [502, "Bad gateway"]
+    assert s.api("/x") == (502, {})
+
+
+def test_superset_image_takes_pillow_13_and_a_fixed_uv():
+    """The full self-test's Trivy scan of the superset image: Pillow 11.3.0 (five critical CVEs, fixed in 13.0.0) and uv
+    0.12.10 (GHSA-hq85-5cpj-mr62, fixed in 0.13.4)."""
+    df = (Path(__file__).resolve().parents[3] / "deploy/superset/Dockerfile").read_text(encoding="utf-8")
+    assert "Pillow>=13.0.0" in df.split("FIXED='", 1)[1].split("'", 1)[0]
+    assert "/usr/local/bin/python -m pip install --no-cache-dir --upgrade 'uv>=0.13.4'" in df
+    assert "import psycopg2, authlib, PIL" in df                                          # the build fails without it

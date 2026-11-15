@@ -30,7 +30,11 @@ def _contents(bundle: ZipFile) -> dict[str, str]:
 
 
 def main() -> int:
-    zips = sorted(REPORTS.glob("*.zip")) if REPORTS.is_dir() else []
+    if not REPORTS.is_dir():         # the full self-test, 14 Nov 2026: Reports' container had no /rendered, none imported
+        print(f"EA Explorer WARNING: {REPORTS} is not in this container (the volume eax-rendered is not mounted): "
+              "no report dashboard can be imported", flush=True)
+        return 1
+    zips = sorted(REPORTS.glob("*.zip"))
     if not zips:
         print("EA Explorer: no report dashboards to import")
         return 0

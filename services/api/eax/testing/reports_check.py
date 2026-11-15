@@ -192,6 +192,13 @@ def reports_url() -> str:
 
 
 # ---------------------------------------------------------------- the browser
+# a call made by the page itself, on its own origin (Reports), with its cookies: [status, text]
+FETCH_JS = """async ([method, path, headers]) => {
+  const r = await fetch(path, {method, headers, credentials: "same-origin"});
+  return [r.status, await r.text()];
+}"""
+
+
 class Session:
     """One person signed in to Reports in their own browser context."""
 
@@ -240,12 +247,19 @@ class Session:
         self.page.click("#kc-login")
         self.page.wait_for_url(lambda u: u.startswith(self.base) and "/login" not in u, timeout=60000)
 
+    def call(self, method: str, path: str, headers: dict | None = None) -> tuple[int, str]:
+        """A call to Superset's API from inside the signed-in page (its own fetch, its cookies). Never page.request:
+        that does not take the browser's --host-resolver-rules, so reports.<host> went to 127.0.0.1:443 inside the
+        runner (the full self-test, 14 Nov 2026: "every report opens" failed with ECONNREFUSED 127.0.0.1:443)."""
+        status, text = self.page.evaluate(FETCH_JS, [method, path, headers or {}])
+        return int(status), str(text or "")
+
     def api(self, path: str) -> tuple[int, dict]:
-        r = self.page.request.get(f"{self.base}{path}")
+        status, text = self.call("GET", path)
         try:
-            return r.status, r.json()
-        except Exception:  # noqa: BLE001
-            return r.status, {}
+            return status, json.loads(text)
+        except ValueError:
+            return status, {}
 
     def dashboards(self) -> list[dict]:
         s, d = self.api("/api/v1/dashboard/?q=(page_size:500)")
@@ -544,7 +558,6 @@ def _remove_superset_users(admin: Session | None, names: list[str], log) -> None
             q = urllib.parse.quote(json.dumps({"filters": [{"col": "username", "opr": "eq", "value": name}]}))
             s, d = admin.api(f"/api/v1/security/users/?q={q}")
             for u in (d or {}).get("result") or []:
-                admin.page.request.delete(f"{admin.base}/api/v1/security/users/{u.get('id')}",
-                                          headers={"X-CSRFToken": token, "Referer": admin.base})
+                admin.call("DELETE", f"/api/v1/security/users/{u.get('id')}", {"X-CSRFToken": token, "Referer": admin.base})
     except Exception as exc:  # noqa: BLE001 - a user left in Superset has no role once Keycloak no longer has them
         log(f"reports: the Superset test users were not deleted ({exc})")
