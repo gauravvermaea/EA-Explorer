@@ -26,6 +26,12 @@ ACTION = "CONFIGURE_TOTP"
 ASKED = "eax_mfa_asked"
 AUDIT_ROLE = {"name": "eax-audit", "description": "EA Explorer Auditor: sees everything a Super Admin sees (secrets "
               "only as set or not set), every report and all data; changes nothing (R5.22)"}
+LATER_ROLES = (
+    {"name": "eax-architecture-board", "description": "EA Explorer Architecture Board: accepts or rejects the organisation's "
+                                                      "architecture decision records and dispensations (R5.5.1)"},
+    {"name": "eax-discovery-admin", "description": "EA Explorer Discovery Admin: sets up discovery projects and their "
+                                                   "sources, for any model (R5.5)"},
+)
 
 
 class UpkeepError(Exception):
@@ -154,11 +160,24 @@ def mfa_status(kc: Keycloak | None = None) -> dict:
 
 def ensure_audit_role(kc: Keycloak | None = None) -> bool:
     """The realm role eax-audit, made when missing (R5.22). True when it was made."""
+    return ensure_role(AUDIT_ROLE, kc)
+
+
+def ensure_role(role: dict, kc: Keycloak | None = None) -> bool:
+    """A realm role, made when missing (realms made before it was added). True when it was made."""
     kc = _kc(kc)
-    s, _, _ = kc._call("GET", f"/roles/{AUDIT_ROLE['name']}")
+    s, _, _ = kc._call("GET", f"/roles/{role['name']}")
     if s == 200:
         return False
-    s, d, _ = kc._call("POST", "/roles", AUDIT_ROLE)
+    s, d, _ = kc._call("POST", "/roles", role)
     if s not in (201, 409):
-        raise UpkeepError(f"Keycloak did not make the role eax-audit ({s}: {d})")
+        raise UpkeepError(f"Keycloak did not make the role {role['name']} ({s}: {d})")
     return True
+
+
+def ensure_roles(kc: Keycloak | None = None) -> list[str]:
+    """Every realm role EA Explorer added after the realm was first made: the Auditor (R5.22), the Architecture Board
+    (R5.5.1) and the Discovery Admin (R5.5). The names of those made."""
+    kc = _kc(kc)
+    return [r["name"] for r in (AUDIT_ROLE, *LATER_ROLES) if ensure_role(r, kc)]
+

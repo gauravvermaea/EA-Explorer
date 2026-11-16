@@ -123,6 +123,8 @@ export function menuTree() {
         { label: "The Architecture Repository", href: "#/repository" },
         // the organisation's principles for everyone, as cards by area (R2.48, D607)
         { label: "Architecture principles", href: "#/principles" },
+        // the organisation's own decision records and dispensations; the Architecture Board accepts (R5.5.1)
+        { label: "Governance Log", href: "#/governance" },
         { label: "Architecture landscape", items: [
           { label: "Strategic architectures", href: "#/work?tab=models&view=tiles&level=strategic" },
           { label: "Segment architectures", href: "#/work?tab=models&view=tiles&level=segment" },
@@ -178,6 +180,8 @@ export function menuTree() {
     { key: "ai", label: "AI (MCP)", title: "Connect your own AI assistant to EA Explorer", items: serviceOn("mcp") ? [
       { label: "Connect your AI assistant", href: "#/mcp" },
       { label: "What it can do", href: "#/mcp/tools" },
+      // discovery projects the people's own AI runs (R5.5)
+      { label: "Enterprise discovery", href: "#/discovery-projects" },
       { label: "My AI activity", href: "#/mcp/activity?who=me" },
       { label: "Everyone's AI activity", href: "#/mcp/activity", ok: () => ops() || sup() },
     ] : [

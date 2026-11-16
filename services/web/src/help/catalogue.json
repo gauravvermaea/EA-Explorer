@@ -3856,5 +3856,123 @@
   "field:Live": "Shows new lines as they arrive, every 5 seconds.",
   "button:Clean logs…": "Deletes the logs and log backups older than the number of days you give; it cannot be undone.",
   "button:Just": "Keeps only the first container ticked.",
-  "button:Mark stopped": "For a job already asked to stop that no job runner has any more: marks it stopped at once, so its next run can start."
+  "button:Mark stopped": "For a job already asked to stop that no job runner has any more: marks it stopped at once, so its next run can start.",
+  "button:Full screen": "Shows the test's browser on the whole screen; a thin bar at the top has the step and the controls (Esc leaves).",
+  "button:Exit full screen": "Back to the Watch window.",
+  "page:#/governance": {
+    "title": "Governance Log",
+    "what": "The organisation's own architecture decision records (ADRs) and dispensations (waivers), outside any project, and a report of every project's. The Architecture Board accepts or rejects them; in a project, its sign-off people do.",
+    "how": [
+      "1. The Architecture Board (or a Super Admin) logs an ADR or a dispensation: the title, status, owner, its ADM phase and the template's fields. ADRs and dispensations are numbered per year across the organisation: ADR-2026-001, DISP-2026-001.",
+      "2. Fields marked * are needed before it is proposed: for an ADR its record type, the context and problem, the options with their pros and cons, the decision, why, and the consequences; for a dispensation its sponsor, what it waives, the systems it covers, the justification, the risks, the remediation plan and its expiry date.",
+      "3. Open a saved record to link it: to elements of a model (it affects them), stakeholder requirements, principles, standards, and other records (supersedes, depends on). Superseding an accepted ADR marks it Superseded. Each element shows its records on its Linked decisions and dispensations tab.",
+      "4. A member of the Architecture Board opens a Draft or Proposed record and Accepts it, or Rejects it with a comment.",
+      "5. A dispensation's owner, sponsor, the project's Project Admins and Lead Architects and the Board are told 30 days before it ends (a setting) and again on the day, when it becomes Expired. Those ending soon are listed at the top.",
+      "6. Report (every project): decisions by status and project, active dispensations by expiry date. Excel and Power BI read the same through the OData feed /api/v1/odata/governance/; Reports through rpt.v_governance_decisions."
+    ],
+    "example": "Log DISP-2026-001 for the legacy claims system's unsupported database, sponsor the CIO, expiring 31 March 2027; link it to the Claims Platform application."
+  },
+  "tab:Linked decisions and dispensations": {
+    "what": "The decision records and dispensations linked to this element, in the projects you may read and the organisation's log.",
+    "how": [
+      "The active (Accepted) ones are first; a dispensation ending soon is marked. Click a reference to open it in its log."
+    ]
+  },
+  "popup:Log *": {
+    "what": "A new record in the governance log.",
+    "how": [
+      "Fill in the title, status and owner; for an ADR or a dispensation also its template's fields (marked * when required before it is proposed). Save, then open it again to link it."
+    ]
+  },
+  "field:ADM phase": "The TOGAF ADM phase the record belongs to: Preliminary, A to H, or Requirements Management.",
+  "field:Expires": "The date a dispensation ends: it becomes Expired on that day and people are told before and on it.",
+  "field:Review": "When the record is to be reviewed.",
+  "field:Find the element": "Type part of an element's name: the elements of the models you may read are listed; click one to link it.",
+  "field:How": "How the record relates to the other record: it supersedes it, or depends on it.",
+  "field:Link to": "What to link the record to: an element of a model, a stakeholder requirement, a principle, a standard or another record.",
+  "field:Principle": "The principle that governs this record.",
+  "field:Record": "The other record to link.",
+  "field:Standard": "The standard that governs this record.",
+  "button:Report (every project)": "Decisions by status and project, and active dispensations by expiry date, for every project you may read.",
+  "button:The log": "The organisation's own records.",
+  "button:＋ Log a dispensation": "A new dispensation (waiver) in the organisation's Governance Log.",
+  "button:＋ Log an ADR": "A new architecture decision record in the organisation's Governance Log.",
+  "page:#/discovery-projects": {
+    "title": "Enterprise discovery",
+    "what": "Discovery projects: each names a target model and the sources it covers (mailboxes, document folders, FTP and SFTP, SharePoint, Git repositories, wikis, ticket systems and the CMDB, Teams and Slack channels, database schemas, cloud storage and accounts, recordings). Your own AI assistant, connected through MCP, reads the sources, builds the metamodel and content in the target model and says where each element was found. EA Explorer keeps the setup and takes back what is found: it never reads a source itself and holds no AI key.",
+    "how": [
+      "1. A Discovery Admin (or a Super Admin) clicks Set up a discovery project: a name, the target model (a child of the main model to review first, or the main model once you trust the AI), what a run reads by default (only what is new, or everything), what to do with elements whose source item is gone (mark or delete) and a schedule.",
+      "2. Open the project and add its sources: the kind, where it is, what to include, whether attachments are read and how it signs in. Test the link with a sign-in typed there: it is used once and forgotten. At run time the AI brings its own access.",
+      "3. Ask your AI assistant: run discovery project <name>. It asks what to read and what to do with what is gone, tags the target model, reads each source, adds the content, records where each element was found and finishes the run: its changes are committed as the AI agent on behalf of the person who set the project up, and the model is tagged again.",
+      "4. For the schedule, give your AI client a scheduled task that asks discovery projects due and runs each. EA Explorer runs nothing itself: a run more than two hours late shows as Overdue here and in the alerts.",
+      "5. Open a run to see its report: what it found and where, what it skipped as NOT FOR AI USE (titles only), what may be the same as an element already there (merge them with Dedupe, then mark them Dealt with) and what was no longer found. Compare the run's tags to see what it changed, the metamodel first."
+    ],
+    "notes": [
+      "Anything marked NOT FOR AI USE OR AUTOMATED PROCESSING is never read: the AI lists its title, place and date as skipped.",
+      "Everyone who may read a project's target model sees the project and its runs; only Discovery Admins and Super Admins change it.",
+      "An element's Found in tab shows where runs found it, with a link to the item where you may open it."
+    ]
+  },
+  "tab:Found in": {
+    "what": "Where discovery runs found this element: the source, the item (mail, file, page, ticket, commit), where in it, the run and the AI agent that ran it.",
+    "how": [
+      "Click an item to open it where you may. A line at the top says when a later run no longer found the element (marked or deleted)."
+    ]
+  },
+  "popup:*: run *": {
+    "what": "One discovery run's report.",
+    "how": [
+      "Found: each element and where it was found. Skipped as NOT FOR AI: titles only. May be the same: merge with the model's Dedupe or keep apart, then click Dealt with. Not found: what the run marked or deleted. Compare the run's tags to see what it changed."
+    ]
+  },
+  "popup:Discovery run": {
+    "what": "A discovery run's report, loading.",
+    "how": [
+      "The report appears in a moment: what the run found, skipped, doubted and no longer found."
+    ]
+  },
+  "popup:Add a source": {
+    "what": "A source the AI reads in this discovery project: its kind, where it is, what to include, whether attachments are read and how it signs in.",
+    "how": [
+      "Test the link with a sign-in typed below: it is used once and forgotten; only the method and the result are kept."
+    ]
+  },
+  "popup:Source *": {
+    "what": "Change a source, test its link, have the next run read it all again (Read all next time) or remove it.",
+    "how": [
+      "Found in keeps a removed source's name."
+    ]
+  },
+  "popup:Discovery project *": {
+    "what": "Change a discovery project: its name, purpose, target model, the defaults of a run and its schedule.",
+    "how": [
+      "Save keeps the change; a new schedule sets when the next run is due. Delete removes the project with its sources and runs (what they added stays in the model)."
+    ]
+  },
+  "popup:Set up a discovery project": {
+    "what": "A new discovery project: a name, the target model the AI commits into, the defaults of a run and a schedule (a marker of when a run is due; your AI client runs it).",
+    "how": [
+      "Only live working models are offered as the target: no library models or root metamodels, nothing frozen, archived or read only.",
+      "No model yet? Click New model: the model you make is picked as the target. Make it a child of the main model to review the AI's work before merging, or use the main model once you trust it."
+    ]
+  },
+  "field:At (UTC)": "The time a scheduled run is due, in UTC.",
+  "field:Certificate (PEM)": "The client certificate to test the link with, as PEM text. Used once, then forgotten.",
+  "field:Day of the month": "The day a monthly run is due, 1 to 28.",
+  "field:Key or token": "The key or token to test the link with. Used once, then forgotten.",
+  "field:Password": "The password to test the link with. Used once, then forgotten.",
+  "field:Private key (PEM)": "The certificate's private key, as PEM text. Used once, then forgotten.",
+  "field:Sign-in": "How the source signs in: none, a key or token, a user name and password, a client certificate or single sign-on. Only the method is kept.",
+  "field:Where it is": "The source's address: a URL, a share or path, a mailbox, a repository or an account.",
+  "button:Dealt with": "Marks a may-be-the-same flag as handled (merged with Dedupe, or kept apart).",
+  "button:Test the link": "Checks that the source answers, signing in with what you typed. Nothing you typed is kept.",
+  "button:＋ Add a source": "Adds a source the AI reads in this discovery project.",
+  "button:＋ Set up a discovery project": "A new discovery project (Discovery Admins and Super Admins).",
+  "popup:Template *": {
+    "what": "A template of the library seen without downloading it: a PDF or a picture as it is; a Word file as its headings and paragraphs; a PowerPoint file as each slide with its title and text; an Excel file as each sheet with its size and first rows; a text file as its lines.",
+    "how": [
+      "Scroll through it here. The look (fonts, colours, pictures inside a Word or PowerPoint file) is not shown: click Download to open the file itself.",
+      "A long file shows its beginning only, and a file of another kind (or over 30 MB) says so: download it to open it."
+    ]
+  }
 }

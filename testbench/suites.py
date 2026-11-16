@@ -36,7 +36,8 @@ BOOKKEEPING = {"fixtures.accounts", "fixtures.models_and_project", "fixtures.cle
                "store.create_run", "store.set_state", "store.set_browser", "store.clean_options", "store.clean_suites",
                "store.clean_journeys", "store.add_result", "store.short", "ui_pages.seeds",
                "store.repeat_options", "store.set_fixture_ids",   # a repeat's options and the ids it matches by (R2.36)
-               "store.engine"}                                    # where the runs are kept (the tests database, R2.28)
+               "store.engine",                                    # where the runs are kept (the tests database, R2.28)
+               "fixtures.read_only_mcp_token"}                    # the MCP suite's read-only token (made inside only)
 
 
 class Session:

@@ -74,8 +74,9 @@ def test_base_rules():
 
 
 def test_governance_kinds():
-    assert list(gv.KINDS) == ["Decision", "Dispensation", "Compliance assessment", "Capability assessment", "Risk", "Issue"]   # D318
-    assert all(len(v[0]) == 3 and v[1] for v in gv.KINDS.values())
+    assert list(gv.KINDS) == ["Architecture Decision Record", "Decision", "Dispensation", "Compliance assessment",
+                              "Capability assessment", "Risk", "Issue"]   # D318; R5.5.1 adds the ADR
+    assert all(len(v[0]) in (3, 4) and v[1] for v in gv.KINDS.values())
 
 
 def test_api_and_screens():

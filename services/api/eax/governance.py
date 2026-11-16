@@ -34,14 +34,30 @@ _rows, _one = pj._rows, pj._one
 
 # name -> (prefix, statuses); the first status is a new record's
 KINDS: dict[str, tuple[str, list[str]]] = {
+    # R5.5.1: architecture decision records and dispensations, numbered per year (ADR-2026-001, DISP-2026-001) across the
+    # organisation, with their lifecycle; acceptance through the sign-off (a project's, or the Architecture Board's)
+    "Architecture Decision Record": ("ADR", ["Draft", "Proposed", "Accepted", "Superseded", "Deprecated", "Rejected", "Expired"]),
     "Decision": ("DEC", ["Proposed", "Accepted", "Superseded", "Rejected"]),
-    "Dispensation": ("DSP", ["Requested", "Granted", "Refused", "Expired", "Withdrawn"]),
+    "Dispensation": ("DISP", ["Draft", "Proposed", "Accepted", "Expired", "Closed", "Rejected", "Withdrawn"]),
     "Compliance assessment": ("CMP", ["Planned", "In progress", "Compliant", "Compliant with conditions", "Not compliant"]),
     # the EA capability's own maturity and capability assessments, read across projects on the repository map (D318)
     "Capability assessment": ("CAP", ["Planned", "In progress", "Done"]),
     "Risk": ("RSK", ["Open", "Mitigated", "Accepted", "Closed"]),
     "Issue": ("ISS", ["Open", "In progress", "Resolved", "Closed"]),
 }
+
+
+YEARLY = ("Architecture Decision Record", "Dispensation")     # numbered per year across the organisation (R5.5.1)
+PHASES = ("Preliminary", "A", "B", "C", "D", "E", "F", "G", "H", "Requirements Management")
+
+
+def yearly_ref(conn, prefix: str, on: date | None = None) -> str:
+    """The next number of the year for ADRs or dispensations, across every project and the organisation (R5.5.1)."""
+    y = (on or date.today()).year
+    n = (_one(conn, """SELECT coalesce(max(CASE WHEN ref ~ '^(ADR|DISP)-[0-9]{4}-[0-9]+$'
+                                               THEN CAST(split_part(ref, '-', 3) AS integer) END), 0) AS n
+                         FROM proj.gov_records WHERE ref LIKE :pfx""", pfx=f"{prefix}-{y}-%") or {"n": 0})["n"]
+    return f"{prefix}-{y}-{int(n) + 1:03d}"
 
 
 def _may(conn, p: dict, user, what: str = "contribute") -> bool:
@@ -65,6 +81,8 @@ def listing(conn, project: Any, user) -> dict:
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "read")
     rows = _rows(conn, """SELECT g.guid::text AS id, g.kind, g.ref, g.title, g.html, g.status, g.owner, g.raised_on, g.expires_on,
+                                 g.phase, g.record_type, g.sponsor, g.fields, g.found_in,
+                                 (SELECT count(*) FROM proj.gov_links l WHERE l.record_id = g.id) AS links,
                                  g.approval, g.approved_by, g.approved_at, g.approval_note, g.evidence_name,
                                  g.principle::text AS principle, g.standard::text AS standard, g.related, g.created_by,
                                  coalesce(g.modified_by, g.created_by) AS modified_by, coalesce(g.modified_at, g.created_at) AS modified_at,
@@ -114,14 +132,26 @@ def _vals(conn, p: dict, d: dict) -> dict:
         raise EditError(f"A {kind.lower()}'s status is one of: {', '.join(ks[kind]['statuses'])}.")
     pr = d.get("principle") or None
     st = d.get("standard") or None
-    if pr and not _one(conn, "SELECT 1 AS x FROM proj.principles WHERE project_id = :p AND guid = CAST(:g AS uuid)", p=p["id"], g=pr):
+    if pr and p.get("id") and not _one(conn, "SELECT 1 AS x FROM proj.principles WHERE project_id = :p AND guid = CAST(:g AS uuid)", p=p["id"], g=pr):
         raise EditError("No such principle in this project.")
-    if st and not _one(conn, "SELECT 1 AS x FROM proj.standards WHERE project_id = :p AND guid = CAST(:g AS uuid)", p=p["id"], g=st):
+    if st and p.get("id") and not _one(conn, "SELECT 1 AS x FROM proj.standards WHERE project_id = :p AND guid = CAST(:g AS uuid)", p=p["id"], g=st):
         raise EditError("No such standard in this project.")
+    phase = (d.get("phase") or "").strip()
+    if phase and phase not in PHASES:
+        raise EditError(f"The ADM phase is one of: {', '.join(PHASES)}.")
+    from . import decisions as dec
+    fields = dec.clean_fields(kind, d.get("fields"))
+    expires = _date(d.get("expires_on"), "The end or review date")
+    if kind == "Dispensation" and status not in ("Draft", "Rejected", "Withdrawn") and not expires:
+        raise EditError("A dispensation needs its expiry or review date.")
+    if kind in YEARLY and status in ("Proposed", "Accepted"):
+        dec.check_required(kind, {**d, "fields": fields, "expires_on": expires, "title": title})
     return {"kind": kind, "title": title[:300], "html": clean_html(d.get("html")), "status": status,
             "owner": (d.get("owner") or "").strip()[:120], "raised_on": _date(d.get("raised_on"), "The date") or date.today(),
-            "expires_on": _date(d.get("expires_on"), "The end or review date"), "principle": pr, "standard": st,
-            "related": (d.get("related") or "").strip()[:1000], "prefix": ks[kind]["prefix"]}
+            "expires_on": expires, "principle": pr, "standard": st,
+            "related": (d.get("related") or "").strip()[:1000], "prefix": ks[kind]["prefix"], "phase": phase,
+            "record_type": (d.get("record_type") or "").strip()[:80], "sponsor": (d.get("sponsor") or "").strip()[:120],
+            "fields": json.dumps(fields)}
 
 
 def add(conn, project: Any, user, d: dict) -> dict:
@@ -129,13 +159,19 @@ def add(conn, project: Any, user, d: dict) -> dict:
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
     v = _vals(conn, p, d)
-    n = (_one(conn, "SELECT count(*) AS n FROM proj.gov_records WHERE project_id = :p AND kind = :k", p=p["id"], k=v["kind"]) or {"n": 0})["n"]
-    ref = f"{v['prefix'] or 'REC'}-{int(n) + 1:03d}"
+    if v["kind"] in YEARLY:
+        ref = yearly_ref(conn, v["prefix"], v["raised_on"])
+    else:
+        n = (_one(conn, "SELECT count(*) AS n FROM proj.gov_records WHERE project_id = :p AND kind = :k", p=p["id"], k=v["kind"]) or {"n": 0})["n"]
+        ref = f"{v['prefix'] or 'REC'}-{int(n) + 1:03d}"
     g = conn.execute(text("""INSERT INTO proj.gov_records (project_id, kind, ref, title, html, status, owner, raised_on, expires_on,
-                                                           principle, standard, related, created_by)
+                                                           principle, standard, related, created_by, phase, record_type, sponsor,
+                                                           fields, found_in)
                              VALUES (:p, :kind, :ref, :title, :html, :status, :owner, :raised_on, :expires_on,
-                                     CAST(:principle AS uuid), CAST(:standard AS uuid), :related, :u) RETURNING guid::text"""),
-                     {**v, "p": p["id"], "ref": ref, "u": user.username}).scalar()
+                                     CAST(:principle AS uuid), CAST(:standard AS uuid), :related, :u, :phase, :record_type,
+                                     :sponsor, CAST(:fields AS jsonb), CAST(:found_in AS jsonb)) RETURNING guid::text"""),
+                     {**v, "p": p["id"], "ref": ref, "u": user.username,
+                      "found_in": json.dumps(d["found_in"]) if d.get("found_in") else None}).scalar()
     _history(conn, _row(conn, p, g), user, "logged")
     return {"id": g, "ref": ref, "message": f"{ref} {v['title']} logged, a draft: send it for approval, or approve it with evidence."}
 
@@ -156,14 +192,20 @@ def update(conn, project: Any, user, rid: str, d: dict) -> dict:
     p = pj.project_row(conn, project)
     pj._need(conn, p, user, "contribute")
     r = _row(conn, p, rid)
-    base = {k: r[k] for k in ("kind", "title", "html", "status", "owner", "raised_on", "expires_on", "related")}
+    base = {k: r[k] for k in ("kind", "title", "html", "status", "owner", "raised_on", "expires_on", "related", "phase",
+                              "record_type", "sponsor", "fields")}
     base["principle"] = str(r["principle"]) if r["principle"] else None
     base["standard"] = str(r["standard"]) if r["standard"] else None
     v = _vals(conn, p, {**base, **d, "kind": r["kind"]})          # a record keeps its kind
     conn.execute(text("""UPDATE proj.gov_records SET title = :title, html = :html, status = :status, owner = :owner, raised_on = :raised_on,
                                 expires_on = :expires_on, principle = CAST(:principle AS uuid), standard = CAST(:standard AS uuid),
-                                related = :related, modified_by = :u, modified_at = now() WHERE id = :i"""),
-                 {**v, "u": user.username, "i": r["id"]})
+                                related = :related, phase = :phase, record_type = :record_type, sponsor = :sponsor,
+                                fields = CAST(:fields AS jsonb),
+                                warned_on = CASE WHEN expires_on IS DISTINCT FROM :expires_on THEN NULL ELSE warned_on END,
+                                ended_on = CASE WHEN expires_on IS DISTINCT FROM :expires_on THEN NULL ELSE ended_on END,
+                                found_in = coalesce(CAST(:found_in AS jsonb), found_in),
+                                modified_by = :u, modified_at = now() WHERE id = :i"""),
+                 {**v, "u": user.username, "i": r["id"], "found_in": json.dumps(d["found_in"]) if d.get("found_in") else None})
     again = ""
     if r["approval"] in ("Approved", "Waiting for approval", "Rejected"):
         _withdraw(conn, r, user, "the record changed")
@@ -305,7 +347,7 @@ def _signers(conn, p: dict) -> list[str]:
 
 def _snap(r: dict) -> dict:
     keep = ("kind", "ref", "title", "html", "status", "owner", "raised_on", "expires_on", "related", "approval", "approved_by",
-            "approved_at", "approval_note", "evidence_name")
+            "approved_at", "approval_note", "evidence_name", "phase", "record_type", "sponsor", "fields")
     return {k: (str(r[k]) if r.get(k) is not None and not isinstance(r[k], (str, int)) else r.get(k)) for k in keep}
 
 
@@ -347,13 +389,18 @@ def send_for_approval(conn, project: Any, user, rid: str, note: str = "") -> dic
         raise EditError(f"{r['ref']} is approved already: change it first to ask again.", 409)
     if _one(conn, "SELECT 1 AS x FROM proj.gov_approvals WHERE record_id = :r AND state = 'open'", r=r["id"]):
         raise EditError(f"{r['ref']} is already waiting for approval.", 409)
+    if r["kind"] in YEARLY:                     # R5.5.1: the template's required fields, then Proposed for the review
+        from . import decisions as dec
+        dec.check_required(r["kind"], {**r, "fields": r.get("fields") or {}})
     signers = _signers(conn, p)
     if not signers:
         raise EditError("Nobody signs off in this project yet: set who signs off (Edit › People and sign-off), or approve it with evidence.", 409)
     q = pj_work().quorum_of(p, len(signers))
     conn.execute(text("""INSERT INTO proj.gov_approvals (record_id, signers, quorum, note, raised_by)
                          VALUES (:r, CAST(:s AS text[]), :q, :n, :u)"""), {"r": r["id"], "s": signers, "q": q, "n": (note or "").strip(), "u": user.username})
-    conn.execute(text("UPDATE proj.gov_records SET approval = 'Waiting for approval' WHERE id = :i"), {"i": r["id"]})
+    conn.execute(text("""UPDATE proj.gov_records SET approval = 'Waiting for approval',
+                                status = CASE WHEN kind = ANY(:y) AND status = 'Draft' THEN 'Proposed' ELSE status END
+                          WHERE id = :i"""), {"i": r["id"], "y": list(YEARLY)})
     _history(conn, r, user, "sent for approval", note, snapshot=True)
     notify.create(pj.core(conn), kind="project.governance_approval", category="request", actor=user.username,
                   title=f"Approve {r['ref']} {r['title']}",
@@ -395,6 +442,7 @@ def decide(conn, project: Any, user, rid: str, decision: str, comment: str = "")
                                 approved_at = CASE WHEN :w = 'Approved' THEN now() ELSE NULL END, approval_note = :n WHERE id = :i"""),
                  {"w": word, "by": ", ".join(x["signer"] for x in _rows(conn, "SELECT signer FROM proj.gov_decisions WHERE approval_id = :a AND decision = 'approved'", a=a["id"])),
                   "n": (comment or "").strip(), "i": r["id"]})
+    _accepted(conn, r, word)
     _history(conn, {**r, "approval": word}, user, f"approval {state}", "", snapshot=True)
     notify.create(pj.core(conn), kind=f"project.governance_{state}", category="request", actor=user.username,
                   title=f"{r['ref']} {r['title']} is {state}", body=f"Project {p['name']}: the approval you asked for is {state}.",
@@ -422,8 +470,19 @@ def approve_with_evidence(conn, project: Any, user, rid: str, reason: str = "", 
     conn.execute(text("""UPDATE proj.gov_records SET approval = 'Approved', approved_by = :u, approved_at = now(), approval_note = :n,
                                 evidence_name = :e, evidence_mayan_id = :m WHERE id = :i"""),
                  {"u": user.username, "n": reason, "e": evidence_name or None if evidence else None, "m": mid, "i": r["id"]})
+    _accepted(conn, r, "Approved")
     _history(conn, {**r, "approval": "Approved"}, user, "approved with evidence", reason + (f" (file: {evidence_name})" if evidence else ""), snapshot=True)
     return {"message": f"{r['ref']} approved{' with ' + evidence_name if evidence else ''}."}
+
+
+def _accepted(conn, r: dict, word: str) -> None:
+    """An ADR or a dispensation approved through the sign-off is Accepted; rejected, Rejected (R5.5.1: "acceptance
+    through the existing sign-off")."""
+    if r["kind"] not in YEARLY:
+        return
+    new = "Accepted" if word == "Approved" else "Rejected" if word == "Rejected" else None
+    if new:
+        conn.execute(text("UPDATE proj.gov_records SET status = :s WHERE id = :i"), {"s": new, "i": r["id"]})
 
 
 def history(conn, project: Any, user, rid: str) -> dict:

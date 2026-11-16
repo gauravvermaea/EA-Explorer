@@ -2829,3 +2829,40 @@ th.sortable { cursor: pointer; }
 .test-phase .phase-outcomes { display: flex; flex-direction: column; gap: 1px; margin-top: 6px; font-size: 14px; font-weight: 600; }
 .test-phase.has-failed { border: 2px solid #cf222e; background: color-mix(in srgb, #cf222e 6%, var(--card)); }
 .test-phase.has-warning { border-color: #bf8700; }
+
+/* R5.5.2: the Live browser full screen, with a thin bar that hides */
+.live-stage { position: relative; }
+.live-stage.full { background: #000; display: flex; align-items: center; justify-content: center; width: 100vw; height: 100vh; }
+.live-stage.full .live-frame { max-width: 100vw; max-height: 100vh; width: auto; height: auto; object-fit: contain; border: 0; border-radius: 0; }
+.live-bar { position: absolute; top: 0; left: 0; right: 0; z-index: 2; display: flex; gap: 10px; align-items: center; padding: 4px 12px;
+  background: rgba(20, 24, 30, .82); color: #fff; font-size: 13px; transition: opacity .3s; }
+.live-bar.hidden { opacity: 0; pointer-events: none; }
+.live-bar .live-bar-step { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.live-bar button { background: rgba(255, 255, 255, .12); color: #fff; border-color: rgba(255, 255, 255, .3); }
+
+/* R5.5.1: decision records and dispensations */
+.gov-template { border-left: 3px solid var(--accent); padding-left: 12px; margin: 8px 0; }
+.gov-links { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 8px; }
+.gov-links ul { margin: 4px 0 8px 18px; }
+.gov-hits { list-style: none; margin: 4px 0; padding: 0; max-height: 200px; overflow: auto; border: 1px solid var(--line); border-radius: 6px; width: 100%; }
+.gov-hits li { padding: 2px 8px; }
+.gov-ending { margin: 8px 0; }
+
+/* enterprise discovery (R5.5) */
+.disc-how { border-left: 3px solid var(--accent, #2f6fb3); padding: 8px 12px; margin: 10px 0; background: rgba(47,111,179,.06); font-size: .92em; }
+.disc-how code { white-space: nowrap; }
+.disc-test { border: 1px solid rgba(128,128,128,.35); border-radius: 6px; padding: 8px 12px; margin-top: 10px; }
+.wrap-any { overflow-wrap: anywhere; }
+.pre-wrap { white-space: pre-wrap; }
+
+/* a template seen without downloading it (Template setup › Templates › View, R5.5) */
+.tpl-view { max-height: 70vh; overflow: auto; }
+.tpl-pdf { width: 100%; height: 66vh; border: 1px solid var(--line); border-radius: 6px; }
+.tpl-picture { max-width: 100%; border: 1px solid var(--line); border-radius: 6px; }
+.tpl-h { font-weight: 600; margin: 12px 0 4px; }
+.tpl-h0 { font-size: 1.35em; } .tpl-h1 { font-size: 1.2em; } .tpl-h2 { font-size: 1.08em; } .tpl-h3, .tpl-h4 { font-size: 1em; }
+.tpl-p { margin: 2px 0 6px; }
+.tpl-slide { display: grid; grid-template-columns: 34px 1fr; gap: 8px; padding: 6px 0; border-bottom: 1px dotted var(--line); }
+.tpl-slide-no { font-weight: 600; color: var(--muted, #888); text-align: right; }
+.tpl-sheet { margin: 8px 0 14px; }
+.tpl-text { white-space: pre-wrap; font-size: 12px; }

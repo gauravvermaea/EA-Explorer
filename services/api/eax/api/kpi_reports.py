@@ -239,3 +239,51 @@ def table(model_id, table):
         r.headers.update(HEADERS)
         return r
     return _odata(go)
+
+
+# ---------------------------------------------------------------- the governance feed (R5.5.1)
+def _gov_base() -> str:
+    return od.gov_url(get_settings().public_base_url)
+
+
+def _gov(fn):
+    from .. import projects as pj
+    try:
+        with pj.connections(write=False) as conn:
+            return fn(conn)
+    except EditError as exc:
+        return _error(getattr(exc, "status", 400), str(exc))
+
+
+@odata_blp.route("/governance/", methods=["GET"])
+@signed_in
+def governance_service():
+    """The governance OData feed (R5.5.1): one table, every ADR, decision and dispensation the person may read."""
+    r = jsonify(od.gov_service_document(_gov_base()))
+    r.headers.update(HEADERS)
+    return r
+
+
+@odata_blp.route("/governance/$metadata", methods=["GET"])
+@signed_in
+def governance_metadata():
+    """The governance feed's $metadata (XML)."""
+    return Response(od.gov_metadata(), mimetype="application/xml", headers=HEADERS)
+
+
+@odata_blp.route("/governance/<table>", methods=["GET"])
+@signed_in
+def governance_table(table):
+    """The governance feed's table, with the query options applied."""
+    if table != od.GOV_TABLE:
+        return _error(404, f"There is no table {table}; the service document lists it.")
+    from .. import decisions as dec
+
+    def go(c):
+        try:
+            r = jsonify(od.gov_query(dec.report_rows(c, g.user), dict(request.args), _gov_base()))
+        except od.ODataError as exc:
+            return _error(exc.status, str(exc))
+        r.headers.update(HEADERS)
+        return r
+    return _gov(go)

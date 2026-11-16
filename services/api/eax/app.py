@@ -105,6 +105,10 @@ def create_app(testing: bool = False) -> Flask:
     api.register_blueprint(machine_access_blp)
     api.register_blueprint(operations_blp)
     api.register_blueprint(archive_blp)               # archived and deleted models (R2.41)
+    from .api.decisions import blp as decisions_blp  # decision records and dispensations (R5.5.1)
+    api.register_blueprint(decisions_blp)
+    from .api.discovery_projects import blp as discovery_projects_blp  # enterprise discovery (R5.5)
+    api.register_blueprint(discovery_projects_blp)
     # merging a child into its parent, dedupe, sample documents (phases 19, 20, 21, 15.3; F1 of batch 1)
     from .api.merge_back import blp as merge_back_blp
     api.register_blueprint(merge_back_blp)

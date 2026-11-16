@@ -110,7 +110,7 @@ def test_mfa_is_applied_when_changed_and_every_hour():
     src = (REPO / "services/api/eax/settings.py").read_text()
     assert 'if "mfa_mode" in clean:' in src and "keycloak_upkeep.apply_mfa" in src
     jobs = (REPO / "services/api/eax/jobs.py").read_text()
-    assert 'name="eax.keycloak_upkeep"' in jobs and "ku.ensure_audit_role()" in jobs
+    assert 'name="eax.keycloak_upkeep"' in jobs and "ku.ensure_roles()" in jobs
 
 
 # ---------------------------------------------------------------- R5.22

@@ -53,6 +53,13 @@ def run() -> list[str]:
             if karoo and not conn.execute(text("SELECT 1 FROM proj.gov_records WHERE title = :t"), {"t": MARK}).first():
                 _karoo(conn, karoo, sa, pa, la, ma, ar, today, gv, po, cl, cf, ts, pj)
                 said.append(f"{KAROO}: governance, people, calendar, phases, sheets")
+            if karoo and not conn.execute(text("SELECT 1 FROM proj.gov_records WHERE title = :t"), {"t": ADR_MARK}).first():
+                _decisions(conn, karoo, sa, pa, today, gv, pj)
+                said.append(f"{KAROO} and the organisation: decision records and dispensations (R5.5.1)")
+            core = pj.core(conn)
+            if not core.execute(text("SELECT 1 FROM core.discovery_projects WHERE name = :n"), {"n": DISC_MARK}).first() \
+                    and _discovery(core):
+                said.append(f"{DISC_MARK}: an enterprise discovery project with its sources (R5.5)")
             protea = conn.execute(text("SELECT guid::text FROM proj.projects WHERE name = :n AND completed_at IS NULL"), {"n": PROTEA_DONE}).scalar()
             if protea:
                 p = pj.project_row(conn, protea)
@@ -105,6 +112,90 @@ def run() -> list[str]:
     return said
 
 
+DISP_ACTUARIAL = {"waived": "Principle: cloud first", "systems": "The actuarial engine (on-premises), year-end valuation",
+                  "justification": "Moving it before the year-end valuation would put the statutory deadline at risk.",
+                  "impact": "The data centre stays open for one more quarter.",
+                  "risks": "Two hosting models to run for the period; skills split.",
+                  "mitigations": "The engine is frozen; no new integrations to it.",
+                  "remediation": "Move the engine to the cloud platform in the quarter after year-end."}
+ADR_MARK = "Use managed Kubernetes for the claims platform"
+DISC_MARK = "Protea claims estate discovery"
+
+
+def _discovery(core) -> bool:
+    """R5.5: a sample discovery project on the demo estate, with a source of several kinds (example addresses, no
+    sign-in kept: the method only). Its runs come from someone's own AI through MCP."""
+    from .. import discovery_projects as dp
+    model = core.execute(text("SELECT guid::text FROM core.models WHERE name = 'Protea Insurance (demo estate)' AND NOT is_deleted")).scalar()
+    if not model:
+        return False
+    da = _p("user_discovery_admin", ("discovery-admin",))
+    p = dp.create(core, da, {"name": DISC_MARK, "target_model": model, "schedule": "weekly", "schedule_day": 1,
+                             "schedule_time": "02:00", "read_default": "new", "gone_default": "mark",
+                             "purpose": "Keep the claims part of the demo estate current from the claims team's sources."})
+    for src in ({"kind": "git", "name": "Claims platform repositories", "location": "https://git.example.com/protea/claims",
+                 "include": "README files, docs/adr, docker-compose and Kubernetes files", "sign_in": "key"},
+                {"kind": "sharepoint", "name": "Claims architecture site", "location": "https://example.sharepoint.com/sites/claims-architecture",
+                 "include": "Architecture and Decisions libraries", "sign_in": "sso"},
+                {"kind": "mailbox", "name": "Claims architecture mailbox", "location": "imaps://mail.example.com/claims-architecture",
+                 "include": "Last 90 days", "sign_in": "basic"},
+                {"kind": "tickets", "name": "Service management CMDB", "location": "https://example.service-now.com",
+                 "include": "Configuration items of the claims business service", "sign_in": "basic"},
+                {"kind": "recordings", "name": "Claims design walkthroughs", "location": "https://video.example.com/channel/claims-design",
+                 "include": "Recordings tagged architecture", "sign_in": "sso", "attachments": False}):
+        dp.add_resource(core, da, p["id"], src)
+    return True
+
+
+def _decisions(conn, karoo, sa, pa, today, gv, pj) -> None:
+    """R5.5.1: architecture decision records and dispensations, in Karoo Re and in the organisation's Governance Log,
+    linked to elements of the demo estate; one dispensation ending within the warning days, one later."""
+    from .. import decisions as dec
+    board = _p("user_architecture_board", ("architecture-board",))
+    core = pj.core(conn)
+    els = [dict(r) for r in core.execute(text("""SELECT e.guid::text AS id, m.guid::text AS model, e.name FROM core.entities e
+                                                   JOIN core.models m ON m.id = e.model_id
+                                                  WHERE m.name = 'Protea Insurance (demo estate)' AND NOT e.is_deleted
+                                                  ORDER BY (e.name ILIKE '%claim%') DESC, e.name LIMIT 3""")).mappings()]
+    adr = gv.add(conn, karoo, pa, {
+        "kind": dec.ADR, "title": ADR_MARK, "status": "Draft", "owner": "Thandi Nkosi", "phase": "D", "record_type": "Technology",
+        "html": "<p>Sample decision record.</p>",
+        "fields": {"context": "The claims platform needs to scale for catastrophe events and be released weekly.",
+                   "options": "1. Virtual machines: known, slow to scale. 2. Managed Kubernetes: scales, needs new skills. "
+                              "3. Serverless: fastest to scale, a rewrite.",
+                   "decision": "Run the claims platform on the cloud provider's managed Kubernetes.",
+                   "rationale": "It scales for catastrophe events without a rewrite and fits the cloud-first principle.",
+                   "consequences": "Platform engineering skills are needed; the release pipeline changes."}})["id"]
+    gv.approve_with_evidence(conn, karoo, pa, adr, "Accepted at the Architecture Board (sample).")
+    for e in els[:2]:
+        dec.add_link(conn, pa, adr, {"kind": "element", "target": e["id"], "model": e["model"]})
+    org = dec.org_add(conn, board, {"kind": dec.ADR, "title": "Cloud first for new systems", "status": "Draft", "owner": "Chief Architect",
+                                    "phase": "Preliminary", "record_type": "Architecture",
+                                    "fields": {"context": "Systems are hosted in two data centres and three clouds.",
+                                               "options": "Keep each project's choice; data centre first; cloud first.",
+                                               "decision": "New systems are built for the cloud unless a dispensation says otherwise.",
+                                               "rationale": "Faster delivery, less hosting cost, one way of running systems.",
+                                               "consequences": "Existing systems move when they are next changed; dispensations for the rest."}})["id"]
+    dec.org_decide(conn, board, org, "approved", "Agreed by the Board (sample).")
+    soon = dec.org_add(conn, board, {"kind": dec.DISP, "title": "Mainframe batch stays on premises this year", "status": "Draft",
+                                     "owner": "Head of Infrastructure", "sponsor": "CIO", "expires_on": str(today + timedelta(days=12)),
+                                     "fields": {"waived": "Cloud first for new systems", "systems": "Mainframe batch (policy renewals)",
+                                                "justification": "The renewal run cannot move during the peak.",
+                                                "risks": "Two run books for one more cycle.",
+                                                "remediation": "Move the batch after the peak (sample)."}})["id"]
+    dec.org_decide(conn, board, soon, "approved", "Granted for this cycle (sample).")
+    later = dec.org_add(conn, board, {"kind": dec.DISP, "title": "Legacy reporting database stays on version 11", "status": "Draft",
+                                      "owner": "Data office", "sponsor": "CDO", "expires_on": str(today + timedelta(days=150)),
+                                      "fields": {"waived": "Supported versions only", "systems": "Legacy reporting database",
+                                                 "justification": "It is retired next year with the new data platform.",
+                                                 "risks": "No security fixes for the period.",
+                                                 "remediation": "Retire it with the data platform's go-live (sample)."}})["id"]
+    dec.org_decide(conn, board, later, "approved", "Granted until retirement (sample).")
+    dec.add_link(conn, board, later, {"kind": "record", "relation": "depends-on", "target": org})
+    if els:
+        dec.add_link(conn, board, soon, {"kind": "element", "target": els[-1]["id"], "model": els[-1]["model"]})
+
+
 def _karoo(conn, karoo, sa, pa, la, ma, ar, today, gv, po, cl, cf, ts, pj) -> None:
     from sqlalchemy import text as t
     p = pj.project_row(conn, karoo)
@@ -117,7 +208,8 @@ def _karoo(conn, karoo, sa, pa, la, ma, ar, today, gv, po, cl, cf, ts, pj) -> No
 
     def rec(kind, title, status, html, **kw):
         r = gv.add(conn, karoo, pa, {"kind": kind, "title": title, "status": status, "html": f"<p>{html}</p>", "owner": kw.get("owner", "Lead architect"),
-                                     "expires_on": kw.get("expires_on"), "related": kw.get("related", "")})
+                                     "expires_on": kw.get("expires_on"), "related": kw.get("related", ""), "phase": kw.get("phase", ""),
+                                     "sponsor": kw.get("sponsor", ""), "record_type": kw.get("record_type", ""), "fields": kw.get("fields")})
         return r["id"]
     # every approval state: approved by the sign-off people, approved with a reason, waiting, rejected, a draft
     d1 = rec("Decision", MARK, "Accepted", "Policy administration, claims and billing move to a managed cloud platform in the target state; the "
@@ -127,9 +219,10 @@ def _karoo(conn, karoo, sa, pa, la, ma, ar, today, gv, po, cl, cf, ts, pj) -> No
         gv.decide(conn, karoo, u, d1, "approved", "Agreed.")
     d2 = rec("Decision", "Retire the legacy claims spreadsheet", "Accepted", "Claims tracking moves into the claims platform; the spreadsheet is archived.")
     gv.approve_with_evidence(conn, karoo, pa, d2, "Approved at the Architecture Board of 3 November (minutes in Sign-off evidence).")
-    rec_d = rec("Dispensation", "Keep the actuarial engine on-premises until 2027", "Requested",
+    rec_d = rec("Dispensation", "Keep the actuarial engine on-premises until 2027", "Draft",
                 "The actuarial engine stays on-premises for one more year-end; it does not follow the cloud-first principle until then.",
-                expires_on=str(today + timedelta(days=20)), related="Principle: cloud first")
+                expires_on=str(today + timedelta(days=20)), related="Principle: cloud first", phase="F", sponsor="Chief Actuary",
+                fields=DISP_ACTUARIAL)
     gv.send_for_approval(conn, karoo, pa, rec_d, "Needed before the year-end freeze.")
     rec("Risk", "Lock-in to one cloud provider", "Open", "Moving three core platforms to one provider makes leaving it costly; exit plan to be written.")
     cmp = rec("Compliance assessment", "Claims platform design review", "Compliant with conditions",

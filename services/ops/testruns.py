@@ -34,7 +34,7 @@ import threading
 import time
 
 H: dict = {}                                   # ops.py's globals: docker, containers, jobs, _in_background...
-SUITES = ("api", "ui", "db", "jobs", "security", "reports", "performance", "backup", "restore")   # performance (R5.18); backup (R2.45), then restore (R3.8, the command line only)
+SUITES = ("api", "ui", "db", "jobs", "mcp", "security", "reports", "performance", "backup", "restore")   # performance (R5.18); backup (R2.45), then restore (R3.8, the command line only)
 # only when asked for by name, never in the full test (owner, 15 Nov 2026: "I dont want full test to run performance test"; R5.29)
 ON_DEMAND = ("performance",)
 FULL_SUITES = tuple(s for s in SUITES if s not in ON_DEMAND)

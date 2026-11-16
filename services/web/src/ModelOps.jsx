@@ -65,7 +65,7 @@ const COPIES = [
   ["history", "Deep copy: the data with its full history", "As above, and every entity keeps its whole history from the source, even if the source changes or is deleted later"],
 ];
 
-export function NewModelDialog({ from, onClose, preset = {}, admin = false }) {
+export function NewModelDialog({ from, onClose, preset = {}, admin = false, onCreated = null }) {
   const { data: models_ } = useApi("/api/v1/models?archived=false");
   const models = models_ && liveModels(models_).concat(from ? models_.filter((x) => x.id === from && isRetiredModel(x)) : []);
   const curator = can("library.curate");
@@ -125,7 +125,8 @@ export function NewModelDialog({ from, onClose, preset = {}, admin = false }) {
       if (iconFile) await saveIcon(out.model.id, null, iconFile).catch(() => {});   // the model exists; an upload failing leaves the library icon
       refreshAll();
       onClose();
-      go(`/${admin ? "model-admin" : "metamodel"}/${out.model.id}`);
+      if (onCreated) onCreated(out.model);              // picked where it was asked for (the discovery project's target, R5.5)
+      else go(`/${admin ? "model-admin" : "metamodel"}/${out.model.id}`);
     } catch (e) { setError(e.message); setBusy(false); }
   }
 

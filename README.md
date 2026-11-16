@@ -29,9 +29,9 @@ documentation**, refreshed at every start (D550 to D552). On the command line, `
 **All the documentation, listed with what each covers: [docs/index.md](docs/index.md).** Backup and restore
 commands: [below](#backup-and-restore-from-the-command-line) and in [docs/operations.md](docs/operations.md#backup-and-restore-from-the-command-line-d227).
 
-**Status: version 5.1.0, Release 5.1 (stabilisation), released 16 Nov 2026** (tag `v5.1.0` on the `release` branch; release notes:
-[releases/5.1.0.md](releases/5.1.0.md); Release 5: [releases/5.0.0.md](releases/5.0.0.md); Release 4: [releases/4.0.0.md](releases/4.0.0.md); Release 3.5: [releases/3.5.0.md](releases/3.5.0.md); Release 3: [releases/3.0.0.md](releases/3.0.0.md); Release 2: [releases/2.0.0.md](releases/2.0.0.md);
-Release 1: [releases/1.0.0.md](releases/1.0.0.md)). Next: Release 5.5 (the R5.5 rows in
+**Status: version 5.5.0, Release 5.5 (enterprise discovery), released 16 Nov 2026** (tag `v5.5.0` on the `release` branch; release notes:
+[releases/5.5.0.md](releases/5.5.0.md); Release 5.1: [releases/5.1.0.md](releases/5.1.0.md); Release 5: [releases/5.0.0.md](releases/5.0.0.md); Release 4: [releases/4.0.0.md](releases/4.0.0.md); Release 3.5: [releases/3.5.0.md](releases/3.5.0.md); Release 3: [releases/3.0.0.md](releases/3.0.0.md); Release 2: [releases/2.0.0.md](releases/2.0.0.md);
+Release 1: [releases/1.0.0.md](releases/1.0.0.md)). Next: Release 5.6 (the Release 5.6 rows in
 [docs/build-phases.md](docs/build-phases.md)). The releases in short are
 [below](#releases); every phase in detail: [docs/build-phases.md](docs/build-phases.md). Database design:
 [docs/database.md](docs/database.md). How it is built (for developers and AI agents):
@@ -54,9 +54,9 @@ area by area: [docs/capabilities.md](docs/capabilities.md).
 | 4 | [4.0.0](releases/4.0.0.md) | Reports on Superset 6.1 with their own test suite, an AI (MCP) menu and MCP tools to run the installation, project steps in your own order | released 15 Nov 2026 |
 | 5 | [5.0.0](releases/5.0.0.md) | Optimisation report, MFA, IP allow-listing, data locations, logging and alerts, signed deployments, a service desk (groups, the Super Admins assign), database maintenance; from Release 4: the code documented and handed over, security and performance testing, server sizing, watching the screen tests live, the three-monthly version review; an Auditor role (eax-audit): sees everything, changes nothing ; log files rolling at a size set on the Logs page | released 15 Nov 2026 |
 | 5.1 | [5.1.0](releases/5.1.0.md) | Stabilisation: the job queue on screen and safe to look after (a connection ended every five minutes, jobs left by a stopped runner, Kill and Cancel), the full self-test's findings fixed, a Jobs suite and each area's passed and failed | released 16 Nov 2026 |
-| 5.5 | | Enterprise discovery | planned |
+| 5.5 | [5.5.0](releases/5.5.0.md) | Enterprise discovery run by your own AI through MCP (discovery projects, sources of every kind, Found in, runs tagged before and after, NOT FOR AI respected); architecture decision records and dispensations in the Governance Log with an Architecture Board; the Live browser full screen | released 16 Nov 2026 |
 | 5.6 | | Backup and restore, tested and fixed (nothing else) | planned |
-| 5.7 | | Customer journey maps as first-class citizens; logo and branding (white-label, themes, the company's own CSS) | planned |
+| 5.7 | | Customer journey maps as first-class citizens; logo and branding (white-label, themes, the company's own CSS); a project presentation deck made with the AI through MCP | planned |
 | 6 | | The key vault (OpenBao), once its details are agreed | planned |
 | 6.5 | | Server sync (migrations), DR sync, content promotion from dev to prod, a developer and author mode with its menus | planned |
 | 7 | | Help and videos | planned |

@@ -5,6 +5,8 @@ import { config } from "./config";
 import StartPage, { EverythingElse } from "./StartPage";
 import { ArchitectureWork } from "./Areas";
 import ArchitectureRepositoryPage from "./ArchitectureRepository";
+import DiscoveryProjects from "./DiscoveryProjects";
+import OrgGovernance from "./GovernanceRecords";
 import ReferenceLibraryPage from "./ReferenceLibrary";
 import EnterpriseLibraryPage from "./Libraries";
 import MyProfile from "./Skills";
@@ -178,6 +180,8 @@ export default function App() {
           : route.startsWith("#/project-admin") ? <ProjectAdmin route={route} />
           : route.startsWith("#/project-library") ? <ProjectLibraryPage />
           : route.startsWith("#/principles") ? <PrinciplesPage />
+          : route.startsWith("#/governance") ? <OrgGovernance />
+          : route.startsWith("#/discovery-projects") ? <DiscoveryProjects route={route} />
           : route.startsWith("#/metamodel") ? <Metamodel route={route} />
           : route.startsWith("#/projects") ? <Projects route={route} />
           : route.startsWith("#/mcp") ? <Mcp />

@@ -57,6 +57,7 @@ DEFAULTS: dict[str, tuple[str, str, float, float, bool]] = {
     "db_maintenance": ("Database maintenance findings (R5.12)", "findings", 1, 5, True),
     "security": ("High or critical security findings the gate fails on (R5.17)", "findings", 1, 1000000, True),
     "jobs_stuck": ("Background jobs stuck: waiting or running too long (R5.30; System Admin › Jobs)", "jobs", 1, 3, True),
+    "discovery_overdue": ("Discovery projects whose run is overdue (R5.5; AI (MCP) › Enterprise discovery)", "projects", 1, 5, True),
 }
 
 
@@ -264,6 +265,12 @@ def seen_now(conn, cfg: dict[str, dict]) -> dict[str, dict]:
         put("jobs_stuck", *jobqueue.measure(conn))
     except Exception as exc:  # noqa: BLE001
         put("db_maintenance", None, str(exc)[:160])
+    try:
+        from . import discovery_projects
+        n = discovery_projects.overdue_count(conn)
+        put("discovery_overdue", n, f"{n} discovery project(s) overdue: their AI has not run them" if n else "none overdue")
+    except Exception as exc:  # noqa: BLE001
+        put("discovery_overdue", None, str(exc)[:160])
     for key, c in cfg.items():
         if c.get("custom") and c["enabled"]:
             try:

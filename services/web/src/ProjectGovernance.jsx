@@ -8,6 +8,7 @@ import { refreshAll, useApi } from "./ModelViews";
 import RichText from "./RichText";
 import { Field, Modal } from "./ModelOps";
 import { fmtDateTime } from "./fmt";
+import { EndingSoon, RecordLinks, TemplateFields, YEARLY } from "./GovernanceRecords";
 
 const BASE_LABEL = { empty: "Empty project", togaf: "TOGAF 10 project", org: "Organisation base" };
 const rich = (v) => (v ? <div className="rich-view" dangerouslySetInnerHTML={{ __html: v }} /> : <span className="quiet">–</span>);
@@ -212,6 +213,7 @@ export function GovernanceTab({ p }) {
       {data.records.some((r) => r.request?.mine) && <p className="status warn">Waiting for your approval: {data.records.filter((r) => r.request?.mine).map((r) =>
         <button key={r.id} className="linkish" onClick={() => setDlg(r)}>{r.ref} </button>)}</p>}
       <Msg m={msg} />
+      <EndingSoon project={p.guid || p.id} />
       <div className="tabs sub" role="tablist">
         <button className={`tab${kind === "*" ? " on" : ""}`} onClick={() => { setKind("*"); setStatus(""); }}>All <span className="quiet small">{data.records.length}</span></button>
         {data.kinds.map((x) => (
@@ -264,7 +266,8 @@ export function GovernanceTab({ p }) {
 function GovDialog({ url, data, r, can, onClose, onDelete }) {
   const k = data.kinds.find((x) => x.name === r.kind) || data.kinds[0];
   const [f, setF] = useState({ kind: r.kind || k.name, title: r.title || "", html: r.html || "", status: r.status || k.statuses[0], owner: r.owner || "",
-    raised_on: r.raised_on || new Date().toISOString().slice(0, 10), expires_on: r.expires_on || "", principle: r.principle || "", standard: r.standard || "", related: r.related || "" });
+    raised_on: r.raised_on || new Date().toISOString().slice(0, 10), expires_on: r.expires_on || "", principle: r.principle || "", standard: r.standard || "", related: r.related || "",
+    phase: r.phase || "", record_type: r.record_type || "", sponsor: r.sponsor || "", fields: r.fields || {} });
   const [err, setErr] = useState("");
   const set = (key, v) => setF((x) => ({ ...x, [key]: v }));
   const kk = data.kinds.find((x) => x.name === f.kind) || k;
@@ -293,10 +296,12 @@ function GovDialog({ url, data, r, can, onClose, onDelete }) {
           <Field label="About a standard"><select value={f.standard} onChange={(e) => set("standard", e.target.value)} disabled={!can}><option value="">–</option>
             {data.standards.map((x) => <option key={x.id} value={x.id}>{x.area ? `${x.area}: ` : ""}{x.name}</option>)}</select></Field>
         </div>
+        <TemplateFields f={f} set={set} can={can} />
         <Field label="Related" hint="(documents, entities, other records)"><input value={f.related} onChange={(e) => set("related", e.target.value)} disabled={!can} /></Field>
         <Field label="Detail">{can ? <RichText value={f.html} onChange={(v) => set("html", v)} placeholder="Context, options, reasons, conditions, actions" /> : rich(f.html)}</Field>
         {r.id && <p className="small quiet">Logged by {r.created_by}; last changed by {r.modified_by}, {fmtDateTime(r.modified_at)}.</p>}
       </div>
+      {r.id && YEARLY.includes(r.kind) && <RecordLinks rid={r.id} can={can} principles={data.principles} standards={data.standards} records={data.records} />}
       {r.id && <ApprovalBox url={url} r={r} can={can} onDone={(m) => onClose(m)} />}
     </Modal>
   );

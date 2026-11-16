@@ -22,6 +22,8 @@ import { EditButton, entityTypeSpec, mappingSpec, relationshipTypeSpec } from ".
 import { EntityIcon } from "./DrawnView";
 import { elementTypes } from "./elements.js";
 import { LinkList, linksText } from "./Links";
+import { FoundIn } from "./DiscoveryProjects";
+import { ElementDecisions } from "./GovernanceRecords";
 
 const EntityGraph = lazy(() => import("./EntityGraph"));
 const HierarchyMap = lazy(() => import("./HierarchyMap"));
@@ -970,7 +972,8 @@ export function EntityPage({ model, m, entityId, sub }) {
   const errors = e.warnings.filter((w) => w.severity === "error").length;
   const failing = e.warnings.length + e.relationships.filter((r) => !r.allowed).length;
   const tabs = [["details", "Details"], ["relations", `Relations (${e.relationships.length})`],
-    ["rules", failing ? `Rules (${failing} failing)` : "Rules ✓"], ["history", "History"], ["graph", "Graph"], ["tree", "Tree"]];
+    ["rules", failing ? `Rules (${failing} failing)` : "Rules ✓"], ["history", "History"], ["graph", "Graph"], ["tree", "Tree"],
+    ["decisions", "Linked decisions and dispensations"], ["found", "Found in"]];     // R5.5.1; R5.5 discovery
   return (
     <div>
       <p className="quiet crumbs">
@@ -1004,6 +1007,8 @@ export function EntityPage({ model, m, entityId, sub }) {
           {tab === "history" && <HistoryTab key={e.id} model={model} m={m} e={e} />}
           {tab === "graph" && <EntityGraphTab key={e.id} model={model} e={e} />}
           {tab === "tree" && <EntityTree key={e.id} model={model} m={m} entityId={e.id} />}
+          {tab === "decisions" && <ElementDecisions key={e.id} model={model} entity={e.id} />}
+          {tab === "found" && <FoundIn key={e.id} model={model} entity={e.id} />}
         </div>
       </div>
     </div>

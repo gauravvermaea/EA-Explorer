@@ -1,4 +1,4 @@
-# What EA Explorer does today (version 5.1.0)
+# What EA Explorer does today (version 5.5.0)
 
 One page for anyone weighing EA Explorer up: what is **built and in the box today**, area by area, and what is still
 **planned**, with its build phase. "Planned" adds to what is already there; it does not mean an area is missing.
@@ -10,12 +10,22 @@ Every phase in detail: [build-phases.md](build-phases.md). Decisions: [decisions
 | Metamodel and standards | ArchiMate 4 and the TOGAF 10 content metamodel built in; your own metamodels, edited, versioned, reviewed and pushed down to the models that use them |
 | Diagrams and visual analysis | Over a dozen kinds of picture drawn from the repository itself, so they are never out of date; each can be saved as a drawn view |
 | Reports and BI | 30 standard reports and 49 views (each as diagram, catalogue, heat map, matrix and relationship list), roadmaps, value stream maps, gap, comparison and common analysis, quality dashboards; Apache Superset for your own |
-| AI | An MCP server with about 120 tools and 11 guided prompts: your own language model reads, analyses, cleans up and changes models (copy, dedupe, override the parent, every model wizard), previewing every change for your yes and tagging first, as you and with your permissions; every call in an AI activity log |
+| AI | Bring your own AI: an MCP server with about 140 tools and 11 guided prompts; enterprise discovery run by your AI (discovery projects, sources of every kind, Found in, runs tagged before and after, NOT FOR AI respected); your own language model reads, analyses, cleans up and changes models (copy, dedupe, override the parent, every model wizard), previewing every change for your yes and tagging first, as you and with your permissions; every call in an AI activity log |
 | Collaboration and governance | Private changes until committed, conflicts at commit, child models merged back, reviews and approvals, sign-off with a quorum, stakeholder acceptance of answers, a full change log |
 | Projects (TOGAF ADM) | Architecture projects from 14 templates, the TOGAF 10 library (13 phases, 116 steps, 171 deliverables and artifacts), key questions, Business Model Canvases, the Architecture Repository |
 | Documents and libraries | Document management (Mayan EDMS) inside projects, the reference library, the enterprise and project libraries with search |
 | Integration | A REST API (OpenAPI), signed webhooks, Excel and CSV in and out with mappings, model packages, the MCP server; discovery: OData feeds read, pushes taken and documents read by AI, proposed as deliveries to review (Release 3, in progress) |
 | Operations | One command (`eax`, full screen or numbered menu) and a console, start-up in two tiers, health, tagged backups and restores, every service switchable, a file explorer in every container |
+
+## New in Release 5.5 (5.5.0, released 16 Nov 2026)
+
+Enterprise discovery run by your own AI through MCP: discovery projects with a target model and sources of every kind
+(mailboxes, folders, FTP, SFTP, SharePoint, Git, wikis, ticket systems and the CMDB, Teams and Slack, database schemas,
+cloud storage and accounts, recordings), sign-ins tested then forgotten, a Discovery Admin role, every element's Found
+in, runs tagged before and after, NOT FOR AI USE respected, "may be the same as" flags, overdue runs alerted.
+Architecture decision records and dispensations in the organisation's Governance Log with an Architecture Board, linked
+to elements, with expiry warnings and a report (OData). The Live browser full screen. See
+[releases/5.5.0.md](../releases/5.5.0.md).
 
 ## New in Release 5.1 (5.1.0, released 16 Nov 2026)
 

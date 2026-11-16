@@ -552,6 +552,26 @@ def update_watch(timestamp: int) -> None:
 
 
 
+@app.periodic(cron="23 * * * *")
+@app.task(name="eax.governance", queue="default", queueing_lock="governance", lock="governance")
+def governance(timestamp: int) -> None:
+    """Every hour (R5.5.1): dispensations ending are warned of the setting's days before (30) and become Expired on their
+    end date, each told once; and the governance report's rows are copied for Reports (rpt.v_governance_decisions)."""
+    import logging
+
+    from . import decisions as dec
+    from . import projects as pj
+    try:
+        with pj.connections(write=True) as conn:
+            out = dec.run_ending(conn)
+            n = dec.refresh_report(conn)
+        if out["warned"] or out["ended"]:
+            logging.getLogger("eax.governance").info("dispensations: warned %s, ended %s; report %s rows",
+                                                     out["warned"], out["ended"], n)
+    except Exception as exc:  # noqa: BLE001 - tried again next hour
+        logging.getLogger("eax.governance").warning("governance job: %s", exc)
+
+
 @app.periodic(cron="41 * * * *")
 @app.task(name="eax.keycloak_upkeep", queue="default", queueing_lock="keycloak_upkeep", lock="keycloak_upkeep")
 def keycloak_upkeep(timestamp: int) -> None:
@@ -562,7 +582,7 @@ def keycloak_upkeep(timestamp: int) -> None:
     from . import keycloak_upkeep as ku
     from . import settings as st
     try:
-        ku.ensure_audit_role()
+        ku.ensure_roles()          # the Auditor, the Architecture Board and the Discovery Admin (R5.22, R5.5.1, R5.5)
         mode = st.values().get("mfa_mode", "off")
         if mode != "off":
             ku.apply_mfa(mode)

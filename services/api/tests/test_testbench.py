@@ -78,7 +78,8 @@ def test_suites_are_the_self_tests():
     # but the backup checks (R2.45): they need the installation's own backup container, so they run inside only
     # and the restore test (R3.8): the command line only
     # and the reports (R4.1): Keycloak test users made with the installation's own administrator, inside only
-    assert set(SUITES) == set(INSIDE_SUITES) - {"backup", "restore", "reports", "performance", "jobs"}   # performance: the bench has its own load test
+    # and the MCP suite (R5.5): its read-only token is made with the installation's own database, inside only
+    assert set(SUITES) == set(INSIDE_SUITES) - {"backup", "restore", "reports", "performance", "jobs", "mcp"}   # performance: the bench has its own load test
 
 
 def _calls(fn: ast.FunctionDef, modules: set[str]) -> set[str]:

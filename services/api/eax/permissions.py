@@ -29,7 +29,12 @@ MODEL_CREATOR, LIBRARY_ADMIN, USER = "model-creator", "library-admin", "user"
 # changes"): no permission of its own. A read (GET, or one of READ_POSTS) is answered as for a Super Admin; a change
 # is judged by the person's other roles only (eax/auth.py auditor_view), so it adds sight, never a change
 AUDITOR = "auditor"
-GLOBAL_ROLES = [SUPER_ADMIN, IT_ADMIN, USER_ADMIN, KEYCLOAK_ADMIN, AUDITOR, MODEL_CREATOR, LIBRARY_ADMIN, USER]
+# the Architecture Board (R5.5.1; owner, 15 Nov 2026, 20:31): accepts the organisation's own decision records and
+# dispensations (in a project its sign-off people do); the Discovery Admin (R5.5; 20:22): sets up the discovery
+# projects and their sources, for any model
+ARCHITECTURE_BOARD, DISCOVERY_ADMIN = "architecture-board", "discovery-admin"
+GLOBAL_ROLES = [SUPER_ADMIN, IT_ADMIN, USER_ADMIN, KEYCLOAK_ADMIN, AUDITOR, ARCHITECTURE_BOARD, DISCOVERY_ADMIN,
+                MODEL_CREATOR, LIBRARY_ADMIN, USER]
 # model roles (per model, several allowed on one model)
 MODEL_ADMIN, MODEL_SUB_ADMIN, ARCHITECT, REPORT_VIEWER = "model-admin", "model-sub-admin", "architect", "report-viewer"
 COMMITTER, HISTORY_VIEWER = "committer", "history-viewer"   # phase 8 (D165, D151)
@@ -51,6 +56,8 @@ GLOBAL_PERMISSIONS: dict[str, set[str]] = {
     "projects.library": set(),             # the project library: Super Admin only (phase 13, D258)
     "surveys.create": {MODEL_CREATOR, LIBRARY_ADMIN},   # make and run surveys (phase 38.1, D447)
     "maturity.manage": set(),              # EA capability maturity assessments: Super Admin only (phase 40, D451)
+    "governance.board": {ARCHITECTURE_BOARD},   # the organisation's Governance Log: add, change, accept (R5.5.1)
+    "discovery.manage": {DISCOVERY_ADMIN},      # discovery projects and their sources (R5.5)
 }
 # Model permissions: the person's roles on that model
 MODEL_PERMISSIONS: dict[str, set[str]] = {
@@ -98,6 +105,8 @@ TEST_USERS = [
     ("user_super_admin", "eax-super-admin", {}),
     ("user_it_admin", "eax-it-admin", {}),
     ("user_auditor", "eax-audit", {}),                    # sees everything, changes nothing (R5.22)
+    ("user_architecture_board", "eax-architecture-board", {}),   # accepts the organisation's records (R5.5.1)
+    ("user_discovery_admin", "eax-discovery-admin", {}),         # discovery projects and sources (R5.5)
     ("user_keycloak_admin", "eax-keycloak-admin", {}),
     ("user_user_admin", "eax-user-admin", {}),
     ("user_library_admin", "eax-library-admin", {}),

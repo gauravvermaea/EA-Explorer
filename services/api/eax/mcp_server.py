@@ -154,6 +154,11 @@ async def _run(fn, *args, begin: bool = False, **kwargs) -> Any:
         result = cite(_clean(raw), guid)
     except (repo.NotFound, EditError) as exc:
         return {"error": str(exc)}
+    except Exception as exc:                 # the drawn views' service down (R5.5: said, not a server error)
+        from .views_client import ViewsDown
+        if isinstance(exc, ViewsDown):
+            return {"error": f"The drawn views' service does not answer: {exc}"}
+        raise
     if begin and not (isinstance(result, dict) and result.get("error")):
         note_call(wrote=True)
     # one JSON document per call: lists are wrapped, so clients get them in one piece
@@ -829,6 +834,7 @@ log.info("EA Explorer MCP server %s ready at /mcp", __version__)
 from . import (  # noqa: E402,F401
     mcp_analysis,
     mcp_build,
+    mcp_discovery,
     mcp_iterations,
     mcp_more,
     mcp_operations,

@@ -31,6 +31,7 @@ SEEDS = [
     "#/projects/{p}", "#/mcp", "#/library", "#/project-library", "#/principles", "#/compare", "#/compare/gaps", "#/compare/common", "#/change-log",
     "#/notifications", "#/surveys", "#/maturity", "#/change-documents", "#/admin", "#/search?q=self_test", "#/farm",
     "#/farm/connect", "#/more", "#/service-desk/ask", "#/service-desk/mine", "#/service-desk/queue",
+    "#/governance", "#/discovery-projects",
 ]
 # pages the sweep does not open, and why
 SKIP_ROUTES = {

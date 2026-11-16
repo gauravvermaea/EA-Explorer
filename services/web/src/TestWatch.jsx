@@ -16,12 +16,41 @@ import { Phases } from "./TestPhases";
 // can be paused after each step: Step takes one, Continue lets it go.
 const LARGE_MS = 300, TILES_MS = 2000;
 
+// Full screen (R5.5.2; owner, 15 Nov 2026: "when we watch live UI of testing can we make it full screen"; "A thin
+// bar"): the picture fills the screen (the browser's own full screen; Esc leaves it), scaled to fit; a thin bar at the
+// top with the step, Pause, Step and Continue (slow motion) and Exit full screen, hidden after a few seconds and back
+// when the mouse moves. Nothing more is captured than in the panel: the same picture.
+const BAR_HIDE_MS = 3000;
+
 export function LiveBrowser({ runId, open }) {
   const [large, setLarge] = useState("");
   const [d, setD] = useState(null);
   const [frame, setFrame] = useState(null);
   const [err, setErr] = useState("");
   const seq = useRef(0);
+  const stage = useRef(null);
+  const [full, setFull] = useState(false);
+  const [bar, setBar] = useState(true);
+  const hide = useRef(null);
+  useEffect(() => {
+    const changed = () => setFull(document.fullscreenElement === stage.current && !!stage.current);
+    document.addEventListener("fullscreenchange", changed);
+    return () => document.removeEventListener("fullscreenchange", changed);
+  }, []);
+  useEffect(() => {
+    if (!full) return undefined;
+    const show = () => {
+      setBar(true);
+      clearTimeout(hide.current);
+      hide.current = setTimeout(() => setBar(false), BAR_HIDE_MS);
+    };
+    show();
+    const el = stage.current;
+    el?.addEventListener("mousemove", show);
+    return () => { el?.removeEventListener("mousemove", show); clearTimeout(hide.current); };
+  }, [full]);
+  const enterFull = () => { stage.current?.requestFullscreen?.().catch((e) => setErr(`Full screen: ${e.message}`)); };
+  const exitFull = () => { if (document.fullscreenElement) document.exitFullscreen?.(); };
   useEffect(() => {
     if (!open) return undefined;
     let alive = true, timer;
@@ -50,12 +79,27 @@ export function LiveBrowser({ runId, open }) {
         : !d.tiles.length ? <p className="small quiet">No browser is running now (the browser checks run after the API and database checks).
           An older test runner image cannot stream: Watch still shows the steps and the log.</p> : (<>
           <p className="small"><b>{tile?.label}</b>{tile?.step ? ` · ${tile.step}` : ""}<br /><code className="small">{tile?.url}</code></p>
-          {frame && frame.browser === large ? <img className="live-frame" alt={`What the test's browser shows: ${tile?.step || ""}`}
-            src={`data:image/jpeg;base64,${frame.jpeg}`} />
-            : <p className="small quiet">Waiting for the first picture (it comes when the page changes)…</p>}
-          {c.slow && <p className="row-gap small">{c.paused ? <b>Paused after each step</b> : "Running"}
-            <button className="small" onClick={() => control("step")}>Step</button>
-            <button className="small" onClick={() => control(c.paused ? "continue" : "pause")}>{c.paused ? "Continue" : "Pause"}</button></p>}
+          <div ref={stage} className={`live-stage${full ? " full" : ""}`}>
+            {full && (
+              <div className={`live-bar${bar ? "" : " hidden"}`} role="toolbar" aria-label="Live browser">
+                <span className="live-bar-step" title={tile?.url || ""}><b>{tile?.label}</b>{tile?.step ? ` · ${tile.step}` : ""}</span>
+                {c.slow && <>
+                  <span className="small">{c.paused ? "Paused after each step" : "Running"}</span>
+                  <button className="small" onClick={() => control(c.paused ? "continue" : "pause")}>{c.paused ? "Continue" : "Pause"}</button>
+                  <button className="small" onClick={() => control("step")} disabled={!c.paused}>Step</button>
+                </>}
+                <button className="small" onClick={exitFull}>Exit full screen</button>
+              </div>)}
+            {frame && frame.browser === large ? <img className="live-frame" alt={`What the test's browser shows: ${tile?.step || ""}`}
+              src={`data:image/jpeg;base64,${frame.jpeg}`} />
+              : <p className="small quiet">Waiting for the first picture (it comes when the page changes)…</p>}
+          </div>
+          <p className="row-gap small">
+            <button className="small" onClick={enterFull} disabled={!document.fullscreenEnabled}>Full screen</button>
+            {c.slow && <>{c.paused ? <b>Paused after each step</b> : "Running"}
+              <button className="small" onClick={() => control("step")}>Step</button>
+              <button className="small" onClick={() => control(c.paused ? "continue" : "pause")}>{c.paused ? "Continue" : "Pause"}</button></>}
+          </p>
           {d.tiles.length > 1 && <div className="live-tiles">{d.tiles.map((t) => (
             <button key={t.browser} className={`live-tile${t.browser === large ? " on" : ""}`} onClick={() => { seq.current = 0; setFrame(null); setLarge(t.browser); }}>
               {t.thumb ? <img alt="" src={`data:image/jpeg;base64,${t.thumb}`} /> : <span className="quiet small">{t.label}</span>}

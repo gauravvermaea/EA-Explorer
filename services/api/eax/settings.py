@@ -60,6 +60,9 @@ REGISTRY: dict[str, tuple] = {
                          "(System Admin › Scaling, Apply now) (R5.33)."),
     "jobs_slots_scheduled": ("system", "Job slots per API server: scheduled jobs", "int", 2, (1, 16),
                              "The scheduled housekeeping at once on each API server; taken when the servers restart (R5.33)."),
+    "gov_dispensation_warn_days": ("application", "Warn of a dispensation ending (days before)", "int", 30, (1, 365),
+                                   "Its owner, sponsor, the project's Project Admins and Lead Architects and the Architecture "
+                                   "Board are told this many days before a dispensation ends, and again on the day (R5.5.1)."),
     "jobs_waiting_minutes": ("system", "A background job is stuck after waiting (minutes)", "int", 5, (1, 1440),
                              "System Admin › Jobs and the alert 'jobs stuck' count a job waiting longer as stuck (R5.30)."),
     "jobs_running_minutes": ("system", "A background job is stuck after running (minutes)", "int", 60, (5, 1440),

@@ -3,8 +3,8 @@
 // here); each template may sit in areas of its own as well, chosen also while a new template is uploaded. Entity types
 // are placed in their model's metamodel and entities on their own screen. A project inherits these, then its parent
 // project's choices, then makes its own.
-import { useState } from "react";
-import { apiFetch, apiUpload } from "./auth";
+import { useEffect, useState } from "react";
+import { apiBlobUrl, apiDownload, apiFetch, apiUpload } from "./auth";
 import { refreshAll, useApi } from "./ModelViews";
 import { Modal } from "./ModelOps";
 import { AreaChecks, AreaChips, AreaPicker } from "./CfAreaPicker";
@@ -17,6 +17,7 @@ export function TemplateSetup() {
   const [q, setQ] = useState("");
   const [msg, setMsg] = useState({ ok: true, text: "" });
   const [adding, setAdding] = useState(false);
+  const [viewing, setViewing] = useState(null);
   const { data, error } = useApi(`/api/v1/projects/library/template-setup${lib ? `?library=${lib}` : ""}`);
   if (error) return <p className="status bad">{error}</p>;
   if (!data) return <p className="quiet">Loading...</p>;
@@ -87,13 +88,18 @@ export function TemplateSetup() {
                 <td><AreaChips codes={t.class_areas} dflt small /></td>
                 <td>{t.areas.length ? <AreaChips codes={t.areas} small /> : <span className="quiet small">none</span>}</td>
                 <td className="nowrap"><AreaPicker value={t.areas} label={t.areas.length ? "Change…" : "Add areas…"}
-                  resetLabel={t.areas.length ? "None of its own" : ""} onSave={(l) => put(`/api/v1/projects/library/templates/${t.id}/content-area`, l)} /></td>
+                  resetLabel={t.areas.length ? "None of its own" : ""} onSave={(l) => put(`/api/v1/projects/library/templates/${t.id}/content-area`, l)} />
+                  {t.has_file && <> <button className="small" onClick={() => setViewing(t)} title="See what it holds, here">View</button>{" "}
+                    <button className="small" title="Save the file"
+                      onClick={() => apiDownload(`/api/v1/projects/library/templates/${t.id}/file`, t.name).catch((e) => setMsg({ ok: false, text: e.message }))}>Download</button></>}</td>
               </tr>
             ))}
             {!templates.length && <tr><td colSpan={5} className="quiet">{q ? "Nothing matches." : "This library has no templates."}</td></tr>}
           </tbody>
         </table>
       )}
+      {viewing && <TemplateView t={viewing} onClose={() => setViewing(null)}
+        onDownload={() => apiDownload(`/api/v1/projects/library/templates/${viewing.id}/file`, viewing.name).catch((e) => setMsg({ ok: false, text: e.message }))} />}
       {adding && <AddTemplateDialog lib={data.library} classes={data.classes} onClose={() => setAdding(false)}
         onDone={(m) => { setAdding(false); setMsg({ ok: true, text: m }); refreshAll(); }} />}
     </div>
@@ -139,6 +145,42 @@ function AddTemplateDialog({ lib, classes, onClose, onDone }) {
       <h4>This template's own areas too <span className="quiet small">optional: documents made from it sit here as well</span></h4>
       <AreaChecks value={own} onChange={setOwn} />
       {err && <p className="status bad">{err}</p>}
+    </Modal>
+  );
+}
+
+// See a template without downloading it (owner, 16 Nov 2026, 14:03; "Outline only"): a PDF or a picture as it is, Word's
+// headings and paragraphs, PowerPoint's slides, Excel's sheets and first rows, a text file's lines (eax/file_outline.py)
+export function TemplateView({ t, onClose, onDownload }) {
+  const { data, error } = useApi(`/api/v1/projects/library/templates/${t.id}/outline`);
+  const [url, setUrl] = useState("");
+  const [err, setErr] = useState("");
+  useEffect(() => {
+    let made = "";
+    if (data?.show === "file") apiBlobUrl(`/api/v1/projects/library/templates/${t.id}/file`).then((u) => { made = u; setUrl(u); }).catch((e) => setErr(e.message));
+    return () => { if (made) URL.revokeObjectURL(made); };
+  }, [data, t.id]);
+  return (
+    <Modal title={`Template ${t.name}`} onClose={onClose} wide
+      actions={<><button onClick={onDownload}>Download</button><button className="primary" onClick={onClose}>Close</button></>}>
+      {(error || err) && <p className="status bad">{error || err}</p>}
+      {!data && !error && <p className="quiet">Loading...</p>}
+      {data && <div className="tpl-view">
+        <p className="small quiet">{t.item ? `For ${t.phase} · ${t.item}. ` : ""}{(data.size / 1024).toFixed(0)} KB{data.note ? ` · ${data.note}` : ""}</p>
+        {data.show === "file" && url && (data.kind === "pdf"
+          ? <iframe className="tpl-pdf" src={url} title={t.name} />
+          : <img className="tpl-picture" src={url} alt={t.name} />)}
+        {data.show === "outline" && data.kind === "docx" && data.blocks.map((b, i) => b.type === "heading"
+          ? <div key={i} className={`tpl-h tpl-h${Math.min(b.level, 4)}`}>{b.text}</div>
+          : <p key={i} className="tpl-p">{b.text}</p>)}
+        {data.show === "outline" && data.kind === "pptx" && data.blocks.map((s) => (
+          <div key={s.number} className="tpl-slide"><div className="tpl-slide-no">{s.number}</div>
+            <div><b>{s.title}</b>{s.lines.length > 0 && <ul>{s.lines.map((l, i) => <li key={i}>{l}</li>)}</ul>}</div></div>))}
+        {data.show === "outline" && data.kind === "xlsx" && data.blocks.map((s) => (
+          <div key={s.name} className="tpl-sheet"><b>{s.name}</b> <span className="quiet small">{s.rows_total} rows × {s.columns_total} columns</span>
+            {s.rows.length > 0 && <table className="grid-table small"><tbody>{s.rows.map((r, i) => <tr key={i}>{r.map((c, j) => <td key={j}>{c}</td>)}</tr>)}</tbody></table>}</div>))}
+        {data.show === "outline" && data.kind === "text" && <pre className="tpl-text">{data.blocks.map((b) => b.text).join("\n")}</pre>}
+      </div>}
     </Modal>
   );
 }

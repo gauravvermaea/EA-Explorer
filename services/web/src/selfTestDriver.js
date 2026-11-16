@@ -300,7 +300,7 @@ export async function sweep(f, browser, errors, report, onPage) {
 // The forms of the eax command (D331). commandLine mirrors store.command_line (services/api/eax/testing/store.py);
 // test_selftest_coverage.py runs both on the same runs and compares them.
 export const CLI_FORMS = [[".\\eax", "Windows"], ["./eax.sh", "Linux or Mac"], [".\\eaxpy", "eaxpy, Windows"], ["./eaxpy.sh", "eaxpy, Linux or Mac"]];
-export const ALL_SUITES = ["api", "ui", "db", "jobs", "security", "reports", "backup"];   // jobs (R5.46); reports (R4.1); backup: the last of a full test (R2.45)
+export const ALL_SUITES = ["api", "ui", "db", "jobs", "mcp", "security", "reports", "backup"];   // jobs (R5.46); reports (R4.1); backup: the last of a full test (R2.45)
 
 export function commandLine(run, eax = ".\\eax") {
   const bits = [eax, "test"];

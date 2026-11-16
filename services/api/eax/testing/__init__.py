@@ -14,6 +14,8 @@ Levels:
               db        read-only database checks
               jobs      the job queue: the runner takes jobs, nothing stuck or left by a stopped runner, Cancel,
                         Move and Kill work (on probes rolled back), every scheduled job has its lock (R5.46)
+              mcp       the MCP server over HTTP as an AI client calls it: every tool listed, every tool that reads
+                        called with the run's data, refusals (no token, read-only, the wrong role), the AI activity log
               security  headers and cookies, the Python dependencies (pip-audit), an OWASP ZAP baseline scan and Trivy
                         image scans (run by the operations helper next to the runner)
 Filters: one role, one API area.
@@ -25,7 +27,7 @@ fixtures stay until an admin purges them (Self-test > Test fixtures, `eax test -
 run recorded (fixtures.py). The report (HTML and Excel) stays after the purge, marked "fixtures removed".
 """
 
-SUITES = ("api", "ui", "db", "jobs", "security", "reports", "performance", "backup", "restore")   # reports (R4.1); performance (R5.18); backup (R2.45), then restore (R3.8): the last
+SUITES = ("api", "ui", "db", "jobs", "mcp", "security", "reports", "performance", "backup", "restore")   # reports (R4.1); performance (R5.18); backup (R2.45), then restore (R3.8): the last
 WEB_SUITES = SUITES[:-1]       # restore runs from the command line only (it stops the services the web runs on)
 # run only when asked for by name, never as part of the full test (owner, 15 Nov 2026, 19:22: "I dont want full test to
 # run performance test"; R5.29): eax test performance, Performance alone on the Self-test page, and CI's nightly job

@@ -28,6 +28,7 @@ const SUITES = [
   ["ui", "Browser", "the main journeys through the screens"],
   ["db", "Database", "read-only checks of the database"],
   ["jobs", "Jobs", "the job queue: the runner takes jobs, the alert checks run, nothing stuck or left by a stopped runner, every scheduled job has its lock, and Cancel, Move and Kill work (on probe jobs, rolled back) (R5.46)"],
+  ["mcp", "MCP", "the MCP server over HTTP, as an AI client calls it: every tool listed, every tool that reads called with the run's own data (never a server error), a change kept as the person's own, refused without a token, with a read-only token and without the role, and every call in the AI activity log"],
   ["security", "Security", "headers, cookies, the dependencies, code and secrets scans, Release 3's attacks, OWASP ZAP (signed in and not) and Trivy; a gate on high and critical findings (R5.17)"],
   ["performance", "Performance", "the benchmark: the test model filled, every read timed, then k6 with many people at once, against the last release's baseline (R5.18); only when chosen on its own, never in the full test (R5.29)", true],
   ["backup", "Backups", "the last: an infrastructure and an application backup, each restored into a scratch copy, then removed (R2.45)"],

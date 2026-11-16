@@ -371,7 +371,7 @@ $ {eax} import --all
 > Checks that Docker is running and the config and compose files are valid. Starts nothing.
 $ {eax} check
 
-### test [smoke|full|jobs|reports|security|performance|backup|restore|ui-review|failed [run] [--warnings]|watch [run] [--log|--browser]|stop [run]|api <method> <path>|delete <run|all> [--older-than DAYS]|clean] [--yes]
+### test [smoke|full|jobs|mcp|reports|security|performance|backup|restore|ui-review|failed [run] [--warnings]|watch [run] [--log|--browser]|stop [run]|api <method> <path>|delete <run|all> [--older-than DAYS]|clean] [--yes]
 > Test this installation: smoke or full; only what failed last time; or delete the test data.
 The same two tests as System Admin > Tools > Self-test (owner, 12 Nov 2026, D592: "Smoke or Full. Not too many
 options"); a run started in either place shows in both. Each run first removes any test data earlier runs left
@@ -395,6 +395,10 @@ and IT Admins.
           in the last 10 minutes); no job stuck being worked on or waiting too long, none left by a job runner that
           stopped; every scheduled job runs one copy at a time; every job has a name in words; and Cancel, Move up and
           down, and Kill work, tried on probe jobs in a transaction that is rolled back (nothing is left)
+  mcp     only the MCP server (part of full): called over HTTP as an AI client calls it, no language model; every
+          tool listed, every tool that reads called with the run's own data and never a server error, a change kept
+          as the person's own, refused without a token, with a read-only token and without the role, every call in
+          the AI activity log
   reports  only the reports (part of full, R4.1): Keycloak test users for the run (a Super Admin, a Report Viewer and an
           IT Admin, deleted at the end) sign in to Reports in a headless browser; every report dashboard opens as the
           Super Admin and the Report Viewer with every chart answering (slower than 30 seconds a warning, not loaded after

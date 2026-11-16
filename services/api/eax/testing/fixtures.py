@@ -81,6 +81,19 @@ def accounts(conn, run: dict, by: str, roles: list[str], log) -> dict[str, str]:
     return tokens
 
 
+def read_only_mcp_token(engine, run: dict, by: str) -> str:
+    """A one-day token for the run's Super Admin account that may only read through MCP (the MCP suite's read-only
+    check), recorded with the run's credentials: revoked when the run ends, removed with its fixtures."""
+    from .. import machine_access as ma
+    sid = store.short(run["run_guid"])
+    with engine.begin() as conn:
+        cred = ma.create(conn, by, [perms.SUPER_ADMIN], {"kind": "token", "owner": f"svc-self-test-{sid}-super-admin", "days": 1,
+                                                        "name": f"self_test_{sid} read-only MCP", "scopes": {"mcp": "read"}})
+        with store.tests(conn) as tc:
+            store.add_fixture(tc, run["id"], "credential", cred["guid"], f"self_test_{sid}_token_mcp_read")
+    return cred["secret"]
+
+
 def models_and_project(engine, run: dict, by: str, roles: list[str], log) -> dict[str, str]:
     """The run's models and project, made through the same functions as the screens and MCP, as its super-admin account.
     engine: the repository's; each fixture is recorded in the tests database (store.engine()). Returns the ids the tests
@@ -347,6 +360,17 @@ def purge(conn, run_id: int, by: str, kinds: list[str] | None = None, fixture_id
                 pc.execute(text("DELETE FROM proj.projects WHERE id = :i"), {"i": p["id"]})
                 counts["projects"] += 1
     say(50, "projects removed")
+    if not kinds and not fixture_ids:            # Release 5.5's self-test data, named for the run (discovery_projects_check)
+        n = conn.execute(text("DELETE FROM core.discovery_projects WHERE name LIKE :n"), {"n": f"self\\_test\\_{sid}\\_%"})
+        counts["discovery_projects"] = max(0, n.rowcount or 0)
+        try:
+            from .. import projects as pj
+            with pj.connections(True) as pc:
+                n = pc.execute(text("DELETE FROM proj.gov_records WHERE project_id IS NULL AND title LIKE :n"),
+                               {"n": f"self\\_test\\_{sid} %"})
+                counts["governance_records"] = max(0, n.rowcount or 0)
+        except Exception as exc:  # noqa: BLE001 - projects switched off: nothing was logged there
+            counts["notes"].append(f"Governance Log not cleaned: {exc}")
     model_rows = [x for x in rows if x["kind"] == "model"]
     if model_rows:
         found = conn.execute(text("SELECT id, guid::text AS g, name FROM core.models WHERE guid::text = ANY(:g)"),

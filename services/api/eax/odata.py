@@ -396,11 +396,16 @@ def query(conn, model: Any, table_name: str, args: dict[str, str], base: str) ->
     if table is None:
         raise ODataError(f"There is no table {table_name} in {m['name']}; the service document lists them.", 404)
     columns = [c for c, _e, _s in table["columns"]]
+    return page(rows(conn, m, table), columns, args, base, table_name)
+
+
+def page(data: list[dict], columns: list[str], args: dict[str, str], base: str, table_name: str) -> dict:
+    """One page of rows with the query options applied ($select, $filter, $orderby, $top, $skip, $count, $skiptoken):
+    a model's tables and the governance feed (R5.5.1) alike."""
     sel = [s.strip() for s in (args.get("$select") or "").split(",") if s.strip()]
     for s in sel:
         if s != "*" and s not in columns:
             raise ODataError(f"$select: there is no column '{s}'.", 400)
-    data = rows(conn, m, table)
     flt = parse_filter(args.get("$filter") or "", set(columns))
     if flt is not None:
         data = [r for r in data if evaluate(flt, r)]
@@ -445,3 +450,34 @@ def query(conn, model: Any, table_name: str, args: dict[str, str], base: str) ->
 def feed_url(base_url: str, model_guid: str) -> str:
     """The address a person pastes into Power BI or Excel (Get data > OData feed)."""
     return f"{base_url.rstrip('/')}/api/v1/odata/models/{model_guid}/"
+
+
+# ---------------------------------------------------------------- the governance feed (R5.5.1)
+GOV_TABLE = "GovernanceDecisions"
+
+
+def gov_url(base_url: str) -> str:
+    """The governance feed's address: every ADR, decision and dispensation the person may read."""
+    return base_url.rstrip("/") + "/api/v1/odata/governance/"
+
+
+def gov_service_document(base: str) -> dict:
+    """The governance feed's service document: its one table, GovernanceDecisions."""
+    return {"@odata.context": f"{base}$metadata", "value": [{"name": GOV_TABLE, "kind": "EntitySet", "url": GOV_TABLE}]}
+
+
+def gov_metadata() -> str:
+    """The governance feed's $metadata (CSDL XML): the table's columns and their types."""
+    from .decisions import REPORT_COLUMNS
+    props = "".join(f'<Property Name="{c}" Type="{t}"/>' for c, t in REPORT_COLUMNS)
+    return ('<?xml version="1.0" encoding="utf-8"?><edmx:Edmx Version="4.0" xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx">'
+            f'<edmx:DataServices><Schema Namespace="{NS}" xmlns="http://docs.oasis-open.org/odata/ns/edm">'
+            f'<EntityType Name="{GOV_TABLE}"><Key><PropertyRef Name="Id"/></Key>{props}</EntityType>'
+            f'<EntityContainer Name="Container"><EntitySet Name="{GOV_TABLE}" EntityType="{NS}.{GOV_TABLE}"/></EntityContainer>'
+            '</Schema></edmx:DataServices></edmx:Edmx>')
+
+
+def gov_query(rows_: list[dict], args: dict[str, str], base: str) -> dict:
+    """One page of the governance feed's rows, with the query options applied."""
+    from .decisions import REPORT_COLUMNS
+    return page(rows_, [c for c, _t in REPORT_COLUMNS], args, base, GOV_TABLE)

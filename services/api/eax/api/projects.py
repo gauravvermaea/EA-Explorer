@@ -17,7 +17,8 @@ POST   /projects/<p>/steps/<s>/done                {done: true|false}: mark a st
 POST   /projects/<p>/documents/<d>/checkout        check it out to yourself
 POST   /projects/<p>/documents/<d>/checkin         check in the new file (multipart "file", "comment" (required), "user_version")
 POST   /projects/<p>/documents/<d>/undo-checkout   end a check-out without a new version
-POST   /projects/library/templates/<id>/file       a TOGAF template's file (Super Admins; multipart "file")
+POST   /projects/library/templates/<id>/file       a TOGAF template's file (Super Admins; multipart "file"); GET downloads it
+GET    /projects/library/templates/<id>/outline    what it holds, as text, to see it in the browser
 POST   /projects/library/templates/load            store every matching file of the TOGAF folder (Super Admins)
 POST   /projects/library/setup                     {shared: [library ids]}: the template library setup (Super Admins, D264)
 POST   /projects/library/libraries                 a new template library from a zip (multipart "file", "name", "description")
@@ -244,6 +245,21 @@ class TemplateFile(MethodView):
         name, data = _file()
         return _run(lambda c: pj.upload_template(c, g.user, template_id, name, data), write=True,
                     action="project.library.template", obj=template_id)
+
+
+@blp.route("/projects/library/templates/<int:template_id>/outline")
+class TemplateOutline(MethodView):
+    """/api/v1/projects/library/templates/{template_id}/outline: GET what a library template holds, to see it without
+    downloading it (Template setup's View): Word's headings and paragraphs, PowerPoint's slides, Excel's sheets and
+    first rows, a text file's lines; a PDF or a picture is shown as it is (its /file)."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth()
+    def get(self, template_id):
+        """What a library template holds, as text (anyone the library is offered to)"""
+        from .. import file_outline
+        data, _ctype, name = _run(lambda c: pj.library_template_file(c, g.user, template_id))
+        return file_outline.outline(name, data)
 
 
 @blp.route("/repository/summary")

@@ -343,3 +343,20 @@ generated, mcp, model-copy, merge or package, `source_note`, `is_deleted`), `vie
 (a model's own generated views, D406: a view definition, `copied_from` the standard view's code). EAX_VIEWS_KEEP_VERSIONS
 keeps the last n versions of each view (0: all), never a held or the latest one. Rows only: the rules are in `eax/drawn_views.py`, `eax/notation.py` and `eax/junctions.py` (D248).
 
+
+## Decision records, dispensations and enterprise discovery (Release 5.5, migrations 0093 and 0094)
+
+`proj.gov_records` gains the organisation's own records (`project_id` empty), `phase`, `record_type`, `sponsor`,
+`fields` (the template's fields), `warned_on`, `ended_on` and `found_in` (where the discovery AI found it);
+`proj.gov_links` links a record to elements, requirements, principles, standards and other records; `core.governance_report`
+(read through `rpt.v_governance_decisions` by the report login and the OData feed) is refreshed every hour. The Architecture
+Board is a global role (`architecture-board`, Keycloak `eax-architecture-board`).
+
+Enterprise discovery (D705): `core.discovery_projects` (a name, the `target_model` guid, `set_up_by`, the defaults of a
+run, the schedule and `next_due_at`), `core.discovery_resources` (a source: `kind`, `location`, `include`,
+`attachments`, `sign_in` the method only, the last test, `position` where the last run got to), `core.discovery_runs`
+(each run: `run_by` the AI's sign-in, `on_behalf_of`, the modes, `start_tag` and `end_tag`, `counts`),
+`core.discovery_found_in` (where each element or relationship was found), `core.discovery_skipped` (items marked NOT
+FOR AI USE: title, place and date only), `core.discovery_maybe_same` and `core.discovery_not_found`. No column holds a
+sign-in. The Discovery Admin is a global role (`discovery-admin`, Keycloak `eax-discovery-admin`). Rows only: the rules
+are in `eax/decisions.py` and `eax/discovery_projects.py` (D248).

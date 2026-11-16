@@ -695,6 +695,10 @@ def _repeat_detailed(r: Run, p: dict, spec: dict, tokens: dict[str, str], test_t
         from . import jobs_check
         r.log("jobs: the job queue's checks again")
         jobs_check.run(r.repo, r.recorder("jobs"))
+    if "mcp" in p["suites"]:                        # the MCP suite is quick: all again
+        from . import mcp_check
+        r.log("MCP: the MCP suite again")
+        mcp_check.run(API, tokens, ids, r.recorder("mcp"))
     if p["api"]:
         r.log(f"API: the {len(p['api'])} failed endpoint check(s) again")
         api_matrix.run(API, spec, test_tokens, ids, ids.get("other_model"), r.recorder("api"), area=area, only=set(p["api"]))
@@ -813,6 +817,11 @@ def cmd_run(args) -> int:
                 from . import jobs_check
                 r.log("jobs: the runner takes jobs, nothing stuck, Cancel, Move and Kill on probes (rolled back)")
                 jobs_check.run(repo, r.recorder("jobs"))
+            if "mcp" in suites:                       # the MCP server over HTTP, as an AI client calls it
+                from . import mcp_check
+                r.log("MCP: every tool that reads, called over HTTP as an AI client calls it; refusals; the AI activity log")
+                mcp_check.run(API, tokens, ids, r.recorder("mcp"),
+                              read_only_token=lambda: fixtures.read_only_mcp_token(repo, run, by))
             if "api" in suites:
                 r.log(f"API: every endpoint{f' of {area}' if area else ''}, as {', '.join(test_tokens)}")
                 api_matrix.run(API, spec, test_tokens, ids, ids.get("other_model"), r.recorder("api"), area=area)
@@ -825,6 +834,11 @@ def cmd_run(args) -> int:
                     from . import discovery_check
                     r.log("API: discovery: a push source in the run's test model, only what changed, a near name")
                     discovery_check.run(API, tokens, ids, r.recorder("api"))
+                    from . import (
+                        discovery_projects_check,  # Release 5.5: discovery through REST and MCP, decision records
+                    )
+                    r.log("API and MCP: enterprise discovery as an AI runs it (the reading assumed), decision records and dispensations")
+                    discovery_projects_check.run(API, tokens, ids, r.recorder("api"))
             guarded = "ui" in suites and not getattr(args, "ui_review", False) and _admin_journey(journeys, role, args.pages_only)
             if guarded:                                  # the real banner and schedules, put back however the run ends (D583)
                 admin_before = _admin_guard(tokens, "before", r.log)
@@ -899,7 +913,7 @@ def _close_access(engine, run_id: int, by: str, repo=None) -> None:
         conn.execute(text("UPDATE tests.test_runs SET browser = jsonb_build_object('done', true) WHERE id = :id"), {"id": run_id})
 
 
-SUITE_NAMES = {"smoke": "Smoke", "api": "API", "ui": "Pages and journeys", "db": "Database", "jobs": "Jobs", "security": "Security", "reports": "Reports",
+SUITE_NAMES = {"smoke": "Smoke", "api": "API", "ui": "Pages and journeys", "db": "Database", "jobs": "Jobs", "mcp": "MCP", "security": "Security", "reports": "Reports",
                "performance": "Performance", "backup": "Backups", "restore": "Restore"}
 
 
