@@ -227,7 +227,8 @@ $ {eax} persist delete --all --yes
 
 ### backup [tag]
 > Takes an infrastructure backup now: every database, the document files, the certificate and config.
-Also the release and image versions. Into work/backups/infrastructure (D216, D226).
+Also the release and image versions. Into work/backups/infrastructure (D216, D226). The maintenance page is on and the
+background paused while it runs, once what the background was doing has finished (nothing is killed; D721).
 $ {eax} backup
 $ {eax} backup before-upgrade
 

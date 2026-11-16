@@ -49,23 +49,24 @@ def is_quiet(now: float | None = None) -> bool:
         return False
 
 
-def _page(on: bool) -> None:
+def _page(on: bool, what: str = QUIET_WHAT) -> None:
     """The proxy's maintenance page alone (the API stays writable for the test): on or off."""
     flag = H["PROXY_FLAG"]
     if on:
         os.makedirs(os.path.dirname(flag), exist_ok=True)
         with open(flag, "w", encoding="utf-8") as f:
-            f.write(f"{QUIET_WHAT}\n")
+            f.write(f"{what}\n")
     elif os.path.exists(flag) and not H["maintenance"]():
         os.remove(flag)
 
 
-def quiet(action: str, by: str) -> dict:
-    """The maintenance page and the paused background on (the test starts) or off (it ends)."""
+def quiet(action: str, by: str, what: str = QUIET_WHAT) -> dict:
+    """The maintenance page and the paused background on (the test, the drill, a DR pack or any infrastructure backup
+    starts) or off (it ends)."""
     if action == "on":
         with open(quiet_path(), "w", encoding="utf-8") as f:
-            json.dump({"since": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "by": by, "what": QUIET_WHAT}, f)
-        _page(True)
+            json.dump({"since": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "by": by, "what": what}, f)
+        _page(True, what)
         return {"quiet": True, "page": True}
     if action != "off":
         raise ValueError("quiet on or off")
@@ -125,7 +126,8 @@ def backup(tag: str, by: str, version: str) -> dict:
     finally:
         H["_block"].release()
     return {"name": m.get("name", ""), "status": m.get("status"), "error": m.get("error", ""),
-            "seconds": round(time.time() - t0), "bytes": _size(m.get("name", "")), "version": m.get("version", "")}
+            "seconds": round(time.time() - t0), "bytes": _size(m.get("name", "")), "version": m.get("version", ""),
+            "parts": m.get("parts") or {}}
 
 
 def restore(name: str, what: str, by: str, version: str) -> dict:

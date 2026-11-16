@@ -148,7 +148,12 @@ application/uploaded/...                          files brought from another ins
   the config file, D222): on or off, when (in the installation's time zone), the tag, how many to keep, when the health
   check warns. Defaults: infrastructure every day at 01:00, application every Sunday at 02:00; both on.
 * **Infrastructure**: on its schedule and on demand (`.\eax backup <tag>` or Back up now). The operations helper runs
-  it; people keep working. It holds **all of Documents**: Mayan's database (`databases/mayan.dump`) and every version
+  it with **the maintenance page on and the background paused**, after waiting for what the background was doing to
+  finish (a project's documents being made, a job running; at most 30 minutes, `EAX_BACKUP_IDLE_WAIT`; nothing is
+  killed: if it has not finished the backup goes ahead and its log and manifest say what was still going), so every
+  database and file is of one moment; then the page goes off and the background comes back (owner, 17 Nov 2026, D721).
+  A few minutes on a laptop; the nightly one runs at 01:00 for that reason. Application and project backups stay
+  online. It holds **all of Documents**: Mayan's database (`databases/mayan.dump`) and every version
   of every document file (`files/documents.tar.gz`); the Holds column shows **✓ Documents**. Restoring it with
   *full* or *app+data* (on the screen, or `.\eax restore <name> --what full|app+data`), or *files* (Documents' files with its own database, the certificate, the reports' home, the import and export folders),
   puts Documents back as it was.

@@ -1773,6 +1773,49 @@ def contents(parts: dict) -> dict:
             "not_included": dict(NOT_NEEDED)}
 
 
+BACKUP_IDLE_WAIT = int(os.environ.get("EAX_BACKUP_IDLE_WAIT", "1800"))   # seconds a backup waits for the background
+
+
+def _api_idle(wait: int) -> dict:
+    """The API container's view of the background (eax/testing/backup_restore.idle): waits until it has finished what it
+    was doing, at most wait seconds. {"idle": bool, "waited": s, "error": what is still going}, or {"skipped": why}."""
+    c = _container("api")
+    if not c or c["state"] != "running":
+        return {"skipped": "the API is not running, so nothing of it is working"}
+    try:
+        r = subprocess.run(["docker", "exec", "-i", c["id"], "python", "-m", "eax.testing.backup_restore", "idle"],
+                           input=json.dumps({"wait": wait}), capture_output=True, text=True, timeout=wait + 300)
+    except subprocess.TimeoutExpired:
+        return {"idle": False, "error": f"no answer within {wait // 60} minutes"}
+    for line in reversed((r.stdout or "").strip().splitlines()):
+        if line.strip().startswith("{"):
+            try:
+                return json.loads(line)
+            except ValueError:
+                break
+    return {"idle": False, "error": (r.stderr or r.stdout or "no answer").strip()[-300:]}
+
+
+def _quiet_for_backup(name: str, by: str) -> tuple[bool, dict]:
+    """The maintenance page on and every recurring job paused (brtest.quiet), then the background waited for until it has
+    finished (a project's documents being made, a job running): (whether quiet was put on here, what happened). Already
+    quiet (the backup and restore test, the drill, a DR pack): left as it is. Nothing is killed: when the background has
+    not finished within BACKUP_IDLE_WAIT the backup goes ahead, and its manifest and log say what was still going."""
+    if brtest.is_quiet():
+        return False, {}
+    brtest.quiet("on", by or "backup", what=f"A backup is being taken ({name}): EA Explorer is back in a few minutes.")
+    _blog(f"backup {name}: the maintenance page on and the background paused; waiting for it to finish what it was doing")
+    w = _api_idle(BACKUP_IDLE_WAIT)
+    if w.get("skipped"):
+        _blog(f"backup {name}: {w['skipped']}")
+        return True, {"paused": True, "waited": 0, "note": w["skipped"]}
+    if not w.get("idle"):
+        _blog(f"backup {name}: WARNING, taken while the background was still busy: {w.get('error', '')}")
+        return True, {"paused": True, "waited": w.get("waited"), "still_busy": w.get("error", "")}
+    _blog(f"backup {name}: the background finished (waited {w.get('waited', 0)} s)")
+    return True, {"paused": True, "waited": w.get("waited", 0)}
+
+
 def _do_backup(tag: str, by: str, kind: str, version: str, pinned: bool = False, keep: int = 0) -> dict:
     """One infrastructure backup, now (the caller holds _block). Returns its manifest."""
     stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
@@ -1786,7 +1829,14 @@ def _do_backup(tag: str, by: str, kind: str, version: str, pinned: bool = False,
     started = time.time()
     if os.path.exists(STOP_FLAG):
         os.remove(STOP_FLAG)
+    quieted = False
     try:
+        # every infrastructure backup with the maintenance page on and the background paused and finished first, so its
+        # databases and files are of one moment (the owner, 17 Nov 2026, 00:43: "When we backup we must ensure mantainance
+        # page comes up and all background jobs shut down. Thats the only way this will work"; nothing is ever killed)
+        quieted, q = _quiet_for_backup(name, by)
+        if q:
+            manifest["quiet"] = q
         _blog(f"backup {name}: release, images and config")
         _write_code_and_config(folder, version)
         c = _container("backup")
@@ -1803,6 +1853,10 @@ def _do_backup(tag: str, by: str, kind: str, version: str, pinned: bool = False,
         manifest.update(status="ok", parts=parts, contents=contents(parts), seconds=round(time.time() - started))
     except Exception as exc:  # noqa: BLE001 - recorded on the backup and shown
         manifest.update(status="failed", error=str(exc)[:500], seconds=round(time.time() - started))
+    finally:
+        if quieted:
+            brtest.quiet("off", by)
+            _blog(f"backup {name}: the maintenance page off and the background back")
     if manifest["status"] != "ok" and os.path.exists(STOP_FLAG):    # stopped by hand (D231): the partial folder goes
         with open(STOP_FLAG, encoding="utf-8") as f:
             who = f.read().strip()

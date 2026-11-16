@@ -54,7 +54,9 @@ export default function AdminBackups() {
         release and image versions; restoring it here or with <code>.\eax restore</code> puts Documents back too. The <b>application
         backup</b> keeps every model, and every project with its documents, as files you can download, restore, or take to another
         installation; restoring it here or with <code>.\eax restore-app</code> puts the projects and their documents back too. A <b>project
-        backup</b> keeps one project with its models and documents. They run in the background while people work; when they run and how
+        backup</b> keeps one project with its models and documents. An <b>infrastructure backup puts the maintenance page on</b> for
+        the few minutes it takes, once the background has finished what it was doing, so all of it is of one moment; application and
+        project backups run in the background while people work. When they run and how
         many are kept is set under Schedules (pinned ones are always kept). Folder: <code>{data.folder}</code>.
         {!data.on && <strong className="status bad"> Backups are switched off (Administration &gt; Services).</strong>}</p>
       {msg && <p className="status ok">{msg}</p>}
@@ -167,6 +169,9 @@ function InfraSection({ data, onRestore, act, gate }) {
   const all = infra.infrastructure || [];
   const list = all.filter((b) => matches(b, q));
   async function backupNow() {
+    // eslint-disable-next-line no-alert
+    if (!window.confirm("Back up the whole installation now? The maintenance page is on for everyone (you too) for the few minutes "
+      + "it takes, once the background has finished what it was doing; then EA Explorer comes back by itself.")) return;
     await act(async () => { const t = await apiFetch("/api/v1/admin/backups/infrastructure", { method: "POST", body: JSON.stringify({ tag }) }); trackTask(t, "#/admin/backups"); setTag(""); return t; },
       () => "Backing up in the background: it is listed here when done, and the top bar says so.");
   }
