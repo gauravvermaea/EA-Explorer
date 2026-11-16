@@ -225,15 +225,16 @@ that the restore said it finished, but that no row and no file was lost or added
 
 | What differs | Counts as |
 | --- | --- |
-| A table with more or fewer rows; a file missing or new | **Failed**: data was lost or added |
-| A file of the data with another checksum: a stored document, persist/, the import and export folders, the certificate, the config file | **Failed** |
-| A table with the same rows but other content (a value EA Explorer rewrote when it started: a date, a setting refreshed) | Allowed, listed |
-| A history table with more rows (EA Explorer noting what it did at start-up, such as refreshing its shipped documentation) | Allowed, listed |
-| A service's own file with another checksum (Reports' home, Documents' settings files beside the stored documents: rewritten when they start) | Allowed, listed |
+| A database or a table gone; a table with fewer rows; a file gone | **Failed**: data was lost |
+| A table with more rows or other content; a file new or with another checksum | Noted in the report, not failed: EA Explorer and its services write things of their own when they start (dates, settings, roles, history) |
 | Tables and files that change all the time (sign-in sessions, logs, the job queue, caches, heartbeats) | Not compared, listed |
 
-So a new release that rewrites a setting or a date at start-up never makes a good recovery look bad, while a lost
-row, document or file always fails it.
+The test and the drill also check the broad things directly: each backup holds every main database and all of
+Documents; what the test made is gone after the older backup and back, exactly, after the newer one; its documents
+download with the checksums they were uploaded with; and sign-in, search, the KPIs and new work all work afterwards.
+
+So a release that writes something of its own at start-up never makes a good recovery look bad, while a lost row,
+table, document or file always fails it.
 
 The fingerprint holds no data: only counts and checksums. The pack's secrets are in the backup and the env file.
 

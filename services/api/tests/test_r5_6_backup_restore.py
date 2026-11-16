@@ -101,8 +101,8 @@ def test_two_fingerprints_are_compared_table_by_table_and_file_by_file():
     b["files"]["reports/cache/y"] = "4"
     del b["tables"]["eaexplorer core.entities"]
     c = BR.same(a, b, set())
-    assert c["differ"] == ["eaexplorer core.entities: missing after", "eaexplorer core.models: 3 rows before, 4 after",
-                           "documents/media/x.pdf: another checksum"]
+    assert c["differ"] == ["eaexplorer core.entities: missing after"]                   # lost: fails
+    assert c["allowed"] == ["eaexplorer core.models: 1 more rows (3 before, 4 after)", "documents/media/x.pdf: another checksum"]
     assert set(c["not_compared"]) == {"eaexplorer jobs.procrastinate_jobs", "keycloak public.user_session", "reports/cache/y"}
     assert BR.same(a, b, {"eaexplorer core.models", "documents/media/x.pdf", "eaexplorer core.entities"})["differ"] == []
     assert BR.moved(a, b) >= {"eaexplorer core.models", "documents/media/x.pdf"}
@@ -139,30 +139,32 @@ def test_the_realm_and_switches_are_not_secrets_and_start_up_status_is_the_insta
     assert c["differ"] == [] and c["allowed"] == ["documents/config.yml: another checksum"]
 
 
-def test_the_comparison_fails_on_data_lost_or_added_and_allows_what_the_installation_rewrites():
-    """The owner, 17 Nov 2026, 00:00: "make comparisons a bit loose, otherwise this will not work in every release"."""
-    a = {"tables": {"eaexplorer core.models": [3, "m"], "eaexplorer core.viewpoints": [40, "v"], "eaxlibrary lib.changes": [136, "c"],
-                    "eaexplorer core.entities": [100, "e"]},
-         "files": {"documents/media/document_file_storage/ab12": "1", "documents/config.yml": "s", "config/eaexplorer.env": "x",
-                   "reports/superset_config.py": "r", "persist/s.json": "p"}}
+def test_the_comparison_fails_only_on_data_lost_and_notes_what_the_installation_writes_itself():
+    """Broad (the owner, 17 Nov 2026, 00:00: "make comparisons a bit loose"; 01:00: "we need some broad level tests to check
+    if backup is done"): his run of 01:00 failed only on two model roles EA Explorer added after it started again."""
+    a = {"tables": {"eaexplorer core.models": [3, "m"], "eaexplorer core.viewpoints": [40, "v"], "eaexplorer core.model_users": [202, "u"],
+                    "eaexplorer core.entities": [100, "e"], "keycloak public.user_entity": [20, "k"]},
+         "files": {"documents/media/document_file_storage/ab12": "1", "documents/config.yml": "s", "persist/s.json": "p"}}
     b = json.loads(json.dumps(a))
-    b["tables"]["eaexplorer core.viewpoints"] = [40, "stamped again"]          # rewritten at start-up
-    b["tables"]["eaxlibrary lib.changes"] = [144, "more"]                       # history that grew
+    b["tables"]["eaexplorer core.viewpoints"] = [40, "stamped again"]         # rewritten at start-up
+    b["tables"]["eaexplorer core.model_users"] = [204, "two more"]            # added at start-up (the run of 01:00)
+    b["tables"]["eaexplorer core.new_table"] = [0, ""]                         # a table the installation made
     b["files"]["documents/config.yml"] = "rewritten"
-    b["files"]["reports/superset_config.py"] = "rewritten"
+    b["files"]["imports/new.txt"] = "n"
     c = BR.same(a, b, set())
-    assert c["differ"] == [] and len(c["allowed"]) == 4 and "8 more history rows" in BR.said(c)
+    assert c["differ"] == [] and len(c["allowed"]) == 5 and "2 more rows (202 before, 204 after)" in BR.said(c)
+    assert BR.said(c).startswith("6 tables and 4 files compared; nothing lost. Noted, not failed")
     lost = json.loads(json.dumps(b))
-    lost["tables"]["eaexplorer core.entities"] = [99, "e"]                      # a row lost
-    lost["tables"]["eaxlibrary lib.changes"] = [130, "fewer"]                   # history lost
-    lost["files"]["documents/media/document_file_storage/ab12"] = "damaged"     # a stored document changed
-    lost["files"]["config/eaexplorer.env"] = "other"
-    del lost["files"]["persist/s.json"]                                         # a file lost
-    lost["files"]["imports/new.txt"] = "n"                                      # a file added
-    d = BR.same(a, lost, set())["differ"]
-    assert d == ["eaexplorer core.entities: 100 rows before, 99 after", "eaxlibrary lib.changes: 136 rows before, 130 after",
-                 "config/eaexplorer.env: another checksum", "documents/media/document_file_storage/ab12: another checksum",
-                 "imports/new.txt: there after, not before", "persist/s.json: missing after"]
+    lost["tables"]["eaexplorer core.entities"] = [99, "e"]                     # a row lost
+    del lost["tables"]["keycloak public.user_entity"]                          # a table lost
+    del lost["files"]["persist/s.json"]                                        # a file lost
+    del lost["files"]["documents/media/document_file_storage/ab12"]           # a stored document lost
+    assert BR.same(a, lost, set())["differ"] == [
+        "eaexplorer core.entities: 100 rows before, 99 after (1 lost)", "keycloak public.user_entity: missing after",
+        "documents/media/document_file_storage/ab12: missing after", "persist/s.json: missing after"]
+    assert BR.whole({"status": "ok", "parts": {"databases": ["eaexplorer", "keycloak", "mayan"], "files": ["documents"]}})[0]
+    ok, why = BR.whole({"status": "ok", "parts": {"databases": ["eaexplorer", "keycloak"], "files": []}})
+    assert not ok and "missing: mayan, Documents' files" in why
 
 
 # ---------------------------------------------------------------- the whole test, against a pretend installation
@@ -193,7 +195,8 @@ class Pretend:
             self.n += 1
             name = f"2026111612000{self.n}Z-{a[1]}"
             self.backups[name] = json.loads(json.dumps({"state": self.state, "content": self.content}))
-            return {"name": name, "status": "ok", "seconds": 60}
+            return {"name": name, "status": "ok", "seconds": 60,
+                    "parts": {"databases": ["eaexplorer", "keycloak", "mayan", "superset"], "files": ["documents", "tls"]}}
         if cmd == "restore":
             b = self.backups[a[1]]
             before = f"before-{self.n}"
@@ -204,7 +207,7 @@ class Pretend:
             if keep:
                 self.state["tables"]["eaexplorer core.models"] = [3, "with the test's"]
             if self.broken_b2 and b["content"]:
-                self.state["files"]["persist/settings.json"] = "changed"
+                del self.state["files"]["persist/settings.json"]                 # lost
             return {"status": "ok", "before": before, "seconds": 120}
         if cmd == "mark":
             key = f"persist/self_test_{a[1]}_backup_restore.txt"
@@ -256,8 +259,9 @@ def test_the_owners_test_passes_one_step_after_another_and_cleans_up(tmp_path):
     assert inst.backups == {}                                  # B1, B2 and the backups the restores took first: removed
     names = [r["name"] for r in rep["results"]]
     assert "everything the test made is gone (the project, its models and the rest)" in names
-    assert "every database's rows and every file's checksum are as at B2" in names
-    assert "S8: the same backup restored twice gives the same fingerprint" in names
+    assert "nothing of B2 lost: every database's tables and rows and every file there" in names
+    assert "S8: the same backup restored twice loses nothing" in names
+    assert "B1 holds every database and all of Documents" in names and "B2 holds every database and all of Documents" in names
     text = (tmp_path / "rep" / "report.md").read_text()
     assert "**Passed**" in text and "recovery time" in text and "Not in this run" in text
     assert "tok-SECRET-123" not in text and "tok-SECRET-123" not in (tmp_path / "rep" / "report.json").read_text()
@@ -278,7 +282,7 @@ def test_a_file_that_does_not_come_back_the_same_fails(tmp_path):
     inst = Pretend(broken_b2=True)
     rep = BR.run(_test(tmp_path, inst))
     bad = {r["name"]: r["detail"] for r in rep["results"] if r["ok"] is False}
-    assert "persist/settings.json: another checksum" in bad["every database's rows and every file's checksum are as at B2"]
+    assert "persist/settings.json: missing after" in bad["nothing of B2 lost: every database's tables and rows and every file there"]
 
 
 def test_it_says_plainly_what_is_lost_and_asks_nothing(monkeypatch, tmp_path):

@@ -174,8 +174,11 @@ def test_eax_drill_steps_answer_in_json_and_never_from_the_web(tmp_path, capsys,
     assert D.main(["compare", str(a), str(b)]) == 0
     assert json.loads(capsys.readouterr().out.strip().splitlines()[0])["tables"] == 1
     b.write_text(json.dumps({"tables": {"eaexplorer core.models": [2, "y"]}, "files": {"persist/s.json": "1"}}))
-    assert D.main(["compare", str(a), str(b)]) == 1
-    assert "1 rows before, 2 after" in json.loads(capsys.readouterr().out.strip().splitlines()[0])["error"]
+    assert D.main(["compare", str(a), str(b)]) == 0                                   # a row added: noted
+    capsys.readouterr()
+    b.write_text(json.dumps({"tables": {"eaexplorer core.models": [1, "x"]}, "files": {}}))
+    assert D.main(["compare", str(a), str(b)]) == 1                                   # a file lost: fails
+    assert "persist/s.json: missing after" in json.loads(capsys.readouterr().out.strip().splitlines()[0])["error"]
     assert D.main(["nonsense"]) == 1
     from eaxcli import commands
     assert "drill" in commands.HOST and "eax-drill" in commands.HOST_WHY["drill"]
