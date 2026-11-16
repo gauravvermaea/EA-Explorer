@@ -79,6 +79,7 @@ try {
     Step "a test project, models and content of every kind" {
         $c = Eax @("drill", "content", $State); $script:contentWhere = $Install; "$($c.made) kinds made and read back" }
     Step "the maintenance page on and the background paused" { Eax @("drill", "quiet", "on") | Out-Null; $script:quietWhere = $Install }
+    Step "the background finished what it was doing" { $w = Eax @("drill", "idle"); "waited $($w.waited) s" }
     Step "the fingerprint before (every table and file)" {
         $f = Eax @("drill", "fingerprint", (Join-Path $Run "before.json")); "$($f.tables) tables, $($f.files) files" }
     Step "a full infrastructure backup" {

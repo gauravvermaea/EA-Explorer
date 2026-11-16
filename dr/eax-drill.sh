@@ -108,6 +108,7 @@ step "checks (nothing touched yet)" checks
 step "the smoke test, before" eax test smoke
 step "a test project, models and content of every kind" content
 step "the maintenance page on and the background paused" quiet_on
+step "the background finished what it was doing" eax drill idle
 step "the fingerprint before (every table and file)" eax drill fingerprint "$RUN/before.json"
 step "a full infrastructure backup" backup
 step "the test content removed from the installation" content_remove

@@ -15,6 +15,7 @@ temp location - backups, env etc; then at dr location download the install from 
                                        the state (ids, its snapshot, the test accounts' tokens) written to the file
   eax drill content-check <state file> the test's content read here and compared with its snapshot: exit 1 when it differs
   eax drill content-remove <state file> the test's content, accounts and record removed here
+  eax drill idle                       waits until the background has finished what it was doing (at most half an hour)
   eax drill fingerprint <file>         every table and file, written to <file> (JSON)
   eax drill backup                     an infrastructure backup now: its name and folder
   eax drill shutdown                   every container of this installation stopped and removed (volumes and images kept)
@@ -242,6 +243,8 @@ def main(args: list[str]) -> int:
         elif cmd == "content-remove" and rest:
             st = _state(rest[0])
             out = _api("finish", {**st, "results": [], "keep": False})
+        elif cmd == "idle":
+            out = _api("idle", {})
         elif cmd == "fingerprint" and rest:
             out = _ops("fingerprint")
             if not out.get("error"):
@@ -268,7 +271,7 @@ def main(args: list[str]) -> int:
                 out["error"] = f"the code copied says version {out['version']}, the installation {version()}"
         else:
             out = {"error": "eax drill info | running | quiet on|off | content|content-check|content-remove <state file> | "
-                            "fingerprint <file> | backup | shutdown | restore <name> | compare <a> <b> | code <folder>"}
+                            "idle | fingerprint <file> | backup | shutdown | restore <name> | compare <a> <b> | code <folder>"}
     except (Failure, OSError, ValueError) as exc:
         out = {"error": str(exc)[:1000]}
     print(json.dumps(out, default=str), flush=True)

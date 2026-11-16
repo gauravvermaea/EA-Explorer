@@ -196,6 +196,8 @@ class Pretend:
         if cmd == "snapshot":
             return {"models": {"m1": {"name": "self_test_abcdef123456_1", "entities": 7, "sum": "x"}} if self.content else
                     {"m1": {"missing": True}}, "documents": {"rows": 1, "sum": "d"} if self.content else {}}
+        if cmd == "idle":
+            return {"idle": True, "waited": 0}
         if cmd == "after":
             return {"checks": [{"scenario": "S1", "check": "the test's Super Admin account signs in", "ok": True}]}
         if cmd == "finish":
@@ -211,8 +213,8 @@ def test_the_owners_test_passes_one_step_after_another_and_cleans_up(tmp_path):
     inst = Pretend()
     rep = BR.run(_test(tmp_path, inst))
     assert rep["passed"], [r for r in rep["results"] if r["ok"] is False]
-    assert inst.order == ["quiet", "ready", "fingerprint", "backup", "fingerprint", "api start", "mark abcdef123456", "api snapshot",
-                          "fingerprint", "backup", "fingerprint", "retention", f"restore {rep['B1']}", "api snapshot",
+    assert inst.order == ["quiet", "ready", "api idle", "fingerprint", "backup", "fingerprint", "api start", "mark abcdef123456",
+                          "api idle", "api snapshot", "fingerprint", "backup", "fingerprint", "retention", f"restore {rep['B1']}", "api snapshot",
                           "fingerprint", f"restore {rep['B1']}", "fingerprint", f"restore {rep['B2']}", "api snapshot",
                           "fingerprint", "api after", "api finish", "mark abcdef123456", "delete", "quiet"]
     assert not inst.quiet                                      # the maintenance page and the background back
@@ -277,7 +279,7 @@ def test_the_api_side_says_what_is_there_and_what_differs():
     d = A.differences(snap, other)
     assert "documents: 1 row(s) before, 0 after" in d and "self_test_x_1: entities 7 before, 6 after" in d
     assert A.digest([("a", 1)]) == A.digest([("a", "1")]) and A.doc_text("x").startswith(b"EA Explorer")
-    assert set(A.COMMANDS) == {"start", "snapshot", "after", "finish"}
+    assert set(A.COMMANDS) == {"start", "snapshot", "after", "finish", "idle"}
 
 
 # ---------------------------------------------------------------- how eax reaches it, and the old suite gone

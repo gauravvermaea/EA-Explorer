@@ -22,6 +22,10 @@ one JSON line at the end of standard output (what happened is printed before it)
             (S4); work goes on, numbering carried on (a new element, a commit, a tag, a document, a new ADR numbered after
             the last, S5); no job ran twice, none left running, the recurring ones run again (S6); every document of the
             project downloads with the checksum of the file uploaded (S7)
+  idle      waits until the background has finished what it was doing (a project's repository being built in
+            Documents, a template library loading, any job running or due that is not a recurring one skipping its turn),
+            at most half an hour: taken before each backup, so a backup never catches work half done (the owner's run,
+            16 Nov 2026, 23:09)
   finish    the results recorded on the test's record, the test's data removed (the self-test's purge: the models, the
             project, the accounts, the discovery project and the decision records named for the test; the custom view),
             the record closed
@@ -519,11 +523,65 @@ def finish(state: dict) -> dict:
     return {"removed": removed}
 
 
-COMMANDS = {"start": start, "snapshot": snapshot, "after": after, "finish": finish}
+# ---------------------------------------------------------------- the background finished before a backup
+IDLE_WAIT = 1800          # seconds the test waits at most for the background to finish
+IDLE_EVERY = 5
+
+
+def busy() -> list[str]:
+    """What the background is still doing that would change the data under a backup (empty when idle): a project's
+    repository being built or waiting to be (its folders and template copies in Documents), a template library waiting
+    to load, and any job running or due within 15 minutes that is not a recurring one skipping its turn while quiet
+    (after a restore, a job waiting in the restored queue runs and changes the data the backup held).
+
+    The owner's run, 16 Nov 2026, 23:09: B2 was taken while the test's new project's repository was still being built
+    (45 of its documents); restored, the build carried on (128), so B2 never came back as it was taken."""
+    from .. import projects
+    from ..db import get_engine, get_projects_engine
+    from ..quiet import QUIET_RUNS
+    out = []
+    with get_projects_engine().begin() as conn:
+        for r in conn.execute(text(f"""SELECT name, repo_state FROM proj.projects
+                                         WHERE repo_state = 'building' OR (repo_state = 'pending' AND repo_tries < {projects.MAX_TRIES})
+                                         ORDER BY name""")).all():
+            out.append(f"the documents of project {r[0]} ({r[1]})")
+        n = conn.execute(text("SELECT count(*) FROM proj.template_library_uploads")).scalar()
+        if n:
+            out.append(f"{n} template librar{'y' if n == 1 else 'ies'} loading")
+    with get_engine().begin() as conn:
+        if conn.execute(text("SELECT to_regclass('jobs.procrastinate_jobs')")).scalar():
+            for name, status in conn.execute(text("""SELECT task_name, status::text FROM jobs.procrastinate_jobs
+                     WHERE (status = 'doing' OR (status = 'todo' AND (scheduled_at IS NULL
+                                                                     OR scheduled_at <= now() + interval '15 minutes')))
+                       AND (NOT args ? 'timestamp' OR task_name = ANY(:runs)) ORDER BY id LIMIT 20"""),
+                                                  {"runs": sorted(QUIET_RUNS)}).all():
+                out.append(f"the job {name} ({'running' if status == 'doing' else 'waiting'})")
+    return out
+
+
+def idle(state: dict) -> dict:
+    """Waits until the background is idle (busy() empty twice in a row, IDLE_EVERY seconds apart), at most state["wait"]
+    seconds (IDLE_WAIT): {"waited": s} or an error naming what is still going."""
+    wait = int(state["wait"]) if state.get("wait") is not None else IDLE_WAIT
+    t0 = time.time()
+    calm = 0
+    last: list[str] = []
+    while True:
+        last = busy()
+        calm = calm + 1 if not last else 0
+        if calm >= 2:
+            return {"idle": True, "waited": round(time.time() - t0)}
+        if time.time() - t0 > wait:
+            return {"idle": False, "waited": round(time.time() - t0),
+                    "error": f"the background did not finish within {wait // 60} minutes: " + "; ".join(last[:10])}
+        time.sleep(IDLE_EVERY)
+
+
+COMMANDS = {"start": start, "snapshot": snapshot, "after": after, "finish": finish, "idle": idle}
 
 
 def main(argv: list[str]) -> int:
-    """python -m eax.testing.backup_restore <start|snapshot|after|finish> (the state as JSON on standard input)."""
+    """python -m eax.testing.backup_restore <start|snapshot|after|finish|idle> (the state as JSON on standard input)."""
     cmd = argv[0] if argv else ""
     if cmd not in COMMANDS:
         print(json.dumps({"error": f"one of {', '.join(COMMANDS)}"}))

@@ -214,6 +214,8 @@ def run(t: Test) -> dict:
         ready = t.step("the backup container runs and the disk has room (S12)", lambda: t.ops("ready"))
         t.check("S12: the disk needed is free", True, f"{ready.get('need_bytes', 0) / 1e9:.1f} GB needed, "
                 f"{ready.get('free_bytes', 0) / 1e9:.1f} GB free", scenario="S12")
+        # nothing half done under a backup (the owner's run, 16 Nov 2026, 23:09: B2 caught a project's documents being made)
+        t.step("the background finished what it was doing (before B1)", lambda: t.api("idle", {}))
         f0 = t.step("fingerprint before B1 (every table and file)", lambda: t.ops("fingerprint"))
         r = t.step("B1: an infrastructure backup", lambda: t.ops("backup", random_name()))
         b1 = t.names["B1"] = r["name"]
@@ -228,6 +230,8 @@ def run(t: Test) -> dict:
         if not all(m["ok"] for m in st.get("made") or []):
             raise Failure("part of the content could not be made (above)")
         t.step("S2: a file in persist/ and in the import folder", lambda: t.ops("mark", st["sid"], "put"))
+        t.step("the background finished what it was doing (the test's project's documents and the rest, before B2)",
+               lambda: t.api("idle", {}))
         snap2 = t.step("what the test made, read back", lambda: t.api("snapshot", st))
         f2a = t.step("fingerprint before B2", lambda: t.ops("fingerprint"))
         t2 = t.clock()

@@ -755,10 +755,7 @@ _levels()
 
 # quiet while the backup and restore test runs (R5.6-B1): every recurring job misses its turn while work/quiet.json is
 # there (eax/quiet.py); the jobs a person or the test asks for still run
-# recurring jobs that only finish what a person (or the test) asked for keep running while quiet: a new project's or
-# document class's folders in Documents are made by eax.project_repositories (the owner's run, 16 Nov 2026, 21:11: the
-# test's document could not be uploaded, its folder never made)
-QUIET_RUNS = {"eax.project_repositories"}
+from .quiet import QUIET_RUNS  # noqa: E402,I001 - the jobs that keep running while quiet (they finish what was asked)
 
 
 def _quiet_wrap() -> None:

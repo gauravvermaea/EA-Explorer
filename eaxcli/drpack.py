@@ -6,7 +6,8 @@ access": the pack carries the code, so eax-dr needs no GitHub; code only, no Doc
 
 On the running installation, asking nothing, one step after another:
   1. the installation runs; the folder is new or empty and outside the installation's folder
-  2. the maintenance page on and the background paused, so nothing changes between the next two steps
+  2. the maintenance page on and the background paused, then waited for until it has finished what it was doing (a
+     project's documents being made, for one), so nothing changes between the next two steps
   3. the fingerprint of every table of every database and every file of every file set (fingerprint.json)
   4. a full infrastructure backup (tag dr-pack)
   5. the maintenance page off and the background back (also when a step failed)
@@ -97,6 +98,10 @@ def make(folder: str) -> int:
     if q.get("error"):
         raise Failure(f"the maintenance page could not be put on: {q['error']}")
     try:
+        say("> the background finishing what it was doing")
+        w = DRL._api("idle", {})
+        if w.get("error"):
+            raise Failure(w["error"])
         say("> the fingerprint of every table and file")
         f = DRL._ops("fingerprint")
         if f.get("error"):

@@ -16,6 +16,11 @@ import os
 import time
 
 STALE_SECONDS = 8 * 3600
+# recurring jobs that only finish what a person (or the test) asked for keep running while quiet: a new project's or
+# document class's folders in Documents are made by eax.project_repositories (the owner's run, 16 Nov 2026, 21:11: the
+# test's document could not be uploaded, its folder never made). Before a backup the test waits for them to finish
+# (eax/testing/backup_restore.idle).
+QUIET_RUNS = {"eax.project_repositories"}
 
 
 def path() -> str:

@@ -57,6 +57,7 @@ def _fake(monkeypatch, tmp_path, running=True):
             return {"name": b.name, "bytes": 4, "seconds": 1}
         return {}
     monkeypatch.setattr(P.DRL, "_ops", ops)
+    monkeypatch.setattr(P.DRL, "_api", lambda cmd, state: calls.append(f"api {cmd}") or {"idle": True})
     return calls
 
 
@@ -64,7 +65,7 @@ def test_the_pack_holds_the_backup_version_env_tool_fingerprint_and_a_checksum_o
     calls = _fake(monkeypatch, tmp_path)
     pack = tmp_path / "pack"
     assert P.main([str(pack)]) == 0
-    assert calls == ["quiet on", "fingerprint", "backup dr-pack", "quiet off"]          # page on only around the two
+    assert calls == ["quiet on", "api idle", "fingerprint", "backup dr-pack", "quiet off"]   # drained, then the two
     assert (pack / "VERSION.txt").read_text() == "5.6.0\n"
     assert (pack / "eaexplorer.env").read_text().startswith("EAX_DEPLOYMENT=laptop")
     assert json.loads((pack / "fingerprint.json").read_text())["tables"]["eaexplorer core.models"] == [3, "abc"]
