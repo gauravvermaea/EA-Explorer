@@ -46,7 +46,10 @@ API = ["exec", "-T", "api", "python", "-m", "eax.testing.backup_restore"]
 # never compared, listed in the report; the test's own content is compared exactly by the snapshot
 SYSTEM_TABLE = re.compile(r"(^|[ ._])(jobs|audit)\.|session|event|log|heartbeat|startup|notification|alert_check|alert_state|lock|"
                           r"cache|health|metric|sample|footprint|resource_|token|celery|kombu|key_value|django_admin", re.I)
-SYSTEM_FILE = re.compile(r"(^|/)(\.?cache|logs?|tmp|whoosh|index|locks?)/|\.(lock|pid|log|tmp)$|celerybeat", re.I)
+# config_backup.yml: Documents (Mayan) saves a copy of its settings there at every start (the owner's run, 16 Nov 2026,
+# 23:56: "documents/config_backup.yml: another checksum" after restoring B1)
+SYSTEM_FILE = re.compile(r"(^|/)(\.?cache|logs?|tmp|whoosh|index|locks?)/|\.(lock|pid|log|tmp)$|celerybeat|"
+                         r"(^|/)config_backup\.yml$", re.I)
 NOT_RUN = {
     "S7 (writing during the backup)": "this test is synchronous: nothing writes while B2 is taken; S7 checks instead that every "
                                       "document's record and file came back together",

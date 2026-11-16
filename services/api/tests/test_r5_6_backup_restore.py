@@ -129,6 +129,13 @@ def test_the_realm_and_switches_are_not_secrets_and_start_up_status_is_the_insta
     b = {"tables": {"eaexplorer operations.startup_parts": [5, "y"], "eaexplorer core.viewpoints": [3, "v"]}, "files": {}}
     c = BR.same(a, b, set())
     assert c["differ"] == [] and c["not_compared"] == ["eaexplorer operations.startup_parts"] and c["tables"] == 1
+    # Documents writes its settings' copy at every start (23:56); its real settings file is still compared
+    a = {"tables": {}, "files": {"documents/config_backup.yml": "1", "documents/config.yml": "c"}}
+    b = {"tables": {}, "files": {"documents/config_backup.yml": "2", "documents/config.yml": "c"}}
+    c = BR.same(a, b, set())
+    assert c["differ"] == [] and c["not_compared"] == ["documents/config_backup.yml"] and c["files"] == 1
+    b["files"]["documents/config.yml"] = "changed"
+    assert BR.same(a, b, set())["differ"] == ["documents/config.yml: another checksum"]
 
 
 # ---------------------------------------------------------------- the whole test, against a pretend installation
