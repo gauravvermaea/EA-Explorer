@@ -32,7 +32,7 @@ projects, sources of thirteen kinds tested then forgotten, the Discovery Admin r
 after, NOT FOR AI listed by title, may-be-the-same flags, overdue alerts, a sample project on the demo estate), R5.5.1
 architecture decision records and dispensations (the Governance Log, the Architecture Board role, links, expiry, the
 report and its OData feed), R5.5.2 the Live browser full screen, R5.5.4 discovery and decision records in the
-self-test's API suite (through REST and MCP over HTTP), R5.5.5 an MCP suite (`eax test mcp`, D707). Migrations 0093 to 0096. Tests on a database every
+self-test's API suite (through REST and MCP over HTTP), R5.5.5 an MCP suite (`eax test mcp`, D707). Migrations 0093 to 0097. Tests on a database every
 migration has run on run when EAX_MIGRATED_TEST_DSN names it.
 
 Release 5.1 released as 5.1.0, a stabilisation release (owner, 16 Nov 2026, 09:24: "release this as a stabalization release
