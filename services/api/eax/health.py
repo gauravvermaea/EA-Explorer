@@ -237,14 +237,41 @@ def _part_host(key: str) -> tuple[str, int]:
     return u.hostname or "api", u.port or 8000
 
 
+def _in_api(key: str) -> bool:
+    """Whether a part is served by the API itself (the standard stack, D677): no container of its own."""
+    return not _env(f"EAX_{key.upper()}_INTERNAL_URL")
+
+
+def _schema_check(name: str, kind: str, part: str) -> dict:
+    """A part served by the API checked where it runs: it reaches its schema (what its /health answers).
+
+    R5.39 (owner, 15 Nov 2026, 23:28: "why do these two keep shutting down and starting"): these two were checked by the
+    API calling itself over HTTP with a 3-second limit. The API has two workers, one of them busy answering the very
+    page that asked; when the other was busy too (a long page, a download), the call to itself waited past 3 seconds and
+    Operations and Personal data showed "starting, not answering yet" although nothing had stopped."""
+    started = time.perf_counter()
+    try:
+        from . import databases
+        with databases.engine_for(part).connect() as c:
+            c.execute(text("SELECT 1"))
+        return _result(name, kind, "up", "answering (in the API)", started, f"the API, schema {part}")
+    except Exception as exc:  # noqa: BLE001 - said, not raised
+        return _result(name, kind, "down", f"its schema not reachable: {str(exc).splitlines()[0][:160]}", started,
+                       f"the API, schema {part}")
+
+
 def check_operations() -> dict:
     """The operations part (R2.27 part 2): housekeeping, usage, deployments and updates; served by the API (D677)."""
+    if _in_api("operations"):
+        return _schema_check("Operations", "Operations (ours)", "operations")
     host, port = _part_host("operations")
     return _http("Operations", "Operations (ours)", host, port, "/api/v1/operations/health")
 
 
 def check_personal() -> dict:
     """The personal data part (R2.53): notifications, requests, favourites, saved views, skills, settings; the API."""
+    if _in_api("personal"):
+        return _schema_check("Personal data", "Personal (ours)", "personal")
     host, port = _part_host("personal")
     return _http("Personal data", "Personal (ours)", host, port, "/api/v1/me/health")
 

@@ -165,7 +165,7 @@ export default function Jobs() {
     setMsg(""); setBad("");
     try {
       const r = await apiFetch(`/api/v1/jobs/queue/${job.id}/${action}`, { method: "POST" });
-      setMsg(action === "kill" ? `${job.what}: killed. Its work ends when the job runner restarts (the button above).`
+      setMsg(action === "kill" ? `${job.what}: ${r?.message || "asked to stop."}`
         : action === "cancel" ? `${job.what}: taken off the queue.` : `${job.what}: moved ${action}.`);
       if (r) load();
     } catch (e) { setBad(e.message); }
@@ -203,9 +203,11 @@ export default function Jobs() {
           <tbody>{working.map((j) => (
             <tr key={j.id} className={j.stuck ? "stuck" : ""}>
               <td><b>{j.what}</b><br /><span className="small quiet">job {j.id}{j.label ? ` · ${j.task_name.replace("eax.", "")}` : ""}</span>
-                {j.stuck && <><br /><span className="status bad small">Stuck: {j.why}</span></>}</td>
+                {j.stuck && <><br /><span className="status bad small">Stuck: {j.why}</span></>}
+                {!j.stuck && j.why && <><br /><span className="quiet small">{j.why}</span></>}</td>
               <td>{j.who}</td><td>{j.started_at ? fmtDateTime(j.started_at) : "-"}</td><td>{mins(j.minutes)}</td>
-              <td><button className={j.stuck ? "danger" : ""} onClick={() => setAsk({ job: j, action: "kill" })}>Kill</button></td>
+              <td><button className={j.stuck ? "danger" : ""} onClick={() => setAsk({ job: j, action: "kill" })}>
+                {j.status === "aborting" ? "Mark stopped" : "Kill"}</button></td>
             </tr>))}</tbody>
         </table>)}
 
@@ -217,7 +219,8 @@ export default function Jobs() {
             <tr key={j.id} className={j.stuck ? "stuck" : ""}>
               <td>{i + 1}</td>
               <td><b>{j.what}</b><br /><span className="small quiet">job {j.id}{j.periodic ? " · on a schedule" : ""}</span>
-                {j.stuck && <><br /><span className="status bad small">Stuck: {j.why}</span></>}</td>
+                {j.stuck && <><br /><span className="status bad small">Stuck: {j.why}</span></>}
+                {!j.stuck && j.why && <><br /><span className="quiet small">{j.why}</span></>}</td>
               <td>{j.who}</td><td>{mins(j.minutes)}</td>
               <td className="row-gap">
                 <button disabled={i === 0} onClick={() => act(j, "up")} title="Start it before the others">Move up</button>
@@ -247,9 +250,14 @@ export default function Jobs() {
                 within a minute. Nothing waiting is lost.</p>
               <div className="toolbar"><button className="primary" onClick={restart}>Restart it</button><button onClick={() => setAsk(null)}>No</button></div>
             </>) : ask.action === "kill" ? (<>
-              <h3>Kill “{ask.job.what}”?</h3>
-              <p>It is marked stopped at once and its slot shows free; whoever asked for it sees it failed. A job already
-                running can only really end when the job runner restarts: restart it afterwards (the button at the top).</p>
+              <h3>{ask.job.status === "aborting" ? `Mark “${ask.job.what}” stopped?` : `Kill “${ask.job.what}”?`}</h3>
+              {ask.job.status === "aborting"
+                ? <p>It was already asked to stop. Marking it stopped frees its slot and lets its next run start at once;
+                  whoever asked for it sees it failed. Do this only when no job runner is still working on it (for example a
+                  server that has gone); otherwise Restart the job runner (the button at the top) ends it properly.</p>
+                : <p>It is asked to stop and shows as "Being stopped". A job already running can only really end when the
+                  job runner restarts: Restart the job runner afterwards (the button at the top); the restart marks it
+                  stopped and its next run starts.</p>}
               <div className="toolbar"><button className="primary danger" onClick={() => act(ask.job, "kill")}>Kill it</button><button onClick={() => setAsk(null)}>No</button></div>
             </>) : (<>
               <h3>Cancel “{ask.job.what}”?</h3>

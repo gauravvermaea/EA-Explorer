@@ -11,9 +11,10 @@ from eax.testing import store  # noqa: E402
 
 
 class Conn:
-    """The two questions phases() asks: this run's results by phase, and the last finished run's count of a phase."""
-    def __init__(self, mine, before):
-        self.mine, self.before = mine, before
+    """The questions phases() asks: this run's results by phase, by phase and outcome (R5.47), and the last finished
+    run's count of a phase."""
+    def __init__(self, mine, before, outcomes=()):
+        self.mine, self.before, self.outcomes = mine, before, list(outcomes)
 
     def execute(self, stmt, params=None):
         sql, params = str(stmt), params or {}
@@ -30,6 +31,8 @@ class Conn:
 
             def scalar(self):
                 return self.one
+        if "GROUP BY suite, outcome" in sql:
+            return R(rows=self.outcomes)
         if "GROUP BY suite" in sql:
             return R(rows=self.mine)
         return R(one=self.before.get(params.get("s")))

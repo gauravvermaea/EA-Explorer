@@ -88,7 +88,7 @@ def estimate_minutes(level: str, suites: list[str], watch: bool = False) -> tupl
     if level == "smoke":
         return (2, 5)
     lo, hi = 1, 2                                                   # its fixtures: models, a project, accounts
-    add = {"api": (3, 10), "ui": (2, 5), "db": (0, 1), "security": (5, 15), "reports": (5, 15), "performance": (5, 20), "backup": (3, 15), "restore": (20, 90)}
+    add = {"api": (3, 10), "ui": (2, 5), "db": (0, 1), "jobs": (0, 1), "security": (5, 15), "reports": (5, 15), "performance": (5, 20), "backup": (3, 15), "restore": (20, 90)}
     for s in suites:
         lo, hi = lo + add[s][0], hi + add[s][1]
     if watch:
@@ -299,7 +299,7 @@ def progress(conn, run: dict[str, Any], done: int) -> dict[str, Any]:
             "percent": round(100 * done / total) if total else 100}
 
 
-PHASE_NAMES = {"api": "API", "ui": "Browser", "db": "Database", "security": "Security", "reports": "Reports",
+PHASE_NAMES = {"api": "API", "ui": "Browser", "db": "Database", "jobs": "Jobs", "security": "Security", "reports": "Reports",
                "performance": "Performance", "backup": "Backups", "restore": "Restore", "smoke": "Smoke"}
 
 
@@ -311,6 +311,12 @@ def phases(conn, run: dict[str, Any]) -> list[dict[str, Any]]:
                              "GROUP BY suite"), {"id": run["id"]}).mappings().all()
     done = {r["suite"]: int(r["n"]) for r in rows}
     last = {r["suite"]: int(r["last"]) for r in rows}
+    # each area's passed, failed, warnings and skipped (R5.47; owner, 16 Nov 2026: "This needs to shwo pass fail so that
+    # we know which area is not working ... The pass and fail in each areas tests")
+    outcomes: dict[str, dict[str, int]] = {}
+    for r in conn.execute(text("SELECT suite, outcome, count(*) AS n FROM tests.test_results WHERE run_id = :id "
+                               "GROUP BY suite, outcome"), {"id": run["id"]}).mappings().all():
+        outcomes.setdefault(r["suite"], {})[r["outcome"]] = int(r["n"])
     order = [x for x in (run.get("suites") or []) if x in SUITES]
     order += [x for x in sorted(done, key=lambda k: last[k]) if x not in order]
     current = max(last, key=lambda k: last[k]) if last else (order[0] if order else "")
@@ -336,7 +342,10 @@ def phases(conn, run: dict[str, Any]) -> list[dict[str, Any]]:
             state = "finished"
         else:
             state = "waiting" if run.get("state") in OPEN else ("finished" if n else "not run")
+        o = outcomes.get(x, {})
         out.append({"suite": x, "name": PHASE_NAMES.get(x, x), "done": n, "total": total,
+                    "passed": o.get("passed", 0), "failed": o.get("failed", 0), "warning": o.get("warning", 0),
+                    "skipped": o.get("skipped", 0),
                     "left": (total - n) if total is not None else None,
                     "percent": round(100 * n / total) if total else None, "state": state})
     return out
@@ -428,7 +437,7 @@ def run_detail(conn, run_id: int, outcome: str = "", suite: str = "") -> dict[st
             "health": health.summary(every),                   # critical and non-critical, and the health (R2.35)
             "repeat": repeat.compare(conn, run_id),            # a repeat: each check then and now (R2.36)
             "progress": progress(conn, run, len(every)) if run["state"] in OPEN else None,   # checks left (R2.40)
-            "phases": phases(conn, run) if run["state"] in OPEN else None}   # each phase: done and left (R5.5.3)
+            "phases": phases(conn, run)}       # each phase: done and left (R5.5.3); passed and failed (R5.47)
 
 
 def screenshot(conn, result_id: int) -> bytes | None:

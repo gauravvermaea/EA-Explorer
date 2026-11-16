@@ -1,4 +1,4 @@
-# What EA Explorer does today (version 5.0.0)
+# What EA Explorer does today (version 5.1.0)
 
 One page for anyone weighing EA Explorer up: what is **built and in the box today**, area by area, and what is still
 **planned**, with its build phase. "Planned" adds to what is already there; it does not mean an area is missing.
@@ -17,7 +17,14 @@ Every phase in detail: [build-phases.md](build-phases.md). Decisions: [decisions
 | Integration | A REST API (OpenAPI), signed webhooks, Excel and CSV in and out with mappings, model packages, the MCP server; discovery: OData feeds read, pushes taken and documents read by AI, proposed as deliveries to review (Release 3, in progress) |
 | Operations | One command (`eax`, full screen or numbered menu) and a console, start-up in two tiers, health, tagged backups and restores, every service switchable, a file explorer in every container |
 
-## New in Release 5 (5.0.0, being tested)
+## New in Release 5.1 (5.1.0, released 16 Nov 2026)
+
+A stabilisation release: the job queue on screen and safe to look after (System Admin › Running › Jobs and `eax jobs`:
+what runs and waits in words, Kill, Cancel, Move, job slots, job history; jobs left by a stopped runner cleared), the
+bugs of 5.0.0 fixed, a Jobs suite in the self-test and each area's passed and failed on its cards. See
+[releases/5.1.0.md](../releases/5.1.0.md).
+
+## New in Release 5 (5.0.0, released 15 Nov 2026)
 
 Security at the front door (IP allow lists per place, multi-factor sign-in as a setting, the Auditor role, signed
 deployments), alerts, logs and the web log, database maintenance, the optimisation report, server sizing, where the

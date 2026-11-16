@@ -216,6 +216,8 @@ class Session:
         self.pending: set = set()
         self.answers: list[tuple[int, str]] = []
         self.last = time.time()
+        self.gen = 0                    # which dashboard a chart request belongs to (R5.47)
+        self.of: dict[int, int] = {}    # id(request) -> its dashboard
         self.page.on("request", self._sent)
         self.page.on("requestfinished", self._done)
         self.page.on("requestfailed", self._failed)
@@ -226,11 +228,17 @@ class Session:
 
     def _sent(self, req) -> None:
         if self._is_chart(req):
+            self.of[id(req)] = self.gen
             self.pending.add(req)
             self.last = time.time()
 
+    def _mine(self, req) -> bool:
+        """A chart request of the dashboard open now (R5.47: requests the previous dashboard still had in flight were
+        aborted by the next page load and counted against the next dashboard: "HTTP 0: net::ERR_ABORTED")."""
+        return self._is_chart(req) and self.of.pop(id(req), -1) == self.gen
+
     def _done(self, req) -> None:
-        if self._is_chart(req):
+        if self._mine(req):
             self.pending.discard(req)
             self.last = time.time()
             try:
@@ -240,10 +248,13 @@ class Session:
                 self.answers.append((0, str(exc)))
 
     def _failed(self, req) -> None:
-        if self._is_chart(req):
-            self.pending.discard(req)
-            self.answers.append((0, f"request failed: {req.failure}"))
-            self.last = time.time()
+        if not self._mine(req):
+            return
+        self.pending.discard(req)
+        self.last = time.time()
+        if "ERR_ABORTED" in str(req.failure or ""):
+            return          # Reports itself cancelled it (a filter applied asks again): its replacement is what counts
+        self.answers.append((0, f"request failed: {req.failure}"))
 
     def sign_in(self) -> None:
         """Signs in to Reports through Keycloak in the test's browser."""
@@ -270,12 +281,20 @@ class Session:
             return status, {}
 
     def dashboards(self) -> list[dict]:
-        """The dashboards the signed-in person sees in Reports."""
-        s, d = self.api("/api/v1/dashboard/?q=(page_size:500)")
-        return [x for x in (d.get("result") or []) if isinstance(x, dict)] if s == 200 else []
+        """The dashboards the signed-in person sees in Reports, page by page: Reports gives at most 100 a page whatever
+        is asked (R5.47: with 145 report dashboards the first 100 came back and 45 were called missing)."""
+        out: list[dict] = []
+        for page in range(50):
+            s, d = self.api(f"/api/v1/dashboard/?q=(page:{page},page_size:100)")
+            rows = [x for x in (d.get("result") or []) if isinstance(x, dict)] if s == 200 else []
+            out += rows
+            if len(rows) < 100 or len(out) >= int(d.get("count") or 0):
+                break
+        return out
 
     def open(self, dash: dict) -> tuple[int, list[tuple[int, str]]]:
         """Opens a dashboard and waits until its charts have answered (quiet for QUIET_MS) or FAIL_MS has passed."""
+        self.gen += 1
         self.pending.clear()
         self.answers = []
         t0 = time.time()

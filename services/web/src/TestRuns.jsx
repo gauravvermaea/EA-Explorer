@@ -27,6 +27,7 @@ const SUITES = [
   ["api", "API", "every endpoint, with no token and as every role: allowed and refused, never a server error"],
   ["ui", "Browser", "the main journeys through the screens"],
   ["db", "Database", "read-only checks of the database"],
+  ["jobs", "Jobs", "the job queue: the runner takes jobs, the alert checks run, nothing stuck or left by a stopped runner, every scheduled job has its lock, and Cancel, Move and Kill work (on probe jobs, rolled back) (R5.46)"],
   ["security", "Security", "headers, cookies, the dependencies, code and secrets scans, Release 3's attacks, OWASP ZAP (signed in and not) and Trivy; a gate on high and critical findings (R5.17)"],
   ["performance", "Performance", "the benchmark: the test model filled, every read timed, then k6 with many people at once, against the last release's baseline (R5.18); only when chosen on its own, never in the full test (R5.29)", true],
   ["backup", "Backups", "the last: an infrastructure and an application backup, each restored into a scratch copy, then removed (R2.45)"],
@@ -654,6 +655,7 @@ function RunDetail({ id, onClose, busy, onRepeat }) {
         {" "}{fmtDateTime(run.started_at || run.queued_at)}{run.purged_at ? ` · fixtures removed by ${run.purged_by}` : ""}</p>}
       {run?.followed_up_by && <p className="status ok small">Followed up: every check that failed here passes in run {run.followed_up_by}.</p>}
       {watching && <TestWatch runId={id} onClose={() => setWatching(false)} />}
+      {d?.phases && <Phases phases={d.phases} />}
       {d?.health && <HealthPanel h={d.health} />}
       <CoverageCharts c={d?.coverage} />
       <RepeatPanel rp={d?.repeat} />

@@ -56,6 +56,31 @@ def _version() -> str:
     return __version__
 
 
+def _running_version() -> str:
+    """The version of the API that is running (its public part health answers it), which may differ from the test
+    runner's own when the runner was built from newer code than the installation (R5.48: the database check said
+    "the API is 5.1.0; the database has ... 5.0.0" when only the runner was 5.1.0). The runner's own when not answered."""
+    import json
+    import urllib.request
+    try:
+        with urllib.request.urlopen(f"{API}/api/v1/operations/health", timeout=10) as resp:
+            return str(json.load(resp).get("version") or _version())
+    except Exception:  # noqa: BLE001 - the runner's own
+        return _version()
+
+
+def _version_checks(conn, record) -> None:
+    """The database against the running API's version, and the test runner against the running API (R5.48)."""
+    running, mine = _running_version(), _version()
+    db_checks.run(conn, running, record)
+    if running == mine:
+        record("the test runner is the installation's version", "passed", mine, 0)
+    else:
+        record("the test runner is the installation's version", "failed",
+               f"the test runner is {mine} but the installation runs {running}: it was built from newer code than the "
+               "installation; rebuild the installation (.\\eax clean-restart) and test again", 0)
+
+
 class Stopped(Exception):
     """Someone stopped the run."""
     pass
@@ -665,7 +690,11 @@ def _repeat_detailed(r: Run, p: dict, spec: dict, tokens: dict[str, str], test_t
     if p["db"]:
         r.log("database checks again (read only)")
         with r.repo.connect() as conn:
-            db_checks.run(conn, _version(), r.recorder("db"))
+            _version_checks(conn, r.recorder("db"))
+    if "jobs" in p["suites"]:                       # the job queue's checks are quick: all again (R5.46)
+        from . import jobs_check
+        r.log("jobs: the job queue's checks again")
+        jobs_check.run(r.repo, r.recorder("jobs"))
     if p["api"]:
         r.log(f"API: the {len(p['api'])} failed endpoint check(s) again")
         api_matrix.run(API, spec, test_tokens, ids, ids.get("other_model"), r.recorder("api"), area=area, only=set(p["api"]))
@@ -779,7 +808,11 @@ def cmd_run(args) -> int:
             if "db" in suites:
                 r.log("database checks (read only)")
                 with repo.connect() as conn:
-                    db_checks.run(conn, _version(), r.recorder("db"))
+                    _version_checks(conn, r.recorder("db"))
+            if "jobs" in suites:                      # the job queue (R5.46)
+                from . import jobs_check
+                r.log("jobs: the runner takes jobs, nothing stuck, Cancel, Move and Kill on probes (rolled back)")
+                jobs_check.run(repo, r.recorder("jobs"))
             if "api" in suites:
                 r.log(f"API: every endpoint{f' of {area}' if area else ''}, as {', '.join(test_tokens)}")
                 api_matrix.run(API, spec, test_tokens, ids, ids.get("other_model"), r.recorder("api"), area=area)
@@ -866,7 +899,7 @@ def _close_access(engine, run_id: int, by: str, repo=None) -> None:
         conn.execute(text("UPDATE tests.test_runs SET browser = jsonb_build_object('done', true) WHERE id = :id"), {"id": run_id})
 
 
-SUITE_NAMES = {"smoke": "Smoke", "api": "API", "ui": "Pages and journeys", "db": "Database", "security": "Security", "reports": "Reports",
+SUITE_NAMES = {"smoke": "Smoke", "api": "API", "ui": "Pages and journeys", "db": "Database", "jobs": "Jobs", "security": "Security", "reports": "Reports",
                "performance": "Performance", "backup": "Backups", "restore": "Restore"}
 
 

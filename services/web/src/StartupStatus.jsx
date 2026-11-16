@@ -5,8 +5,8 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "./auth";
 
-export const TONE = { up: "green", starting: "amber", down: "red", off: "grey" };
-export const WORD = { up: "up", starting: "starting", down: "down", off: "off" };
+export const TONE = { up: "green", starting: "amber", down: "red", off: "grey", warning: "amber" };
+export const WORD = { up: "up", starting: "starting", down: "down", off: "off", warning: "check" };
 const CORE = ["db", "setup", "proxy", "web", "keycloak", "api"];
 const ONE_SHOT = ["setup", "reports-init"];
 
@@ -56,7 +56,8 @@ export default function StartupStatus() {
   }, [open]);
   if (!data) return null;
   const parts = data.all || [];
-  const waiting = parts.filter((p) => p.status === "starting" || p.status === "down");
+  // a part to look at: starting, down, or a warning (R5.48: the versions differ, "A mismatch should show on screen")
+  const waiting = parts.filter((p) => p.status === "starting" || p.status === "down" || p.status === "warning");
   const title = parts.map((p) => `${p.name}: ${partText(p)}${p.detail ? ` (${p.detail})` : ""}`).join("\n");
   return (
     <div className="startup" onClick={(e) => e.stopPropagation()}>
@@ -67,7 +68,7 @@ export default function StartupStatus() {
           : waiting.length === 1
             ? <span className="startup-chip"><span className={`dot ${TONE[waiting[0].status]}`} />{waiting[0].name} <b>{partText(waiting[0])}</b></span>
             // more than one: one short chip so it stays on the top row (owner, 11 Nov 2026); the list is in the pop-up and the tooltip
-            : <span className="startup-chip"><span className={`dot ${TONE[data.overall] || "amber"}`} /><b>{waiting.length} starting</b></span>}
+            : <span className="startup-chip"><span className={`dot ${TONE[data.overall] || "amber"}`} /><b>{waiting.length} to look at</b></span>}
       </button>
       {open && (
         <div className="startup-pop" role="dialog" aria-label="Start-up status">

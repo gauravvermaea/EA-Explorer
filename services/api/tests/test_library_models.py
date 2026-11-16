@@ -74,7 +74,7 @@ def test_copies_and_comparisons_read_each_side_where_it_is():
 
 def test_moving_is_all_or_nothing_and_by_the_installer():
     from eax import library_models as lm
-    src = inspect.getsource(lm.move_all)
+    src = inspect.getsource(lm._move_all)          # move_all takes the one-mover lock, then this (R5.43)
     assert "installer_engine().begin()" in src and "drop_core_history" in src
     mv = inspect.getsource(lm.move_in)
     assert mv.index("_copy(") < mv.index("_remove(") < mv.index("UPDATE core.models SET content_schema")

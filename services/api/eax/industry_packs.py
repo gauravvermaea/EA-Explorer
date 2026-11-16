@@ -20,6 +20,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import logging
 import mimetypes
 import os
 import re
@@ -32,6 +33,8 @@ from sqlalchemy import text
 
 from . import databases
 from .metamodel_edit import EditError
+
+log = logging.getLogger("eax.industry_packs")
 
 PACKS_DIR = Path(os.environ.get("EAX_INDUSTRY_PACKS_DIR", "/data/industry-packs"))
 EXTRA_DIR = Path(os.environ.get("EAX_PACKS_EXTRA_DIR", "/data/packs-extra"))
@@ -496,7 +499,11 @@ def load_shipped_each(actor: str = "system:seed", engine=None) -> dict:
     engine = engine or get_engine()
     if not PACKS_DIR.is_dir():
         return {"message": f"no folder {PACKS_DIR}; nothing to load", "skipped": True}
-    with engine.connect() as lock:
+    # R5.38: the lock's connection is in autocommit, so it sits "idle", never "idle in transaction" for the whole load
+    # (the start-up load has no 8-minute budget and ran for about an hour on 15 Nov 2026): database maintenance ends
+    # sessions idle in a transaction longer than its setting (30 minutes by default), and it ended this one, so the
+    # unlock at the end failed with AdminShutdown and the packs showed "down" although every file had loaded.
+    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as lock:
         if not lock.execute(text("SELECT pg_try_advisory_lock(:k)"), {"k": LOCK_KEY}).scalar():
             return {"message": "being loaded already (another server or the job)", "skipped": True}
         try:
@@ -525,8 +532,16 @@ def load_shipped_each(actor: str = "system:seed", engine=None) -> dict:
                       + (f" ({len(out['refused'])} marked not for AI use, not loaded)" if out["refused"] else ""), finish=True)
             return out
         finally:
-            lock.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": LOCK_KEY})
-            lock.commit()
+            _unlock(lock)
+
+
+def _unlock(lock) -> None:
+    """The loader's lock given back; a connection already gone has given it back already (PostgreSQL frees a session's
+    advisory locks when it ends), so that is never an error for the packs (R5.38)."""
+    try:
+        lock.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": LOCK_KEY})
+    except Exception:  # noqa: BLE001 - the session ended: its lock went with it
+        log.info("industry packs: the lock's connection had ended; its lock went with it")
 
 
 def main(argv: list[str]) -> int:

@@ -345,13 +345,25 @@ function Get-Tiers {
     $on = @($all | Where-Object { $_ -notin $off })
     return @{ First = @($on | Where-Object { $_ -in $CoreServices }); Later = @($on | Where-Object { $_ -notin $CoreServices }); Off = $off }
 }
+# one look at the containers failed because Windows could not start docker.exe (out of memory: "The paging file is too
+# small"); said once per minute, with what helps, and the wait goes on (R5.41)
+$script:DockerMissAt = [datetime]::MinValue
+function Write-DockerMiss($err) {
+    if (((Get-Date) - $script:DockerMissAt).TotalSeconds -lt 60) { return }
+    $script:DockerMissAt = Get-Date
+    Write-Log "  Windows could not start docker just now ($($err.Exception.Message.Split([Environment]::NewLine)[0])); trying again." "Yellow"
+    Write-Log "  If this keeps happening the laptop is short of memory: close other programs, or let Windows grow its paging file (System > About > Advanced system settings > Performance > Virtual memory)." "Yellow"
+}
 # waits until the API (every copy) and Keycloak say healthy; shows each change; false when one stopped or it took too long
 function Wait-Core([int]$Minutes = 15) {
     $until = (Get-Date).AddMinutes($Minutes)
     $last = ""
     while ((Get-Date) -lt $until) {
         $old = $ErrorActionPreference; $ErrorActionPreference = "Continue"
-        $rows = @(& docker @(Get-ComposeArgs @("ps", "-a", "--format", "{{.Name}}|{{.State}}|{{.Health}}", "api", "keycloak")) 2>$null | Where-Object { $_ -match "\|" })
+        # R5.41: Windows could not start docker.exe for one look ("The paging file is too small", 16 Nov 2026): that
+        # look is skipped and the wait goes on, instead of stopping the whole clean-restart
+        try { $rows = @(& docker @(Get-ComposeArgs @("ps", "-a", "--format", "{{.Name}}|{{.State}}|{{.Health}}", "api", "keycloak")) 2>$null | Where-Object { $_ -match "\|" }) }
+        catch { $rows = @(); Write-DockerMiss $_ }
         $ErrorActionPreference = $old
         $now = ($rows | ForEach-Object { $p = $_ -split "\|"; "$($p[0]): $(if ($p[2]) { $p[2] } else { $p[1] })" }) -join ", "
         if ($now -and $now -ne $last) { Write-Log "  $now"; $last = $now }
@@ -374,7 +386,8 @@ function Wait-All([int]$Minutes = 30) {
     Write-Log "Waiting for everything: Reports, Documents, Diagrams and the sample data (up to $Minutes minutes)..."
     while ((Get-Date) -lt $until) {
         $old = $ErrorActionPreference; $ErrorActionPreference = "Continue"
-        $now = @(& docker @(Get-ComposeArgs @("exec", "-T", "api", "python", "-c", $py)) 2>$null | Where-Object { $_ -match "\|" }) | Select-Object -Last 1
+        try { $now = @(& docker @(Get-ComposeArgs @("exec", "-T", "api", "python", "-c", $py)) 2>$null | Where-Object { $_ -match "\|" }) | Select-Object -Last 1 }
+        catch { $now = $null; Write-DockerMiss $_ }
         $ErrorActionPreference = $old
         if ($now -and $now -ne $last) { Write-Log "  $(($now -split '\|', 2)[1])"; $last = $now }
         if ($now -like "up|*") { Write-Log "Everything is up after $([int]((Get-Date) - $t0).TotalSeconds) s." "Green"; return }

@@ -15,6 +15,8 @@ class Conn:
         self.ids, self.sql = ids, []
 
     def execute(self, stmt, params=None):
+        if str(stmt).startswith("SET LOCAL search_path"):     # the job runner's schema on the path (R5.46)
+            return None
         self.sql.append((str(stmt), params or {}))
         return [(i,) for i in self.ids] if str(stmt).lstrip().startswith("SELECT j.id") else None
 

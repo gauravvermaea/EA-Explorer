@@ -37,7 +37,8 @@ def test_every_table_gets_its_line_from_the_migration_or_already_had_one():
 
 def test_the_window_shows_them():
     web = (WEB / "Sql.jsx").read_text()
-    assert "tree-about" in web and "dbAbout" in web and "o.about" in web and "s.about" in web
+    # shown in the Properties panel under the tree since R5.44 (and as the tooltip), no longer under each name
+    assert "sql-props" in web and "dbAbout" in web and "o.about" in web and "s.about" in web
     assert '"about": {d: sqlconsole.ABOUT_DATABASES.get(d, "") for d in dbs}' in (API / "eax" / "api" / "sql.py").read_text()
 
 

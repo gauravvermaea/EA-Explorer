@@ -36,6 +36,7 @@ CONTENT = ("layers", "pick_lists", "pick_list_values", "attribute_types", "entit
            "item_attributes", "allowed_relationships", "item_attribute_mappings", "validation_rules", "metamodel_versions",
            "metamodel_version_changes", "display_id_counters", "model_icons", "entities", "entity_aliases", "entity_icons",
            "attribute_values", "relationships")
+MOVE_LOCK = 7465547               # one library-models mover at a time (R5.43)
 HISTORY = "row_versions"           # history.row_versions -> library_models.row_versions
 _RE = re.compile(r"\bcore\.(" + "|".join(CONTENT) + r")\b")
 _RE_HIST = re.compile(r"\bhistory\.row_versions\b")
@@ -284,6 +285,23 @@ def waiting(conn) -> list[dict]:
 
 def move_all(progress=lambda _p, _n: None, by: str = "system") -> list[str]:
     """Every library model still in core moved in, one transaction each (start-up, in the background, with progress)."""
+    from .db import base_engine
+    # R5.43: one mover at a time. The start-up step and the five-minute job both moved the same models at the same
+    # moment (16 Nov 2026, 05:26: "duplicate key value violates unique constraint layers_pkey"); the second now waits
+    # for the first, then finds what is still waiting (usually nothing). The lock is held on its own connection in
+    # autocommit, so it is never idle in a transaction (R5.38); a session's lock goes when its connection ends.
+    with base_engine().connect().execution_options(isolation_level="AUTOCOMMIT") as lock:
+        lock.execute(text("SELECT pg_advisory_lock(:k)"), {"k": MOVE_LOCK})
+        try:
+            return _move_all(progress, by)
+        finally:
+            try:
+                lock.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": MOVE_LOCK})
+            except Exception:  # noqa: BLE001 - the connection ended: its lock went with it
+                pass
+
+
+def _move_all(progress, by: str) -> list[str]:
     from .db import base_engine, installer_engine
     with base_engine().connect() as c:
         todo = waiting(c)

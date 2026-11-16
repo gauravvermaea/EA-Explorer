@@ -1328,6 +1328,17 @@ def run_terminal(sock, rfile, t: dict) -> None:
 BACKUPS = os.environ.get("EAX_BACKUP_MOUNT", "/backups")
 INFRA = os.path.join(BACKUPS, "infrastructure")
 REPO = os.environ.get("EAX_REPO_MOUNT", "/eax-repo")
+
+
+def code_version() -> str:
+    """The version of the code on this machine (services/api/version.toml as it is now), so the screens can say when it
+    is newer than what runs: the code was changed and not rebuilt yet (R5.48). Empty when it cannot be read."""
+    try:
+        with open(os.path.join(REPO, "services", "api", "version.toml"), encoding="utf-8") as f:
+            m = re.search(r'^version\s*=\s*"([^"]+)"', f.read(), re.M)
+            return m.group(1) if m else ""
+    except OSError:
+        return ""
 MAINTENANCE = os.path.join(WORK, "maintenance.json")
 # What an infrastructure backup holds (D410). Every database on the server is dumped (the library's and the views' from
 # their own servers when they have them); every named volume of docker-compose.yml with state is a file set, and the
@@ -2378,7 +2389,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._updates_get()
         if self.path == "/status":
             try:
-                return self._send(200, {"project": project(), "containers": containers(), "restart": state})
+                return self._send(200, {"project": project(), "containers": containers(), "restart": state,
+                                        "code_version": code_version()})
             except Exception as exc:  # noqa: BLE001
                 return self._send(500, {"message": str(exc)})
         return self._send(404, {"message": "No such request."})

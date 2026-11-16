@@ -370,6 +370,34 @@ function levelOf(line) {
 }
 
 // one line, coloured by its level, the words searched for highlighted
+// Which containers' logs to read (R5.42, owner 16 Nov 2026: "can the api be made into drop down"): a drop-down with a
+// tick per container, so one or several can be read together, as the list box did; never none.
+function ContainerPick({ all, pick, setPick }) {
+  const box = useRef(null);
+  useEffect(() => {
+    const close = (e) => { if (box.current && !box.current.contains(e.target)) box.current.open = false; };
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, []);
+  const toggle = (s) => {
+    const next = pick.includes(s) ? pick.filter((x) => x !== s) : [...pick, s].sort();
+    if (next.length) setPick(next);
+  };
+  const shown = pick.length === 1 ? pick[0] : `${pick.length} containers: ${pick.join(", ")}`;
+  return (
+    <details className="pick-drop" ref={box}>
+      <summary aria-label="Containers" title="Which containers' logs to read; tick several to read them together">{shown}</summary>
+      <div className="pick-drop-list">
+        {all.map((s) => <label key={s}><input type="checkbox" checked={pick.includes(s)} onChange={() => toggle(s)}
+          disabled={pick.length === 1 && pick[0] === s} /> {s}</label>)}
+        {all.length > 1 && <div className="row-gap small">
+          <button type="button" className="small" onClick={() => setPick([...all])}>All</button>
+          <button type="button" className="small" onClick={() => setPick([pick[0]])}>Just {pick[0]}</button></div>}
+      </div>
+    </details>
+  );
+}
+
 function LogLine({ line, q, level, service }) {
   const lv = level || levelOf(line);
   const text = service ? `${service.padEnd(10)} ${line}` : line;
@@ -478,10 +506,7 @@ export function KeptLogs({ service }) {
   return (
     <div>
       <div className="row-gap filters">
-        <select multiple value={pick} onChange={(e) => setPick([...e.target.selectedOptions].map((o) => o.value))}
-          aria-label="Containers" size={Math.min(4, Math.max(2, all.length))}>
-          {all.map((s) => <option key={s} value={s}>{s}</option>)}
-        </select>
+        <ContainerPick all={all} pick={pick} setPick={(v) => { setPick(v); setPage(null); }} />
         <select value={theDay} onChange={(e) => { setDay(e.target.value); setPage(null); }} aria-label="Day">
           {days.map((d) => <option key={d} value={d}>{d}</option>)}
         </select>
@@ -489,11 +514,14 @@ export function KeptLogs({ service }) {
           <option value="">Every level</option><option value="info">Info and worse</option>
           <option value="warning">Warnings and errors</option><option value="error">Errors and critical</option><option value="critical">Critical only</option>
         </select>
-        <input type="time" value={since} onChange={(e) => setSince(e.target.value)} aria-label="Since" title="Since" />
-        <input type="time" value={until} onChange={(e) => setUntil(e.target.value)} aria-label="Until" title="Until" />
+        <label className="small">From <input type="time" value={since} onChange={(e) => setSince(e.target.value)} aria-label="Since"
+          title="Only lines from this time (empty: from the start of the day)" /></label>
+        <label className="small">to <input type="time" value={until} onChange={(e) => setUntil(e.target.value)} aria-label="Until"
+          title="Only lines up to this time (empty: to the end of the day)" /></label>
         <input type="search" placeholder="Words or a request id" value={q} onChange={(e) => setQ(e.target.value)}
+          title="Type words or a request id, then press Enter"
           onKeyDown={(e) => { if (e.key === "Enter") { setPage(null); load(null); } }} />
-        <label className="small"><input type="checkbox" checked={live} onChange={(e) => setLive(e.target.checked)} /> Live</label>
+        <label className="small" title="Show new lines every 5 seconds"><input type="checkbox" checked={live} onChange={(e) => setLive(e.target.checked)} /> Live</label>
         <button onClick={() => download(`${pick.join("+")}-${theDay}.log`, lines.map((l) => `${l.service} ${l.line}`))} disabled={!lines.length}>Download</button>
         <button onClick={() => keep("backup")}>Back up logs</button>
         <button onClick={() => keep("clean")}>Clean logs…</button>

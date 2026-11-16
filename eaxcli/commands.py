@@ -145,8 +145,8 @@ OVERRIDES = {
               "placeholder": "days"},                                     # with delete: runs older than DAYS (R2.43)
              {"key": "--smoke/--detailed", "type": "flags", "choices": ["--smoke", "--detailed"], "required": False},
              {"key": "--suite", "type": "flag-value", "flags": ["--suite"], "required": False,
-              "placeholder": "api|ui|db|security|reports|performance|backup|all",
-              "choices": ["api", "ui", "db", "security", "reports", "performance", "backup", "all"]},
+              "placeholder": "api|ui|db|jobs|security|reports|performance|backup|all",
+              "choices": ["api", "ui", "db", "jobs", "security", "reports", "performance", "backup", "all"]},
              {"key": "--size", "type": "flag-value", "flags": ["--size"], "required": False, "placeholder": "small|medium|large",
               "choices": ["small", "medium", "large"]},                    # performance: the benchmark's data (R5.18)
              {"key": "--users", "type": "flag-value", "flags": ["--users"], "required": False, "placeholder": "people at once"},

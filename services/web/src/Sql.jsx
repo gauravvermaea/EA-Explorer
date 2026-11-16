@@ -243,7 +243,10 @@ function TableTab({ tab, login }) {
   );
 }
 
-function Tree({ tree, open, onOpen, onInsert }) {
+// The tree shows names only; what a database, schema, table or view is for, and its rows and size, are in the
+// Properties panel under it (R5.44, owner 16 Nov 2026: "can these be separate additional window with properties to be
+// seen. The window is very cluttered"). The description stays as the tooltip too.
+function Tree({ tree, open, onOpen, onInsert, onPick }) {
   const [shut, setShut] = useState({});
   const [find, setFind] = useState("");
   if (!tree) return <p className="quiet small">Give the login and press Connect to see the database.</p>;
@@ -256,17 +259,44 @@ function Tree({ tree, open, onOpen, onInsert }) {
         const isShut = shut[s.name] ?? !find;
         return (
           <div key={s.name}>
-            <button className="tree-schema" title={s.about || ""} onClick={() => setShut({ ...shut, [s.name]: !isShut })}>{isShut ? "▸" : "▾"} {s.name} <span className="quiet">({s.objects.length})</span></button>
-            {s.about && <div className="tree-about quiet small">{s.about}</div>}
+            <button className="tree-schema" title={s.about || ""}
+              onClick={() => { setShut({ ...shut, [s.name]: !isShut }); onPick({ kind: "schema", schema: s }); }}>
+              {isShut ? "\u25b8" : "\u25be"} {s.name} <span className="quiet">({s.objects.length})</span></button>
             {!isShut && <ul>{objs.map((o) => (
               <li key={o.name}>
                 <button className={open === `${s.name}.${o.name}` ? "tree-obj on" : "tree-obj"} title={`${o.about ? `${o.about}. ` : ""}${o.kind}, about ${o.rows} rows, ${fmtBytes(o.bytes)}. Double-click puts the name in the query.`}
-                  onClick={() => onOpen(s.name, o.name)} onDoubleClick={() => onInsert(`${s.name}.${o.name}`)}>
-                  {o.kind === "table" ? "▦" : "◇"} {o.name}</button>
-                {o.about && <div className="tree-about quiet small">{o.about}</div>}
+                  onClick={() => { onOpen(s.name, o.name); onPick({ kind: "object", schema: s, object: o }); }}
+                  onDoubleClick={() => onInsert(`${s.name}.${o.name}`)}>
+                  {o.kind === "table" ? "\u25a6" : "\u25c7"} {o.name}</button>
               </li>))}</ul>}
           </div>);
       })}
+    </div>
+  );
+}
+
+function Properties({ pick, database, about }) {
+  const row = (k, v) => (v || v === 0) ? <tr><th>{k}</th><td>{v}</td></tr> : null;
+  let title = database;
+  let rows = [row("Kind", "Database"), row("What it is for", about)];
+  if (pick?.kind === "schema") {
+    const s = pick.schema;
+    const total = (s.objects || []).reduce((a, o) => a + (Number(o.bytes) || 0), 0);
+    title = s.name;
+    rows = [row("Kind", "Schema"), row("Database", database), row("What it is for", s.about),
+      row("Tables and views", (s.objects || []).length), row("Size", fmtBytes(total))];
+  } else if (pick?.kind === "object") {
+    const { schema: s, object: o } = pick;
+    title = `${s.name}.${o.name}`;
+    rows = [row("Kind", o.kind === "table" ? "Table" : o.kind), row("Schema", s.name), row("What it is for", o.about),
+      row("Rows (about)", o.rows), row("Size", fmtBytes(o.bytes))];
+  }
+  return (
+    <div className="sql-props" aria-label="Properties">
+      <h4>Properties</h4>
+      <p className="small"><b>{title}</b></p>
+      <table className="props-table small"><tbody>{rows}</tbody></table>
+      {pick?.kind === "object" && <p className="quiet small">Its columns are on its tab. Double-click the name in the tree to put it in the query.</p>}
     </div>
   );
 }
@@ -276,6 +306,7 @@ export default function Sql() {
   const [dbAbout, setDbAbout] = useState({});    // what each database is for (owner, 13 Nov 2026)
   const [dbs, setDbs] = useState([]);
   const [tree, setTree] = useState(null);
+  const [pick, setPick] = useState(null);       // what the Properties panel shows: null is the database (R5.44)
   const [treeErr, setTreeErr] = useState("");
   const [keep, setKeep] = useState(false);
   const [tabs, setTabs] = useState([{ id: 1, kind: "query", title: "Query 1", sql: EXAMPLE }]);
@@ -352,8 +383,8 @@ export default function Sql() {
       <div className="sql-login">
         {dbs.length ? (
           <label>Database
-            <select value={login.database} onChange={(e) => { setLogin({ ...login, database: e.target.value }); setTree(null); }}>
-              {dbs.map((d) => <option key={d} value={d} title={dbAbout[d] || ""}>{d}{dbAbout[d] ? ` · ${dbAbout[d]}` : ""}</option>)}
+            <select value={login.database} onChange={(e) => { setLogin({ ...login, database: e.target.value }); setTree(null); setPick(null); }}>
+              {dbs.map((d) => <option key={d} value={d} title={dbAbout[d] || ""}>{d}</option>)}
             </select>
           </label>
         ) : field("database", "Database")}
@@ -361,10 +392,12 @@ export default function Sql() {
         {field("password", "Password", "password")}
         <button onClick={connect} disabled={!login.password}>Connect</button>
       </div>
-      {(dbAbout[login.database] || tree?.about) && <p className="quiet small sql-db-about">{login.database}: {dbAbout[login.database] || tree?.about}</p>}
       {treeErr && <p className="status bad">{treeErr}</p>}
       <div className="sql-workspace">
-        <aside className="sql-side"><Tree tree={tree} open={tab.kind === "table" ? tab.key : ""} onOpen={openTable} onInsert={insertName} /></aside>
+        <aside className="sql-side-col">
+          <div className="sql-side"><Tree tree={tree} open={tab.kind === "table" ? tab.key : ""} onOpen={openTable} onInsert={insertName} onPick={setPick} /></div>
+          <Properties pick={pick} database={login.database} about={dbAbout[login.database] || tree?.about} />
+        </aside>
         <div className="sql-main">
           <div className="tabs small-tabs sql-tabs" role="tablist">
             {tabs.map((t) => (

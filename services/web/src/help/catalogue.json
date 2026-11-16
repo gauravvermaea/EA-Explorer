@@ -3259,11 +3259,15 @@
   },
   "page:#/admin/sql": {
     "title": "SQL",
-    "what": "Read-only SQL on the reporting views, for IT and Super Admins.",
+    "what": "Query this installation's PostgreSQL with a database login (IT and Super Admins). What the login may see and do decides the rest; a run is rolled back unless Keep the changes is ticked.",
     "how": [
-      "Write a SELECT; only reading is allowed. Results can be downloaded."
+      "Choose the database, give the user and password, then Connect: the tree on the left lists its schemas, and each schema its tables and views, by name only.",
+      "Click a database, schema, table or view to see its Properties in the panel under the tree: what it is for, how many tables it holds or rows it has, and its size. Hover a name for the same description.",
+      "Click a table or view to open it in a tab of its own: its columns, keys and rows. Double-click a name to put it in the query.",
+      "Write the query in a Query tab and run it; + Query opens another. Explain shows the plan. Results can be sorted and downloaded.",
+      "Nothing is changed unless you tick Keep the changes; every run is in the audit trail."
     ],
-    "example": "SELECT name FROM reporting.applications WHERE lifecycle = 'Retire'"
+    "example": "Connect to eaexplorer, click the schema core to see what it holds, then click core.models: Properties shows its rows and size, and its tab its columns."
   },
   "page:#/admin/users": {
     "title": "Users",
@@ -3357,7 +3361,7 @@
     ],
     "example": "api and db, today, warnings and errors, 09:00 to 10:00."
   },
-  "field:Containers": "The containers whose logs to show; pick several (Ctrl or Cmd) to see them merged by time.",
+  "field:Containers": "Which containers to show. On the Logs tab: open the drop-down and tick one or several; several are merged by time.",
   "field:Filter (words or a request id)": "Keeps the lines that contain these words; a server error's request id finds its lines.",
   "field:Words or a request id": "Keeps the lines that contain these words (highlighted); press Enter to search the whole day.",
   "button:Back up logs": "Zips every container's kept logs and eax's own logs into work/backups/logs (the same as eax logs backup).",
@@ -3645,10 +3649,18 @@
   "button:Add an address": "Allow one more address or range at this place.",
   "button:Reset": "Remove this person's authenticator; they set up a new one at their next sign-in.",
   "tab:Container logs": {
-    "what": "Every container's log, a file a day, from debug to critical.",
+    "what": "Read what each part of EA Explorer wrote while it ran: one file per container per day, kept on disk by the operations helper (copied once a minute). Use it when something failed, to find out why.",
     "how": [
-      "Pick one or more containers and a day; filter by level, time and words; Live follows new lines."
-    ]
+      "1. Choose the container in the first drop-down: api for most errors you see on screen; db for the database; keycloak for signing in; dms for Documents; reports for Reports; ops for the operations helper. Tick several to read them together, merged by time; each line then starts with its container's name.",
+      "2. Choose the day. The list holds the days still kept (7 by default, under Size and keeping). Times in the log are UTC: two hours behind South African time.",
+      "3. Narrow it down with the level: Errors and critical shows only what went wrong; Warnings and errors adds what nearly did; Every level shows everything.",
+      "4. Optionally give a time window with From and to (UTC); leave them empty for the whole day.",
+      "5. Type words in the search box and press Enter: a word from the error (for example DataError), a page's address (for example /change-log) or a request id. A server error on screen says 'The API's log has the details under request ...': paste that id here to see exactly what happened.",
+      "6. Tick Live to follow new lines as they arrive (every 5 seconds), for example while you repeat what failed.",
+      "The count above the lines says how many matched; long results are in pages: Earlier and Later move between them, and the newest page is shown first.",
+      "Download saves the lines shown as a text file, to keep or send to whoever helps you. Back up logs zips every kept log into work/backups/logs. Clean logs... deletes logs and log backups older than the days you give (it cannot be undone)."
+    ],
+    "example": "The change log page showed a server error with request a19c7896...: choose api, today, Errors and critical, paste a19c7896 and press Enter; the line shows the error and what was asked."
   },
   "tab:Web log": {
     "what": "Every call to the API and MCP: when, who, from where, the call, its status, how long it took, its size and request id.",
@@ -3816,16 +3828,17 @@
   "field:Docker's own copy rolls over at (KB)": "Docker keeps each container's output until it is copied into the logs every minute; its files roll at this size from the next eax up.",
   "field:Kept for (days)": "Every log file and log backup older than this is deleted every night; 0 keeps them.",
   "button:Cancel it": "Takes the job off the queue: it never starts and whoever asked sees it cancelled.",
-  "button:Kill": "Stops a job being worked on: marked stopped at once; its work ends when the job runner restarts.",
-  "button:Kill it": "Yes, stop this job: it is marked stopped at once.",
+  "button:Kill": "Asks a job being worked on to stop (it shows as Being stopped); its work ends when the job runner restarts.",
+  "button:Kill it": "Yes, ask this job to stop.",
   "button:Restart it": "Yes, restart the job runner (with the API): the screens are back within a minute.",
   "button:Restart the job runner": "Restarts the API and its job runner: every job being worked on stops and the waiting ones start; nothing waiting is lost.",
   "tab:Jobs": {
     "what": "The background job queue: what is being worked on, what is waiting and in which order, what finished lately, and which jobs are stuck.",
     "how": [
       "The counts at the top: being worked on, waiting, stuck, and the free job slots; when something is stuck, what to do is said beneath.",
-      "Kill stops a job being worked on; Cancel takes a waiting one off the queue; Move up and Move down change the order the waiting ones start in.",
-      "Restart the job runner when every slot is held by stuck jobs; add API servers (System Admin › Scaling) when the queue is simply too long."
+      "Kill asks a job being worked on to stop (Restart the job runner then ends it; a job the last job runner left is marked stopped by the restart itself); Cancel takes a waiting one off the queue; Move up and Move down change the order the waiting ones start in.",
+      "Restart the job runner when every slot is held by stuck jobs; add API servers (System Admin › Scaling) when the queue is simply too long.",
+      "A waiting job that says it waits for the earlier run of itself is not stuck: one copy of a job runs at a time, and it starts when that one ends. One put off to a later time says when it starts."
     ],
     "example": "A backup has waited 40 minutes and four jobs have run for hours: kill the four, restart the job runner, and the backup starts."
   },
@@ -3838,5 +3851,10 @@
   "button:Fewer: *": "One job slot fewer on each API server (Save, then Apply now).",
   "button:More: *": "One job slot more on each API server (Save, then Apply now).",
   "button:Delete job history": "Deletes the finished jobs (done, failed, cancelled, stopped) from the history: all, or those older than the days given. Waiting and running jobs stay.",
-  "field:Delete the finished jobs that ended more than": "How many days of finished jobs to keep; 0 deletes every finished job. Waiting and running jobs are never deleted."
+  "field:Delete the finished jobs that ended more than": "How many days of finished jobs to keep; 0 deletes every finished job. Waiting and running jobs are never deleted.",
+  "field:Since": "Only lines from this time, in UTC (two hours behind South African time); empty: from the start of the day.",
+  "field:Live": "Shows new lines as they arrive, every 5 seconds.",
+  "button:Clean logs…": "Deletes the logs and log backups older than the number of days you give; it cannot be undone.",
+  "button:Just": "Keeps only the first container ticked.",
+  "button:Mark stopped": "For a job already asked to stop that no job runner has any more: marks it stopped at once, so its next run can start."
 }

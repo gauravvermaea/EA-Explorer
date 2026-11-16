@@ -150,7 +150,7 @@ def test_without_a_test_model_it_is_skipped():
 # ---------------------------------------------------------------- wired in
 def test_a_suite_of_the_full_test_before_the_backups():
     from eax.testing import SUITES, WEB_SUITES
-    assert SUITES == ("api", "ui", "db", "security", "reports", "performance", "backup", "restore") and "reports" in WEB_SUITES
+    assert SUITES == ("api", "ui", "db", "jobs", "security", "reports", "performance", "backup", "restore") and "reports" in WEB_SUITES
     run = (REPO / "services/api/eax/testing/run.py").read_text()
     assert run.index('if "reports" in suites:') < run.index('if "backup" in suites:')
     assert 'reports_check.run(API, tokens, ids, r.recorder("reports"), r.log)' in run
@@ -158,7 +158,7 @@ def test_a_suite_of_the_full_test_before_the_backups():
     assert "'security', 'reports', 'backup', 'restore']" in sql and "'security', 'reports', 'backup', 'restore'))" in sql
     assert 'down_revision = "0074_release_3_5_0"' in (REPO / "services/api/migrations/versions/0075_selftest_reports_suite.py").read_text()
     assert '"reports": (5, 15)' in (REPO / "services/api/eax/testing/store.py").read_text()
-    assert 'export const ALL_SUITES = ["api", "ui", "db", "security", "reports", "backup"];' in \
+    assert 'export const ALL_SUITES = ["api", "ui", "db", "jobs", "security", "reports", "backup"];' in \
         (REPO / "services/web/src/selfTestDriver.js").read_text()
     assert "  reports  only the reports (part of full, R4.1)" in (REPO / "eaxcli/help.txt").read_text()
 

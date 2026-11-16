@@ -341,6 +341,25 @@ def create_app(testing: bool = False) -> Flask:
         (the full self-test, 13 Nov 2026: archive/references answered 500 "NotFound")."""
         return {"code": 404, "status": "Not Found", "message": str(exc)}, 404
 
+    from sqlalchemy.exc import DataError as _DataError
+
+    from .metamodel_edit import EditError as _EditError
+
+    @app.errorhandler(_EditError)
+    def _edit_error(exc):
+        """A change or a request that cannot be made answers with its own status (400 unless it says otherwise) wherever
+        it is raised: never a server error (R5.40: a package asked for with a content it does not know answered 500)."""
+        status = getattr(exc, "status", 400) or 400
+        return {"code": status, "status": "Bad Request" if status == 400 else "Refused", "message": str(exc)}, status
+
+    @app.errorhandler(_DataError)
+    def _bad_value(exc):
+        """A value the database cannot take as asked (not an identifier, not a date: PostgreSQL's class 22) is the
+        caller's mistake: 400 saying which value, never a server error (R5.40, the security scan of 16 Nov 2026: the
+        change log with model=model answered 500 DataError)."""
+        first = (str(getattr(exc, "orig", exc)).splitlines() or [""])[0][:200]
+        return {"code": 400, "status": "Bad Request", "message": f"A value given is not valid: {first}"}, 400
+
     @app.errorhandler(Exception)
     def _server_error(exc):
         """A server error answers as JSON with its kind and the request's id, and its traceback goes to the API's log

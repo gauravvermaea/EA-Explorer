@@ -62,11 +62,44 @@ def container_state(c: dict) -> str:
     return "down"             # exited, dead, paused, removing
 
 
-def _containers() -> list[dict] | None:
+def _ops_status() -> dict | None:
     from .api.admin import _ops_raw
     try:
-        return _ops_raw("GET", "/status", timeout=8).get("containers") or []
+        return _ops_raw("GET", "/status", timeout=8) or {}
     except Exception:  # noqa: BLE001 - not reachable (it starts in the second tier too)
+        return None
+
+
+def _containers() -> list[dict] | None:
+    got = _ops_status()
+    return None if got is None else (got.get("containers") or [])
+
+
+def version_part(api: str, database: str | None, code: str | None) -> dict:
+    """The versions, as one row of the start-up status (R5.48; owner, 16 Nov 2026: "A mismatch should show on screen on
+    startup"): the API running, the database it uses, and the code on this machine. Down when the API and the database
+    differ (the migrations did not run, or the API is older than the database); a warning when the code on this machine
+    is not what runs (changed and not rebuilt: the self-test's runner, built from that code, then tests the wrong
+    version); up when all agree. Pure."""
+    detail = f"API {api}, database {database or 'unknown'}" + (f", code on this machine {code}" if code else "")
+    if database != api:
+        return {"key": "version", "name": "Versions", "product": "the API, its database and the code", "status": "down",
+                "detail": f"{detail}: they do not match. The database migrations have not run for this API, or the API is "
+                          "older than the database: rebuild (.\\eax clean-restart) and see the API's log."}
+    if code and code != api:
+        return {"key": "version", "name": "Versions", "product": "the API, its database and the code", "status": "warning",
+                "detail": f"{detail}: the code on this machine is not what runs; rebuild (.\\eax clean-restart) before "
+                          "testing, or the self-test tests the newer code against the older installation."}
+    return {"key": "version", "name": "Versions", "product": "the API, its database and the code", "status": "up",
+            "detail": detail}
+
+
+def _version(conn, code: str | None) -> dict | None:
+    from . import __version__
+    from .versioning import database_version
+    try:
+        return version_part(__version__, database_version(conn), code)
+    except Exception:  # noqa: BLE001 - before the migrations: nothing to say yet
         return None
 
 
@@ -123,11 +156,13 @@ def status(conn, fresh: bool = False) -> dict:
             data = dict(_kept["data"])
             data["later"] = _later(conn)
             data["packs"] = _packs(conn)
+            data["version"] = _version(conn, data.get("code_version"))
             return _finish(data)
     with ThreadPoolExecutor(max_workers=len(PARTS) + 1) as pool:
         checks = {k: pool.submit(f) for k, _n, _p, f, _c in PARTS}
-        cs = pool.submit(_containers)
-        containers = cs.result()
+        cs = pool.submit(_ops_status)
+        got = cs.result()
+        containers = None if got is None else (got.get("containers") or [])
         results = {k: f.result() for k, f in checks.items()}
     parts = []
     for key, name, product, _f, names in PARTS:
@@ -137,12 +172,14 @@ def status(conn, fresh: bool = False) -> dict:
         {"key": c.get("key") or c.get("service"), "service": c.get("service"), "state": c.get("state"),
          "status": c.get("status"), "startup": container_state(c),
          "tier": "first" if c.get("service") in CORE else "after"} for c in (containers or [])],
-            "helper": containers is not None, "api_started": STARTED, "checked_at": now}
+            "helper": containers is not None, "api_started": STARTED, "checked_at": now,
+            "code_version": (got or {}).get("code_version") or None}
     with _lock:
         _kept.update(at=now, data=data)
     data = dict(data)
     data["later"] = _later(conn)
     data["packs"] = _packs(conn)
+    data["version"] = _version(conn, data.get("code_version"))
     return _finish(data)
 
 
@@ -185,6 +222,7 @@ def _packs(conn) -> dict | None:
 
 def _finish(data: dict) -> dict:
     parts = list(data["parts"]) + ([data["later"]] if data.get("later") else []) + ([data["packs"]] if data.get("packs") else [])
+    parts += [data["version"]] if data.get("version") else []
     states = [p["status"] for p in parts]
     data["overall"] = "down" if "down" in states else "starting" if "starting" in states else "up"
     data["all"] = parts

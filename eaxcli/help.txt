@@ -152,8 +152,9 @@ $ {eax} ticket status REQ-12 done "access given"
 ### jobs [list|history [N]|cancel|kill|up|down <id>|clear-stuck [--restart]|restart|delete-history [--older-than DAYS]|slots [<work> <scheduled>]]
 > The background job queue: what runs, what waits, what is stuck; cancel, kill, reorder (admins).
 As System Admin > Running > Jobs (R5.30 to R5.34). list: what is being worked on and waiting, stuck ones marked, and
-what to do; history: the newest finished; cancel takes a waiting job off the queue, kill stops one being worked on
-(its work ends when the job runner restarts), up and down change the order; clear-stuck kills every stuck one
+what to do; history: the newest finished; cancel takes a waiting job off the queue, kill asks one being worked on to
+stop (its work ends when the job runner restarts; a second kill marks it stopped at once, for a job no runner has any
+more), up and down change the order; when the job runner restarts, jobs it left are marked stopped; clear-stuck kills every stuck one
 (--restart then restarts the job runner); delete-history deletes finished jobs; slots shows or sets each API
 server's job slots (taken at the next restart). Nothing is killed or restarted unless asked. Every action audited.
 $ {eax} jobs
@@ -370,7 +371,7 @@ $ {eax} import --all
 > Checks that Docker is running and the config and compose files are valid. Starts nothing.
 $ {eax} check
 
-### test [smoke|full|reports|security|performance|backup|restore|ui-review|failed [run] [--warnings]|watch [run] [--log|--browser]|stop [run]|api <method> <path>|delete <run|all> [--older-than DAYS]|clean] [--yes]
+### test [smoke|full|jobs|reports|security|performance|backup|restore|ui-review|failed [run] [--warnings]|watch [run] [--log|--browser]|stop [run]|api <method> <path>|delete <run|all> [--older-than DAYS]|clean] [--yes]
 > Test this installation: smoke or full; only what failed last time; or delete the test data.
 The same two tests as System Admin > Tools > Self-test (owner, 12 Nov 2026, D592: "Smoke or Full. Not too many
 options"); a run started in either place shows in both. Each run first removes any test data earlier runs left
@@ -381,7 +382,8 @@ and IT Admins.
   smoke   (the default) a few minutes: every role signs in, every main area answers, every page opens and the key
           journeys run once.
   full    everything: every API endpoint as every role (allowed and refused), the database checks, security, then
-          every page and every journey in a headless browser, the reports, the backup checks, and last the restore test below
+          every page and every journey in a headless browser, the job queue, the reports, the backup checks, and last the
+          restore test below
           (asked first; --yes skips the question; without a terminal and without --yes it is left out).
   security  only the security suite (part of full, R5.17): the front door's headers, the dependencies, the code and
           secrets scans, the attacks of Release 3, ZAP signed in and not, Trivy; a high or critical finding not
@@ -389,6 +391,10 @@ and IT Admins.
   performance  the benchmark (only when asked for, never in full, R5.29): the test model filled to --size small|medium|large, every read that
           matters timed, then k6 with --users N people for --minutes M; slower than the last release's baseline by
           more than 10%, errors, or a container over its memory limit fail it.
+  jobs    only the job queue (part of full, R5.46): the job runner takes jobs and the alert checks run (each finished
+          in the last 10 minutes); no job stuck being worked on or waiting too long, none left by a job runner that
+          stopped; every scheduled job runs one copy at a time; every job has a name in words; and Cancel, Move up and
+          down, and Kill work, tried on probe jobs in a transaction that is rolled back (nothing is left)
   reports  only the reports (part of full, R4.1): Keycloak test users for the run (a Super Admin, a Report Viewer and an
           IT Admin, deleted at the end) sign in to Reports in a headless browser; every report dashboard opens as the
           Super Admin and the Report Viewer with every chart answering (slower than 30 seconds a warning, not loaded after

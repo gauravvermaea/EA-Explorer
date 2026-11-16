@@ -45,6 +45,8 @@ API_PID=$!
 # never holds up a backup, and the alerts still run, and say so, when everything else is stuck (System Admin > Jobs)
 # how many of each: System Admin > Scaling (the settings jobs_slots_tasks and jobs_slots_scheduled), read at each start
 # (R5.33); else the config file's EAX_JOB_CONCURRENCY and EAX_SCHEDULED_CONCURRENCY; else 4 and 2
+# jobs the last job runner left "being worked on" when it stopped: marked stopped, so their next runs can start (R5.45)
+python -m eax.jobqueue recover || echo "EA Explorer: could not look for jobs left by the last job runner (System Admin > Jobs)"
 SLOTS=$(python -m eax.jobqueue slots 2>/dev/null || echo "${EAX_JOB_CONCURRENCY:-4} ${EAX_SCHEDULED_CONCURRENCY:-2}")
 TASK_SLOTS=$(echo "$SLOTS" | awk '{print $1}')
 SCHEDULED_SLOTS=$(echo "$SLOTS" | awk '{print $2}')
@@ -52,7 +54,9 @@ echo "EA Explorer: job slots: ${TASK_SLOTS:-4} for people's work, ${SCHEDULED_SL
 procrastinate --app=eax.jobs.app worker --concurrency "${TASK_SLOTS:-4}" --queues tasks --name tasks &
 JOBS_PID=$!
 procrastinate --app=eax.jobs.app worker --concurrency "${SCHEDULED_SLOTS:-2}" --queues default --name scheduled &
+SCHED_PID=$!
 procrastinate --app=eax.jobs.app worker --concurrency 1 --queues watch --name watch &
+WATCH_PID=$!
 # the change log (phase 9, D180): ships finished changes to its own database every few seconds; it logs and retries
 # on errors and never stops the API. Switched off: no new entries (D191)
 if python -m eax.services is-on change_log; then
@@ -75,11 +79,14 @@ else
 fi
 
 # If either process stops, stop the other and exit so Docker restarts the container.
-trap 'kill $API_PID $JOBS_PID $MCP_PID 2>/dev/null' TERM INT
+# every job runner too (R5.46): the scheduled and alert runners were not watched, so one that stopped left its jobs
+# "being worked on" for ever and nothing scheduled ran; now the container restarts and the restart marks them stopped
+trap 'kill $API_PID $JOBS_PID $SCHED_PID $WATCH_PID $MCP_PID 2>/dev/null' TERM INT
 while kill -0 $API_PID 2>/dev/null && kill -0 $JOBS_PID 2>/dev/null \
+      && kill -0 $SCHED_PID 2>/dev/null && kill -0 $WATCH_PID 2>/dev/null \
       && { [ -z "$MCP_PID" ] || kill -0 $MCP_PID 2>/dev/null; }; do
   sleep 2
 done
 echo "EA Explorer: a process stopped; exiting"
-kill $API_PID $JOBS_PID $MCP_PID 2>/dev/null || true
+kill $API_PID $JOBS_PID $SCHED_PID $WATCH_PID $MCP_PID 2>/dev/null || true
 exit 1

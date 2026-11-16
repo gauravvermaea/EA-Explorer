@@ -119,16 +119,35 @@ def _long(row: dict) -> bool:
 
 
 def judge(row: dict, now: datetime, wait_min: int, run_min: int) -> dict:
-    """A job with its minutes waited or run and whether it is stuck (pure, so it is tested alone)."""
+    """A job with its minutes waited or run and whether it is stuck (pure, so it is tested alone).
+
+    Running ("doing", or "aborting": asked to stop and not stopped yet) counts from when it started, against the running
+    limit. Waiting counts from when it was asked for, or from the time it was put off to (a job run at a time, a retry):
+    one whose time has not come is not waiting yet. A waiting job behind an earlier run of the same job (its lock, which
+    keeps two copies from running at once) is not stuck itself: it says which job it waits for, and that one is judged
+    (R5.46; owner, 16 Nov 2026: "Stuck: waiting for 38 minutes" on the next run of a job that was still running)."""
     out = dict(row)
-    since = row.get("started_at") if row.get("status") == "doing" else row.get("deferred_at")
-    minutes = round((now - since).total_seconds() / 60, 1) if since else None
-    limit = run_min * (3 if _long(row) else 1) if row.get("status") == "doing" else wait_min
+    status = row.get("status")
+    running = status in ("doing", "aborting")
+    sched = row.get("scheduled_at")
+    later = bool(status == "todo" and sched and sched > now)
+    if running:
+        since = row.get("started_at") or row.get("deferred_at")
+    else:
+        since = max([t for t in (row.get("deferred_at"), sched) if t] or [None]) if status == "todo" else row.get("deferred_at")
+    minutes = round((now - since).total_seconds() / 60, 1) if since and not later else None
+    limit = run_min * (3 if _long(row) else 1) if running else wait_min
     out["minutes"] = minutes
-    out["limit_minutes"] = limit if row.get("status") in ("todo", "doing") else None
-    out["stuck"] = bool(row.get("status") in ("todo", "doing") and minutes is not None and minutes > limit)
-    if out["stuck"]:
-        out["why"] = (f"running for {int(minutes)} minutes (more than {limit})" if row.get("status") == "doing"
+    out["limit_minutes"] = limit if (running or status == "todo") else None
+    out["later"] = later
+    behind = row.get("behind")
+    out["stuck"] = bool((running or status == "todo") and not later and not behind and minutes is not None and minutes > limit)
+    if later:
+        out["why"] = f"starts at {sched.astimezone(UTC).strftime('%Y-%m-%d %H:%M')} UTC"
+    elif behind and status == "todo":
+        out["why"] = f"waiting for the earlier run of this job (job {behind}) to finish"
+    elif out["stuck"]:
+        out["why"] = (f"running for {int(minutes)} minutes (more than {limit})" if running
                       else f"waiting for {int(minutes)} minutes (more than {limit})")
     else:
         out["why"] = ""
@@ -166,7 +185,10 @@ def queue(conn, now: datetime | None = None, values: dict | None = None) -> dict
     wait_min, run_min = limits(values)
     if not conn.execute(text("SELECT to_regclass('jobs.procrastinate_jobs')")).scalar():
         return {"jobs": [], "finished": [], "summary": summary([], [], wait_min, run_min), "limits": [wait_min, run_min]}
-    cols = """j.id, j.task_name, j.queue_name, j.priority, j.status::text AS status, j.attempts, j.args,
+    cols = """j.id, j.task_name, j.queue_name, j.priority, j.status::text AS status, j.attempts, j.args, j.lock,
+              j.scheduled_at,
+              (SELECT min(b.id) FROM jobs.procrastinate_jobs b WHERE j.status = 'todo' AND j.lock IS NOT NULL
+                  AND b.lock = j.lock AND b.id < j.id AND b.status IN ('todo', 'doing', 'aborting')) AS behind,
               (SELECT min(e.at) FROM jobs.procrastinate_events e WHERE e.job_id = j.id AND e.type = 'deferred') AS deferred_at,
               (SELECT max(e.at) FROM jobs.procrastinate_events e WHERE e.job_id = j.id AND e.type = 'started') AS started_at,
               (SELECT max(e.at) FROM jobs.procrastinate_events e WHERE e.job_id = j.id
@@ -187,7 +209,7 @@ def queue(conn, now: datetime | None = None, values: dict | None = None) -> dict
 
 def _shape(r: dict) -> dict:
     out = {k: v for k, v in r.items() if k != "args"}
-    for k in ("deferred_at", "started_at", "ended_at"):
+    for k in ("deferred_at", "started_at", "ended_at", "scheduled_at"):
         if out.get(k):
             out[k] = out[k].isoformat()
     args = r.get("args") or {}
@@ -216,28 +238,46 @@ def _task_failed(conn, job_id: int, message: str) -> None:
                           WHERE job_id = :j AND status IN ('queued', 'running')"""), {"j": job_id, "m": message[:500]})
 
 
+def _jobs_path(conn) -> None:
+    """The job runner's own triggers name its types without their schema (procrastinate_job_status): a change to a
+    job's status needs the jobs schema on the search path, for this transaction only (R5.45: Kill and Cancel answered
+    "type procrastinate_job_status does not exist" and changed nothing)."""
+    conn.execute(text("SET LOCAL search_path TO jobs, public"))
+
+
 def cancel(conn, job_id: int, by: str) -> dict:
     """A waiting job taken off the queue; its background task failed, saying who cancelled it."""
+    _jobs_path(conn)
     n = conn.execute(text("UPDATE jobs.procrastinate_jobs SET status = 'cancelled' WHERE id = :j AND status = 'todo'"),
                      {"j": int(job_id)}).rowcount
     if not n:
         raise ValueError(f"Job {job_id} is not waiting (it may have started or finished).")
-    conn.execute(text("INSERT INTO jobs.procrastinate_events (job_id, type) VALUES (:j, 'cancelled')"), {"j": int(job_id)})
     _task_failed(conn, int(job_id), f"Cancelled on System Admin › Jobs by {by}.")
     return {"job": int(job_id), "status": "cancelled"}
 
 
 def kill(conn, job_id: int, by: str) -> dict:
-    """A job being worked on, killed (owner, 21:42: "abilty to kill"): marked stopped at once, so its slot and its
-    background task are freed in the screens; the work itself ends when the job runner restarts (Restart the job
-    runner, beside it), since a job already running cannot be interrupted from outside."""
+    """A job being worked on, killed (owner, 21:42: "abilty to kill").
+
+    A job already running cannot be interrupted from outside, and marking it ended while it still runs would make the
+    job runner fail when the job does end (R5.46: the runner refuses to finish a job that is no longer running, and
+    stops). So the first Kill asks it to stop ("Being stopped", the runner's own abort request): its work ends when the
+    job runner restarts (Restart the job runner, beside it; the restart marks every job it left as stopped, R5.45), or
+    by itself if it finishes first. A second Kill on a job already being stopped marks it stopped at once: for a job left
+    by a job runner on another server that is gone, whose slot and lock it would otherwise hold for ever."""
+    _jobs_path(conn)            # the status change's event is written by the job runner's own trigger
     row = conn.execute(text("SELECT status::text FROM jobs.procrastinate_jobs WHERE id = :j"), {"j": int(job_id)}).scalar()
     if row not in ("doing", "aborting"):
         raise ValueError(f"Job {job_id} is not being worked on (it may have finished).")
+    if row == "doing":
+        conn.execute(text("UPDATE jobs.procrastinate_jobs SET status = 'aborting' WHERE id = :j"), {"j": int(job_id)})
+        return {"job": int(job_id), "status": "aborting", "restart_needed": True,
+                "message": "Asked to stop: its work ends when the job runner restarts (Restart the job runner), or when "
+                           "it finishes. Kill it again to mark it stopped at once if no job runner has it any more."}
     conn.execute(text("UPDATE jobs.procrastinate_jobs SET status = 'aborted' WHERE id = :j"), {"j": int(job_id)})
-    conn.execute(text("INSERT INTO jobs.procrastinate_events (job_id, type) VALUES (:j, 'aborted')"), {"j": int(job_id)})
     _task_failed(conn, int(job_id), f"Killed on System Admin › Jobs by {by}.")
-    return {"job": int(job_id), "status": "aborted", "restart_needed": True}
+    return {"job": int(job_id), "status": "aborted", "restart_needed": False,
+            "message": "Marked stopped: its slot is free and its next run can start."}
 
 
 def move(conn, job_id: int, by: str, direction: str) -> dict:
@@ -245,6 +285,7 @@ def move(conn, job_id: int, by: str, direction: str) -> dict:
     the highest priority first, then the oldest; down puts it below every other waiting job, up above them."""
     if direction not in ("up", "down"):
         raise ValueError("direction: up or down.")
+    _jobs_path(conn)
     row = conn.execute(text("SELECT status::text FROM jobs.procrastinate_jobs WHERE id = :j"), {"j": int(job_id)}).scalar()
     if row != "todo":
         raise ValueError(f"Job {job_id} is not waiting: only a waiting job moves in the queue.")
@@ -268,6 +309,25 @@ def clear_stuck(conn, by: str) -> dict:
     return {"killed": killed, "restart_needed": bool(killed)}
 
 
+def recover(conn, servers: int | None = None) -> dict:
+    """Jobs left "being worked on" by a job runner that has stopped (R5.45; owner, 16 Nov 2026: "When repo is built
+    and all is up why is this job still there? Killing is not really doing anything"). When the job runner restarts
+    (Apply now, Restart the job runner, a clean restart) the jobs it was running end with it, but their rows stayed
+    "doing" for ever, and each held its job's lock, so the next run of that job waited for ever behind it. With one API
+    server, the only job runner is the one starting now: every job still "doing" belongs to no one, so it is marked
+    failed (it already stopped; nothing is killed), saying why, and its next run can start. With several servers a job
+    may be running on another one: nothing is touched, and Kill on System Admin > Jobs deals with a left-over one."""
+    n = servers if servers is not None else int(os.environ.get("EAX_API_SERVERS") or 1)
+    if n > 1:
+        return {"recovered": [], "servers": n}
+    _jobs_path(conn)
+    rows = conn.execute(text("""UPDATE jobs.procrastinate_jobs SET status = 'failed'
+                                 WHERE status IN ('doing', 'aborting') RETURNING id, task_name""")).all()
+    for job_id, _name in rows:
+        _task_failed(conn, int(job_id), "Stopped when the job runner restarted; run it again if it is still needed.")
+    return {"recovered": [{"id": int(i), "task": t} for i, t in rows], "servers": n}
+
+
 FINISHED = ("succeeded", "failed", "cancelled", "aborted")
 
 
@@ -278,6 +338,7 @@ def delete_history(conn, older_than_days: int | None, by: str) -> dict:
     link to the job emptied), so no scheduled job runs twice."""
     if older_than_days is not None and older_than_days < 0:
         raise ValueError("days: 0 or more.")
+    _jobs_path(conn)        # the runner's trigger on deleting a job names its tables without their schema (R5.46)
     where = "j.status::text = ANY(:f)"
     params: dict = {"f": list(FINISHED)}
     if older_than_days:
@@ -312,7 +373,7 @@ def _print_queue(q: dict) -> None:
         print(f"\n{title} ({len(rows)})")
         for j in rows:
             mins = f"{j['minutes']:.0f} min" if j.get("minutes") is not None else ""
-            flag = f"  STUCK: {j['why']}" if j.get("stuck") else ""
+            flag = f"  STUCK: {j['why']}" if j.get("stuck") else f"  ({j['why']})" if j.get("why") else ""
             print(f"  {j['id']:>7}  {str(j['what'])[:48]:<48} {str(j['who'])[:20]:<20} {mins:>8}{flag}")
     if s["stuck"]:
         print("\nWhat to do:")
@@ -334,6 +395,15 @@ def main(argv: list[str]) -> int:
     from .db import get_engine
     cmd = argv[0] if argv else "list"
     try:
+        if cmd == "recover":                               # the entrypoint, before the job runner starts (R5.45)
+            with get_engine().begin() as conn:
+                out = recover(conn)
+                if out["recovered"]:
+                    audit.record(conn, actor="system", action="jobs.recovered", object_type="job", object_id="runner",
+                                 details=out)
+            print(f"EA Explorer: {len(out['recovered'])} job(s) left running by the last job runner marked stopped"
+                  + (": " + ", ".join(f"{r['id']} {r['task']}" for r in out["recovered"]) if out["recovered"] else ""))
+            return 0
         if cmd == "slots" and len(argv) == 1 and not os.environ.get("EAX_JOBS_CLI"):
             p = per_server()                                # the entrypoint's question: "<tasks> <scheduled>"
             print(f"{p['tasks']} {p['scheduled']}")
@@ -365,8 +435,7 @@ def main(argv: list[str]) -> int:
                 out = (cancel(conn, int(argv[1]), "eax") if cmd == "cancel" else kill(conn, int(argv[1]), "eax")
                        if cmd == "kill" else move(conn, int(argv[1]), "eax", cmd))
                 audit.record(conn, actor="eax", action=f"jobs.{cmd}", object_type="job", object_id=argv[1], details=out)
-                print(f"Job {argv[1]}: {cmd} done." + (" Its work ends when the job runner restarts (eax jobs restart)."
-                                                         if cmd == "kill" else ""))
+                print(f"Job {argv[1]}: " + (out.get("message") or "done.") if cmd == "kill" else f"Job {argv[1]}: {cmd} done.")
                 return 0
             if cmd == "clear-stuck":
                 out = clear_stuck(conn, "eax")

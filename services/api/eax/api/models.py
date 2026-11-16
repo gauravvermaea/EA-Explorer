@@ -575,7 +575,12 @@ class MovePreview(MethodView):
     def get(self, query, model_id):
         """What moving the model to another root metamodel (a new framework version) would do: each entity type
         and the type it maps to, and what would be left out"""
-        tmap = json.loads(query["map"]) if query.get("map") else None
+        try:
+            tmap = json.loads(query["map"]) if query.get("map") else None
+        except ValueError:                 # R5.40: not JSON is the caller's mistake, never a server error
+            abort(400, message="map must be JSON: each entity type and the type it maps to")
+        if tmap is not None and not isinstance(tmap, dict):
+            abort(400, message="map must be JSON: each entity type and the type it maps to")
         with get_engine().connect() as conn:
             try:
                 return mo.framework_preview(conn, model_id, query["target"], tmap)

@@ -93,8 +93,11 @@ def cross(base: str, token: str, ids: dict[str, str], record: Callable) -> None:
     """A test user reading or writing a model or project with no role there is refused."""
     other = ids.get("other_model")
     if other:
-        for method, path, body in (("GET", f"/api/v1/models/{other}/entities", None),
-                                   ("POST", f"/api/v1/models/{other}/entities", {"name": "self-test attack", "type": "x"})):
+        # the read takes its type (a request without it was refused as malformed, 422, before the role was looked at),
+        # and entities are created under content/ (POST on .../entities answered 405): R5.47, the full test of 16 Nov
+        for method, path, body in (("GET", f"/api/v1/models/{other}/entities?type=Application", None),
+                                   ("POST", f"/api/v1/models/{other}/content/entities",
+                                    {"entity_type": "Application", "name": "self-test attack"})):
             s, text = send(base, method, path, token, json.dumps(body).encode() if body else None)
             ok = s in (403, 404)
             record(f"attack: cross-model: {method} on a model with no role", "passed" if ok else "failed",

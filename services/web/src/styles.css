@@ -2802,3 +2802,30 @@ th.sortable { cursor: pointer; }
 .job-slots.warn { border-color: #ecd08f; background: #fffdf6; }
 .job-slot { font-weight: 600; margin-right: 18px; }
 .job-slot input { width: 64px; text-align: center; }
+
+/* R5.42: the Logs page's containers as a drop-down with a tick each */
+.pick-drop { position: relative; display: inline-block; }
+.pick-drop > summary { list-style: none; cursor: pointer; min-width: 9rem; max-width: 22rem; box-sizing: border-box; height: 32px; line-height: 20px; padding: 5px 30px 5px 10px;
+  border: 1px solid var(--line, #d0d5dd); border-radius: 6px; background: var(--card, #fff); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; position: relative; }
+.pick-drop > summary::-webkit-details-marker { display: none; }
+.pick-drop > summary::after { content: "\25BE"; position: absolute; right: 10px; top: 50%; transform: translateY(-50%); }
+.pick-drop[open] > .pick-drop-list { position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; min-width: 14rem;
+  max-height: 22rem; overflow: auto; padding: 8px 10px; border: 1px solid var(--line, #d0d5dd); border-radius: 6px;
+  background: var(--card, #fff); box-shadow: 0 6px 20px rgba(0, 0, 0, .12); }
+.pick-drop-list > label { display: flex; gap: 8px; align-items: center; padding: 3px 0; }
+
+/* R5.44: the SQL page's tree names only, with a Properties panel under it */
+.sql-side-col { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.sql-side-col .sql-side { max-height: 55vh; }
+.sql-props { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--card); }
+.sql-props h4 { margin: 0 0 4px; }
+.sql-props p { margin: 0 0 6px; overflow-wrap: anywhere; }
+.sql-props .props-table { width: 100%; border-collapse: collapse; }
+.sql-props .props-table th { text-align: left; font-weight: 600; padding: 3px 8px 3px 0; vertical-align: top; white-space: nowrap; color: var(--muted, #57606a); }
+.sql-props .props-table td { padding: 3px 0; overflow-wrap: anywhere; }
+
+/* R5.47: each area's passed and failed on the self-test's phase cards */
+.test-phase .phase-outcomes { display: flex; flex-direction: column; gap: 1px; margin-top: 6px; font-size: 14px; font-weight: 600; }
+.test-phase.has-failed { border: 2px solid #cf222e; background: color-mix(in srgb, #cf222e 6%, var(--card)); }
+.test-phase.has-warning { border-color: #bf8700; }
