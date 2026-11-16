@@ -113,7 +113,7 @@ try {
     Step "the fingerprint after, compared with before (every table and file)" {
         Eax @("drill", "fingerprint", (Join-Path $Run "after.json")) | Out-Null
         $c = Eax @("drill", "compare", (Join-Path $Run "before.json"), (Join-Path $Run "after.json"))
-        "$($c.tables) tables and $($c.files) files the same$(if (@($c.not_compared).Count) { "; $(@($c.not_compared).Count) the installation writes by itself not compared" })" }
+        "$($c.tables) tables and $($c.files) files the same$(if (@($c.not_compared).Count) { "; $(@($c.not_compared).Count) the installation writes by itself not compared" })$(if (@($c.allowed).Count) { "; $(@($c.allowed).Count) rewritten by the installation itself (allowed, in the log)" })" }
     Step "the test content found in the DR copy as it was made" { $c = Eax @("drill", "content-check", $State); "$($c.kinds) kinds, the same" }
     Step "the background back and the maintenance page off" { Eax @("drill", "quiet", "off") | Out-Null; $script:quietWhere = "" }
     Step "the smoke test, after" { Eax @("test", "smoke") | Out-Null; "passed" }

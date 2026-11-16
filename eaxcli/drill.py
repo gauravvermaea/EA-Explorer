@@ -21,7 +21,8 @@ temp location - backups, env etc; then at dr location download the install from 
   eax drill shutdown                   every container of this installation stopped and removed (volumes and images kept)
   eax drill restore <name>             a full restore of a backup, then EA Explorer answering again
   eax drill compare <a> <b>            two fingerprints compared (what the installation writes by itself is not): exit 1
-                                       when anything differs
+                                       when data was lost or added; values the installation rewrote by itself are
+                                       allowed and listed (backup_restore.same)
   eax drill code <folder>              this installation's code copied into a new folder, with CODE.sha256 (a checksum
                                        of every file): eax-dr builds from it with no GitHub (the owner, 16 Nov 2026, 22:44)"""
 
@@ -263,6 +264,8 @@ def main(args: list[str]) -> int:
         elif cmd == "compare" and len(rest) >= 2:
             a, b = (json.loads(Path(p).read_text(encoding="utf-8")) for p in rest[:2])
             out = BR.same(a, b, set())
+            for x in out.get("allowed") or []:
+                say(f"  allowed: {x}", "yellow")
             if out["differ"]:
                 out["error"] = f"{len(out['differ'])} differ: " + "; ".join(out["differ"][:20])
         elif cmd == "code" and rest:

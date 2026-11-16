@@ -178,7 +178,7 @@ try {
             New-Item -ItemType Directory -Force (Split-Path $after) | Out-Null
             Eax @("drill", "fingerprint", $after) | Out-Null
             $c = Eax @("drill", "compare", $Fingerprint, $after)
-            "$($c.tables) tables and $($c.files) files the same as when the pack was made$(if (@($c.not_compared).Count) { "; $(@($c.not_compared).Count) the installation writes by itself not compared" })" }
+            "$($c.tables) tables and $($c.files) files the same as when the pack was made$(if (@($c.not_compared).Count) { "; $(@($c.not_compared).Count) the installation writes by itself not compared" })$(if (@($c.allowed).Count) { "; $(@($c.allowed).Count) rewritten by the installation itself (allowed, in the log)" })" }
     }
     $script:Recovery = [int]((Get-Date) - $t1).TotalMinutes
     if (-not $KeepQuiet) { Step "the background back and the maintenance page off" { Eax @("drill", "quiet", "off") | Out-Null } }

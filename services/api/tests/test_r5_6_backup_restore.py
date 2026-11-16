@@ -91,21 +91,21 @@ def test_backups_are_pinned_while_the_test_runs_and_each_command_answers_in_json
 def test_two_fingerprints_are_compared_table_by_table_and_file_by_file():
     a = {"tables": {"eaexplorer core.models": [3, "a"], "eaexplorer jobs.procrastinate_jobs": [9, "j"],
                     "keycloak public.user_session": [1, "s"], "eaexplorer core.entities": [10, "e"]},
-         "files": {"documents/x.pdf": "1", "persist/settings.json": "2", "reports/cache/y": "3"}}
+         "files": {"documents/media/x.pdf": "1", "persist/settings.json": "2", "reports/cache/y": "3"}}
     b = json.loads(json.dumps(a))
     assert BR.same(a, b, set())["differ"] == []
     b["tables"]["eaexplorer core.models"] = [4, "b"]
     b["tables"]["eaexplorer jobs.procrastinate_jobs"] = [10, "k"]            # written by the installation itself
     b["tables"]["keycloak public.user_session"] = [2, "t"]
-    b["files"]["documents/x.pdf"] = "9"
+    b["files"]["documents/media/x.pdf"] = "9"
     b["files"]["reports/cache/y"] = "4"
     del b["tables"]["eaexplorer core.entities"]
     c = BR.same(a, b, set())
     assert c["differ"] == ["eaexplorer core.entities: missing after", "eaexplorer core.models: 3 rows before, 4 after",
-                           "documents/x.pdf: another checksum"]
+                           "documents/media/x.pdf: another checksum"]
     assert set(c["not_compared"]) == {"eaexplorer jobs.procrastinate_jobs", "keycloak public.user_session", "reports/cache/y"}
-    assert BR.same(a, b, {"eaexplorer core.models", "documents/x.pdf", "eaexplorer core.entities"})["differ"] == []
-    assert BR.moved(a, b) >= {"eaexplorer core.models", "documents/x.pdf"}
+    assert BR.same(a, b, {"eaexplorer core.models", "documents/media/x.pdf", "eaexplorer core.entities"})["differ"] == []
+    assert BR.moved(a, b) >= {"eaexplorer core.models", "documents/media/x.pdf"}
 
 
 def test_backup_names_are_random_and_secrets_are_looked_for(tmp_path):
@@ -134,8 +134,35 @@ def test_the_realm_and_switches_are_not_secrets_and_start_up_status_is_the_insta
     b = {"tables": {}, "files": {"documents/config_backup.yml": "2", "documents/config.yml": "c"}}
     c = BR.same(a, b, set())
     assert c["differ"] == [] and c["not_compared"] == ["documents/config_backup.yml"] and c["files"] == 1
-    b["files"]["documents/config.yml"] = "changed"
-    assert BR.same(a, b, set())["differ"] == ["documents/config.yml: another checksum"]
+    b["files"]["documents/config.yml"] = "changed"                       # a setting rewritten: allowed, listed
+    c = BR.same(a, b, set())
+    assert c["differ"] == [] and c["allowed"] == ["documents/config.yml: another checksum"]
+
+
+def test_the_comparison_fails_on_data_lost_or_added_and_allows_what_the_installation_rewrites():
+    """The owner, 17 Nov 2026, 00:00: "make comparisons a bit loose, otherwise this will not work in every release"."""
+    a = {"tables": {"eaexplorer core.models": [3, "m"], "eaexplorer core.viewpoints": [40, "v"], "eaxlibrary lib.changes": [136, "c"],
+                    "eaexplorer core.entities": [100, "e"]},
+         "files": {"documents/media/document_file_storage/ab12": "1", "documents/config.yml": "s", "config/eaexplorer.env": "x",
+                   "reports/superset_config.py": "r", "persist/s.json": "p"}}
+    b = json.loads(json.dumps(a))
+    b["tables"]["eaexplorer core.viewpoints"] = [40, "stamped again"]          # rewritten at start-up
+    b["tables"]["eaxlibrary lib.changes"] = [144, "more"]                       # history that grew
+    b["files"]["documents/config.yml"] = "rewritten"
+    b["files"]["reports/superset_config.py"] = "rewritten"
+    c = BR.same(a, b, set())
+    assert c["differ"] == [] and len(c["allowed"]) == 4 and "8 more history rows" in BR.said(c)
+    lost = json.loads(json.dumps(b))
+    lost["tables"]["eaexplorer core.entities"] = [99, "e"]                      # a row lost
+    lost["tables"]["eaxlibrary lib.changes"] = [130, "fewer"]                   # history lost
+    lost["files"]["documents/media/document_file_storage/ab12"] = "damaged"     # a stored document changed
+    lost["files"]["config/eaexplorer.env"] = "other"
+    del lost["files"]["persist/s.json"]                                         # a file lost
+    lost["files"]["imports/new.txt"] = "n"                                      # a file added
+    d = BR.same(a, lost, set())["differ"]
+    assert d == ["eaexplorer core.entities: 100 rows before, 99 after", "eaxlibrary lib.changes: 136 rows before, 130 after",
+                 "config/eaexplorer.env: another checksum", "documents/media/document_file_storage/ab12: another checksum",
+                 "imports/new.txt: there after, not before", "persist/s.json: missing after"]
 
 
 # ---------------------------------------------------------------- the whole test, against a pretend installation

@@ -220,13 +220,20 @@ maintenance page on so nothing changes between the picture and the backup:
   folders, persist/) and the config file: each file's SHA-256 checksum.
 
 After the restore, `eax-dr` takes the same picture on the new machine and compares the two, table by table and file by
-file. The report says how many tables and files are the same, and names any that differ: a table with fewer rows, a
-table with the same rows but other content, a file missing or changed. That is what proves the DR tool did everything:
-not that the restore said it finished, but that every row and every file is as it was.
+file. The report says how many tables and files are the same. That is what proves the DR tool did everything: not
+that the restore said it finished, but that no row and no file was lost or added.
 
-A few tables and files change by themselves while EA Explorer runs (sign-in sessions, logs, the job queue, caches,
-heartbeats). They are left out of the comparison and listed in the report as "not compared", so they never make a good
-recovery look bad.
+| What differs | Counts as |
+| --- | --- |
+| A table with more or fewer rows; a file missing or new | **Failed**: data was lost or added |
+| A file of the data with another checksum: a stored document, persist/, the import and export folders, the certificate, the config file | **Failed** |
+| A table with the same rows but other content (a value EA Explorer rewrote when it started: a date, a setting refreshed) | Allowed, listed |
+| A history table with more rows (EA Explorer noting what it did at start-up, such as refreshing its shipped documentation) | Allowed, listed |
+| A service's own file with another checksum (Reports' home, Documents' settings files beside the stored documents: rewritten when they start) | Allowed, listed |
+| Tables and files that change all the time (sign-in sessions, logs, the job queue, caches, heartbeats) | Not compared, listed |
+
+So a new release that rewrites a setting or a date at start-up never makes a good recovery look bad, while a lost
+row, document or file always fails it.
 
 The fingerprint holds no data: only counts and checksums. The pack's secrets are in the backup and the env file.
 

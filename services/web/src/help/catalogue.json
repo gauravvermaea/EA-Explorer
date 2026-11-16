@@ -775,6 +775,14 @@
       "Open one to answer it."
     ]
   },
+  "tab:Disaster recovery": {
+    "what": "How to rebuild EA Explorer on another machine from a DR pack (backup, version, config file and code), and how to rehearse it, with the commands for Windows and for Linux and macOS.",
+    "how": [
+      "Read which to use when: a backup restored here, or DR on another machine.",
+      "Pick your system at the top, then copy each command: eax dr-pack to set up a pack, eax-dr to rebuild from it, eax-drill to rehearse.",
+      "Run them from the command line; they ask nothing and write a report. Every option is in Documentation › Disaster recovery."
+    ]
+  },
   "tab:Restores": {
     "what": "Every restore and its status and log.",
     "how": [

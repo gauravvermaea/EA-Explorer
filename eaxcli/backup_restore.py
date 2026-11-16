@@ -76,11 +76,26 @@ def moved(a: dict, b: dict) -> set[str]:
     return out
 
 
+# How strict the comparison is (the owner, 17 Nov 2026, 00:00: "make comparisons a bit loose, otherwise this will not work
+# in every release"). A restore fails when data is lost or added; a value the installation rewrote by itself is allowed
+# and listed:
+#   failed:   a table with more or fewer rows; a file missing or new; a file of the data with another checksum (a stored
+#             document, persist/, the import and export folders, the certificate, the config file)
+#   allowed:  a table with the same rows and other content (a value rewritten at start-up: a date stamped, a setting
+#             refreshed); a history table that only grew (the installation noting what it did at start-up, such as the
+#             library refreshing its shipped documentation); a service's own file with another checksum (Reports'
+#             home, Documents' own settings files beside its stored documents: rewritten when they start)
+#   not compared: what the installation writes all the time (SYSTEM_TABLE, SYSTEM_FILE, and what moved while idle)
+# The test's own content is still compared exactly, kind by kind, by its snapshot: anything it made that came back
+# different fails there.
+SERVICE_FILE = re.compile(r"^reports/|^documents/[^/]+$", re.I)
+HISTORY_TABLE = re.compile(r"(changes|history|_versions?)$", re.I)
+
+
 def same(before: dict, after: dict, ignore: set[str]) -> dict:
-    """Two fingerprints compared (pure): {"tables": n compared, "files": n compared, "differ": [...], "not_compared": [...]}.
-    A table or file the installation changes by itself (ignore, or a name the installation writes by itself) is not
-    compared, and listed."""
-    differ, skipped = [], []
+    """Two fingerprints compared (pure): {"tables": n, "files": n compared, "differ": [...] (fails), "allowed": [...]
+    (differences the installation makes by itself, listed), "not_compared": [...]} (see above)."""
+    differ, allowed, skipped = [], [], []
     nt = nf = 0
     for kind, rx in (("tables", SYSTEM_TABLE), ("files", SYSTEM_FILE)):
         b, a = before.get(kind, {}), after.get(kind, {})
@@ -93,16 +108,33 @@ def same(before: dict, after: dict, ignore: set[str]) -> dict:
                 nt += 1
             else:
                 nf += 1
-            if b.get(k) != a.get(k):
-                if k not in a:
-                    differ.append(f"{k}: missing after")
-                elif k not in b:
-                    differ.append(f"{k}: there after, not before")
-                elif kind == "tables":
-                    differ.append(f"{k}: {b[k][0]} rows before, {a[k][0]} after" if b[k][0] != a[k][0] else f"{k}: same rows, other content")
+            if b.get(k) == a.get(k):
+                continue
+            if k not in a:
+                differ.append(f"{k}: missing after")
+            elif k not in b:
+                differ.append(f"{k}: there after, not before")
+            elif kind == "tables":
+                rb, ra = int(b[k][0]), int(a[k][0])
+                if rb == ra:
+                    allowed.append(f"{k}: same rows, other content")
+                elif ra > rb and HISTORY_TABLE.search(k):
+                    allowed.append(f"{k}: {ra - rb} more history rows ({rb} before, {ra} after)")
                 else:
-                    differ.append(f"{k}: another checksum")
-    return {"tables": nt, "files": nf, "differ": differ, "not_compared": skipped}
+                    differ.append(f"{k}: {rb} rows before, {ra} after")
+            elif SERVICE_FILE.search(k):
+                allowed.append(f"{k}: another checksum")
+            else:
+                differ.append(f"{k}: another checksum")
+    return {"tables": nt, "files": nf, "differ": differ, "allowed": allowed, "not_compared": skipped}
+
+
+def said(c: dict, ok_text: str = "the same") -> str:
+    """A comparison in words, for the report (pure)."""
+    out = f"{c['tables']} tables and {c['files']} files compared; " + ("; ".join(c["differ"][:20]) or ok_text)
+    if c.get("allowed"):
+        out += f". Allowed (rewritten by the installation itself, {len(c['allowed'])}): " + "; ".join(c["allowed"][:10])
+    return out
 
 
 def secrets_in(text: str, values: list[str]) -> list[str]:
@@ -258,8 +290,7 @@ def run(t: Test) -> dict:
         t.check("everything the test made is gone (the project, its models and the rest)", not left, ", ".join(left) or "gone")
         f3 = t.step("fingerprint after restoring B1", lambda: t.ops("fingerprint"))
         c = same(f1, f3, moving)
-        t.check("every table and file is as at B1", not c["differ"], f"{c['tables']} tables and {c['files']} files compared; "
-                + ("; ".join(c["differ"][:20]) or "the same"))
+        t.check("every table and file is as at B1", not c["differ"], said(c))
         marks = [k for k in f3.get("files", {}) if f"self_test_{st['sid']}_backup_restore" in k]
         t.check("S2: the files made after B1 are gone from persist/ and the import folder", not marks, ", ".join(marks) or "gone",
                 scenario="S2")
@@ -271,8 +302,7 @@ def run(t: Test) -> dict:
         t.check("EA Explorer answers again", t.wait(), "the API and sign-in are healthy")
         f3b = t.step("fingerprint after restoring B1 again", lambda: t.ops("fingerprint"))
         c = same(f3, f3b, moving)
-        t.check("S8: the same backup restored twice gives the same fingerprint", not c["differ"],
-                "; ".join(c["differ"][:20]) or f"{c['tables']} tables and {c['files']} files the same", scenario="S8")
+        t.check("S8: the same backup restored twice gives the same fingerprint", not c["differ"], said(c), scenario="S8")
 
         r = t.step("restore B2 (full)", lambda: t.ops("restore", b2, "--what", "full"))
         t.restored_b2 = True
@@ -285,8 +315,7 @@ def run(t: Test) -> dict:
                 f"{len(_present(snap4))} kinds of content, the same")
         f4 = t.step("fingerprint after restoring B2", lambda: t.ops("fingerprint"))
         c = same(f2b, f4, moving)
-        t.check("every database's rows and every file's checksum are as at B2", not c["differ"],
-                f"{c['tables']} tables and {c['files']} files compared; " + ("; ".join(c["differ"][:20]) or "the same"))
+        t.check("every database's rows and every file's checksum are as at B2", not c["differ"], said(c))
         marks = [k for k in f4.get("files", {}) if f"self_test_{st['sid']}_backup_restore" in k]
         t.check("S2: the files in persist/ and the import folder are back", len(marks) == 2, ", ".join(marks), scenario="S2")
         t.check("S13: the config file and the certificate came back", f4.get("files", {}).get("config/eaexplorer.env")

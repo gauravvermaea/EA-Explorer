@@ -220,6 +220,7 @@ export function menuTree() {
       { label: "Backups and restores", ok: ops, items: [
         { label: "Backups", href: "#/admin/backups" },
         { label: "Restores", href: "#/admin/restores" },
+        { label: "Disaster recovery", href: "#/admin/disaster-recovery" },
       ] },
       { label: "Updates", href: "#/admin/updates", ok: ops },   // Deploy moved to the site picker (R2.14)
       { label: "Tools", ok: ops, items: [

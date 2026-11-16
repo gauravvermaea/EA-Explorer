@@ -2870,3 +2870,12 @@ th.sortable { cursor: pointer; }
 .tpl-slide-no { font-weight: 600; color: var(--muted, #888); text-align: right; }
 .tpl-sheet { margin: 8px 0 14px; }
 .tpl-text { white-space: pre-wrap; font-size: 12px; }
+
+/* System admin › Disaster recovery (R5.6-B2) */
+.dr-page h2 { margin-top: 22px; }
+.dr-when { width: 100%; border-collapse: collapse; }
+.dr-when th, .dr-when td { text-align: left; vertical-align: top; padding: 6px 8px; border-top: 1px solid var(--line); }
+.dr-steps li { margin: 10px 0; }
+.dr-cmd { display: flex; align-items: flex-start; gap: 8px; margin: 6px 0; }
+.dr-cmd pre { flex: 1; margin: 0; padding: 8px 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+  overflow-x: auto; white-space: pre; }

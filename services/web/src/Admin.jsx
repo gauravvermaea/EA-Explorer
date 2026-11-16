@@ -57,6 +57,7 @@ const DbMaintenancePage = lazy(() => import("./DbMaintenance"));
 const OptimisationPage = lazy(() => import("./Optimisation"));
 const SizingPage = lazy(() => import("./Sizing"));
 const JobsPage = lazy(() => import("./Jobs"));   // R5.30
+const DisasterRecoveryPage = lazy(() => import("./DisasterRecovery"));
 const QualityAdmin = lazy(() => import("./Quality").then((x) => ({ default: x.QualityAdmin })));
 
 const TABS = [
@@ -83,6 +84,7 @@ const TABS = [
   ["self-test", "Self-test", () => can("system.operate"), ["it-admin", "super-admin"]],
   ["backups", "Backups", () => can("system.operate"), ["it-admin", "super-admin"]],
   ["restores", "Restores", () => can("system.operate"), ["it-admin", "super-admin"]],
+  ["disaster-recovery", "Disaster recovery", () => can("system.operate"), ["it-admin", "super-admin"]],   // R5.6-B2
   ["quality", "Quality", () => true, null],
   ["sql", "SQL", () => can("system.operate"), ["it-admin", "super-admin"]],
   ["machine-access", "Machine access", () => true, null],
@@ -134,6 +136,7 @@ export default function Admin({ route }) {
                 : t[0] === "estate" ? <EstatePage />
                   : t[0] === "backups" ? <AdminBackups />
                     : t[0] === "restores" ? <RestoresPage route={route} />
+                    : t[0] === "disaster-recovery" ? <DisasterRecoveryPage />
                     : t[0] === "quality" ? <QualityAdmin />
                   : t[0] === "sql" ? <Sql />
                   : t[0] === "machine-access" ? <MachineAccess />
