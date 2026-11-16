@@ -4,7 +4,8 @@ The state of the work, for whoever picks it up next: a person or another AI with
 13 Nov 2026: "what happens if I need another ai to work on this"). **Updated at the end of every working session.**
 Read [AGENTS.md](../AGENTS.md) first, run `eax dev check`, then read this.
 
-Last updated: 16 Nov 2026, Release 5.1 released (5.1.0, stabilisation; accepted 11:25). Next: Release 5.5, built only when the owner says.
+Last updated: 16 Nov 2026, Release 5.6 built as 5.6.0, waiting for the owner's clean rebuild, full test and acceptance.
+Next: Release 5.7 (agreed, built only after 5.6 is accepted).
 
 ## How the owner works
 
@@ -25,6 +26,13 @@ The working rules, written once (AGENTS.md has them in full):
 - **The key vault (OpenBao) stays switched off** until the owner gives its details.
 
 ## What was just done
+
+Release 5.6 built as 5.6.0 (owner, 16 Nov 2026: "Build 5.6"; D713): R5.6-B1 the backup and restore test the owner set
+out (D711: `eax test backup-restore`, synchronous from eax itself: services/ops/brtest.py, eaxcli/backup_restore.py,
+eax/testing/backup_restore.py and the backup container's fingerprint.sh; it replaced restore_check.py), the two restore
+drills as documents with a PDF (D712, eax/doc_pdf.py), R5.6-Q2 job priorities (D709: eax/job_priorities.py, the queue
+keeper, migration 0098), R5.6-U1 and U2 versions only from the published GitHub Releases of EA-Explorer (D710: the
+Latest channel gone; drop-downs on Updates and Deploy). Migrations 0098 and 0099. Waiting for the owner's acceptance.
 
 Release 5.5 released as 5.5.0 (owner, 16 Nov 2026: "Build this release"; D706): R5.5 enterprise discovery as the owner
 designed it (D705: EA Explorer the source and sink, the people's own AI runs it through eight MCP tools; discovery
@@ -59,7 +67,8 @@ Nothing.
 
 ## Next
 
-The owner's acceptance of Release 5.5. Then Release 5.6 (backup and restore), Release 5.7, Release 6.
+Release 5.6 (accepted 5.5 on 16 Nov 2026, 15:36): the owner's backup and restore test (a synchronous script in eax,
+D708), job priorities, Updates and Deploy from GitHub Releases. Then Release 5.7, Release 6.
 
 ## Open questions
 

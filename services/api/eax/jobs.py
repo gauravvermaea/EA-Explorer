@@ -605,6 +605,22 @@ def alerts_run(timestamp: int) -> None:
         logging.getLogger("eax.alerts").exception("the alert checks could not run")
 
 
+@app.periodic(cron="* * * * *")
+@app.task(name="eax.queue_keeper", queue="watch", queueing_lock="queue_keeper", lock="queue_keeper")
+def queue_keeper(timestamp: int) -> None:
+    """Every minute (R5.6-Q2): each kind of job's level applied to the jobs waiting, and when the queue is too full the
+    low-priority recurring jobs taken off it (their next run does the work; each skip counted). On the alerts' queue
+    (watch), so it runs when every other slot is busy."""
+    import logging
+
+    from . import job_priorities as jp
+    try:
+        with get_engine().begin() as conn:
+            jp.keep(conn)
+    except Exception:  # noqa: BLE001 - tried again next minute
+        logging.getLogger("eax.jobs").exception("the queue keeper could not run")
+
+
 @app.periodic(cron="20 3 * * 0")
 @app.task(name="eax.security_weekly", queue="default", queueing_lock="security_weekly", lock="security_weekly")
 def security_weekly(timestamp: int) -> None:
@@ -723,3 +739,46 @@ def servicedesk_overdue(timestamp: int) -> None:
             servicedesk.overdue_reminders(conn)
     except Exception:  # noqa: BLE001
         logging.getLogger("eax.servicedesk").info("overdue requests not looked at", exc_info=True)
+
+
+# every kind of job's level as it ships (R5.6-Q2): the job runner takes the highest first; a level changed on System
+# Admin › Jobs is applied by the queue keeper
+def _levels() -> None:
+    from . import job_priorities as jp
+    for _task in app.tasks.values():
+        if _task.name.startswith("eax."):
+            _task.priority = jp.number(jp.default_level(_task.name))
+
+
+_levels()
+
+
+# quiet while the backup and restore test runs (R5.6-B1): every recurring job misses its turn while work/quiet.json is
+# there (eax/quiet.py); the jobs a person or the test asks for still run
+# recurring jobs that only finish what a person (or the test) asked for keep running while quiet: a new project's or
+# document class's folders in Documents are made by eax.project_repositories (the owner's run, 16 Nov 2026, 21:11: the
+# test's document could not be uploaded, its folder never made)
+QUIET_RUNS = {"eax.project_repositories"}
+
+
+def _quiet_wrap() -> None:
+    import functools
+    import inspect
+
+    from . import quiet
+
+    def wrap(func, name):
+        @functools.wraps(func)
+        def run(*a, **kw):
+            if quiet.on():
+                log.info("%s: skipped, the backup and restore test is running (quiet)", name)
+                return None
+            return func(*a, **kw)
+        return run
+    for _task in app.tasks.values():
+        if _task.name.startswith("eax.") and _task.name not in QUIET_RUNS \
+                and "timestamp" in inspect.signature(_task.func).parameters and not inspect.iscoroutinefunction(_task.func):
+            _task.func = wrap(_task.func, _task.name)
+
+
+_quiet_wrap()

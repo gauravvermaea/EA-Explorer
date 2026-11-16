@@ -16,7 +16,7 @@ Updating an installation to a newer release is a separate story: [phase-36-updat
 ## 1. Get EA Explorer (no repository needed)
 
 You don't need a copy of the repository. The **installer** is one small file. It asks for the **repository link**
-and the **channel** (Prod: released versions; RC: release candidates; Latest: the newest commit of main), lists the
+and the **channel** (Prod: published releases; RC: published pre-releases too; read from the repository's GitHub Releases, never main), lists the
 versions, downloads the one you choose, checks it, and runs the deployment wizard.
 
 - It downloads the release archive with no git needed. If git is installed, it uses a shallow clone instead.

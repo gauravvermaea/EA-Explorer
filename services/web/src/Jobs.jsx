@@ -4,6 +4,7 @@
 // them from queue or add more api servers"; "I will not run commands I want a UI").
 //   JobsSummary  the counts, big: being worked on, waiting, stuck, the free job slots; what to do (on the dashboard too)
 //   Jobs         every job being worked on and waiting, in words, with Kill, Cancel, Move down and up; the newest finished
+//   Priorities   each kind of job's level (high, normal, low), changeable, and how often a low one missed its turn (R5.6-Q2)
 import { useEffect, useState } from "react";
 import { apiFetch, can } from "./auth";
 import { fmtDateTime } from "./fmt";
@@ -230,6 +231,8 @@ export default function Jobs() {
             </tr>))}</tbody>
         </table>)}
 
+      <Priorities />
+
       <h2>Finished lately</h2>
       <DeleteHistory onDone={load} />
       {!d.finished.length ? <p className="quiet">None yet.</p> : (
@@ -268,5 +271,45 @@ export default function Jobs() {
           </div>
         </div>)}
     </div>
+  );
+}
+
+// Each kind of job's level and its skips (R5.6-Q2; owner, 15 Nov 2026, 22:47; agreed 16 Nov 2026, 15:46)
+function Priorities() {
+  const [d, setD] = useState(null);
+  const [msg, setMsg] = useState(null);
+  const [open, setOpen] = useState(false);
+  const load = () => apiFetch("/api/v1/jobs/priorities").then(setD).catch((e) => setMsg({ ok: false, text: e.message }));
+  useEffect(() => { if (open && !d) load(); }, [open]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const may = can("system.operate");
+  async function setLevel(k, level) {
+    try { const r = await apiFetch(`/api/v1/jobs/priorities/${encodeURIComponent(k.task)}`, { method: "PUT", body: JSON.stringify({ level }) });
+      setMsg({ ok: true, text: r.message }); load(); }
+    catch (e) { setMsg({ ok: false, text: e.message }); }
+  }
+  const skipped = (d?.kinds || []).filter((k) => k.skipped_total);
+  return (
+    <>
+      <h2><button className="linkish" onClick={() => setOpen(!open)} aria-expanded={open}>{open ? "▾" : "▸"} Priorities</button></h2>
+      {open && (!d ? <p className="quiet">Loading...</p> : (<>
+        <p className="small quiet">The job runner takes the highest first. When the queue is too full (more than {d.limits.jobs_full_waiting} waiting,
+          or the oldest waiting over {d.limits.jobs_full_minutes} minutes), a waiting low-priority recurring job misses its turn and its next run
+          does the work; after {d.limits.jobs_skip_max} skips in a row it runs anyway. A job someone asked for is never skipped. The limits are in
+          System Admin › Settings.</p>
+        {msg && <p className={`status ${msg.ok ? "ok" : "bad"}`}>{msg.text}</p>}
+        {skipped.length > 0 && <p className="status">Skipped as the queue was too full: {skipped.map((k) => `${k.what} (${k.skipped_total})`).join(", ")}.</p>}
+        <table className="grid-table small jobs-table">
+          <thead><tr><th>Kind of job</th><th>Priority</th><th>Skipped</th><th>Last skipped</th></tr></thead>
+          <tbody>{d.kinds.map((k) => (
+            <tr key={k.task}>
+              <td>{k.what}<div className="quiet small">{k.task}</div></td>
+              <td><select value={k.level} disabled={!may} aria-label={`Priority of ${k.what}`} onChange={(e) => setLevel(k, e.target.value === k.default ? "" : e.target.value)}>
+                {d.levels.map((l) => <option key={l} value={l}>{l}{l === k.default ? " (as it ships)" : ""}</option>)}</select></td>
+              <td>{k.skipped_total ? `${k.skipped_total} (${k.skipped_in_row} in a row)` : "–"}</td>
+              <td>{k.last_skipped ? fmtDateTime(k.last_skipped) : "–"}</td>
+            </tr>))}</tbody>
+        </table>
+      </>))}
+    </>
   );
 }

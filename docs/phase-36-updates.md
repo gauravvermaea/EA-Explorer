@@ -12,7 +12,9 @@ updates by itself.
   repository is **public**: no credentials.
 - **Built on the host**: an update fetches the chosen version and builds the images on the server, as `eax clean-restart`
   does today. No image registry.
-- **Three channels** (branches and tags):
+- **Three channels** (branches and tags), as built in phase 36. **R5.6 replaced this**: only the repository's
+  published GitHub Releases are offered (Prod; RC adds the pre-releases) and the Latest channel is gone; see
+  [release-process.md](release-process.md).
 
   | Channel | Branch | Versions offered | Default |
   |---|---|---|---|

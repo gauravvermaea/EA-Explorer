@@ -235,7 +235,7 @@ Phase 36 (D417, D511): see [phase-36-updates.md](phase-36-updates.md) and [relea
 
 | Command | What it does |
 |---|---|
-| `eax update` | Guided: the installed version, the channels (Prod; RC and Latest once enabled), the versions above the installed one with their notes; which one, now or at a time, and YES. A pinned full backup (code, databases, files, config) first, then the maintenance page while each release on the way is built and checked. The update runs in its own updater container; this window follows its log until EA Explorer restarts. |
+| `eax update` | Guided: the installed version, the channels (Prod; RC once enabled), the published GitHub Releases above the installed one with their notes (never main); which one, now or at a time, and YES. A pinned full backup (code, databases, files, config) first, then the maintenance page while each release on the way is built and checked. The update runs in its own updater container; this window follows its log until EA Explorer restarts. |
 | `eax update --status` | The installed version, the repository link, the channels, the update running or waiting, the schedule and the history. |
 | `eax update --channel prod --to 0.20.0 [--at 22:00] [--yes]` | Not guided. `--at` schedules it (signed-in people see a banner beforehand). |
 | `eax update --url <link>` | Sets the repository link (EAX_UPDATE_GIT_URL). |

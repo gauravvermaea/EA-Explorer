@@ -4,7 +4,7 @@ last test"). As a Super Admin, through the same API the Backups page uses:
 
   (1 and 2, an infrastructure backup and its trial restore, left the full test on 15 Nov 2026, R5.31; owner: "from this
   full test remove backup and restore testing of infrastructure, application is ok. We will test backup and restore
-  using a test backup-restore which can run from command line": `eax test backup-restore`, restore_check.py)
+  using a test backup-restore which can run from command line": `eax test backup-restore`, eaxcli/backup_restore.py since R5.6-B1)
   3. an application backup of the run's own model (self_test_<id>_1)
   4. that model restored from it as a new model (self_test_<id>_4, a fixture of the run), its entities and
      relationships counted against the original's

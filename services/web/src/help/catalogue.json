@@ -2514,7 +2514,6 @@
   "field:Remind every": "How often a reminder goes to those who haven't answered.",
   "field:Remind every (days)": "How many days between reminders.",
   "field:Repeats": "How often it repeats.",
-  "field:Repository link (public git, https)": "The public git link releases come from, e.g. https://github.com/<owner>/<repository>.git.",
   "field:Schedule (minute hour day month weekday)": "When it runs, in cron form, e.g. 0 1 * * * for 01:00 every day.",
   "field:Severity": "Error blocks a commit; warning does not.",
   "field:Store the gaps in": "The model the gap analysis is kept in.",
@@ -2534,7 +2533,6 @@
   "field:When (": "When.",
   "field:amber from": "The value where the colour turns amber.",
   "field:green from": "The value where the colour turns green.",
-  "field:https://github.com/<owner>/<repository>.git": "The public git link releases come from.",
   "field:or this many times": "Or after this many times.",
   "field:Find a stencil group or type": "Search the stencil by group or type name, e.g. Application.",
   "field:Suite": "Show the results of one suite (API, browser, database, security...).",
@@ -3974,5 +3972,10 @@
       "Scroll through it here. The look (fonts, colours, pictures inside a Word or PowerPoint file) is not shown: click Download to open the file itself.",
       "A long file shows its beginning only, and a file of another kind (or over 30 MB) says so: download it to open it."
     ]
-  }
+  },
+  "button:⬇ Download PDF": "Downloads this restore drill as a PDF to follow by hand: its numbered command-line steps in boxes, with the version and page numbers on every page.",
+  "field:Priority of *": "This kind of job's priority: high runs first, low may miss a turn when the job queue is too full (its next run does the work). Changing it applies to its waiting jobs within a minute; choosing its shipped level puts it back as it ships.",
+  "field:Release": "The published releases of the repository's GitHub Releases page newer than the installed version, newest first (RC adds the pre-releases). Choose one to read its release notes below, then Update to this. Nothing from the main branch is ever offered.",
+  "field:Repository link (a public GitHub repository)": "The GitHub repository EA Explorer's releases come from, without credentials: its published GitHub Releases are the versions offered. As shipped: https://github.com/gauravvermaea/EA-Explorer.",
+  "field:https://github.com/gauravvermaea/EA-Explorer": "The GitHub repository EA Explorer's releases come from, without credentials: its published GitHub Releases are the versions offered."
 }

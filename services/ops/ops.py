@@ -2844,6 +2844,8 @@ def cli(argv: list[str]) -> int:
     if cmd in ("update", "rollback"):      # eax update / eax rollback (phase 36, D417)
         return updates.cli(argv if cmd == "rollback" else args)
     version = args[args.index("--version") + 1] if "--version" in args else os.environ.get("EAX_VERSION", "")
+    if cmd == "brtest":                   # eax test backup-restore's steps, one at a time (R5.6-B1)
+        return brtest.cli(args, version)
     if cmd == "filesystems":              # .\eax status shows these after the containers (owner, 8 Nov 2026)
         g = lambda b: f"{b / 1e9:,.1f} GB"  # noqa: E731
         print("File systems:")
@@ -2983,6 +2985,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # updates.py be
 import updates  # noqa: E402 - updating to a new release (phase 36, D417)
 
 updates.hooks.update(read_config=_read_config, write_config=_write, copy_config=copy_config, docker=docker)
+import brtest  # noqa: E402 - the backup and restore test's steps (R5.6-B1)
 import commandcentre  # noqa: E402 - eax commands from a web page: the Command centre and the Console (D554)
 import scaling  # noqa: E402 - scaling the API and job servers by rules (phase 36.3, D526)
 import testruns  # noqa: E402 - test runs (phase 36.1, D367)
@@ -3015,6 +3018,7 @@ hostwatch.hooks.update(docker=docker, containers=containers, stats=stats, filesy
 
 scaling.bind(globals())
 testruns.bind(globals())
+brtest.bind(globals())
 deploys.bind(globals())
 
 

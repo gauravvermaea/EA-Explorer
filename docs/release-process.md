@@ -5,14 +5,17 @@ runs git; nothing here pushes on its own.
 
 ## The branches and the channels (D417)
 
-| Channel | Branch | Tags | Installations see it |
+| Channel | Branch | Offered | Installations see it |
 |---|---|---|---|
-| **Prod** | `release` | `vX.Y.Z` | always |
-| **RC** | `rc` | `vX.Y.Z-rc.N` | once a Super Admin or IT Admin enables RC |
-| **Latest** | `main` | none (each commit) | once enabled; untested between releases |
+| **Prod** | `release` | the **published GitHub Releases** (tags `vX.Y.Z`) | always |
+| **RC** | `rc` | the published **pre-releases** too (tags `vX.Y.Z-rc.N`, or `vX.Y.Z` marked pre-release) | once a Super Admin or IT Admin enables RC |
 
-Installations list the **tags** of the repository (Prod: `vX.Y.Z` only; RC: the RCs and the releases) and the commits of
-`main` (Latest). The branches `release` and `rc` show where each channel stands; the tags are what is offered.
+R5.6 (owner, 16 Nov 2026: "Release should not be picked from the main branch, instead pick them from here -
+https://github.com/gauravvermaea/EA-Explorer/releases only upgrade forward"): installations, `eax deploy` and the
+installers read the repository's **GitHub Releases** (public, no sign-in) and offer only what is **published** there:
+a tag with no published release, a draft, or the `main` branch is never offered. **So a release reaches installations
+only once its GitHub release is published.** When GitHub cannot be reached or its limit on calls without a sign-in is
+reached, they say so and offer nothing.
 
 ## Setting it up, once (the owner)
 
@@ -60,13 +63,13 @@ Installations list the **tags** of the repository (Prod: `vX.Y.Z` only; RC: the 
 `python tools/release.py commands 0.20.0-rc.1` (`git checkout rc`, `git merge --ff-only main`,
 `git tag -a v0.20.0-rc.1 …`, `git push origin rc v0.20.0-rc.1`). Installations with RC enabled see it.
 
-**Latest** needs nothing: every push to `main` is offered to installations with Latest enabled, with the commits'
-one-line messages as its notes.
+Publish it on GitHub as a **pre-release** (the "Set as a pre-release" box) so only installations with RC enabled see it.
+The Latest channel (every commit of `main`) is gone (R5.6): nothing is offered from `main`.
 
 ## Release notes (D510)
 
-`releases/<version>.md` in the repository, read at the tag. An RC without its own file shows its release's file. Latest
-shows the one-line messages of the commits since the installed commit. Installations show the notes when choosing a
+The GitHub release's own text; when it is empty, `releases/<version>.md` in the repository, read at the tag (an RC
+without its own file shows its release's file). Installations show the notes when choosing a
 version, and to everyone once afterwards as **What's new**.
 
 ## Images (D514)
@@ -79,7 +82,7 @@ images it already builds; nothing in the updater depends on it.
 ## Supported versions (D515)
 
 - The **newest release line** (X.Y) and **the one before** are supported: e.g. with 0.21.x out, 0.21.x and 0.20.x.
-- A **release candidate** is supported until its release is out; a **Latest** build only until the next release.
+- A **release candidate** is supported until its release is out; (Latest builds are no longer offered, R5.6.)
 - Within a line, only its newest patch gets fixes: update to it.
 
 Installations check once a day (with a repository link set) and tell their Super Admins and IT Admins, once per version,

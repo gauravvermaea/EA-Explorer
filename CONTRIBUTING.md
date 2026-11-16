@@ -39,7 +39,7 @@ You need Docker (Docker Desktop on Windows and macOS) and Git. Everything else r
 
 ```
 git clone <your fork>
-cd EA-Enterpise
+cd EA-Explorer
 ./eax.sh up            # Windows: .\eax up
 ```
 

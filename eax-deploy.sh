@@ -6,9 +6,9 @@
 #   curl -fsSL <repository's raw address>/eax-deploy.sh -o eax-deploy.sh && bash eax-deploy.sh
 #
 # Options (each is asked when not given):
-#   --repo URL          the repository link (the public git URL EA Explorer comes from)
-#   --channel C         prod (release tags vX.Y.Z), rc (vX.Y.Z-rc.N) or latest (the main branch)
-#   --version REF       a tag, branch or commit (instead of choosing from the channel)
+#   --repo URL          the repository link (the public GitHub repository EA Explorer comes from)
+#   --channel C         prod (its published releases) or rc (its published pre-releases too)
+#   --version TAG       a published release's tag, e.g. v5.6.0 (instead of choosing; never a branch or a commit)
 #   --folder DIR        where to put it (default ~/eaexplorer)
 #   --no-deploy         download and check only; run ./eax.sh deploy yourself later
 # Anything after -- is passed to the wizard (e.g. -- --web, -- --console --kind server).
@@ -36,44 +36,39 @@ ask() {   # ask "question" default -> the answer
 say() { printf '%s\n' "$*"; }
 
 say "EA Explorer installer: downloads EA Explorer and starts its deployment wizard."
-[ -n "$REPO" ] || REPO=$(ask "Repository link" "https://github.com/gauravvermaea/EA-Enterpise")
+[ -n "$REPO" ] || REPO=$(ask "Repository link" "https://github.com/gauravvermaea/EA-Explorer")
 [ -n "$REPO" ] || { say "A repository link is needed."; exit 2; }
 REPO="${REPO%/}"; REPO="${REPO%.git}"
 
+# R5.6-U2: versions come only from the repository's published GitHub Releases, newest first; never the main branch
 if [ -z "$REF" ]; then
   if [ -z "$CHANNEL" ]; then
     say "Which channel?"
-    say "  1  Prod     released versions (tags vX.Y.Z)   [default]"
-    say "  2  RC       release candidates (vX.Y.Z-rc.N), for testing before a release"
-    say "  3  Latest   the newest commit of main, for trying what is being built (not for production)"
-    case "$(ask "Choose" 1)" in 2|rc) CHANNEL=rc ;; 3|latest) CHANNEL=latest ;; *) CHANNEL=prod ;; esac
+    say "  1  Prod     published releases   [default]"
+    say "  2  RC       published pre-releases too, for testing before a release"
+    case "$(ask "Choose" 1)" in 2|rc) CHANNEL=rc ;; *) CHANNEL=prod ;; esac
   fi
-  if [ "$CHANNEL" = latest ]; then
-    REF=main
-  else
-    # the tags: git ls-remote when git is here, otherwise GitHub's API (other hosts: --version)
-    tags=""
-    if command -v git >/dev/null 2>&1 && [ -z "${EAX_NO_GIT:-}" ]; then
-      tags=$(git ls-remote --tags --refs "$REPO" 2>/dev/null | sed 's#.*refs/tags/##' || true)
-    elif [[ "$REPO" =~ github\.com[/:]([^/]+)/([^/]+)$ ]]; then
-      tags=$(curl -fsSL "https://api.github.com/repos/${BASH_REMATCH[1]}/${BASH_REMATCH[2]}/tags?per_page=100" 2>/dev/null \
-             | grep -o '"name": *"[^"]*"' | sed 's/.*"\([^"]*\)"$/\1/' || true)
-    fi
-    if [ "$CHANNEL" = rc ]; then pat='^v[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+$'; else pat='^v[0-9]+\.[0-9]+\.[0-9]+$'; fi
-    list=$(printf '%s\n' "$tags" | grep -E "$pat" | sort -V -r | head -10 || true)
-    if [ -n "$list" ]; then
-      say "Versions on $CHANNEL (newest first):"; i=0
-      while IFS= read -r t; do i=$((i + 1)); say "  $i  $t"; done <<< "$list"
-      pick=$(ask "Choose (or type a tag)" 1)
-      if [[ "$pick" =~ ^[0-9]+$ ]]; then REF=$(printf '%s\n' "$list" | sed -n "${pick}p"); else REF="$pick"; fi
-    else
-      say "No $CHANNEL versions could be listed (no git here, or not GitHub)."
-      REF=$(ask "Type the version (a tag such as v0.19.0, or a branch)" "$([ "$CHANNEL" = rc ] && echo rc || echo release)")
-    fi
+  [[ "$REPO" =~ github\.com[/:]([^/]+)/([^/]+)$ ]] || { say "The repository must be on github.com: its Releases page lists the versions."; exit 2; }
+  json=$(curl -fsSL -H "Accept: application/vnd.github+json" \
+         "${EAX_GITHUB_API:-https://api.github.com}/repos/${BASH_REMATCH[1]}/${BASH_REMATCH[2]}/releases?per_page=100" 2>/dev/null) || json=""
+  # each release's tag, whether it is a draft, then whether it is a pre-release
+  list=$(printf '%s' "$json" | grep -oE '"tag_name": *"[^"]*"|"draft": *(true|false)|"prerelease": *(true|false)' \
+         | sed -E 's/.*"tag_name": *"([^"]*)"/T \1/; s/.*"draft": *(true|false)/D \1/; s/.*"prerelease": *(true|false)/P \1/' \
+         | awk -v ch="$CHANNEL" '$1=="T"{t=$2; d="false"} $1=="D"{d=$2} $1=="P"{ if (d=="false" && t ~ /^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$/ && (ch=="rc" || ($2=="false" && t !~ /-rc\./))) print t; t="" }' \
+         | sort -V -r | head -15 || true)
+  if [ -z "$list" ]; then
+    say "No published release could be read from GitHub (it cannot be reached, its limit on calls without a sign-in is"
+    say "reached, or nothing is published yet): nothing is offered. Try again later, or give --version vX.Y.Z."
+    exit 1
   fi
+  say "Published releases on $CHANNEL (newest first):"; i=0
+  while IFS= read -r t; do i=$((i + 1)); say "  $i  $t"; done <<< "$list"
+  pick=$(ask "Choose" 1)
+  if [[ "$pick" =~ ^[0-9]+$ ]]; then REF=$(printf '%s\n' "$list" | sed -n "${pick}p"); else REF="$pick"; fi
 fi
 [ -n "$REF" ] || { say "A version is needed."; exit 2; }
-CHANNEL="${CHANNEL:-$(case "$REF" in *-rc.*) echo rc ;; v[0-9]*) echo prod ;; *) echo latest ;; esac)}"
+[[ "$REF" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]] || { say "$REF is not a release: give a published release's tag such as v5.6.0 (never a branch or a commit)."; exit 2; }
+CHANNEL="${CHANNEL:-$(case "$REF" in *-rc.*) echo rc ;; *) echo prod ;; esac)}"
 
 if [ -e "$FOLDER" ] && [ -n "$(ls -A "$FOLDER" 2>/dev/null)" ]; then
   if [ -f "$FOLDER/eax.sh" ]; then

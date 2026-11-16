@@ -254,8 +254,10 @@ async def add_own_kpi(model: str, name: str, kind: str, entity_type: str, attrib
     "the number of applications on Windows Server 2012". Kept monthly and at every tag from now on. First call: a preview
     and a confirm token; call again with confirm=<token>."""
     from . import kpis
-    body = {"name": name, "kind": kind, "entity_type": entity_type, "attribute": attribute, "filter_attribute": filter_attribute,
-            "filter_op": filter_op, "filter_value": filter_value}
+    # the names kpis.add_definition reads (the backup and restore test, 16 Nov 2026: entity_type and attribute were never
+    # read, so every call was refused with "Choose the entity type the KPI counts or adds up")
+    body = {"name": name, "kind": kind, "entity_type_code": entity_type, "attribute_code": attribute,
+            "filter_attribute": filter_attribute, "filter_op": filter_op, "filter_value": filter_value}
     args = {"model": model, **body}
 
     def preview(conn, user):

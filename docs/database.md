@@ -360,3 +360,11 @@ run, the schedule and `next_due_at`), `core.discovery_resources` (a source: `kin
 FOR AI USE: title, place and date only), `core.discovery_maybe_same` and `core.discovery_not_found`. No column holds a
 sign-in. The Discovery Admin is a global role (`discovery-admin`, Keycloak `eax-discovery-admin`). Rows only: the rules
 are in `eax/decisions.py` and `eax/discovery_projects.py` (D248).
+
+## Job priorities (Release 5.6, migration 0098; D709)
+
+- `core.job_priorities` (task_name, level high|normal|low, set_by, set_at): a kind of job's level changed on System
+  Admin › Jobs; a kind not listed has its shipped level (eax/job_priorities.py).
+- `core.job_skips` (task_name, in_row, total, last_at): how often the queue keeper took a waiting low-priority recurring
+  job off a queue that was too full; in_row goes back to 0 when it runs.
+- Migration 0099 records version 5.6.0 (rows only).

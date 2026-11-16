@@ -476,17 +476,44 @@ def dispatch(command: str, rest: list[str], wait_all: bool) -> None:
             webbrowser.open(url)
     elif command == "test" and rest[:1] in (["watch"], ["stop"]):   # follow a run live, or stop it (R3.2)
         stack.interactive(["api", "python", "-m", "eax.testing.cli", rest[0]], rest[1:])
+    elif command == "dr-pack":          # a DR pack in one command, with its checksums and fingerprint (R5.6-B2)
+        from . import drpack
+        return drpack.main(rest)
+    elif command == "drill":            # the steps of the automated restore drill, run from outside (R5.6-B2)
+        from . import drill
+        if rest[:1] == ["restore"]:     # the others never start anything: "running" must see a stopped installation
+            stack.backup_helpers()
+        return drill.main(rest)
+    elif command == "test" and rest[:1] in (["backup-restore"], ["restore"]):   # the backup and restore test (R5.6-B1)
+        from . import backup_restore
+        stack.backup_helpers()
+        return backup_restore.main(rest[1:])
     elif command == "test":             # the self-test (phase 36.1, D367, D529): results read in the api container, a
         read = [a for a in rest if a in ("--status", "--last", "--report", "--fixtures", "--clean")]   # run through ops
         if read:
             stack.interactive(["api", "python", "-m", "eax.testing.cli", read[0].removeprefix("--")],
                               [a for a in rest if a != read[0]])
         else:
+            # the full test ends with the backup and restore test, which asks nothing (owner, 16 Nov 2026, 16:54: "backup
+            # and restore test should not ask me anything"); it runs from eax itself, one command after another
+            from . import backup_restore
+            last = "full" in rest and "--ci" not in rest
             # always prepare the runner first (D584): seconds when it is current, rebuilt when the code or version changed
             say("Preparing the test runner... (the first time about 5 to 15 minutes; seconds when it is current)")
             compose(["--profile", "test", "build", "testrunner"])
             stack.backup_helpers()
-            stack.interactive([*ops, "test"], [*rest, "--version", version()])
+            failed = None
+            try:
+                stack.interactive([*ops, "test"], [*rest, "--version", version()])
+            except Failure as exc:
+                failed = exc
+            if last:
+                code = backup_restore.main([])
+                if failed:
+                    raise failed
+                return code
+            if failed:
+                raise failed
     elif command == "standby":          # the database standby (phase 36.3, D527; EAX_COMPOSE_EXTRA=standby)
         what = rest[0] if rest else "status"
         if what == "status":

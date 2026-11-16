@@ -41,7 +41,16 @@ def catalog_sql() -> str:
               " concerns = EXCLUDED.concerns, stakeholders = EXCLUDED.stakeholders, element_types = EXCLUDED.element_types,"
               " relationship_types = EXCLUDED.relationship_types, heat_attribute = EXCLUDED.heat_attribute,"
               " audiences = EXCLUDED.audiences, is_builtin = true, source = EXCLUDED.source, sort_order = EXCLUDED.sort_order,"
-              " default_view = EXCLUDED.default_view, togaf_artifact = EXCLUDED.togaf_artifact, modified_at = now();\n")
+              " default_view = EXCLUDED.default_view, togaf_artifact = EXCLUDED.togaf_artifact, modified_at = now()"
+              # only when something changed (the backup and restore test, 16 Nov 2026: every start stamped every built-in
+              # view as modified, so a restored installation never looked like its backup)
+              " WHERE (core.viewpoints.name, core.viewpoints.category, core.viewpoints.purpose, core.viewpoints.concerns,"
+              " core.viewpoints.stakeholders, core.viewpoints.element_types, core.viewpoints.relationship_types,"
+              " core.viewpoints.heat_attribute, core.viewpoints.audiences, core.viewpoints.is_builtin, core.viewpoints.source,"
+              " core.viewpoints.sort_order, core.viewpoints.default_view, core.viewpoints.togaf_artifact)"
+              " IS DISTINCT FROM (EXCLUDED.name, EXCLUDED.category, EXCLUDED.purpose, EXCLUDED.concerns, EXCLUDED.stakeholders,"
+              " EXCLUDED.element_types, EXCLUDED.relationship_types, EXCLUDED.heat_attribute, EXCLUDED.audiences, true,"
+              " EXCLUDED.source, EXCLUDED.sort_order, EXCLUDED.default_view, EXCLUDED.togaf_artifact);\n")
     out.append("DELETE FROM core.viewpoints WHERE is_builtin AND code NOT IN ("
                + ", ".join(_lit(v["code"]) for v in VIEWS) + ");\n")
     links = sorted({(r["code"], a) for r in REPORTS for a in r["audiences"]})

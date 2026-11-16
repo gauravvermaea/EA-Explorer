@@ -33,6 +33,20 @@ function useFresh(path) {
 
 function Question({ q, value, onChange }) {
   const id = `dq-${q.key}`;
+  if (q.kind === "select") {             // R5.6-U2: the published releases, newest first; nothing when GitHub cannot be read
+    const opts = Object.entries(q.choices || {});
+    return (
+      <div className="deploy-q">
+        <label htmlFor={id}><strong>{q.text}</strong></label>
+        {q.help && <p className="quiet small">{q.help}</p>}
+        {q.error ? <p className="status bad">{q.error}</p> : (
+          <select id={id} value={value ?? ""} onChange={(e) => onChange(e.target.value)}>
+            {opts.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+          </select>
+        )}
+      </div>
+    );
+  }
   if (q.choices) {
     return (
       <fieldset className="deploy-q">

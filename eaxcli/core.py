@@ -15,6 +15,10 @@ ROOT = Path(__file__).resolve().parent.parent
 WORK = ROOT / "work"
 ENV_FILE = WORK / "eaexplorer.env"
 ENV_REL = "work/eaexplorer.env"
+# work/compose-project: this installation's own Docker name (R5.6-B2: a DR copy beside the original keeps its own
+# containers and volumes); not in the config file, so a restore never changes it
+if (WORK / "compose-project").is_file():
+    os.environ["COMPOSE_PROJECT_NAME"] = (WORK / "compose-project").read_text(encoding="utf-8").split("\n")[0].strip()
 LOG_DIR = WORK / "logs"
 STAMP = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S")   # local time, as the old scripts
 WINDOWS = os.name == "nt"

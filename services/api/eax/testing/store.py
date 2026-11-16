@@ -446,7 +446,7 @@ def screenshot(conn, result_id: int) -> bytes | None:
     return bytes(row[0]) if row and row[0] is not None else None
 
 
-_re_choice = __import__("re").compile(r"^  (smoke|full|backup|restore|ui-review|failed|watch|stop|api|delete|clean)\s{2,}(.*)$")
+_re_choice = __import__("re").compile(r"^  (smoke|full|backup-restore|backup|restore|ui-review|failed|watch|stop|api|delete|clean)\s{2,}(.*)$")
 
 
 def test_entry(help_text: str) -> dict:

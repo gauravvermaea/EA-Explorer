@@ -7,6 +7,9 @@ set -euo pipefail
 cd "$(dirname "$0")"
 WORK_DIR=work
 ENV_FILE=work/eaexplorer.env
+# work/compose-project: this installation's own Docker name (R5.6-B2: a DR copy beside the original keeps its own
+# containers and volumes); not in the config file, so a restore never changes it
+if [ -f work/compose-project ]; then COMPOSE_PROJECT_NAME=$(head -n 1 work/compose-project | tr -d '[:space:]'); export COMPOSE_PROJECT_NAME; fi
 LOG_DIR=work/logs
 STAMP=$(date +%Y%m%d-%H%M%S)
 LOG=""
@@ -788,8 +791,9 @@ unknown_command() {
 }
 
 # ------------------------------------------------------------------ commands
-# eax test --reset-survival: settings outlive a real reset (D561), one Python program for every form
-if [ "$CMD" = "test" ]; then case " $* " in *" --reset-survival "*) exec "$BASH" ./eaxpy.sh "$@" ;; esac; fi
+# eax test --reset-survival: settings outlive a real reset (D561); eax test backup-restore, restore and full: the backup
+# and restore test runs one command after another from eax itself (R5.6-B1): one Python program for every form
+if [ "$CMD" = "test" ]; then case " $* " in *" --reset-survival "*|*" backup-restore "*|*" restore "*|*" full "*) exec "$BASH" ./eaxpy.sh "$@" ;; esac; fi
 case "$CMD" in
   help|-h|--help|/\?) show_help "${2:-}" "${3:-}"; exit $? ;;
   document)       shift; document "$@"; exit 0 ;;
@@ -799,7 +803,7 @@ case "$CMD" in
   menu) EAX_FORM=sh exec "$BASH" ./eaxpy.sh menu ;;   # the numbered menu (R2.29), one Python program for every form
   screen) EAX_FORM=sh exec "$BASH" ./eaxpy.sh screen ;;   # the full screen (R3.1), Python with Textual
   measure) EAX_FORM=sh exec "$BASH" ./eaxpy.sh "$@" ;;   # memory measured in one go (R3.5-M1); eax commands run back here
-  deploy|secrets|packs|schedule|persist|folders|allow|sign|verify|db|ticket|jobs|optimise|estimate|dev)   # packs (D546); schedule (D559); persist (R2.26); folders (R5.4); allow (R5.2)
+  deploy|secrets|packs|schedule|persist|folders|allow|drill|dr-pack|sign|verify|db|ticket|jobs|optimise|estimate|dev)   # packs (D546); schedule (D559); persist (R2.26); folders (R5.4); allow (R5.2); drill (R5.6-B2)
     # phase 36 (D498, D504): one Python program for every form (D500): eaxpy.sh fetches uv and Python into work/tools
     exec "$BASH" ./eaxpy.sh "$@" ;;
   restart)

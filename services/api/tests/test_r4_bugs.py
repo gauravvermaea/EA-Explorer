@@ -135,34 +135,8 @@ def test_r4_15_a_container_gone_between_list_and_look_is_left_out(monkeypatch, t
 
 
 # ---------------------------------------------------------------- R4.16
-def test_r4_16_the_restore_test_unpins_the_safety_backups_it_made_before_deleting_them(monkeypatch):
-    """A restore pins the backup it takes first; deleting a pinned one is refused, so the restore suite said
-    "could not remove ... delete them on the Backups page"."""
-    import test_restore_check as trc
-
-    from eax.testing import restore_check as rc
-
-    class Pinned(trc._Install):
-        def __init__(self):
-            super().__init__()
-            self.unpinned = set()
-
-        def call(self, base, method, path, token, body=None):
-            if method == "POST" and path.endswith("/pin"):
-                self.calls.append((method, path, body))
-                if body == {"pinned": False}:
-                    self.unpinned.add(path.split("/")[-2])
-                return 200, {}
-            if method == "POST" and path.endswith("-before/delete") and "20991231T000000Z-before" not in self.unpinned:
-                self.calls.append((method, path, body))
-                return 409, {"message": "pinned: unpin it first"}
-            return super().call(base, method, path, token, body)
-    inst, recorded = Pinned(), []
-    trc._wire(monkeypatch, inst)
-    rc.run("http://api", "tok", {"model": "m1", "project": "p1"}, lambda *a: recorded.append(a), lambda m: None, None, 7,
-           "eax", call=inst.call, sleep=lambda s: None)
-    removed = next(r for r in recorded if r[0] == "restore: the test's backups removed")
-    assert removed[1] == "passed", removed
+# R4.16's restore-suite test went with restore_check.py (R5.6-B1): the new test unpins its backups before deleting them
+# (services/ops/brtest.py delete; tests/test_r5_6_backup_restore.py)
 
 
 def test_r4_16_the_discovery_checks_read_the_whole_answer():

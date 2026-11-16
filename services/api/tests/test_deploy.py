@@ -244,26 +244,73 @@ def test_installer_sh_downloads_checks_and_records(tmp_path):
 
 
 @pytest.mark.skipif(not shutil.which("bash") or not shutil.which("git"), reason="needs bash and git")
-def test_installer_sh_lists_the_channel_and_clones(tmp_path):
+@pytest.mark.skipif(not shutil.which("bash") or not shutil.which("curl"), reason="needs bash and curl")
+def test_installer_sh_offers_only_published_releases(tmp_path):
+    """R5.6-U2: the installer lists the repository's published GitHub Releases, newest first: no draft, no pre-release
+    on Prod, never a branch; when GitHub answers nothing it offers nothing."""
+    import http.server
     archive = _fake_release(tmp_path)
-    repo = tmp_path / "repo"
-    repo.mkdir()
-    with tarfile.open(archive) as t:
-        t.extractall(tmp_path / "x", filter="data")
-    shutil.copytree(next((tmp_path / "x").iterdir()), repo, dirs_exist_ok=True)
-    g = ["git", "-C", str(repo), "-c", "user.email=t@t", "-c", "user.name=t"]
-    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
-    subprocess.run([*g, "add", "-A"], check=True)
-    subprocess.run([*g, "commit", "-qm", "one"], check=True)
-    for tag in ("v1.9.0", "v1.10.0", "v1.11.0-rc.1"):
-        subprocess.run([*g, "tag", tag], check=True)
-    folder = tmp_path / "install"
-    env = {k: v for k, v in os.environ.items() if k not in ("EAX_NO_GIT", "EAX_ARCHIVE_URL")}
-    r = subprocess.run(["bash", str(REPO / "eax-deploy.sh"), "--repo", str(repo), "--channel", "prod", "--folder", str(folder),
-                        "--no-deploy"], env=env, capture_output=True, text=True, timeout=60, stdin=subprocess.DEVNULL)
-    assert r.returncode == 0, r.stdout + r.stderr
-    assert "1  v1.10.0" in r.stdout and "v1.11.0-rc.1" not in r.stdout      # newest first; rc tags only on rc
-    assert json.loads((folder / "work" / "install.json").read_text())["ref"] == "v1.10.0"
+    shutil.copy(archive, archive.parent / "v1.10.0.tar.gz")
+    rel = [{"tag_name": "v1.9.0", "draft": False, "prerelease": False, "body": 'has "draft": true inside'},
+           {"tag_name": "v1.10.0", "draft": False, "prerelease": False},
+           {"tag_name": "v1.12.0", "draft": True, "prerelease": False},
+           {"tag_name": "v1.11.0-rc.1", "draft": False, "prerelease": True}]
+    body = json.dumps(rel, indent=2).encode()
+
+    class H(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):  # noqa: N802
+            ok = self.path.startswith("/repos/acme/eax/releases")
+            self.send_response(200 if ok else 404)
+            self.end_headers()
+            self.wfile.write(body if ok else b"[]")
+
+        def log_message(self, *a):
+            pass
+    srv = ThreadingHTTPServer(("127.0.0.1", 0), H)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    env = {**os.environ, "EAX_NO_GIT": "1", "EAX_ARCHIVE_URL": f"file://{archive.parent}/{{ref}}.tar.gz",
+           "EAX_GITHUB_API": f"http://127.0.0.1:{srv.server_address[1]}"}
+    try:
+        folder = tmp_path / "install"
+        r = subprocess.run(["bash", str(REPO / "eax-deploy.sh"), "--repo", "https://github.com/acme/eax", "--channel", "prod",
+                            "--folder", str(folder), "--no-deploy"], env=env, capture_output=True, text=True, timeout=60,
+                           stdin=subprocess.DEVNULL)
+        assert "1  v1.10.0" in r.stdout and "2  v1.9.0" in r.stdout, r.stdout + r.stderr
+        assert "v1.11.0-rc.1" not in r.stdout and "v1.12.0" not in r.stdout          # no pre-release on Prod, no draft
+        assert json.loads((folder / "work" / "install.json").read_text())["ref"] == "v1.10.0"
+        rc = subprocess.run(["bash", str(REPO / "eax-deploy.sh"), "--repo", "https://github.com/acme/eax", "--channel", "rc",
+                             "--folder", str(tmp_path / "i2"), "--no-deploy"], env=env, capture_output=True, text=True, timeout=60,
+                            stdin=subprocess.DEVNULL)
+        assert "1  v1.11.0-rc.1" in rc.stdout and "v1.12.0" not in rc.stdout
+        none = subprocess.run(["bash", str(REPO / "eax-deploy.sh"), "--repo", "https://github.com/other/eax", "--channel", "prod",
+                               "--folder", str(tmp_path / "i3"), "--no-deploy"], env=env, capture_output=True, text=True,
+                              timeout=60, stdin=subprocess.DEVNULL)
+        assert none.returncode != 0 and "nothing is offered" in none.stdout
+        branch = subprocess.run(["bash", str(REPO / "eax-deploy.sh"), "--repo", "https://github.com/acme/eax", "--version", "main",
+                                 "--folder", str(tmp_path / "i4"), "--no-deploy"], env=env, capture_output=True, text=True, timeout=60)
+        assert branch.returncode != 0 and "not a release" in branch.stdout
+    finally:
+        srv.shutdown()
+
+
+def test_deploy_offers_the_published_releases_newest_first(monkeypatch):
+    rel = [{"tag_name": "v5.5.0", "name": "EA Explorer 5.5.0", "published_at": "2026-11-16T10:00:00Z", "draft": False, "prerelease": False},
+           {"tag_name": "v5.6.0", "name": "EA Explorer 5.6.0", "published_at": "2026-11-20T10:00:00Z", "draft": False, "prerelease": False},
+           {"tag_name": "v5.7.0-rc.1", "name": "", "published_at": "", "draft": False, "prerelease": True}]
+    monkeypatch.setattr(D.R, "_get_json", lambda url, timeout=20: rel if "page=1" in url else [])
+    ch = D.release_choices("https://github.com/gauravvermaea/EA-Explorer")
+    assert list(ch) == ["v5.6.0", "v5.5.0"] and ch["v5.6.0"] == "5.6.0 · EA Explorer 5.6.0 (2026-11-20)"
+    a = D.complete({"kind": "digitalocean", "ssh_key": KEY, "hostname": "ea.example.org", "repo": "https://github.com/a/b"})
+    assert a["ref"] == "v5.6.0"                                                   # the newest, when not chosen
+    with pytest.raises(Failure, match="never a branch"):
+        D.complete({"kind": "digitalocean", "ssh_key": KEY, "hostname": "ea.example.org", "repo": "https://github.com/a/b", "ref": "main"})
+    assert D.BY_KEY["ref"].as_dict({})["kind"] == "select"
+
+    def down(url, timeout=20):
+        raise D.R.ReleaseError("GitHub cannot be reached (no route): nothing is offered.")
+    monkeypatch.setattr(D.R, "_get_json", down)
+    with pytest.raises(Failure, match="No version can be offered: GitHub cannot be reached"):
+        D.release_choices("https://github.com/gauravvermaea/EA-Explorer")
 
 
 PWSH = os.environ.get("EAX_PWSH") or shutil.which("pwsh")

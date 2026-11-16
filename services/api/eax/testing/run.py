@@ -431,10 +431,10 @@ def saved_cases(r: Run, tokens: dict[str, str], ids: dict[str, str]) -> int:
 
 
 def _restore_suite(r: Run, tokens: dict[str, str], ids: dict[str, str], run_id: int, trigger: str) -> None:
-    """The full backup-and-restore test (restore_check.py, R3.8), as the run's Super Admin; the command line only."""
-    from . import restore_check
-    r.log("restore: back up, change, restore and compare every part (the command line only; no time limit)")
-    restore_check.run(API, tokens.get("super-admin", ""), ids, r.recorder("restore"), r.log, r.repo, run_id, trigger)
+    """The backup and restore test is no longer a suite of a run (R5.6-B1, which replaced restore_check.py, R3.8): eax runs
+    it itself, one command after another (`eax test backup-restore`, and last in `eax test full`). Said, not run."""
+    r.recorder("restore")("restore: the backup and restore test", "skipped",
+                          "runs from eax itself, after the self-test: eax test backup-restore (R5.6-B1)", 0)
 
 
 def coverage_html(c: dict) -> str:

@@ -100,6 +100,44 @@ class JobQueueAction(MethodView):
             abort(409, message=str(exc))
 
 
+@blp.route("/priorities")
+class JobPriorities(MethodView):
+    """/api/v1/jobs/priorities: GET every kind of job with its level (high, normal or low; as it ships or changed), its
+    skips when the queue was too full, and the limits (R5.6-Q2)."""
+    @blp.response(200, Free)
+    @blp.doc(security=[{"bearerAuth": []}])
+    @require_auth("system.operate")
+    def get(self):
+        """Every kind of job with its level, its skips and the limits"""
+        from .. import job_priorities as jp
+        from ..jobs import app as jobs_app
+        with get_engine().connect() as conn:
+            return jp.listing(conn, [t for t in jobs_app.tasks if t.startswith("eax.")])
+
+
+@blp.route("/priorities/<string:task>")
+class JobPriority(MethodView):
+    """/api/v1/jobs/priorities/{task}: PUT {level: high|normal|low, or "" for as it ships}: a kind of job's level
+    (R5.6-Q2), applied to its waiting jobs by the queue keeper within a minute. In the audit trail."""
+    @blp.arguments(FreeIn)
+    @blp.response(200, Free)
+    @blp.doc(security=[{"bearerAuth": []}])
+    @require_auth("system.operate")
+    def put(self, data, task):
+        """{level}: a kind of job's level"""
+        from .. import job_priorities as jp
+        from ..jobs import app as jobs_app
+        try:
+            with get_engine().begin() as conn:
+                out = jp.set_level(conn, task, str((data or {}).get("level") or ""), g.user.username,
+                                   [t for t in jobs_app.tasks if t.startswith("eax.")])
+                audit.record(conn, actor=g.user.username, action="jobs.priority", object_type="job", object_id=task,
+                             details=out, request_id=g.request_id)
+                return out
+        except ValueError as exc:
+            abort(400, message=str(exc))
+
+
 @blp.route("/queue/clear-stuck")
 class JobQueueClear(MethodView):
     """/api/v1/jobs/queue/clear-stuck: POST {restart}: every stuck job being worked on killed, then (restart true) the

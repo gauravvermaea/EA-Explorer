@@ -68,27 +68,44 @@ def test_versions_sort_and_compare():
     assert R.base("0.20.0-rc.2") == "0.20.0" and R.is_rc("v0.20.0-rc.2")
 
 
-def test_each_channel_offers_only_newer_versions_with_notes(origin, tmp_path):
+def published(monkeypatch, tags=("0.18.0", "0.19.0", "0.20.0-rc.1", "0.20.0", "0.21.0-rc.1"), bodies=None):
+    """The repository's GitHub Releases stand in (R5.6-U1): the given tags published, RCs as pre-releases."""
+    rel = [{"tag": f"v{v}", "version": v, "title": f"EA Explorer {v}", "notes": (bodies or {}).get(v, ""),
+            "date": "2026-11-01T00:00:00Z", "prerelease": R.is_rc(v)} for v in tags]
+    monkeypatch.setattr(R, "github_releases", lambda url, fetcher=None: sorted(rel, key=lambda x: R.parse(x["version"]), reverse=True))
+
+
+def test_each_channel_offers_only_newer_published_releases_with_notes(origin, tmp_path, monkeypatch):
+    published(monkeypatch, bodies={"0.20.0": "GitHub's own text for 0.20.0"})
     prod = R.available(origin, "prod", {"version": "0.18.0"}, tmp_path / "c")
-    assert [v.version for v in prod] == ["0.19.0", "0.20.0"]                  # no RCs, nothing at or below 0.18.0
-    assert prod[-1].notes.startswith("# 0.20.0") and prod[-1].date
+    assert [v.version for v in prod] == ["0.19.0", "0.20.0"]                  # no pre-releases, nothing at or below 0.18.0
+    assert prod[-1].notes == "GitHub's own text for 0.20.0" and prod[-1].date and prod[-1].title == "EA Explorer 0.20.0"
+    assert prod[0].notes.startswith("# 0.19.0") and prod[0].commit            # no text on GitHub: the file at the tag
     rc = R.available(origin, "rc", {"version": "0.19.0"}, tmp_path / "c")
     assert [v.version for v in rc] == ["0.20.0-rc.1", "0.20.0", "0.21.0-rc.1"]
-    assert rc[1].notes.startswith("# 0.20.0") and rc[2].notes.startswith("# 0.21.0-rc.1")
+    assert rc[2].notes.startswith("# 0.21.0-rc.1")
     assert R.available(origin, "prod", {"version": "0.20.0"}, tmp_path / "c") == []   # forward only
 
 
-def test_latest_offers_commits_after_the_installed_one(origin, tmp_path):
-    cache = tmp_path / "c"
-    every = R.available(origin, "latest", {"version": "0.19.0", "commit": ""}, cache)
-    assert len(every) == 1 and every[0].title == "main: another change"     # installed commit unknown: the newest only
-    rc_commit = R.tags(origin)["v0.21.0-rc.1"]
-    after = R.available(origin, "latest", {"version": "0.21.0-rc.1", "commit": rc_commit}, cache)
-    assert [v.title for v in after] == ["main: after the rc", "main: another change"]
-    assert "Commits since" in after[-1].notes
+def test_a_tag_without_a_published_release_is_not_offered(origin, tmp_path, monkeypatch):
+    published(monkeypatch, tags=("0.18.0", "0.19.0"))                        # v0.20.0 is tagged but not published
+    assert [v.version for v in R.available(origin, "prod", {"version": "0.18.0"}, tmp_path / "c")] == ["0.19.0"]
 
 
-def test_plan_goes_one_release_at_a_time(origin, tmp_path):
+def test_the_main_branch_is_never_offered(origin, tmp_path, monkeypatch):
+    published(monkeypatch)
+    assert set(R.CHANNELS) == {"prod", "rc"}
+    with pytest.raises(R.ReleaseError, match="never the main branch"):
+        R.available(origin, "latest", {"version": "0.19.0", "commit": ""}, tmp_path / "c")
+    up = U.Updater.__new__(U.Updater)
+    with pytest.raises(R.ReleaseError, match="not a release"):
+        up.checkout(origin, "main")
+    with pytest.raises(R.ReleaseError, match="not a release"):
+        up.checkout(origin, R.tags(origin)["v0.19.0"])                      # a commit id neither
+
+
+def test_plan_goes_one_release_at_a_time(origin, tmp_path, monkeypatch):
+    published(monkeypatch)
     offered = R.available(origin, "rc", {"version": "0.18.0"}, tmp_path / "c")
     pick = R.plan(offered, "0.21.0-rc.1")
     assert pick.steps == ["v0.19.0", "v0.20.0", "v0.21.0-rc.1"]               # 0.20.0's RC skipped: its release is offered
@@ -97,6 +114,51 @@ def test_plan_goes_one_release_at_a_time(origin, tmp_path):
         R.plan(offered, "0.17.0")                                           # never backwards
     with pytest.raises(R.ReleaseError):
         R.plan([], "")
+
+
+def test_github_releases_reads_the_published_ones_newest_first():
+    pages = {1: [{"tag_name": "v1.0.0", "name": "One", "body": "b1", "published_at": "2026-01-01T00:00:00Z", "draft": False, "prerelease": False},
+                 {"tag_name": "v1.2.0", "name": "", "body": None, "published_at": "2026-03-01T00:00:00Z", "draft": True, "prerelease": False},
+                 {"tag_name": "nightly", "name": "n", "body": "", "published_at": "", "draft": False, "prerelease": True},
+                 {"tag_name": "v1.1.0-rc.1", "name": "rc", "body": "", "published_at": "2026-02-01T00:00:00Z", "draft": False, "prerelease": True}]
+             + [{"tag_name": f"v0.{i}.0", "name": "", "body": "", "published_at": "", "draft": False, "prerelease": False} for i in range(96)],
+             2: [{"tag_name": "v1.1.0", "name": "", "body": "", "published_at": "2026-02-10T00:00:00Z", "draft": False, "prerelease": False}]}
+    asked = []
+
+    def fetch(url):
+        asked.append(url)
+        assert url.startswith("https://api.github.com/repos/gauravvermaea/EA-Explorer/releases?per_page=100&page=")
+        return pages.get(int(url.rsplit("=", 1)[1]), [])
+    got = R.github_releases("https://github.com/gauravvermaea/EA-Explorer.git", fetch)
+    assert [r["tag"] for r in got[:3]] == ["v1.1.0", "v1.1.0-rc.1", "v1.0.0"]     # the draft and "nightly" left out
+    assert len(asked) == 2 and got[2]["title"] == "One" and got[1]["prerelease"]
+    prod = R.offered_releases("https://github.com/gauravvermaea/EA-Explorer", "prod", fetch)
+    assert "v1.1.0-rc.1" not in [r["tag"] for r in prod] and prod[0]["tag"] == "v1.1.0"
+    with pytest.raises(R.ReleaseError, match="github.com"):
+        R.github_releases("https://git.acme.test/eax", fetch)
+
+
+def test_github_unreachable_or_limited_is_said_in_words(monkeypatch):
+    import io
+    import urllib.error
+    import urllib.request
+
+    def limited(req, timeout=20):
+        raise urllib.error.HTTPError(req.full_url, 403, "rate limited", {"X-RateLimit-Reset": "1800000000"}, io.BytesIO(b""))
+    monkeypatch.setattr(urllib.request, "urlopen", limited)
+    with pytest.raises(R.ReleaseError, match="limit on calls without a sign-in"):
+        R._real_get_json("https://api.github.com/repos/a/b/releases")
+
+    def down(req, timeout=20):
+        raise urllib.error.URLError("no route")
+    monkeypatch.setattr(urllib.request, "urlopen", down)
+    with pytest.raises(R.ReleaseError, match="cannot be reached"):
+        R._real_get_json("https://api.github.com/repos/a/b/releases")
+    out = __import__("io").StringIO()
+    monkeypatch.setattr(R, "_get_json", R._real_get_json)
+    monkeypatch.setattr(sys, "stdout", out)
+    assert R.main(["published", "https://github.com/a/b", "prod"]) == 1
+    assert "cannot be reached" in json.loads(out.getvalue())["error"]
 
 
 def test_export_writes_one_versions_files(origin, tmp_path):

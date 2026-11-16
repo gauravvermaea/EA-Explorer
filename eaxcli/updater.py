@@ -282,14 +282,12 @@ class Updater:
     # ------------------------------------------------------------ one version's files
     def checkout(self, url: str, ref: str) -> str:
         """The files of one version in the installation folder; its commit."""
+        if not R.TAG.match(ref):         # R5.6-U1: only a published release's tag, never a branch or a commit
+            raise R.ReleaseError(f"{ref} is not a release: updates install only the tag of a published release "
+                                 "(vX.Y.Z), never the main branch or a commit.")
         if (self.env.root / ".git").exists():
-            if R.TAG.match(ref):
-                self.env.git("fetch", "--quiet", "--no-tags", url, f"+refs/tags/{ref}:refs/tags/{ref}")
-                sha = self.env.git("rev-parse", f"refs/tags/{ref}^{{commit}}").strip()
-            else:                          # Latest: a commit of main
-                branch = R.CHANNELS["latest"]["branch"]
-                self.env.git("fetch", "--quiet", "--no-tags", url, f"+refs/heads/{branch}:refs/remotes/eax-updates/{branch}")
-                sha = self.env.git("rev-parse", f"{ref}^{{commit}}").strip()
+            self.env.git("fetch", "--quiet", "--no-tags", url, f"+refs/tags/{ref}:refs/tags/{ref}")
+            sha = self.env.git("rev-parse", f"refs/tags/{ref}^{{commit}}").strip()
             if S.trusted_keys(self.env.root):            # signed deployments (R5.10): checked before anything changes
                 tmp = S.version_files(sha, self.env.root)
                 try:

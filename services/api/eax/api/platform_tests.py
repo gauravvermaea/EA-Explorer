@@ -140,8 +140,8 @@ class Tests(MethodView):
             suites = store.clean_suites(asked)
             if "restore" in suites:                     # back up, change and restore: the command line only (R3.8)
                 if asked and "restore" in (asked if isinstance(asked, list) else str(asked).replace(",", " ").split()):
-                    raise ValueError("The restore test runs from the command line only (eax test restore): restores stop "
-                                     "the services the web runs on.")
+                    raise ValueError("The backup and restore test runs from the command line only (eax test backup-restore): "
+                                     "restores stop the services the web runs on.")
                 suites = [x for x in suites if x != "restore"]
             journeys = store.clean_journeys(data.get("journeys"))
             pages_only = bool(data.get("pages_only"))

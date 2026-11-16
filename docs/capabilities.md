@@ -1,4 +1,4 @@
-# What EA Explorer does today (version 5.5.0)
+# What EA Explorer does today (version 5.6.0)
 
 One page for anyone weighing EA Explorer up: what is **built and in the box today**, area by area, and what is still
 **planned**, with its build phase. "Planned" adds to what is already there; it does not mean an area is missing.
@@ -16,6 +16,16 @@ Every phase in detail: [build-phases.md](build-phases.md). Decisions: [decisions
 | Documents and libraries | Document management (Mayan EDMS) inside projects, the reference library, the enterprise and project libraries with search |
 | Integration | A REST API (OpenAPI), signed webhooks, Excel and CSV in and out with mappings, model packages, the MCP server; discovery: OData feeds read, pushes taken and documents read by AI, proposed as deliveries to review (Release 3, in progress) |
 | Operations | One command (`eax`, full screen or numbered menu) and a console, start-up in two tiers, health, tagged backups and restores, every service switchable, a file explorer in every container |
+
+## New in Release 5.6 (5.6.0, released 16 Nov 2026)
+
+The backup and restore test (`eax test backup-restore`, last in `eax test full`): a backup B1, a project and models with
+content of every kind, a backup B2; B1 restored leaves none of it, B2 restored brings all of it back, every database's
+rows and every file's checksum compared, then sign-in, search, new work, the jobs and the documents checked; one step
+after another from eax itself, on the installation after one typed confirmation. The restore drills (onto a new
+machine, once a month) as documents with a PDF. Job priorities: low-priority recurring jobs miss a turn when the queue
+is too full, each skip counted. Updates and deployments offer only the published GitHub Releases, in a drop-down with
+their notes, never the main branch. See [releases/5.6.0.md](../releases/5.6.0.md).
 
 ## New in Release 5.5 (5.5.0, released 16 Nov 2026)
 
@@ -360,7 +370,7 @@ Built ([operations.md](operations.md), [command-line-and-console.md](command-lin
   Back or Quit, the log; run by the operations helper so it survives reloads; SSH keys and cloud credentials for the
   run only unless kept, never shown again; the history of every target. Fleets of installations: release 2.
 - **Updates** (phase 36, [phase-36-updates.md](phase-36-updates.md)): System admin › Updates and `eax update` move to a
-  newer release from the public git repository (Prod, RC and Latest channels; forward only), with a pinned full backup
+  newer published release from the repository's GitHub Releases (Prod and RC channels; forward only; never main), with a pinned full backup
   of the code, databases, files and configuration first, one release at a time, built on the host; a failed step stops
   for Retry or Roll back (`eax rollback`); now or at a time, with a banner beforehand and What's new afterwards.
 - **Releases** (8.5, [release-process.md](release-process.md)): CI on every change, versioned releases with notes

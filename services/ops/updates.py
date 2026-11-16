@@ -10,8 +10,9 @@ The updater is not part of the Compose project, so `docker compose up --remove-o
 
   GET  /updates                  settings, the installed version, the update running or waiting, the history, the
                                  schedule, failed versions, whether an updater runs
-  GET  /updates/versions?channel=prod|rc|latest   what that channel offers above the installed version, with notes
-  POST /updates/settings         {git_url, rc, latest, by}: written to the config file (a dated copy first)
+  GET  /updates/versions?channel=prod|rc   the published GitHub Releases above the installed version, with notes
+                                 (R5.6-U1: never the main branch; forward only)
+  POST /updates/settings         {git_url, rc, by}: written to the config file (a dated copy first)
   POST /updates/start            {channel, to, at, by}: now, or at a time (work/updates/scheduled.json)
   POST /updates/retry            {by}    POST /updates/rollback {by}    POST /updates/schedule/cancel {by}
 A thread starts a scheduled update when its time comes.
@@ -38,7 +39,8 @@ try:
 except Exception:  # noqa: BLE001 - an older compose file without the eaxcli mount: updates say so
     R = None
 
-SETTINGS = {"git_url": ("EAX_UPDATE_GIT_URL", "https://github.com/gauravvermaea/EA-Enterpise"), "rc": ("EAX_UPDATE_RC", "off"), "latest": ("EAX_UPDATE_LATEST", "off")}
+# R5.6-U2 (owner, 16 Nov 2026, 16:20: "EA-Explorer for both"): releases and code from the EA-Explorer repository
+SETTINGS = {"git_url": ("EAX_UPDATE_GIT_URL", "https://github.com/gauravvermaea/EA-Explorer"), "rc": ("EAX_UPDATE_RC", "off")}
 ON = {"on", "true", "1", "yes"}
 _cache: dict[str, tuple[float, dict]] = {}
 _lock = threading.Lock()
@@ -75,18 +77,20 @@ def settings() -> dict:
         if m:
             vals[m.group(1)] = m.group(2).strip().strip("'\"")
     out = {k: vals.get(env, d) or d for k, (env, d) in SETTINGS.items()}
-    return {"git_url": out["git_url"], "rc": out["rc"].lower() in ON, "latest": out["latest"].lower() in ON}
+    return {"git_url": out["git_url"], "rc": out["rc"].lower() in ON}
 
 
 def save_settings(body: dict, by: str) -> dict:
     """Saves the update settings (the repository link checked)."""
     url = str(body.get("git_url") or "").strip()
-    if url and not re.match(r"^(https?://|ssh://|git@|git://|file://|/)", url):
-        raise ValueError("The repository link must start with https:// (a public git repository).")
+    if url and R is not None:
+        try:
+            R.github_repo(url)           # versions are read from its GitHub Releases (R5.6-U1)
+        except R.ReleaseError as exc:
+            raise ValueError(str(exc)) from exc
     hooks["copy_config"](by, "update-settings")
     lines = hooks["read_config"]()
-    want = {"EAX_UPDATE_GIT_URL": url, "EAX_UPDATE_RC": "on" if body.get("rc") else "off",
-            "EAX_UPDATE_LATEST": "on" if body.get("latest") else "off"}
+    want = {"EAX_UPDATE_GIT_URL": url, "EAX_UPDATE_RC": "on" if body.get("rc") else "off"}
     for key, value in want.items():
         rx = re.compile(rf"^\s*{key}\s*=")
         if any(rx.match(ln) for ln in lines):
@@ -245,6 +249,28 @@ def _list_in_container(channel: str, installed: dict) -> dict:
         return {"error": (r.stderr or r.stdout).strip()[-300:] or "the version list could not be read"}
 
 
+def published(url: str = "", channel: str = "prod") -> dict:
+    """Every published release of a repository, newest first (for the Deploy page's drop-down, R5.6-U2), read in the
+    updater container (the helper has no internet); {releases} or {error} in words. Kept two minutes."""
+    url = url or settings()["git_url"]
+    key = f"published:{url}:{channel}"
+    hit = _cache.get(key)
+    if hit and time.time() - hit[0] < 120:
+        return hit[1]
+    me = _me()
+    try:
+        r = subprocess.run(["docker", "run", "--rm", *mount_args(me), "--entrypoint", "sh", me["image"], "-c",
+                            _shell(me["inside"], "", "releases", ["published", url, channel])],
+                           capture_output=True, text=True, timeout=120)
+        last = (r.stdout.strip().splitlines() or ["{}"])[-1]
+        out = json.loads(last)
+    except (OSError, ValueError, subprocess.TimeoutExpired) as exc:
+        out = {"error": f"The releases could not be read ({exc}): nothing is offered."}
+    if not out.get("error"):
+        _cache[key] = (time.time(), out)
+    return out
+
+
 # ---------------------------------------------------------------- what the screens and eax ask
 def installed() -> dict:
     """The version installed."""
@@ -286,7 +312,8 @@ def versions(channel: str) -> dict:
         raise RuntimeError("Updates need the eaxcli folder mounted in the operations helper: run eax clean-restart once.")
     ch = channels()
     if channel not in ch:
-        raise ValueError("Choose a channel: prod, rc or latest.")
+        raise ValueError("Choose a channel: prod, or rc when it is on (versions come only from the published GitHub "
+                         "Releases, never the main branch).")
     if not ch[channel]["enabled"]:
         raise PermissionError(f"The {ch[channel]['label']} channel is off: a Super Admin or IT Admin enables it first.")
     if not settings()["git_url"]:
@@ -420,9 +447,12 @@ def scheduler_tick(now: float | None = None) -> str:
 
 
 def scheduler() -> None:
-    """Every 30 seconds: scheduler_tick."""
+    """Every 30 seconds: scheduler_tick (not while the backup and restore test runs: it waits, R5.6-B1)."""
+    import brtest
     while True:
         time.sleep(30)
+        if brtest.is_quiet():
+            continue
         try:
             scheduler_tick()
         except Exception as exc:  # noqa: BLE001 - never stops the helper
@@ -483,7 +513,7 @@ def print_status() -> int:
 
 
 def cli(args: list[str], who: str = "eax command") -> int:
-    """eax update [--status] [--retry] [--channel prod|rc|latest] [--to <version>] [--at <time>] [--url <link>] [--yes]
+    """eax update [--status] [--retry] [--channel prod|rc] [--to <version>] [--at <time>] [--url <link>] [--yes]
        eax rollback [--yes]"""
     if args and args[0] == "rollback":
         if "--yes" not in args and _ask("Roll back to the version before the last update? Work done since then is lost. Type YES: ") != "YES":
@@ -531,10 +561,11 @@ def cli(args: list[str], who: str = "eax command") -> int:
     if guided:
         print("\nOffered (oldest first):")
         for i, v in enumerate(offered, 1):
-            label = v["version"] + (f"  {v['commit'][:8]} {v.get('title', '')}" if channel == "latest" else "")
+            label = v["version"] + (f"  {v['title']}" if v.get("title") and v["title"] not in (v["version"], v["ref"]) else "") \
+                + (f"  ({v['date'][:10]})" if v.get("date") else "")
             print(f"  {i}. {label}{'   (failed here before)' if v.get('failed_before') else ''}")
         n = _ask(f"Which (1-{len(offered)}) [{len(offered)}]: ", [str(i) for i in range(1, len(offered) + 1)] + [""]) or str(len(offered))
-        to = offered[int(n) - 1]["version"] if channel != "latest" else offered[int(n) - 1]["ref"]
+        to = offered[int(n) - 1]["version"]
     try:
         pick = R.plan([R.Version(**{k: v for k, v in x.items() if k in R.Version.__dataclass_fields__}) for x in offered], to)
     except R.ReleaseError as exc:

@@ -26,6 +26,9 @@ def ops(tmp_path, monkeypatch):
     spec.loader.exec_module(m)
     m.REPO, m.RUNS, m.KEEP = str(REPO), str(tmp_path / "deploys"), str(tmp_path / "keep")
     monkeypatch.setattr(m, "_defaults", lambda: {"repo": "https://github.com/acme/ea-explorer", "ref": "v0.19.0"})
+    monkeypatch.setattr(m, "_published", lambda repo: {"releases": [
+        {"tag": "v0.20.0", "version": "0.20.0", "title": "EA Explorer 0.20.0", "date": "2026-11-20T00:00:00Z"},
+        {"tag": "v0.19.0", "version": "0.19.0", "title": "EA Explorer 0.19.0", "date": "2026-11-01T00:00:00Z"}]})
     started = []
     monkeypatch.setattr(m, "_start_deployer", lambda run_id, folder: started.append(run_id))
     m.started = started
@@ -198,3 +201,19 @@ def test_the_page_and_its_help():
     assert "tab:Deploy" in cat and "button:Retry this step" in cat
     assert (REPO / "deploy/deployer/Dockerfile").read_text().count("doctl") >= 1
     assert os.path.exists(REPO / "services/ops/deploys.py")
+
+
+def test_the_version_is_a_drop_down_of_published_releases(ops, monkeypatch):
+    """R5.6-U2: the Deploy page's version is a drop-down of the published GitHub Releases, newest first and chosen; when
+    they cannot be read it says so and offers nothing."""
+    got = ops.questions({"kind": "server"})
+    q = next(x for x in got["questions"] if x["key"] == "ref")
+    assert q["kind"] == "select" and list(q["choices"]) == ["v0.20.0", "v0.19.0"] and q["default"] == "v0.20.0" and not q["error"]
+    assert got["answers"]["ref"] == "v0.20.0"
+    kept = next(x for x in ops.questions({"kind": "server", "ref": "v0.19.0"})["questions"] if x["key"] == "ref")
+    assert kept["default"] == "v0.19.0"                                         # a choice made stays
+    monkeypatch.setattr(ops, "_published", lambda repo: {"error": "GitHub cannot be reached (x): nothing is offered."})
+    down = next(x for x in ops.questions({"kind": "server"})["questions"] if x["key"] == "ref")
+    assert down["choices"] == {} and "cannot be reached" in down["error"]
+    src = (REPO / "services/web/src/Deploy.jsx").read_text()
+    assert 'q.kind === "select"' in src and "<select" in src and "q.error" in src

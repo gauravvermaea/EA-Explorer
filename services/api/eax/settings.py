@@ -60,6 +60,13 @@ REGISTRY: dict[str, tuple] = {
                          "(System Admin › Scaling, Apply now) (R5.33)."),
     "jobs_slots_scheduled": ("system", "Job slots per API server: scheduled jobs", "int", 2, (1, 16),
                              "The scheduled housekeeping at once on each API server; taken when the servers restart (R5.33)."),
+    "jobs_full_waiting": ("system", "Job queue too full: jobs waiting", "int", 20, (1, 10000),
+                          "Above this many waiting, low-priority recurring jobs miss their turn; their next run does the "
+                          "work (System Admin › Jobs, R5.6)."),
+    "jobs_full_minutes": ("system", "Job queue too full: oldest waiting (minutes)", "int", 10, (1, 1440),
+                          "When the oldest waiting job has waited longer, low-priority recurring jobs miss their turn (R5.6)."),
+    "jobs_skip_max": ("system", "Skips in a row before a low-priority job runs anyway", "int", 5, (1, 100),
+                      "A low-priority recurring job skipped this many times in a row runs anyway (R5.6)."),
     "gov_dispensation_warn_days": ("application", "Warn of a dispensation ending (days before)", "int", 30, (1, 365),
                                    "Its owner, sponsor, the project's Project Admins and Lead Architects and the Architecture "
                                    "Board are told this many days before a dispensation ends, and again on the day (R5.5.1)."),

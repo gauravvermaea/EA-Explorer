@@ -36,6 +36,9 @@ $ErrorActionPreference = "Stop"
 Set-Location -Path $PSScriptRoot
 $WorkDir = Join-Path $PSScriptRoot "work"
 $EnvFile = "work/eaexplorer.env"
+# work/compose-project: this installation's own Docker name (R5.6-B2: a DR copy beside the original keeps its own
+# containers and volumes); not in the config file, so a restore never changes it
+if (Test-Path "work/compose-project") { $env:COMPOSE_PROJECT_NAME = (Get-Content "work/compose-project" -TotalCount 1).Trim() }
 $LogDir = Join-Path $WorkDir "logs"
 $Stamp = Get-Date -Format "yyyyMMdd-HHmmss"
 $RestArgs = @($Rest | Where-Object { $_ })   # extra arguments, without empty entries
@@ -1021,7 +1024,7 @@ if ($Command -eq "menu") {   # the numbered menu (R2.29): one Python program for
     & (Join-Path $PSScriptRoot "eaxpy.ps1") menu
     exit $LASTEXITCODE
 }
-if (($Command -in @("deploy", "secrets", "packs", "schedule", "persist", "folders", "allow", "sign", "verify", "db", "ticket", "jobs", "optimise", "estimate", "dev")) -or ($Command -eq "logs" -and $RestArgs.Count -gt 0 -and $RestArgs[0] -in @("backup", "clean")) -or ($Command -eq "test" -and $RestArgs -contains "--reset-survival")) {   # packs (D546); schedule (D559); test --reset-survival (D561)
+if (($Command -in @("deploy", "secrets", "packs", "schedule", "persist", "folders", "allow", "drill", "dr-pack", "sign", "verify", "db", "ticket", "jobs", "optimise", "estimate", "dev")) -or ($Command -eq "logs" -and $RestArgs.Count -gt 0 -and $RestArgs[0] -in @("backup", "clean")) -or ($Command -eq "test" -and ($RestArgs -contains "--reset-survival" -or $RestArgs -contains "backup-restore" -or $RestArgs -contains "restore" -or $RestArgs -contains "full"))) {   # packs (D546); schedule (D559); test --reset-survival (D561); test backup-restore, restore, full (R5.6-B1)
     # phase 36 (D498, D504): one Python program for every form (D500); eaxpy.ps1 fetches uv and Python into work\tools
     & (Join-Path $PSScriptRoot "eaxpy.ps1") $Command @RestArgs
     exit $LASTEXITCODE

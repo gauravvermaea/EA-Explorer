@@ -3,7 +3,7 @@
 page. One module both import, so the catalogue, the option checks and the strong confirm are never two copies.
 
 * The catalogue is read from eaxcli/help.txt (the one source of the help, D331): every command, grouped as in the help,
-  with its summary, its full help and its examples, and a form built from its syntax line ("[--channel prod|rc|latest]").
+  with its summary, its full help and its examples, and a form built from its syntax line ("[--channel prod|rc]").
 * Only known commands run, with options checked against that syntax: no shell, no free text. A value may hold letters,
   digits and . _ - : / @ + , = % only, so ; | & $ ` < > ( ) quotes, spaces and new lines never get through.
 * Each command has a kind: run (runs, the page stays up), offline (stops or restarts EA Explorer), wipe (deletes
@@ -28,7 +28,7 @@ NOT_ALLOWED = set(";|&$`<>()\\\"'\n\r\t*?![]{}~#")
 
 OFFLINE = {"stop", "restart", "up", "update", "rollback", "restore", "restore-app", "maintenance", "standby"}
 WIPE = {"cleanup", "clean-run", "clean-restart", "clean-debug"}
-HOST = {"init", "check", "trust", "deploy", "secrets", "document", "schedule", "persist"}
+HOST = {"init", "check", "trust", "deploy", "secrets", "document", "schedule", "persist", "drill", "dr-pack"}
 INTERACTIVE = {"console", "restore-model"}     # ask as they go: in the Console only
 FOLLOWS = {"logs", "debug"}                       # keep going until stopped: the page offers Stop
 STOPPABLE = FOLLOWS | {"status", "diag", "test", "backups", "restores", "databases", "footprint", "url", "logins", "services", "help", "import",
@@ -43,6 +43,8 @@ HOST_WHY = {
     "document": "It opens a page in the browser of the machine itself; the Documentation page has the same.",
     "schedule": "On this page use the Schedules tab instead: the same schedules, with a form and the checks of who may make which.",
     "persist": "On the web use System Admin > Persist: the same list, with Delete beside each item (R2.26).",
+    "dr-pack": "It writes the DR pack into a folder on the machine itself, to take away from it.",
+    "drill": "The restore drill shuts this installation down and builds a copy from GitHub: run dr/eax-drill on the machine itself.",
 }
 
 

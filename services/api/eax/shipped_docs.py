@@ -22,6 +22,8 @@ from pathlib import Path
 from . import __version__
 
 HIDDEN = {"todo.md", "checks_raw.md"}            # working notes, not documentation
+# the documents offered as a PDF too (owner, 16 Nov 2026, 15:55: "we only needed pdf for drills not everything else")
+PDF_DOCS = {"backup-drill-new-machine", "backup-drill-monthly", "backup-disaster-recovery"}   # + DR (owner, 16 Nov 2026, 22:07)
 GROUPS = ["Getting started", "Using EA Explorer", "Administration and operations", "Command line",
           "Reference", "Release notes", "Design and decisions"]
 
@@ -130,7 +132,7 @@ def document(key: str) -> dict:
     text = p.read_text(encoding="utf-8")
     body = ("<pre class=\"doc-help\">" + html.escape(text) + "</pre>") if k == "command-line-help" else render(text)
     return {"key": k, "title": _title(text, k), "group": group_of(k), "file": p.name, "version": __version__,
-            "html": body, "size": p.stat().st_size}
+            "html": body, "size": p.stat().st_size, "pdf": k in PDF_DOCS}
 
 
 def raw(key: str) -> tuple[str, bytes]:

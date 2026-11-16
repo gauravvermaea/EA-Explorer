@@ -29,7 +29,6 @@ import re
 import shutil
 import socket
 import subprocess
-import sys
 import threading
 import time
 
@@ -38,7 +37,7 @@ SUITES = ("api", "ui", "db", "jobs", "mcp", "security", "reports", "performance"
 # only when asked for by name, never in the full test (owner, 15 Nov 2026: "I dont want full test to run performance test"; R5.29)
 ON_DEMAND = ("performance",)
 FULL_SUITES = tuple(s for s in SUITES if s not in ON_DEMAND)
-ALIASES = {"backup-restore": "restore"}
+ALIASES = {"backup-restore": "restore"}   # R5.6-B1: eax runs it itself (eaxcli/backup_restore.py); a run leaves it out
 ZAP_IMAGE = os.environ.get("EAX_IMAGE_ZAP", "ghcr.io/zaproxy/zaproxy:2.16.1")     # R5.17: 2.15.0 was out of date
 TRIVY_IMAGE = os.environ.get("EAX_IMAGE_TRIVY", "aquasec/trivy:0.60.0")
 K6_IMAGE = os.environ.get("EAX_IMAGE_K6", "grafana/k6:0.54.0")                  # the load test (R5.18, D695)
@@ -741,23 +740,6 @@ def _opt(args: list[str], flag: str) -> str:
     return args[args.index(flag) + 1] if flag in args and args.index(flag) + 1 < len(args) else ""
 
 
-def restore_agreed(args: list[str], suites: list[str], ask=input, tty=None) -> bool:
-    """The restore test changes and restores this installation (R3.8): asked first; --yes (or --ci) skips the question;
-    without a terminal and without --yes it is left out, saying so."""
-    if "--yes" in args or "--ci" in args:
-        return True
-    tty = sys.stdin.isatty() if tty is None else tty
-    if not tty:
-        print("The restore test is left out: it restores this installation; add --yes to run it without a terminal.", flush=True)
-        return False
-    print("The restore test backs this installation up, changes it and restores it part by part (the services stop while "
-          "a restore runs); a safety backup is put back if anything fails. It takes as long as it takes.", flush=True)
-    yes = ask("Run it? Type yes: ").strip().lower() in ("y", "yes")
-    if not yes:
-        print("The restore test is left out." + (" Nothing else was asked for." if suites == ["restore"] else ""), flush=True)
-    return yes
-
-
 def cli(args: list[str]) -> int:
     """ops.py test [smoke|full] [--version V] [--ci]   (R2.0.1, D592: two choices only; full = every suite, every page and
     journey). The older forms (--smoke, --detailed, --suite S, --role R, --area A, --journey J, --pages-only) still work
@@ -790,9 +772,10 @@ def cli(args: list[str]) -> int:
         print(exc)
         return 2
     role, area = _opt(args, "--role"), _opt(args, "--area")
-    if "restore" in suites and not restore_agreed(args, suites):
+    if "restore" in suites:     # the backup and restore test runs from eax itself, after this run (R5.6-B1)
         suites = [x for x in suites if x != "restore"]
         if not suites:
+            print("The backup and restore test runs from eax itself: eax test backup-restore.", flush=True)
             return 0
     journeys = [args[i + 1] for i, a in enumerate(args) if a == "--journey" and i + 1 < len(args)]
     pages_only = "--pages-only" in args

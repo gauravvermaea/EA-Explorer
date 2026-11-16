@@ -1,21 +1,23 @@
-"""Releases of EA Explorer from its git repository (phase 36, D417, D498). Standard library and the git command only.
+"""Releases of EA Explorer: its GitHub Releases, its code from its git repository (phase 36, D417, D498; R5.6-U1, U2).
+Standard library and the git command only.
 
 Shared by the updater (eaxcli/updater.py, `eax update`), the operations helper's listing of versions and `eax deploy`
 (phase 36, D498): one place that knows the channels, how versions are named and compared, which versions a channel
 offers, the release notes, and how to fetch one version's files.
 
-Channels (D417):
-  prod    branch `release`, tags vX.Y.Z               on by default
-  rc      branch `rc`,      tags vX.Y.Z-rc.N          off until a Super Admin or IT Admin enables it
-  latest  branch `main`,    each commit               off until enabled
+Where versions come from (owner, 16 Nov 2026, 15:21: "Release should not be picked from the main branch, instead pick
+them from here - https://github.com/gauravvermaea/EA-Explorer/releases only upgrade forward"; 15:47: public; 16:20:
+"EA-Explorer for both"): the repository's **published GitHub Releases** only (read without a sign-in), never `main`:
+  prod    the published releases that are not pre-releases (tags vX.Y.Z)          on always
+  rc      the pre-releases too (tags vX.Y.Z or vX.Y.Z-rc.N)                     off until a Super Admin or IT Admin enables it
+A draft is never offered; a tag with no published release is not offered. The code an update installs is that
+release's tag, fetched from the same repository.
 
-Release notes (D510): `releases/<version>.md` in the repository at that version's tag (e.g. releases/0.19.0.md,
-releases/0.19.0-rc.2.md), written by tools/release.py when the tag is made. An RC without its own file shows its
-release's file (releases/0.19.0.md) when there is one. Latest (untagged commits) shows the commits' one-line messages
-since the installed commit, newest first.
+Release notes (D510): a release's text on GitHub; when it is empty, `releases/<version>.md` in the repository at its tag.
+When GitHub cannot be reached or refuses (its limit on calls without a sign-in), this says so in words and offers
+nothing rather than guessing.
 
-Forward only: a channel never offers a version lower than (or equal to) the installed one; on Latest only commits that
-come after the installed commit. Several releases behind (D417): the update goes one release after another, in order.
+Forward only: a channel never offers a version lower than (or equal to) the installed one. Several releases behind (D417): the update goes one release after another, in order.
 """
 
 from __future__ import annotations
@@ -27,20 +29,20 @@ import shutil
 import subprocess
 import tarfile
 import tempfile
+import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 CHANNELS = {
-    "prod": {"label": "Prod", "branch": "release", "default": True,
-             "about": "Released versions (tags vX.Y.Z on the release branch). Recommended."},
-    "rc": {"label": "RC", "branch": "rc", "default": False,
-           "about": "Release candidates (tags vX.Y.Z-rc.N) and releases: try a version before it is released."},
-    "latest": {"label": "Latest", "branch": "main", "default": False,
-               "about": "Every commit on main, untested between releases. For trying changes only."},
+    "prod": {"label": "Prod", "branch": "GitHub Releases", "default": True,
+             "about": "The published releases of the repository's GitHub Releases page. Recommended."},
+    "rc": {"label": "RC", "branch": "GitHub pre-releases", "default": False,
+           "about": "The published pre-releases as well: try a version before it is released."},
 }
+GITHUB_API = os.environ.get("EAX_GITHUB_API", "") or "https://api.github.com"   # another address only for a mirror
+DEFAULT_REPO = "https://github.com/gauravvermaea/EA-Explorer"
 TAG = re.compile(r"^v(\d+)\.(\d+)\.(\d+)(?:-rc\.(\d+))?$")
 NOTES_DIR = "releases"
-LATEST_DEPTH = 200          # commits of main looked at for Latest
 
 
 class ReleaseError(RuntimeError):
@@ -82,11 +84,11 @@ def name_of(tag: str) -> str:
 class Version:
     """One version a channel offers."""
     channel: str
-    version: str             # 0.19.0, 0.19.0-rc.2, or for Latest the version.toml at that commit
-    ref: str                 # the tag (v0.19.0) or, for Latest, the commit id
+    version: str             # 0.19.0, 0.19.0-rc.2
+    ref: str                 # its tag (v0.19.0)
     commit: str = ""
     date: str = ""
-    title: str = ""          # Latest: the commit's one-line message
+    title: str = ""          # the release's title on GitHub
     notes: str = ""
     steps: list[str] = field(default_factory=list)   # filled by plan(): the versions gone through, in order
 
@@ -179,75 +181,106 @@ def notes_for(cache: str | os.PathLike, commit: str, version: str) -> str:
     return ""
 
 
+# ---------------------------------------------------------------- GitHub Releases (R5.6-U1)
+def github_repo(url: str) -> tuple[str, str]:
+    """(owner, name) of a github.com repository link; anything else is refused in words."""
+    m = re.match(r"^(?:https?://|git@)github\.com[/:]([^/\s]+)/([^/\s]+?)(?:\.git)?/?$", (url or "").strip())
+    if not m:
+        raise ReleaseError(f"{url or 'No repository link'}: updates read the repository's GitHub Releases, so the link "
+                           f"must be a github.com repository (for example {DEFAULT_REPO}).")
+    return m.group(1), m.group(2)
+
+
+def _get_json(url: str, timeout: int = 20):
+    import urllib.error
+    import urllib.request
+    req = urllib.request.Request(url, headers={"Accept": "application/vnd.github+json", "User-Agent": "EA-Explorer-updates",
+                                               "X-GitHub-Api-Version": "2022-11-28"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:     # noqa: S310 - GitHub's API, https
+            return json.loads(r.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        if exc.code in (403, 429):
+            reset = exc.headers.get("X-RateLimit-Reset", "")
+            raise ReleaseError("GitHub refused: its limit on calls without a sign-in is reached"
+                               + (f" until {time.strftime('%H:%M UTC', time.gmtime(int(reset)))}" if reset.isdigit() else "")
+                               + ". Nothing is offered until then.") from exc
+        if exc.code == 404:
+            raise ReleaseError("GitHub has no such repository (or it is private): check the repository link.") from exc
+        raise ReleaseError(f"GitHub answered {exc.code}: nothing is offered.") from exc
+    except (urllib.error.URLError, TimeoutError, OSError, ValueError) as exc:
+        raise ReleaseError(f"GitHub cannot be reached ({exc}): nothing is offered.") from exc
+
+
+def github_releases(url: str, fetcher=None) -> list[dict]:
+    """The repository's published releases, newest first: {tag, version, title, notes, date, prerelease}. Drafts and
+    tags that are not versions are left out."""
+    owner, name = github_repo(url)
+    get = fetcher or _get_json
+    out: list[dict] = []
+    for page in range(1, 6):
+        rows = get(f"{GITHUB_API}/repos/{owner}/{name}/releases?per_page=100&page={page}")
+        if not isinstance(rows, list):
+            raise ReleaseError("GitHub's answer about the releases was not understood: nothing is offered.")
+        for r in rows:
+            tag = str(r.get("tag_name") or "")
+            if r.get("draft") or not TAG.match(tag):
+                continue
+            out.append({"tag": tag, "version": name_of(tag), "title": str(r.get("name") or tag),
+                        "notes": str(r.get("body") or "").strip(), "date": str(r.get("published_at") or ""),
+                        "prerelease": bool(r.get("prerelease"))})
+        if len(rows) < 100:
+            break
+    out.sort(key=lambda x: parse(x["version"]), reverse=True)
+    return out
+
+
+def offered_releases(url: str, channel: str, fetcher=None) -> list[dict]:
+    """A channel's releases, newest first (for the drop-downs): prod without the pre-releases, rc with them."""
+    if channel not in CHANNELS:
+        raise ReleaseError("Versions come only from the published GitHub Releases: channel prod, or rc when it is on "
+                           "(never the main branch).")
+    rel = github_releases(url, fetcher)
+    return [r for r in rel if channel == "rc" or (not r["prerelease"] and not is_rc(r["version"]))]
+
+
 # ---------------------------------------------------------------- what a channel offers
 def available(url: str, channel: str, installed: dict, cache: str | os.PathLike, with_notes: bool = True) -> list[Version]:
     """The versions the channel offers above the installed one, oldest first (forward only, D417).
     installed: {'version': '0.18.0', 'commit': '...'}."""
-    if channel not in CHANNELS:
-        raise ReleaseError(f"Unknown channel {channel}: prod, rc or latest.")
-    cache = cache_repo(cache)
     have = installed.get("version") or "0.0.0"
-    if channel == "latest":
-        return _latest(url, installed, cache, with_notes)
-    out = []
-    for tag, sha in tags(url).items():
-        v = name_of(tag)
-        if channel == "prod" and is_rc(v):
-            continue
-        if not newer(v, have):
-            continue
-        out.append(Version(channel=channel, version=v, ref=tag, commit=sha))
+    rel = [r for r in offered_releases(url, channel) if newer(r["version"], have)]      # forward only
+    if not rel:
+        return []
+    shas = tags(url)
+    out = [Version(channel=channel, version=r["version"], ref=r["tag"], commit=shas.get(r["tag"], ""), date=r["date"],
+                   title=r["title"], notes=r["notes"]) for r in rel]
     out.sort(key=lambda x: parse(x.version))
     if with_notes:
+        cache = cache_repo(cache)
         for x in out:
+            if x.notes:
+                continue                     # GitHub's own text; the file at the tag only when it is empty
             try:
                 fetch(cache, url, x.ref)
                 x.notes = notes_for(cache, x.commit, x.version)
-                x.date = git("log", "-1", "--format=%cI", x.commit, cwd=cache).strip()
             except ReleaseError:
                 pass
     return out
 
 
-def _latest(url: str, installed: dict, cache: Path, with_notes: bool) -> list[Version]:
-    head = fetch(cache, url, CHANNELS["latest"]["branch"], depth=LATEST_DEPTH)
-    mine = installed.get("commit") or ""
-    rows = git("log", "--format=%H%x09%cI%x09%s", f"-{LATEST_DEPTH}", head, cwd=cache).splitlines()
-    commits = [r.split("\t", 2) for r in rows if r.count("\t") >= 2]
-    found = next((i for i, c in enumerate(commits) if mine and c[0].startswith(mine)), None)
-    newer_ones = commits[:found] if found is not None else commits[:1]   # unknown installed commit: the newest only
-    have = installed.get("version") or "0.0.0"
-    out = []
-    for sha, date, title in newer_ones:
-        v = version_at(cache, sha)
-        if v and parse(v) and parse(have) and parse(v) < parse(have):
-            continue                     # a commit whose version is lower than the installed one: never backwards
-        out.append(Version(channel="latest", version=v, ref=sha, commit=sha, date=date, title=title))
-    out.reverse()                        # oldest first, like the other channels
-    if with_notes and out:
-        rng = [f"{commits[found][0]}..{head}"] if found is not None else ["-20", head]
-        since = git("log", "--format=- %h %s", *rng, cwd=cache, check=False)
-        for x in out:
-            x.notes = ("Commits since the installed version (newest first):\n" + since.strip()) if since.strip() else x.title
-    return out
-
-
 def plan(offered: list[Version], target: str = "") -> Version:
     """The version to move to and the versions gone through on the way (D417: one release at a time).
-    target: a version (0.19.0, 0.19.0-rc.2) or, on Latest, a commit; empty: the newest offered."""
+    target: a version (0.19.0, 0.19.0-rc.2) or its tag; empty: the newest offered."""
     if not offered:
         raise ReleaseError("Nothing newer on this channel: the installed version is the newest.")
     if target:
-        pick = next((x for x in offered if x.version == target.lstrip("v") or x.ref == target
-                     or (x.commit and target and x.commit.startswith(target))), None)
+        pick = next((x for x in offered if x.version == target.lstrip("v") or x.ref == target), None)
         if not pick:
             raise ReleaseError(f"{target} is not offered: it is not on this channel, or not newer than the installed "
                                "version (updates only go forward).")
     else:
         pick = offered[-1]
-    if pick.channel == "latest":
-        pick.steps = [pick.ref]
-        return pick
     upto = [x for x in offered if parse(x.version) <= parse(pick.version)]
     by_release: dict[str, Version] = {}
     for x in upto:                       # each release once: its final version if offered, else its newest RC
@@ -289,7 +322,7 @@ def export(url: str, ref: str, dest: str | os.PathLike, cache: str | os.PathLike
 # ---------------------------------------------------------------- supported versions (8.5, D514)
 def supported(installed: str, releases: list[str]) -> tuple[bool, str]:
     """The supported-versions policy (docs/release-process.md): the newest release line (X.Y) and the one before are
-    supported; a release candidate or a Latest build only until its release is out."""
+    supported; a release candidate only until its release is out."""
     finals = sorted({base(r) for r in releases if not is_rc(r) and parse(r)}, key=parse)
     if not finals or not parse(installed):
         return True, ""
@@ -310,7 +343,15 @@ def supported(installed: str, releases: list[str]) -> tuple[bool, str]:
 
 def main(argv: list[str]) -> int:
     """python3 releases.py list <url> <channel> <installed-version> [<installed-commit>] [--cache <folder>]
-    Prints the versions offered as JSON (used by the operations helper, which has no internet itself)."""
+       python3 releases.py published <url> <channel>
+    Prints the versions offered (or every published release) as JSON (used by the operations helper, which has no internet itself)."""
+    if len(argv) >= 3 and argv[0] == "published":      # python3 releases.py published <url> <channel>
+        try:
+            print(json.dumps({"releases": offered_releases(argv[1], argv[2])}))
+            return 0
+        except ReleaseError as exc:
+            print(json.dumps({"error": str(exc)}))
+            return 1
     if len(argv) >= 4 and argv[0] == "list":
         cache = argv[argv.index("--cache") + 1] if "--cache" in argv else tempfile.mkdtemp(prefix="eax-cache-")
         rest = [a for i, a in enumerate(argv) if a != "--cache" and (i == 0 or argv[i - 1] != "--cache")]

@@ -313,8 +313,13 @@ def scheduler_tick() -> list[dict]:
 
 
 def scheduler() -> None:
-    """Every 30 seconds: start what is due (a missed run within the hour after a restart runs once, D559)."""
+    """Every 30 seconds: start what is due (a missed run within the hour after a restart runs once, D559); nothing while
+    the backup and restore test runs (R5.6-B1): what falls due then runs when it ends, within the hour."""
+    import brtest
     while True:
+        if brtest.is_quiet():
+            time.sleep(30)
+            continue
         try:
             for x in scheduler_tick():
                 print(f"ops: schedule {x['id']}: {x['what']}", flush=True)

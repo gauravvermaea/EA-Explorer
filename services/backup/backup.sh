@@ -19,6 +19,7 @@ case "$REL" in *..*|/*) echo "A folder under /backups, please"; exit 2;; esac
 TARGET="${EAX_BACKUP_ROOT:-/backups}/$REL"
 mkdir -p "$TARGET/databases" "$TARGET/files"
 . /usr/local/bin/tarset.sh                     # one file set at a time, its failure named (R2.46)
+. /usr/local/bin/dumpdb.sh                     # one database at a time, tried three times, its failure named (R5.6-B1)
 export PGHOST="${EAX_BACKUP_PGHOST:-db}" PGPORT="${EAX_BACKUP_PGPORT:-5432}" PGUSER=postgres PGPASSWORD="${EAX_DB_SUPERUSER_PASSWORD:-}"
 
 # every database on a server of its own (D410, R2.50: each database's own setting): "<name> <host> <port>"
@@ -31,13 +32,13 @@ if [ -s "$TARGET/databases/HOSTS.new" ]; then mv "$TARGET/databases/HOSTS.new" "
 for DB in $(psql -Atc "SELECT datname FROM pg_database WHERE NOT datistemplate AND datname <> 'postgres' AND datname !~ '(__restoring|__before|_restore_test)$' ORDER BY 1"); do
   case " $ELSEWHERE " in *" $DB "*) continue;; esac      # its own server's copy is the live one
   echo "backup: database $DB"
-  pg_dump --format=custom --file="$TARGET/databases/$DB.dump" "$DB"
+  dumpdb "$DB" "$TARGET/databases/$DB.dump"
 done
 pg_dumpall --globals-only > "$TARGET/databases/globals.sql"
 if [ -f "$TARGET/databases/HOSTS" ]; then
   while read -r N H P; do
     echo "backup: database $N (on $H:$P)"
-    pg_dump --host="$H" --port="$P" --format=custom --file="$TARGET/databases/$N.dump" "$N"
+    dumpdb "$N" "$TARGET/databases/$N.dump" --host="$H" --port="$P"
     pg_dumpall --host="$H" --port="$P" --globals-only > "$TARGET/databases/globals-$N.sql"
   done < "$TARGET/databases/HOSTS"
 fi

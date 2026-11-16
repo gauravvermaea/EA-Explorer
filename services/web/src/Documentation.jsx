@@ -99,6 +99,8 @@ function DocumentPage({ docKey, at }) {
         <span className="spacer" />
         <button onClick={() => apiDownload(`/api/v1/documentation/${encodeURIComponent(docKey)}/download`, data.file)}
           title="Download this document's own file">⬇ Download</button>
+        {data.pdf && <button onClick={() => apiDownload(`/api/v1/documentation/${encodeURIComponent(docKey)}/pdf`, `${data.file.replace(/\.[^.]+$/, "")}.pdf`)}
+          title="Download this drill as a PDF">⬇ Download PDF</button>}
         <button onClick={() => window.print()} title="Print this document, or save it as a PDF from the print dialog">Print or save as PDF</button>
       </div>
       {/* a plain-text document (the command line's help) has no heading of its own: show its title (R2.0.1) */}

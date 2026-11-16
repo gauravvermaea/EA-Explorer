@@ -1,6 +1,7 @@
 // System admin › Updates (phase 36, D417, D512): for Super Admins and IT Admins.
-//   the installed version; the repository link and the channels (Prod always; RC and Latest when enabled)
-//   a channel's versions above the installed one (forward only), with release notes; update now or at a time
+//   the installed version; the repository link and the channels (Prod always; RC when enabled)
+//   R5.6-U1: the repository's published GitHub Releases above the installed one (forward only, never main), in a
+//   drop-down with the chosen release's notes; update now or at a time
 //   the update running (its log), or waiting for a decision after a failed step: Retry or Roll back
 //   the schedule (cancel it) and the history of every update and rollback
 // UpdateNotice (in App.jsx, everyone signed in): a banner before a scheduled update, and a What's new note once after one.
@@ -56,7 +57,7 @@ export default function Updates() {
             title={c.enabled ? c.about : `${c.about} Off: enable it with Change… first.`}>{c.label}{c.enabled ? "" : " (off)"}</button>
         ))}
       </div>
-      <p className="quiet small">{chans[channel]?.about} Branch <code>{chans[channel]?.branch}</code>. Only versions newer than the installed one are offered (updates only go forward).</p>
+      <p className="quiet small">{chans[channel]?.about} Only published releases newer than the installed one are offered (updates only go forward; never the main branch).</p>
       {d.settings?.git_url && !d.current && <Offered channel={channel} installed={inst} />}
 
       <History rows={d.history || []} />
@@ -120,30 +121,32 @@ function Scheduled({ sc }) {
 
 function Offered({ channel, installed }) {
   const v = useApi(`/api/v1/operations/updates/versions/${channel}`);
+  const [chosen, setChosen] = useState("");
   const [pick, setPick] = useState(null);
   if (v.error) return <p className="status bad">{v.error}</p>;
-  if (!v.data) return <p><span className="spinner" aria-hidden="true" /> Reading the repository…</p>;
+  if (!v.data) return <p><span className="spinner" aria-hidden="true" /> Reading the repository's releases…</p>;
   if (v.data.error) return <p className="status bad">{v.data.error}</p>;
   const rows = v.data.versions || [];
-  if (!rows.length) return <p className="status ok">Nothing newer on this channel: {installed.version} is the newest.</p>;
+  if (!rows.length) return <p className="status ok">No newer release: {installed.version} is the newest published.</p>;
+  const newest = rows.slice().reverse();
+  const r = newest.find((x) => x.ref === chosen) || newest[0];
   return (
-    <>
-      <table className="grid-table">
-        <thead><tr><th>Version</th><th>Date</th><th>Notes</th><th /></tr></thead>
-        <tbody>
-          {rows.slice().reverse().map((r) => (
-            <tr key={r.ref}>
-              <td><b>{r.version}</b>{channel === "latest" && <> <code>{r.commit.slice(0, 8)}</code></>}
-                {r.failed_before && <span className="status bad small"> failed here before</span>}</td>
-              <td className="nowrap">{r.date ? fmtDateTime(r.date) : ""}</td>
-              <td className="small">{(r.title || (r.notes || "").split("\n").find((x) => x.trim() && !x.startsWith("#")) || "").slice(0, 140)}</td>
-              <td><button onClick={() => setPick(r)}>Update to this…</button></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="update-offered">
+      <div className="toolbar">
+        <label>Release{" "}
+          <select value={r.ref} onChange={(e) => setChosen(e.target.value)} aria-label="Release">
+            {newest.map((x) => (
+              <option key={x.ref} value={x.ref}>{x.version}{x.title && x.title !== x.ref && x.title !== x.version ? ` · ${x.title}` : ""}
+                {x.date ? ` (${x.date.slice(0, 10)})` : ""}{x.failed_before ? " · failed here before" : ""}</option>
+            ))}
+          </select>
+        </label>
+        <button className="primary" onClick={() => setPick(r)}>Update to this…</button>
+      </div>
+      <h4>Release notes of {r.version}</h4>
+      <pre className="release-notes">{r.notes || "No release notes."}</pre>
       {pick && <UpdateDialog r={pick} rows={rows} channel={channel} installed={installed} onClose={() => setPick(null)} />}
-    </>
+    </div>
   );
 }
 
@@ -152,12 +155,12 @@ function UpdateDialog({ r, rows, channel, installed, onClose }) {
   const [at, setAt] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
-  const steps = channel === "latest" ? [r] : stepsTo(rows, r);
+  const steps = stepsTo(rows, r);
   const go = async () => {
     setBusy(true); setErr("");
     try {
       await apiFetch("/api/v1/operations/updates/start", { method: "POST",
-        body: JSON.stringify({ channel, to: channel === "latest" ? r.ref : r.version, at: when === "later" ? new Date(at).toISOString() : "", confirm: true }) });
+        body: JSON.stringify({ channel, to: r.version, at: when === "later" ? new Date(at).toISOString() : "", confirm: true }) });
       refreshAll(); onClose();
     } catch (e) { setErr(String(e.message || e)); setBusy(false); }
   };
@@ -239,21 +242,20 @@ function History({ rows }) {
 function SettingsDialog({ s, onClose }) {
   const [url, setUrl] = useState(s.git_url || "");
   const [rc, setRc] = useState(!!s.rc);
-  const [latest, setLatest] = useState(!!s.latest);
   const [err, setErr] = useState("");
   const save = async () => {
     try {
-      await apiFetch("/api/v1/operations/updates/settings", { method: "PUT", body: JSON.stringify({ git_url: url.trim(), rc, latest }) });
+      await apiFetch("/api/v1/operations/updates/settings", { method: "PUT", body: JSON.stringify({ git_url: url.trim(), rc }) });
       refreshAll(); onClose();
     } catch (e) { setErr(String(e.message || e)); }
   };
   return (
     <Modal title="Repository and channels" onClose={onClose}
       actions={<><button onClick={onClose}>Cancel</button><button className="primary" onClick={save}>Save</button></>}>
-      <label>Repository link (public git, https)<input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://github.com/<owner>/<repository>.git" /></label>
-      <label className="switch-label"><input type="checkbox" checked disabled /> Prod (tags vX.Y.Z on <code>release</code>): always offered</label>
-      <label className="switch-label"><input type="checkbox" checked={rc} onChange={(e) => setRc(e.target.checked)} /> RC (tags vX.Y.Z-rc.N on <code>rc</code>)</label>
-      <label className="switch-label"><input type="checkbox" checked={latest} onChange={(e) => setLatest(e.target.checked)} /> Latest (every commit on <code>main</code>, untested)</label>
+      <label>Repository link (a public GitHub repository)<input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://github.com/gauravvermaea/EA-Explorer" /></label>
+      <label className="switch-label"><input type="checkbox" checked disabled /> Prod (its published releases): always offered</label>
+      <label className="switch-label"><input type="checkbox" checked={rc} onChange={(e) => setRc(e.target.checked)} /> RC (its published pre-releases too)</label>
+      <p className="quiet small">Versions come only from the repository's GitHub Releases page, never the main branch.</p>
       <p className="quiet small">Written to the config file (a dated copy is kept first). Versions are built on this host; nothing is published to a registry.</p>
       {err && <p className="status bad">{err}</p>}
     </Modal>

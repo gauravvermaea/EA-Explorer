@@ -6,9 +6,9 @@ here), checks it, and then runs its deployment wizard (.\eax deploy).
   powershell -NoProfile -ExecutionPolicy Bypass -Command "iwr <repository's raw address>/eax-deploy.ps1 -OutFile eax-deploy.ps1; .\eax-deploy.ps1"
 
 Options (each is asked when not given):
-  -Repo URL        the repository link (the public git URL EA Explorer comes from)
-  -Channel C       prod (release tags vX.Y.Z), rc (vX.Y.Z-rc.N) or latest (the main branch)
-  -Version REF     a tag, branch or commit (instead of choosing from the channel)
+  -Repo URL        the repository link (the public GitHub repository EA Explorer comes from)
+  -Channel C       prod (its published releases) or rc (its published pre-releases too)
+  -Version TAG     a published release's tag, e.g. v5.6.0 (instead of choosing; never a branch or a commit)
   -Folder DIR      where to put it (default: eaexplorer in your user folder)
   -NoDeploy        download and check only; run .\eax deploy yourself later
   -WizardArgs ...  passed to the wizard, e.g. -WizardArgs "--web"
@@ -31,48 +31,46 @@ function Ask([string]$Question, [string]$Default = "") {
 }
 
 Write-Host "EA Explorer installer: downloads EA Explorer and starts its deployment wizard." -ForegroundColor Cyan
-if (-not $Repo) { $Repo = Ask "Repository link" "https://github.com/gauravvermaea/EA-Enterpise" }
+if (-not $Repo) { $Repo = Ask "Repository link" "https://github.com/gauravvermaea/EA-Explorer" }
 if (-not $Repo) { Write-Host "A repository link is needed." -ForegroundColor Red; exit 2 }
 $Repo = $Repo.TrimEnd("/")
 if ($Repo.EndsWith(".git")) { $Repo = $Repo.Substring(0, $Repo.Length - 4) }
 $git = if ($env:EAX_NO_GIT) { $null } else { Get-Command git -ErrorAction SilentlyContinue }
 
+# R5.6-U2: versions come only from the repository's published GitHub Releases, newest first; never the main branch
 if (-not $Version) {
     if (-not $Channel) {
         Write-Host "Which channel?"
-        Write-Host "  1  Prod     released versions (tags vX.Y.Z)   [default]"
-        Write-Host "  2  RC       release candidates (vX.Y.Z-rc.N), for testing before a release"
-        Write-Host "  3  Latest   the newest commit of main, for trying what is being built (not for production)"
-        $Channel = switch (Ask "Choose" "1") { { $_ -in "2", "rc" } { "rc" } { $_ -in "3", "latest" } { "latest" } default { "prod" } }
+        Write-Host "  1  Prod     published releases   [default]"
+        Write-Host "  2  RC       published pre-releases too, for testing before a release"
+        $Channel = switch (Ask "Choose" "1") { { $_ -in "2", "rc" } { "rc" } default { "prod" } }
     }
-    if ($Channel -eq "latest") { $Version = "main" }
-    else {
-        $tags = @()
-        try {
-            if ($git) {
-                $tags = @(& git ls-remote --tags --refs $Repo 2>$null | ForEach-Object { ($_ -split "refs/tags/")[-1] })
-            } elseif ($Repo -match "github\.com[/:]([^/]+)/([^/]+)$") {
-                $tags = @((Invoke-RestMethod "https://api.github.com/repos/$($Matches[1])/$($Matches[2])/tags?per_page=100") | ForEach-Object { $_.name })
-            }
-        } catch { $tags = @() }
-        $pattern = if ($Channel -eq "rc") { '^v\d+\.\d+\.\d+-rc\.\d+$' } else { '^v\d+\.\d+\.\d+$' }
-        $list = @($tags | Where-Object { $_ -match $pattern } |
-            Sort-Object @{ Expression = { [version](($_ -replace '^v', '') -replace '-rc\.\d+$', '') } },
-                        @{ Expression = { if ($_ -match 'rc\.(\d+)$') { [int]$Matches[1] } else { 0 } } } -Descending |
-            Select-Object -First 10)
-        if ($list.Count -gt 0) {
-            Write-Host "Versions on $Channel (newest first):"
-            for ($i = 0; $i -lt $list.Count; $i++) { Write-Host ("  {0}  {1}" -f ($i + 1), $list[$i]) }
-            $pick = Ask "Choose (or type a tag)" "1"
-            $Version = if ($pick -match '^\d+$' -and [int]$pick -ge 1 -and [int]$pick -le $list.Count) { $list[[int]$pick - 1] } else { $pick }
-        } else {
-            Write-Host "No $Channel versions could be listed (no git here, or not GitHub)." -ForegroundColor Yellow
-            $Version = Ask "Type the version (a tag such as v0.19.0, or a branch)" $(if ($Channel -eq "rc") { "rc" } else { "release" })
-        }
+    if ($Repo -notmatch "github\.com[/:]([^/]+)/([^/]+)$") {
+        Write-Host "The repository must be on github.com: its Releases page lists the versions." -ForegroundColor Red; exit 2
     }
+    $rel = @()
+    try { $rel = @(Invoke-RestMethod -Headers @{ Accept = "application/vnd.github+json" } "$(if ($env:EAX_GITHUB_API) { $env:EAX_GITHUB_API } else { 'https://api.github.com' })/repos/$($Matches[1])/$($Matches[2])/releases?per_page=100") }
+    catch { $rel = @() }
+    $list = @($rel | Where-Object { -not $_.draft -and $_.tag_name -match '^v\d+\.\d+\.\d+(-rc\.\d+)?$' -and
+                                    ($Channel -eq "rc" -or (-not $_.prerelease -and $_.tag_name -notmatch '-rc\.')) } |
+        ForEach-Object { $_.tag_name } |
+        Sort-Object @{ Expression = { [version](($_ -replace '^v', '') -replace '-rc\.\d+$', '') } },
+                    @{ Expression = { if ($_ -match 'rc\.(\d+)$') { [int]$Matches[1] } else { 100000 } } } -Descending |
+        Select-Object -First 15)
+    if ($list.Count -eq 0) {
+        Write-Host "No published release could be read from GitHub (it cannot be reached, its limit on calls without a sign-in is reached, or nothing is published yet): nothing is offered. Try again later, or give -Version vX.Y.Z." -ForegroundColor Red
+        exit 1
+    }
+    Write-Host "Published releases on $Channel (newest first):"
+    for ($i = 0; $i -lt $list.Count; $i++) { Write-Host ("  {0}  {1}" -f ($i + 1), $list[$i]) }
+    $pick = Ask "Choose" "1"
+    $Version = if ($pick -match '^\d+$' -and [int]$pick -ge 1 -and [int]$pick -le $list.Count) { $list[[int]$pick - 1] } else { $pick }
 }
 if (-not $Version) { Write-Host "A version is needed." -ForegroundColor Red; exit 2 }
-if (-not $Channel) { $Channel = if ($Version -match '-rc\.') { "rc" } elseif ($Version -match '^v\d') { "prod" } else { "latest" } }
+if ($Version -notmatch '^v\d+\.\d+\.\d+(-rc\.\d+)?$') {
+    Write-Host "$Version is not a release: give a published release's tag such as v5.6.0 (never a branch or a commit)." -ForegroundColor Red; exit 2
+}
+if (-not $Channel) { $Channel = if ($Version -match '-rc\.') { "rc" } else { "prod" } }
 
 if ((Test-Path $Folder) -and (Get-ChildItem -Force $Folder | Select-Object -First 1)) {
     if (Test-Path (Join-Path $Folder "eax.ps1")) {

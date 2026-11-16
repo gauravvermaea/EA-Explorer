@@ -29,6 +29,7 @@ from sqlalchemy import text
 LONG_KINDS = ("backup", "restore", "selftest", "self-test", "test")
 # what each kind of job does, in words (owner, 21:42: "User friendly description")
 WORDS = {
+    "eax.queue_keeper": "Keeping the job queue: priorities, and low-priority jobs skipped when it is too full",
     "eax.run_task": "Work someone asked for", "eax.admin_sign_in_check": "Check the admins can sign in",
     "eax.alerts_run": "Run the alert checks", "eax.announce_restores": "Announce finished restores",
     "eax.backup_scheduler": "Start the scheduled backups", "eax.copy_model": "Copy a model",
@@ -470,9 +471,11 @@ def measure(conn) -> tuple[float | None, str]:
         return None, f"the job queue could not be read: {exc}"
     s = q["summary"]
     names = ", ".join(f"{j['what']} ({j['why']})" for j in q["jobs"] if j.get("stuck"))[:400]
+    from . import job_priorities as jp
+    skipped = jp.skipped_message(conn)                 # R5.6-Q2: nothing skipped silently
     return float(s["stuck"]), (f"{s['stuck']} stuck: {names}. Kill and clear them on System Admin › Jobs "
                                "(Clear the stuck jobs)" if s["stuck"] else
-                               f"{s['running']} running, {s['waiting']} waiting, {s['slots']} slots")
+                               f"{s['running']} running, {s['waiting']} waiting, {s['slots']} slots") + skipped
 
 
 if __name__ == "__main__":

@@ -32,6 +32,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
+from . import releases as R
 from .core import EAX, ROOT, WINDOWS, WORK, Failure, log_only, say
 
 KINDS = {
@@ -59,15 +60,21 @@ class Question:
     help: str = ""
     secret: bool = False
     required: bool = True
+    options: Callable[[dict], dict[str, str]] | None = None   # choices read when asked (the published releases, R5.6)
 
     def default_for(self, answers: dict) -> str:
         """The question's default for the answers so far."""
         return self.default(answers) if callable(self.default) else self.default
 
+    def choices_for(self, answers: dict) -> dict[str, str] | None:
+        """The question's choices: fixed, or read now (a drop-down)."""
+        return self.options(answers) if self.options else self.choices
+
     def as_dict(self, answers: dict) -> dict:
-        """The question for the web wizard."""
+        """The question for the web wizard (choices read now are filled in by the page's own service)."""
         return {"key": self.key, "text": self.text, "default": self.default_for(answers), "choices": self.choices,
-                "help": self.help, "secret": self.secret, "required": self.required}
+                "help": self.help, "secret": self.secret, "required": self.required,
+                "kind": "select" if self.options else ""}
 
 
 def _installed() -> dict:
@@ -178,10 +185,11 @@ QUESTIONS: list[Question] = [
     Question("tls_dir", "Folder (on this computer) holding tls.crt and tls.key", "", when=lambda a: _server_like(a) and a.get("tls") == "own"),
     Question("install_dir", "Installation folder on the server", "/opt/eaexplorer", when=_server_like),
     Question("data_dir", "Base folder for all the data on the server (databases, documents, logs, backups, imports, exports, certificates, reports)", "/srv/eax", when=_server_like),
-    Question("repo", "Repository link (the public git URL EA Explorer comes from)", lambda a: _installed().get("repo", "") or "https://github.com/gauravvermaea/EA-Enterpise",
+    Question("repo", "Repository link (the public GitHub repository EA Explorer comes from)",
+             lambda a: _installed().get("repo", "") or R.DEFAULT_REPO,
              when=_remote, help="The same link the installer used; the server downloads the release from there."),
-    Question("ref", "Version to install (a tag such as v0.19.0, or a branch)", lambda a: _installed().get("ref", "release"),
-             when=_remote),
+    Question("ref", "Version to install (a published release)", "", when=_remote, options=lambda a: release_choices(a.get("repo", "")),
+             help="The repository's published GitHub Releases, newest first (never the main branch)."),
     Question("move_from", "Start empty, or move an existing installation here?", "empty",
              {"empty": "Start empty", "backup": "Move an existing installation: restore one of its infrastructure backups"}),
     Question("backup_dir", "The infrastructure backup's folder on this computer (from the old installation's work/backups/infrastructure)",
@@ -204,6 +212,25 @@ QUESTIONS: list[Question] = [
 BY_KEY = {q.key: q for q in QUESTIONS}
 
 
+def release_choices(repo: str, fetcher=None) -> dict[str, str]:
+    """The published releases of the repository, newest first ({tag: label}) (R5.6-U2; owner, 16 Nov 2026: releases
+    come from the GitHub Releases page, never main). When GitHub cannot be reached it says so and nothing is offered."""
+    try:
+        rel = R.offered_releases(repo or R.DEFAULT_REPO, "prod", fetcher)
+    except R.ReleaseError as exc:
+        raise Failure(f"No version can be offered: {exc}") from exc
+    if not rel:
+        raise Failure(f"{repo or R.DEFAULT_REPO} has no published release yet: nothing can be installed.")
+    return {r["tag"]: release_label(r) for r in rel}
+
+
+def release_label(r: dict) -> str:
+    """A release as the drop-down shows it: its version, its title and its date."""
+    title = r.get("title") or ""
+    return (r["version"] + (f" · {title}" if title and title not in (r["tag"], r["version"]) else "")
+            + (f" ({r['date'][:10]})" if r.get("date") else ""))
+
+
 def visible(answers: dict) -> list[Question]:
     """The questions that apply to these answers, in order."""
     return [q for q in QUESTIONS if q.when(answers)]
@@ -216,11 +243,15 @@ def complete(answers: dict) -> dict:
         for q in visible(out):
             if q.key not in out or out[q.key] is None:
                 out[q.key] = q.default_for(out)
+            if q.options and not str(out.get(q.key) or "").strip() and q.key in [x.key for x in visible(out)]:
+                out[q.key] = next(iter(q.choices_for(out) or {"": ""}))    # the newest published release
     problems = []
     for q in visible(out):
         v = str(out.get(q.key, "")).strip()
         out[q.key] = v
-        if q.choices and v not in q.choices:
+        if q.options and v and not R.TAG.match(v):
+            problems.append(f"{q.key}: a published release's tag such as v5.6.0 (not {v!r}: never a branch or a commit)")
+        elif q.choices and v not in q.choices:
             problems.append(f"{q.key}: one of {', '.join(q.choices)} (not {v!r})")
         elif q.required and not v and not q.secret:
             problems.append(f"{q.key}: {q.text}")
@@ -1056,9 +1087,12 @@ def ask(q: Question, answers: dict) -> str:
     default = q.default_for(answers)
     if q.help:
         print(f"  ({q.help})")
-    if q.choices:
-        keys = list(q.choices)
-        for i, (k, label) in enumerate(q.choices.items(), 1):
+    choices = q.choices_for(answers)
+    if q.options and choices and default not in choices:
+        default = next(iter(choices))                  # the newest release
+    if choices:
+        keys = list(choices)
+        for i, (k, label) in enumerate(choices.items(), 1):
             print(f"  {i}  {label}{'   [default]' if k == default else ''}")
         while True:
             raw = input(f"{q.text} [{keys.index(default) + 1 if default in keys else ''}]: ").strip()

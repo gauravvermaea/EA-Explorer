@@ -96,6 +96,15 @@ def _defaults() -> dict:
     return out
 
 
+def _published(repo: str) -> dict:
+    """The repository's published releases (read in the updater container)."""
+    try:
+        import updates
+        return updates.published(repo, "prod")
+    except Exception as exc:  # noqa: BLE001 - said in words, nothing offered
+        return {"error": f"The releases could not be read ({exc}): nothing is offered."}
+
+
 def offered(answers: dict) -> dict:
     """The page's answers: never the laptop, never 'this machine is the server'."""
     a = {k: str(v) for k, v in (answers or {}).items() if v is not None}
@@ -129,6 +138,13 @@ def questions(answers: dict) -> dict:
             continue                                      # an own certificate is put in place after (deployment.md)
         if q.key == "move_from":
             d["choices"] = {"empty": q.choices["empty"]}  # a backup folder is on the old machine, not here
+        if q.key == "ref":                                # R5.6-U2: the published releases, newest first
+            got = _published(merged.get("repo", ""))
+            d["choices"] = {r["tag"]: D.release_label(r) for r in got.get("releases") or []}
+            d["error"] = got.get("error") or ("" if d["choices"] else "The repository has no published release yet: nothing can be installed.")
+            if (answers or {}).get("ref") not in d["choices"]:
+                d["default"] = next(iter(d["choices"]), "")   # the newest, unless the person chose one
+                merged["ref"] = d["default"]
         if q.key in SECRET_FIELDS or q.secret:
             d["secret"] = True
         qs.append(d)

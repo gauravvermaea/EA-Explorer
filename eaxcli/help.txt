@@ -315,12 +315,13 @@ $ {eax} sign 5.0.0 --key ~/.eax/eax-release-signing
 OK when it is signed by a trusted key and every file is as signed; REFUSED with why otherwise (exit code 1).
 $ {eax} verify 5.0.0
 
-### update [--status] [--retry] [--channel prod|rc|latest] [--to <version>] [--at <time>] [--url <link>] [--yes]
-> Moves to a newer release from the git repository: a full backup first, then one release at a time.
-Without options it is guided: it shows the installed version and the channels, lists the versions above the installed
-one (forward only) with their release notes, and asks which one, now or at a time, and to type YES. Prod (tags vX.Y.Z
-on the release branch) is always offered; RC (tags vX.Y.Z-rc.N) and Latest (every commit on main) only once enabled in
-System admin > Updates. First a full backup (every database, every file, the config file and the code as it is, local
+### update [--status] [--retry] [--channel prod|rc] [--to <version>] [--at <time>] [--url <link>] [--yes]
+> Moves to a newer published GitHub release: a full backup first, then one release at a time.
+Without options it is guided: it shows the installed version and the channels, lists the published releases above the
+installed one (forward only; never the main branch) with their release notes, and asks which one, now or at a time, and
+to type YES. Prod (the published releases) is always offered; RC (the published pre-releases too) only once enabled in
+System admin > Updates. When GitHub cannot be reached, or its limit on calls without a sign-in is reached, it says so
+and offers nothing. First a full backup (every database, every file, the config file and the code as it is, local
 changes included; pinned), then the maintenance page while each release on the way is built here, started and checked.
 A failed step stops and asks: --retry runs it again, or roll back. The update runs in its own updater container, so it
 carries on while EA Explorer restarts. --status shows the installed version, the update running, the schedule and the
@@ -371,7 +372,7 @@ $ {eax} import --all
 > Checks that Docker is running and the config and compose files are valid. Starts nothing.
 $ {eax} check
 
-### test [smoke|full|jobs|mcp|reports|security|performance|backup|restore|ui-review|failed [run] [--warnings]|watch [run] [--log|--browser]|stop [run]|api <method> <path>|delete <run|all> [--older-than DAYS]|clean] [--yes]
+### test [smoke|full|jobs|mcp|reports|security|performance|backup|backup-restore|restore|ui-review|failed [run] [--warnings]|watch [run] [--log|--browser]|stop [run]|api <method> <path>|delete <run|all> [--older-than DAYS]|clean] [--yes]
 > Test this installation: smoke or full; only what failed last time; or delete the test data.
 The same two tests as System Admin > Tools > Self-test (owner, 12 Nov 2026, D592: "Smoke or Full. Not too many
 options"); a run started in either place shows in both. Each run first removes any test data earlier runs left
@@ -383,8 +384,7 @@ and IT Admins.
           journeys run once.
   full    everything: every API endpoint as every role (allowed and refused), the database checks, security, then
           every page and every journey in a headless browser, the job queue, the reports, the backup checks, and last the
-          restore test below
-          (asked first; --yes skips the question; without a terminal and without --yes it is left out).
+          backup and restore test below (it asks nothing; --ci leaves it out).
   security  only the security suite (part of full, R5.17): the front door's headers, the dependencies, the code and
           secrets scans, the attacks of Release 3, ZAP signed in and not, Trivy; a high or critical finding not
           accepted (eax/testing/security_accepted.json) fails it. It also runs by itself every Sunday at 03:20.
@@ -408,12 +408,15 @@ and IT Admins.
   backup  only the backup checks (the last part of full): an infrastructure and an application backup, each restored into
           a scratch copy and counted, then removed; nothing live is touched (R2.45). Until they pass, the Backups page shows
           these commands instead of its buttons (R2.46)
-  restore  the full backup-and-restore test, on this installation (R3.8): the run's content fingerprinted, an
-          infrastructure backup (also the safety backup) and an application backup made, the content changed, then
-          restore all, one model over itself and each part of the infrastructure backup (db, app+data, files, full)
-          restored in turn and the content compared each time; signing in checked after each; the backups it made
-          removed; when a step fails the safety backup is put back whole. It stops the services while a restore runs
-          and takes as long as it takes. Asks first (--yes skips that). The command line only, never from the web.
+  backup-restore  the backup and restore test, on this installation (R5.6-B1; restore is the same): one command
+          after another from eax itself, each waited for (no test container, no job queue). A backup B1; a test
+          project and models with content of every kind (documents, a KPI, a custom view, tags, an uncommitted change,
+          a child model, decision records, a discovery run, people and roles); a backup B2; B1 restored: the test's
+          content is gone; B1 restored again: the same; B2 restored: everything is back, every database's rows and every
+          file's checksum compared; then sign-in, search, new work, the jobs and the documents checked. B1 and B2 get
+          random names; the test's data and both backups are removed when it passes. It asks nothing; it says
+          plainly first that anything done on this installation while it runs is lost (about an hour; everyone is locked out while each
+          restore runs). The report: work/tests/backup-restore-<time>/report.md. The command line only.
   ui-review  screenshots of every main page as each test role at laptop, large and narrow widths, with notes (page
           wider than the window, missing titles, unnamed buttons and fields, long text); ui-review.html in the run's
           folder. It changes nothing: the notes are discussed before any fix (R2.12)
@@ -446,7 +449,7 @@ $ {eax} test
 $ {eax} test full
 $ {eax} test performance --size medium --users 50
 $ {eax} test backup
-$ {eax} test restore
+$ {eax} test backup-restore
 $ {eax} test api GET /api/v1/models --as architect
 $ {eax} test watch
 $ {eax} test watch --browser
@@ -459,6 +462,24 @@ $ {eax} test clean
 $ {eax} test clean --dry-run
 
 ## Settings and services
+
+### dr-pack <folder>
+> A DR pack: the backup, the version, the env file and the DR tool, with checksums and a fingerprint.
+On the running installation, asking nothing: the maintenance page on for a few minutes, the fingerprint of every table
+and file, a full backup, the page off; then into <folder> (new or empty, outside work/): backup/<name>/, eaexplorer.env,
+VERSION.txt, fingerprint.json, the dr folder and RESTORE.txt, and PACK.sha256 with every file's checksum, checked. On the
+new machine dr/eax-dr -Pack <folder> -Install <folder> checks the pack, rebuilds EA Explorer and compares every table
+and file with fingerprint.json. The pack holds every password and all the data: keep it safe, away from this machine.
+$ {eax} dr-pack D:\ea-dr-pack-2026-11-16
+
+### drill [info|running|quiet on|off|content|content-check|content-remove <file>|fingerprint <file>|backup|shutdown|restore <name>|compare <a> <b>]
+> The steps dr/eax-drill and dr/eax-dr ask of eax (R5.6-B2): you run those, not this.
+dr/eax-dr builds an environment from a backup (backup folder, install folder, version, env file). dr/eax-drill takes a
+running installation, a new DR folder and a temp folder: test content, a backup, the installation shut down (containers
+removed, data and images kept), a copy built from GitHub with eax-dr under its own Docker name, restored and compared,
+every table and file. Each step here answers one line of JSON; shutdown removes the containers only. Never from the
+web. Asks nothing. work/compose-project, when there, is this installation's own Docker name.
+$ {eax} drill info
 
 ### services
 > Lists the optional services, whether each is on in the config file, and its containers' state.
