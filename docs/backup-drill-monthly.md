@@ -44,7 +44,7 @@ On Windows type `.\eax`; on Linux and macOS `./eax`. Below it is written `eax`.
 ## Part 3: the whole installation rebuilt from a DR pack, and compared
 
 5. Rehearse a full recovery with the automated drill, on this installation (its folder and data are not touched; the
-   DR copy goes into a new folder):
+   DR copy goes into a new folder, built from this installation's own code, as a DR pack carries it: no GitHub):
 
    ```
    .\dr\eax-drill.ps1 -Install <this installation> -Dr <new folder> -Temp <temp folder>
@@ -59,7 +59,8 @@ On Windows type `.\eax`; on Linux and macOS `./eax`. Below it is written `eax`.
    eax dr-pack <folder>
    ```
 
-   Check: it ends with `DR pack ready`. See [Disaster recovery: the DR pack and the DR tool](backup-disaster-recovery.md)
+   Check: it ends with `DR pack ready`, and the pack has `code/`: the code as it runs here, your own changes included,
+   so the rebuild needs no GitHub. See [Disaster recovery: the DR pack and the DR tool](backup-disaster-recovery.md)
    for what the pack holds and how its checksums and fingerprint prove a recovery.
 
 ## Write down

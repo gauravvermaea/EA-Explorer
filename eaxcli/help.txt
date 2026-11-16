@@ -464,19 +464,21 @@ $ {eax} test clean --dry-run
 ## Settings and services
 
 ### dr-pack <folder>
-> A DR pack: the backup, the version, the env file and the DR tool, with checksums and a fingerprint.
+> A DR pack: backup, version, env file, code and the DR tool, with checksums and a fingerprint.
 On the running installation, asking nothing: the maintenance page on for a few minutes, the fingerprint of every table
-and file, a full backup, the page off; then into <folder> (new or empty, outside work/): backup/<name>/, eaexplorer.env,
-VERSION.txt, fingerprint.json, the dr folder and RESTORE.txt, and PACK.sha256 with every file's checksum, checked. On the
-new machine dr/eax-dr -Pack <folder> -Install <folder> checks the pack, rebuilds EA Explorer and compares every table
-and file with fingerprint.json. The pack holds every password and all the data: keep it safe, away from this machine.
+and file, a full backup, the page off; then into <folder> (new or empty, outside the EA Explorer folder): backup/<name>/,
+eaexplorer.env, VERSION.txt, code/ (the code as it runs here, with CODE.sha256), fingerprint.json, the dr folder and
+RESTORE.txt, and PACK.sha256 with every file's checksum, checked. On the new machine dr/eax-dr -Pack <folder> -Install
+<folder> checks the pack, rebuilds EA Explorer from the pack's code (no GitHub) and compares every table and file with
+fingerprint.json. The pack holds every password and all the data: keep it safe, away from this machine.
 $ {eax} dr-pack D:\ea-dr-pack-2026-11-16
 
-### drill [info|running|quiet on|off|content|content-check|content-remove <file>|fingerprint <file>|backup|shutdown|restore <name>|compare <a> <b>]
+### drill [info|running|quiet on|off|content|content-check|content-remove <file>|fingerprint <file>|backup|shutdown|restore <name>|compare <a> <b>|code <folder>]
 > The steps dr/eax-drill and dr/eax-dr ask of eax (R5.6-B2): you run those, not this.
-dr/eax-dr builds an environment from a backup (backup folder, install folder, version, env file). dr/eax-drill takes a
+dr/eax-dr builds an environment from a backup (backup folder, install folder, env file, and the code: a copy, or a
+version from GitHub). code <folder> copies this installation's code, as it runs, with CODE.sha256. dr/eax-drill takes a
 running installation, a new DR folder and a temp folder: test content, a backup, the installation shut down (containers
-removed, data and images kept), a copy built from GitHub with eax-dr under its own Docker name, restored and compared,
+removed, data and images kept), a copy built from its own code with eax-dr under its own Docker name, restored and compared,
 every table and file. Each step here answers one line of JSON; shutdown removes the containers only. Never from the
 web. Asks nothing. work/compose-project, when there, is this installation's own Docker name.
 $ {eax} drill info

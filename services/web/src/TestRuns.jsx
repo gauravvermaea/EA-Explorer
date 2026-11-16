@@ -237,6 +237,34 @@ function Chooser({ data, onStarted }) {
       </div>
       {msg && <p className="small">{msg}</p>}
       <p className="quiet small">From the command line: <code>eax test smoke</code> or <code>eax test full</code> (the same runs; they show here too).</p>
+      {/* the owner, 16 Nov 2026, 22:53: "In the testing page also mention and document to run backup and dr testing manually
+          with the commands; call out it is not tested in this page" */}
+      <section className="card self-test-elsewhere" aria-label="Backups and disaster recovery: not tested here">
+        <h3>Not tested on this page: backups and disaster recovery</h3>
+        <p className="small">Neither the smoke test nor the full test started here tests a full backup and restore or a disaster
+          recovery: those stop EA Explorer, so they are run by hand from the command line, in the EA Explorer folder
+          (<code>.\eax</code> on Windows, <code>./eax</code> on Linux and macOS). Each asks nothing and writes a report.</p>
+        <table className="small">
+          <thead><tr><th>Test</th><th>Command</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr><td>The backup and restore test</td><td><code>eax test backup-restore</code></td>
+              <td>The maintenance page on; two backups with test content between them; each restored and every table and file
+                compared; the installation left as it was. About 30 minutes. Report in <code>work/tests/backup-restore-&lt;time&gt;/</code>.</td></tr>
+            <tr><td>The restore drill (DR rehearsal)</td><td><code>.\dr\eax-drill.ps1 -Install &lt;this folder&gt; -Dr &lt;new folder&gt; -Temp &lt;folder&gt;</code>
+              <br /><code>./dr/eax-drill.sh --install &lt;this folder&gt; --dr &lt;new folder&gt; --temp &lt;folder&gt;</code></td>
+              <td>Backs this installation up, shuts it down, builds a copy in a new folder from its own code with eax-dr, restores
+                it and compares every table and file. Report in <code>&lt;temp&gt;/drill-&lt;time&gt;/</code>; then <code>eax down</code> in
+                the DR folder and <code>eax up</code> here.</td></tr>
+            <tr><td>A DR pack, rebuilt on another machine</td><td><code>eax dr-pack &lt;folder&gt;</code>, then on the other machine
+              <br /><code>.\eax-dr.ps1 -Pack .. -Install &lt;folder&gt;</code></td>
+              <td>The real recovery: the pack carries the backup, the version, the env file and the code; eax-dr rebuilds and
+                compares with the pack's fingerprint.</td></tr>
+          </tbody>
+        </table>
+        <p className="quiet small">How and when: <a href="#/documentation/backup-disaster-recovery">Disaster recovery: the DR pack and
+          the DR tool</a> and <a href="#/documentation/backup-drill-monthly">Restore drill: once a month</a> (each with a PDF).
+          <code>eax test full</code> from the command line runs the backup and restore test at its end.</p>
+      </section>
       {ask && (
         <Modal title={`Start the ${ask === "smoke" ? "smoke test" : "full test"} now?`} onClose={() => setAsk("")}
           actions={<><button onClick={() => setAsk("")}>Cancel</button>

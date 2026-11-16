@@ -2,7 +2,8 @@
 
 When the machine EA Explorer runs on is lost, this is how you bring it back on another one from a backup, by hand, step
 by step. The DR tool does all of it in one command from a DR pack (`eax dr-pack` makes one; `eax-dr -Pack` rebuilds
-from it and compares every table and file with the pack's fingerprint): see
+from it, from the pack's own code, so no GitHub is needed, and compares every table and file with the pack's
+fingerprint): see
 [Disaster recovery: the DR pack and the DR tool](backup-disaster-recovery.md). Do it once
 as a drill before you need it, so you know it works and how long it takes. Every step is a command; after each one
 there is what to check before you go on.

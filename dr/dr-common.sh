@@ -61,6 +61,19 @@ backup_whole() {
   echo "$n files, each matching its checksum"
 }
 
+# code_whole folder version: a copy of EA Explorer's code (eax drill code, a pack's code/): every file CODE.sha256 lists,
+# as it says, and services/api/version.toml of that version; prints how many files
+code_whole() {
+  local f=$1 have n
+  [ -f "$f/CODE.sha256" ] || { echo "$f has no CODE.sha256: not a copy of EA Explorer's code (eax drill code makes one)"; return 1; }
+  have=$(sed -n 's/^version *= *"\([^"]*\)".*/\1/p' "$f/services/api/version.toml" 2>/dev/null)
+  [ -n "$have" ] || { echo "$f has no services/api/version.toml: not EA Explorer's code"; return 1; }
+  [ "$have" = "$2" ] || { echo "the code is of version $have, not $2"; return 1; }
+  n=$(grep -c . "$f/CODE.sha256")
+  (cd "$f" && sha256sum --quiet -c CODE.sha256) >/dev/null 2>&1 || { echo "a file of the code in $f is missing or does not match its checksum"; return 1; }
+  echo "$n files, each matching its checksum"
+}
+
 # release_published repo version: the version is a published (not draft) release on the repository's GitHub Releases
 release_published() {
   [[ "$1" =~ github\.com[/:]([^/]+)/([^/.]+)(\.git)?/?$ ]] || { echo "$1 is not a github.com repository"; return 1; }

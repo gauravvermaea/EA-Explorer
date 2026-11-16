@@ -139,7 +139,7 @@ def test_the_drill_uses_eax_dr_from_its_own_folder_and_keeps_the_dr_copy_apart()
     sh = (DR / "eax-drill.sh").read_text()
     assert 'Join-Path $Here "eax-dr.ps1"' in ps and '"$HERE/eax-dr.sh"' in sh                # eax-dr beside it
     assert "-Project $DrProject" in ps and '--project "$DR_PROJECT"' in sh                     # its own volumes (21:52)
-    for step in ("running", "content", "backup", "shutdown", "fingerprint", "compare", "content-check", "content-remove"):
+    for step in ("running", "content", "backup", "shutdown", "fingerprint", "compare", "content-check", "content-remove", "code"):
         assert f'"drill", "{step}"' in ps and f"eax drill {step}" in sh, step
     for t in (ps, sh):
         assert "Remove-Item -LiteralPath $Install" not in t and 'rm -rf "$INSTALL"' not in t   # the installation is never deleted
@@ -150,6 +150,12 @@ def test_the_drill_uses_eax_dr_from_its_own_folder_and_keeps_the_dr_copy_apart()
         assert "Read-Host" not in t and "read -r -p" not in t                                 # nothing is asked
         assert "compose-project" in t
     assert "[Alias(\"Env\")][string]$EnvFile" in (DR / "eax-dr.ps1").read_text()
+    # the code goes with the backup, as in a DR pack: the drill never needs GitHub (22:44)
+    assert '-Code (Join-Path $Run "code")' in ps and '--code "$RUN/code"' in sh
+    assert "Get-Release" not in ps and "release_published" not in sh
+    dps = (DR / "eax-dr.ps1").read_text()
+    assert "Test-CodeWhole $Code $Version" in dps and '(Join-Path $Pack "code")' in dps and "[switch]$GitHub" in dps
+    assert "function Test-CodeWhole" in (DR / "dr-common.ps1").read_text() and "code_whole()" in (DR / "dr-common.sh").read_text()
 
 
 def test_an_installation_can_have_its_own_docker_name_in_every_form():
@@ -182,3 +188,115 @@ def test_eax_drill_steps_answer_in_json_and_never_from_the_web(tmp_path, capsys,
     assert '"allow", "drill", "dr-pack", "sign"' in (REPO / "eax.ps1").read_text() and "allow|drill|dr-pack|sign" in (REPO / "eax.sh").read_text()
     assert 'elif command == "drill":' in (REPO / "eaxcli/main.py").read_text()
     assert "### drill" in (REPO / "eaxcli/help.txt").read_text()
+
+
+# ---------------------------------------------------------------- the code in the pack: no GitHub (owner, 16 Nov 2026, 22:44)
+FAKE_EAX = r'''#!/bin/sh
+# an installation stood in: every command written down (in work/, which is never code), each answered
+here=$(cd "$(dirname "$0")" && pwd)
+mkdir -p "$here/work"; echo "$*" >> "$here/work/calls.txt"
+case "$*" in
+  'drill info') printf '{"version": "5.6.0", "repo": "https://github.com/a/b", "backups": "%s/bk", "config": "%s/work/eaexplorer.env"}\n' "$here" "$here";;
+  'drill running') echo '{"running": true}';;
+  'drill content '*) echo '{"made": 3}';;
+  'drill backup') echo '{"name": "20261116T010000Z-nightly"}';;
+  'drill code '*) python3 -c 'import json, sys; sys.path.insert(0, sys.argv[1]); from pathlib import Path; from eaxcli.drill import copy_code
+print(json.dumps(copy_code(Path(sys.argv[2]), Path(sys.argv[3]))))' "@REPO@" "$3" "$here";;
+  'drill compare '*) echo '{"tables": 5, "files": 2}';;
+  *) echo '{}';;
+esac
+'''
+
+
+def _code_source(tmp_path: Path, version="5.6.0") -> Path:
+    """EA Explorer's code stood in: version.toml, a customisation, and an eax.sh that answers."""
+    src = tmp_path / "running"
+    (src / "services" / "api" / "eax").mkdir(parents=True)
+    (src / "services" / "api" / "version.toml").write_text(f'version = "{version}"\n')
+    (src / "services" / "api" / "eax" / "our_connector.py").write_text("# set up on this machine only\n")
+    (src / "eax.sh").write_text(FAKE_EAX.replace("@REPO@", str(REPO)))
+    return src
+
+
+def _offline(tmp_path: Path) -> dict:
+    """Docker answers; git and curl only write down that they were called, and fail (no GitHub here)."""
+    b = tmp_path / "bin"
+    b.mkdir(exist_ok=True)
+    for name, body in (("docker", "exit 0"), ("git", f'echo git >> "{tmp_path}/net.txt"; exit 1'),
+                       ("curl", f'echo curl >> "{tmp_path}/net.txt"; exit 1')):
+        (b / name).write_text(f"#!/bin/sh\n{body}\n")
+        (b / name).chmod(0o755)
+    return {**os.environ, "TMPDIR": str(tmp_path), "PATH": f"{b}:{os.environ['PATH']}",
+            "EAX_GITHUB_API": "http://127.0.0.1:9/none"}
+
+
+def _pack(tmp_path: Path, version="5.6.0") -> Path:
+    from eaxcli import drpack as P
+    pack = tmp_path / "pack"
+    b = _backup(tmp_path)
+    shutil.copytree(b, pack / "backup" / b.name)
+    (pack / "eaexplorer.env").write_text("EAX_DEPLOYMENT=laptop\n")
+    (pack / "VERSION.txt").write_text("5.6.0\n")
+    (pack / "fingerprint.json").write_text("{}")
+    D.copy_code(pack / "code", _code_source(tmp_path, version))
+    P.write_sums(pack)
+    return pack
+
+
+@needs_bash
+def test_eax_dr_builds_from_the_packs_code_with_no_github(tmp_path):
+    pack = _pack(tmp_path)
+    new = tmp_path / "new"
+    r = subprocess.run(["bash", str(DR / "eax-dr.sh"), "--pack", str(pack), "--install", str(new)],
+                       env=_offline(tmp_path), capture_output=True, text=True, timeout=120)
+    assert r.returncode == 0, r.stdout[-3000:]
+    assert "GitHub not needed" in r.stdout and "(no GitHub)" in r.stdout and "DONE" in r.stdout
+    assert not (tmp_path / "net.txt").exists()                                        # neither git nor curl
+    assert (new / "services" / "api" / "eax" / "our_connector.py").exists()            # the customisation came too
+    assert not (new / "CODE.sha256").exists() and os.access(new / "eax.sh", os.X_OK)
+    calls = (new / "work" / "calls.txt").read_text().splitlines()
+    assert calls[:3] == ["up --wait-all", "drill quiet on", "drill restore 20261116T010000Z-nightly"]
+    assert any(c.startswith("drill compare ") for c in calls) and calls[-2:] == ["drill quiet off", "test smoke"]
+    assert (new / "work" / "backups" / "infrastructure" / "20261116T010000Z-nightly" / "manifest.json").exists()
+
+
+@needs_bash
+def test_eax_dr_refuses_damaged_code_or_code_of_another_version(tmp_path):
+    from eaxcli import drpack as P
+    pack = _pack(tmp_path, version="5.5.9")
+    r = subprocess.run(["bash", str(DR / "eax-dr.sh"), "--pack", str(pack), "--install", str(tmp_path / "new")],
+                       env=_offline(tmp_path), capture_output=True, text=True, timeout=60)
+    assert r.returncode == 1 and "the code is of version 5.5.9, not 5.6.0" in r.stdout and not (tmp_path / "new").exists()
+    shutil.rmtree(tmp_path / "pack")
+    shutil.rmtree(tmp_path / "running")
+    shutil.rmtree(tmp_path / "safe")
+    pack = _pack(tmp_path)
+    (pack / "code" / "services" / "api" / "eax" / "our_connector.py").write_text("changed")
+    P.write_sums(pack)                                     # the pack's own checksums agree; the code's do not
+    r = subprocess.run(["bash", str(DR / "eax-dr.sh"), "--pack", str(pack), "--install", str(tmp_path / "new")],
+                       env=_offline(tmp_path), capture_output=True, text=True, timeout=60)
+    assert r.returncode == 1 and "does not match its checksum" in r.stdout and not (tmp_path / "new").exists()
+    assert not (tmp_path / "net.txt").exists()
+
+
+@needs_bash
+def test_eax_drill_runs_end_to_end_from_the_installations_own_code_with_no_github(tmp_path):
+    inst = _code_source(tmp_path)
+    (inst / "work").mkdir()
+    (inst / "work" / "eaexplorer.env").write_text("EAX_DEPLOYMENT=laptop\n")
+    shutil.copytree(_backup(tmp_path), inst / "bk" / "20261116T010000Z-nightly")
+    dr, temp = tmp_path / "dr1", tmp_path / "temp"
+    r = subprocess.run(["bash", str(DR / "eax-drill.sh"), "--install", str(inst), "--dr", str(dr), "--temp", str(temp)],
+                       env=_offline(tmp_path), capture_output=True, text=True, timeout=180)
+    assert r.returncode == 0, r.stdout[-3000:]
+    assert "PASSED" in r.stdout and "from the copied code (no GitHub)" in r.stdout
+    assert not (tmp_path / "net.txt").exists()
+    mine = (inst / "work" / "calls.txt").read_text().splitlines()
+    assert mine.index("drill shutdown") < mine.index(next(c for c in mine if c.startswith("drill code ")))
+    assert (dr / "services" / "api" / "eax" / "our_connector.py").exists()             # the DR copy has its code
+    assert (dr / "work" / "compose-project").read_text().strip() == "eaexplorer-dr"
+    drc = (dr / "work" / "calls.txt").read_text().splitlines()
+    assert "drill restore 20261116T010000Z-nightly" in drc and "test smoke" in drc
+    run = next(temp.glob("drill-*"))
+    assert not (run / "code").exists() and not (run / "backup").exists()               # copies removed after a pass
+    assert "Passed" in (run / "report.md").read_text()

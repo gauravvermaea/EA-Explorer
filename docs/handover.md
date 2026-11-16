@@ -5,7 +5,7 @@ The state of the work, for whoever picks it up next: a person or another AI with
 Read [AGENTS.md](../AGENTS.md) first, run `eax dev check`, then read this.
 
 Last updated: 16 Nov 2026, Release 5.6 built as 5.6.0, waiting for the owner's clean rebuild, full test and acceptance.
-Next: Release 5.7 (agreed, built only after 5.6 is accepted).
+Next: Release 5.7 (agreed, built only after 5.6 is accepted; its bug R5.7-V1, the views' missing icons, goes first).
 
 ## How the owner works
 
@@ -32,7 +32,10 @@ out (D711: `eax test backup-restore`, synchronous from eax itself: services/ops/
 eax/testing/backup_restore.py and the backup container's fingerprint.sh; it replaced restore_check.py), the two restore
 drills as documents with a PDF (D712, eax/doc_pdf.py), R5.6-Q2 job priorities (D709: eax/job_priorities.py, the queue
 keeper, migration 0098), R5.6-U1 and U2 versions only from the published GitHub Releases of EA-Explorer (D710: the
-Latest channel gone; drop-downs on Updates and Deploy). Migrations 0098 and 0099. Waiting for the owner's acceptance.
+Latest channel gone; drop-downs on Updates and Deploy). Then R5.6-B2 (D714 to D718): eax-dr, eax-drill and `eax dr-pack`
+in the dr folder; the DR pack carries the code as it runs (no GitHub needed), a fingerprint and checksums; the DR
+document (when a backup, when DR) with a PDF; the Self-test page lists the backup and DR tests it does not run.
+Migrations 0098 and 0099. Waiting for the owner's acceptance: the backup and restore test, then the DR drill.
 
 Release 5.5 released as 5.5.0 (owner, 16 Nov 2026: "Build this release"; D706): R5.5 enterprise discovery as the owner
 designed it (D705: EA Explorer the source and sink, the people's own AI runs it through eight MCP tools; discovery

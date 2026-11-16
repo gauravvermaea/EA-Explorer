@@ -14,6 +14,8 @@ Two choices, from the screen or the command line, nothing else to pick:
 | **Delete test results** | Self-test › History › a run's Delete, or Delete all test results... (and Keep test results N days) | `eax test delete 12`, `eax test delete all`, `eax test delete --older-than 30` | each run's test data, results and screenshots, report, log and videos, for good; old runs also go by themselves after the days set (default 30) (D610) |
 | **The backup checks** | Self-test › Detailed › Backups (the last part of Full) | `eax test backup` | an infrastructure and an application backup, each restored into a scratch copy and counted, then removed; nothing live is touched (D608). Until they pass, the Backups page shows the commands instead of its buttons |
 | **The backup and restore test** | the command line only | `eax test backup-restore` (or `eax test restore`; the end of `eax test full` from the command line; it asks nothing) | synchronous, one command after another from eax itself: a backup B1; a project and models with content of every kind; a backup B2; B1 restored (all of it gone), B1 again (the same), B2 restored (all of it back), every database's rows and every file's checksum compared; then sign-in, search, new work, the jobs and the documents; random backup names, all removed when it passes; report in work/tests/backup-restore-<time>/ (R5.6-B1, D711; replaced R3.8) |
+| **The restore drill (DR rehearsal)** | the command line only (not tested on the Self-test page) | `.\dr\eax-drill.ps1 -Install <this folder> -Dr <new folder> -Temp <folder>` (`./dr/eax-drill.sh --install ... --dr ... --temp ...`) | the installation backed up and shut down; a copy built in a new folder from its own code (no GitHub) with eax-dr under its own Docker name, restored, every table and file compared, the smoke test; report in `<temp>/drill-<time>/`; then `eax down` in the DR folder and `eax up` in the installation (R5.6-B2) |
+| **A DR pack and a rebuild** | the command line only | `eax dr-pack <folder>`, then on the other machine `.\eax-dr.ps1 -Pack .. -Install <folder>` | the real recovery: the pack holds the backup, the version, the env file and the code; eax-dr rebuilds and compares with the pack's fingerprint (docs/backup-disaster-recovery.md) |
 | **The API harness** | Self-test › API harness | `eax test api GET /api/v1/models --as architect` | one call to any endpoint as yourself or a test role (reads anywhere, writes into test data only), its answer and a curl line; saved cases run by every self-test (R3.16, D662) |
 | **Negative tests** | part of the Full test (API) | `eax test full` | every write sent bad JSON and a list instead of an object, every read an id that is not there, long names inside the test data: refused, never a server error (R3.9, D663) |
 | **Code coverage** | Self-test › a run: the gauge, areas, trend and negative tests | the line at the end of `eax test` | the API's lines run against the goal of 90% (EAX_COVERAGE_GOAL); a warning under it, a failure if an area falls by more than 2 points (R3.9, R3.10, D664) |
@@ -25,6 +27,12 @@ Each run ends with a **functional health** (Healthy, Degraded or Not healthy, fr
 of its own; makes the models, project and test accounts it needs (`self_test_<id>_<n>`); tests only inside them; writes
 the report (History, and `work/tests/<run>/report.html`); and removes the container. Nothing else changes. Runs started
 on the screen and from the command line are the same and show in the same History.
+
+**Not tested on the Self-test page: backups and disaster recovery.** The smoke and full tests started on the screen
+never take a full backup, restore one or rebuild EA Explorer: those stop EA Explorer, so they are run by hand from the
+command line, each asking nothing: `eax test backup-restore`, `dr/eax-drill` and `eax dr-pack` with `dr/eax-dr` (the
+rows above). The Self-test page says so and lists the commands. When to use a backup and when DR:
+docs/backup-disaster-recovery.md.
 
 What only the command line does: `eax test --reset-survival --confirm <name>` (a real reset that deletes all data, to
 check settings survive it) and the older detailed options (`--suite`, `--role`, `--area`, `--journey`, `--pages-only`),

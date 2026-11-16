@@ -60,6 +60,25 @@ function Test-BackupWhole([string]$Folder) {
     return $n
 }
 
+# a copy of EA Explorer's code (eax drill code, a pack's code\): every file CODE.sha256 lists, as it says, and
+# services\api\version.toml of that version; returns how many files
+function Test-CodeWhole([string]$Folder, [string]$Ver) {
+    $sums = Join-Path $Folder "CODE.sha256"
+    if (-not (Test-Path -LiteralPath $sums)) { throw "$Folder has no CODE.sha256: not a copy of EA Explorer's code (eax drill code makes one)" }
+    $toml = Join-Path $Folder "services\api\version.toml"
+    if (-not (Test-Path -LiteralPath $toml)) { throw "$Folder has no services\api\version.toml: not EA Explorer's code" }
+    $have = (Select-String -Path $toml -Pattern '^version\s*=\s*"([^"]+)"').Matches[0].Groups[1].Value
+    if ($have -ne $Ver) { throw "the code is of version $have, not $Ver" }
+    $n = 0
+    foreach ($line in Get-Content $sums) {
+        if ($line -notmatch '^([0-9a-f]{64})  (.+)$') { continue }
+        $p = Join-Path $Folder ($Matches[2] -replace '/', '\')
+        if (-not (Test-Path -LiteralPath $p) -or (Sha $p) -ne $Matches[1]) { throw "$($Matches[2]) in the code is missing or does not match its checksum" }
+        $n++
+    }
+    $n
+}
+
 function Get-Release([string]$RepoUrl, [string]$Ver) {
     if ($RepoUrl -notmatch 'github\.com[/:]([^/]+)/([^/.]+?)(\.git)?/?$') { throw "$RepoUrl is not a github.com repository" }
     $o, $r = $Matches[1], $Matches[2]

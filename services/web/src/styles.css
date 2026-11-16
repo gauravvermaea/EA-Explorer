@@ -2514,6 +2514,10 @@ label.block input, label.block textarea { display: block; width: 100%; margin-to
 .top-find kbd { margin-left: auto; border: 1px solid var(--line); border-radius: 4px; padding: 0 6px; font-size: 12px; }
 /* the Self-test's two choices (R2.0.1, D592) */
 .self-test-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 10px 0; }
+.self-test-elsewhere { margin: 16px 0; }
+.self-test-elsewhere table { width: 100%; border-collapse: collapse; }
+.self-test-elsewhere th, .self-test-elsewhere td { text-align: left; vertical-align: top; padding: 6px 8px; border-top: 1px solid var(--line, #ddd); }
+.self-test-elsewhere code { overflow-wrap: anywhere; }
 .self-test-choice { padding: 14px 18px; display: flex; flex-direction: column; gap: 6px; }
 .self-test-choice h3 { margin: 0; }
 .self-test-choice button { align-self: flex-start; margin-top: 4px; }
