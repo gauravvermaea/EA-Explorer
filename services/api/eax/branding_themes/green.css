@@ -1,0 +1,11 @@
+/* EA Explorer: Green (R5.7-B1): the standard look with green as its colour. A theme may hold only looks:
+   colours, fonts, spacing, corners. */
+:root {
+  --ink: #17261c; --quiet: #5b6775; --line: #d2e3d7; --bg: #f4f9f5; --card: #ffffff;
+  --accent: #1e7b3c; --accent-soft: #e3f3e8; --ok: #1e7b3c; --bad: #b3261e;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+.topbar { border-bottom: 3px solid #1e7b3c; }
+.topbar .brand { color: #1e7b3c; }
+button.primary { background: #1e7b3c; border-color: #1e7b3c; }
+.tab.on { color: #1e7b3c; }

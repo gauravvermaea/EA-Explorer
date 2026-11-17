@@ -1,0 +1,11 @@
+/* EA Explorer: Teal (R5.7-B1): the standard look with teal as its colour. A theme may hold only looks:
+   colours, fonts, spacing, corners. */
+:root {
+  --ink: #132629; --quiet: #5b6775; --line: #cfe2e6; --bg: #f3f9fa; --card: #ffffff;
+  --accent: #0b7285; --accent-soft: #e0f2f5; --ok: #1e7b3c; --bad: #b3261e;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+.topbar { border-bottom: 3px solid #0b7285; }
+.topbar .brand { color: #0b7285; }
+button.primary { background: #0b7285; border-color: #0b7285; }
+.tab.on { color: #0b7285; }

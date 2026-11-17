@@ -146,6 +146,8 @@ def create_app(testing: bool = False) -> Flask:
     api.register_blueprint(command_centre_blp)
     from .api.banner import blp as banner_blp
     api.register_blueprint(banner_blp)
+    from .api.branding import blp as branding_blp  # logo and branding of the screens (R5.7-B1)
+    api.register_blueprint(branding_blp)
     # the documents of this version, for everyone (D550)
     from .api.documentation import blp as documentation_blp
     api.register_blueprint(documentation_blp)

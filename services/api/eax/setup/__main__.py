@@ -130,10 +130,12 @@ def render_realm(values: dict[str, str]) -> Path:
     if values.get("EAX_DEPLOYMENT", "laptop") == "laptop" or server_tests:
         password = values.get("EAX_TEST_USER_PASSWORD") or values.get("EAX_FIRST_ADMIN_PASSWORD", "")
         for username, role, _models in TEST_USERS:
-            first, *rest = username.split("_")[1:]
+            # user_lead_architect: Test, Lead Architect; demo-super-admin: Demo, Super Admin (D734)
+            parts = [x for x in re.split(r"[_-]", username) if x]
+            given = "Test" if parts[0] == "user" else parts[0].title()
             realm["users"].append({
                 "username": username, "email": f"{username}@example.org", "emailVerified": True, "enabled": True,
-                "firstName": "Test", "lastName": " ".join([first, *rest]).title(),
+                "firstName": given, "lastName": " ".join(parts[1:]).title(),
                 "credentials": [{"type": "password", "value": password, "temporary": False}],
                 "realmRoles": sorted({role, "eax-user", "offline_access", "uma_authorization"}),
             })

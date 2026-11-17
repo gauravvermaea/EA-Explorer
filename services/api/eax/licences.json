@@ -104,6 +104,12 @@
       "kind": "Library in our code"
     },
     {
+      "product": "Pillow",
+      "image": "",
+      "licence": "MIT-CMU (HPND)",
+      "kind": "Library in our code"
+    },
+    {
       "product": "cryptography",
       "image": "",
       "licence": "Apache-2.0/BSD",

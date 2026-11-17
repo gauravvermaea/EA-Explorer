@@ -74,6 +74,8 @@ def test_realm_renders_to_valid_json(tmp_path, monkeypatch):
     web = next(c for c in realm["clients"] if c["clientId"] == "eax-web")
     assert "https://localhost/*" in web["redirectUris"]
     assert realm["users"][0]["credentials"][0]["value"] == 'pa"ss\\word'
+    demo = next(u for u in realm["users"] if u["username"] == "demo-super-admin")      # D734: a name without user_
+    assert (demo["firstName"], demo["lastName"]) == ("Demo", "Super Admin") and "eax-super-admin" in demo["realmRoles"]
     assert realm["users"][0]["credentials"][0]["temporary"] is False  # laptop template
 
 

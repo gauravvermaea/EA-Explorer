@@ -254,6 +254,9 @@ def start(state: dict) -> dict:
             _err(out) or _err(out2) or _why(out2))
         s, out = a.tool("change_business_model_canvas", {"project": proj, "action": "new", "name": f"self_test_{sid} canvas"})
         _ok(made, "a Business Model Canvas", s == 200 and not _err(out), _why(out))
+        _journey(a, made, extra, proj, sid, ids.get("entity", ""))
+        s, out = a.tool("deck_outline", {"project": proj, "audience": "the backup and restore test"})
+        _ok(made, "the deck tools read the project (R5.7-P1)", s == 200 and not _err(out) and bool((out or {}).get("slides")), _why(out))
         s, out = a.tool("add_document_class", {"project": proj, "phase": "A", "name": f"self_test_{sid} documents"})
         item = (out or {}).get("id") or (out or {}).get("item") if isinstance(out, dict) else None
         if _ok(made, "a document class", s == 200 and bool(item), _why(out)):
@@ -276,10 +279,61 @@ def start(state: dict) -> dict:
                                                    "expires_on": str(date.today() + timedelta(days=30))})
     _ok(made, "a dispensation", s == 201, _why(out))
     _discovery(a, made, m1, sid)
+    _branding(a, made, extra, sid)
     out = {"run_id": run_id, "sid": sid, "ids": {**ids, **extra}}
     _read_back(made, out, bool(proj))
     return {"run_id": run_id, "sid": sid, "token": tokens["super-admin"], "architect": tokens.get("architect", ""),
             "ids": {**ids, **extra}, "made": made, "calls": a.calls}
+
+
+THEME_CSS = ":root { --accent: #0b6e4f; --accent-soft: #e3f2ed; }\n.topbar { border-bottom: 3px solid #0b6e4f; }\n"
+
+
+def _journey(a: Api, made: list, extra: dict, proj: str, sid: str, entity: str) -> None:
+    """A customer journey (R5.7-J1): from the starter, a step with its emotion, a persona, a part of a kind added by
+    people, a link to a model element, a target-state copy and a comparison."""
+    s, out = a.tool("change_customer_journey", {"project": proj, "action": "new", "name": f"self_test_{sid} journey",
+                                                "kind": "current", "template": "starter", "persona": "a test customer"})
+    jid = (out or {}).get("id") if isinstance(out, dict) else None
+    if not _ok(made, "a customer journey from the starter", s == 200 and bool(jid), _why(out)):
+        return
+    extra["journey"] = jid
+    s, j = a.tool("customer_journey", {"project": proj, "journey": jid})
+    stage = ((j or {}).get("stages") or [{}])[0].get("id") if isinstance(j, dict) else None
+    s1, o1 = a.tool("change_customer_journey", {"project": proj, "action": "add", "journey": jid, "stage": stage or "",
+                                                "part": "step", "text": "Self-test step", "score": -1})
+    s2, o2 = a.tool("change_customer_journey", {"project": proj, "action": "add", "journey": jid, "part": "persona",
+                                                "text": "Self-test persona"})
+    s3, o3 = a.tool("change_customer_journey", {"project": proj, "action": "add", "journey": jid, "stage": stage or "",
+                                                "part": "pain_point", "text": "Self-test pain point"})
+    _ok(made, "the journey's step with its emotion, a persona and a pain point", all(x == 200 for x in (s1, s2, s3))
+        and not (_err(o1) or _err(o2) or _err(o3)), _err(o1) or _err(o2) or _err(o3))
+    s, k = a.rest("post", f"/api/v1/projects/{proj}/journey-kinds", {"label": f"Self-test kind {sid}", "fields": ["Owner"]})
+    code = (k or {}).get("code") if isinstance(k, dict) else None
+    s2, o2 = a.tool("change_customer_journey", {"project": proj, "action": "add", "journey": jid, "stage": stage or "",
+                                                "part": code or "", "text": "Self-test own part", "fields": {"Owner": "Self-test"}})
+    _ok(made, "a part of a kind added by people, with a field", s == 200 and bool(code) and s2 == 200 and not _err(o2), _why(k) or _why(o2))
+    if entity:
+        s, out = a.tool("change_customer_journey", {"project": proj, "action": "link", "journey": jid, "stage": stage or "", "entity": entity})
+        _ok(made, "the journey's stage linked to a model element", s == 200 and not _err(out), _why(out))
+    s, out = a.tool("change_customer_journey", {"project": proj, "action": "copy", "journey": jid, "name": f"self_test_{sid} journey target",
+                                                "kind": "target"})
+    target = (out or {}).get("id") if isinstance(out, dict) else None
+    if _ok(made, "the journey's target-state copy", s == 200 and bool(target), _why(out)):
+        extra["journey_target"] = target
+        s, out = a.tool("customer_journey", {"project": proj, "journey": jid, "compare_with": target})
+        _ok(made, "the journey compared with its target", s == 200 and isinstance(out, dict) and "counts" in out, _why(out))
+
+
+def _branding(a: Api, made: list, extra: dict, sid: str) -> None:
+    """The branding (R5.7-B1): an uploaded theme (CSS) and the test account's own theme. The organisation's logo and
+    theme are left as they are: the test never changes what everyone sees."""
+    s, out = a.rest("post", "/api/v1/admin/branding/themes", {"name": f"self_test_{sid} theme", "css": THEME_CSS})
+    slug = (out or {}).get("slug") if isinstance(out, dict) else None
+    if _ok(made, "a theme uploaded as CSS", s == 200 and bool(slug), _why(out)):
+        extra["theme"] = slug
+        s, out = a.rest("put", "/api/v1/me/settings/theme", {"value": slug})
+        _ok(made, "the test account's own theme", s == 200, _why(out))
 
 
 def _upload_waiting(a: Api, path: str, name: str, content: bytes, seconds: int = 300) -> tuple[int, Any]:
@@ -294,9 +348,10 @@ def _upload_waiting(a: Api, path: str, name: str, content: bytes, seconds: int =
 
 # what each kind of content is called in the snapshot, and what the report calls it
 READ_BACK = {"tags": "the tags", "kpis": "the KPI", "views": "the custom view", "accounts": "the test's accounts",
-             "discovery": "the discovery project", "found_in": "Found in", "gov_records": "the ADR and the dispensation"}
+             "discovery": "the discovery project", "found_in": "Found in", "gov_records": "the ADR and the dispensation",
+             "branding_themes": "the uploaded theme"}
 READ_BACK_PROJECT = {"documents": "the document", "key_questions": "the key question", "stakeholders": "the stakeholder",
-                     "canvases": "the Business Model Canvas"}
+                     "canvases": "the Business Model Canvas", "journeys": "the customer journey"}
 
 
 def _read_back(made: list, state: dict, project: bool) -> None:
@@ -357,6 +412,7 @@ def snapshot(state: dict) -> dict:
         "discovery": ("SELECT p.name, (SELECT count(*) FROM core.discovery_resources r WHERE r.project_id = p.id), "
                       "(SELECT count(*) FROM core.discovery_runs r WHERE r.project_id = p.id) FROM core.discovery_projects p "
                       "WHERE p.name LIKE :like ORDER BY 1"),
+        "branding_themes": "SELECT slug, name, md5(css) FROM core.branding_themes WHERE name LIKE :like ORDER BY 1",
         "found_in": ("SELECT f.item, f.place FROM core.discovery_found_in f JOIN core.discovery_runs r ON r.id = f.run_id "
                      "JOIN core.discovery_projects p ON p.id = r.project_id WHERE p.name LIKE :like ORDER BY 1, 2"),
     }
@@ -375,6 +431,11 @@ def snapshot(state: dict) -> dict:
                          "WHERE p.name LIKE :like ORDER BY 1"),
         "canvases": ("SELECT c.name, c.kind FROM proj.canvases c JOIN proj.projects p ON p.id = c.project_id "
                      "WHERE p.name LIKE :like ORDER BY 1"),
+        # the customer journeys (R5.7-J1): every stage, part, emotion, field and link, exactly
+        "journeys": ("SELECT j.name, j.kind, j.status, s.name, s.sort_order, i.part, i.text, i.score, i.fields::text, l.name "
+                     "FROM proj.journeys j JOIN proj.projects p ON p.id = j.project_id "
+                     "LEFT JOIN proj.journey_stages s ON s.journey_id = j.id LEFT JOIN proj.journey_items i ON i.stage_id = s.id "
+                     "LEFT JOIN proj.journey_links l ON l.stage_id = s.id WHERE p.name LIKE :like ORDER BY 1, 5, 6, 7, 10"),
     }
     try:
         with pj.connections() as pc:
@@ -464,6 +525,14 @@ def after(state: dict) -> dict:
         rec("S5", "a document uploaded", s in (200, 201), f"{s} {_why(d)}")
     else:
         rec("S7", "the document's file downloads with its checksum", None, "no document was made")
+    if ids.get("journey") and ids.get("project"):
+        # the deck tools read the restored project, and its journey compares with its target (R5.7-P1, R5.7-J1)
+        s, out = a.tool("deck_sources", {"project": ids["project"], "parts": ["project", "journeys"]})
+        names = [j.get("name") for j in (out or {}).get("journeys") or []] if isinstance(out, dict) else []
+        rec("S4", "the deck tools read the restored project and its journeys", s == 200 and f"self_test_{sid} journey" in names, _why(out))
+        if ids.get("journey_target"):
+            s, out = a.tool("customer_journey", {"project": ids["project"], "journey": ids["journey"], "compare_with": ids["journey_target"]})
+            rec("S4", "the restored journey compares with its target", s == 200 and isinstance(out, dict) and "counts" in out, _why(out))
     # S6: the jobs after a restore
     rec(*_jobs())
     return {"checks": checks, "calls": a.calls}
@@ -512,6 +581,11 @@ def finish(state: dict) -> dict:
     if state.get("ids", {}).get("view_code") and state.get("token"):
         s, _ = Api(state["token"]).rest("delete", f"/api/v1/views/{state['ids']['view_code']}")
         removed["view"] = s
+    if state.get("ids", {}).get("theme") and state.get("token"):
+        api = Api(state["token"])
+        api.rest("delete", "/api/v1/me/settings/theme")
+        s, _ = api.rest("delete", f"/api/v1/admin/branding/themes/{state['ids']['theme']}")
+        removed["theme"] = s
     if state.get("keep"):
         return {"removed": removed, "kept": True}
     try:

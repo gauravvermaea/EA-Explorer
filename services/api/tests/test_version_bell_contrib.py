@@ -34,7 +34,8 @@ def test_every_form_of_eax_sets_the_build_and_status_shows_it():
 def test_the_top_bar_shows_the_version_and_the_bell_sits_with_the_person():
     app = (REPO / "services/web/src/App.jsx").read_text()
     assert "<VersionTag version={version} build={build} />" in app
-    left = app.index('className="brand"')
+    left = app.index("<BrandMark />")               # the mark (logo and name, R5.7-B1) on the left
+    assert 'className={`brand' in (REPO / "services/web/src/branding.jsx").read_text()
     user = app.index('<div className="user">')
     bell = app.index("<Bell route={route} />")
     assert left < user < bell                        # R2.34: the bell is in the person's own corner

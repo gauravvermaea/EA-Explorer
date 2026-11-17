@@ -1,8 +1,10 @@
 """The outside test bench (testbench/, D579 to D582): its arguments and guard, its reports, the load test's thresholds
 and k6 script, the upgrade check with fakes, the reset-survival flow with fakes, its test data, and that it runs every
 check the inside self-test runs (the same code, the same suites, the same filters)."""
+
 import ast
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -301,7 +303,7 @@ def test_install_stops_when_deploy_fails(tmp_path):
 
 
 def test_migration_head_is_the_newest():
-    assert lifecycle.migration_head(REPO).startswith("00")
+    assert re.match(r"^\d{4}_", lifecycle.migration_head(REPO))      # 0099, then 0100 and on (Release 5.7)
     assert lifecycle.version_of(REPO)
 
 

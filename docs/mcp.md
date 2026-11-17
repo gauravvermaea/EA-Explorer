@@ -169,6 +169,8 @@ always asks for your yes before it makes a model or a project.
 
 | `save_key_question(project, question, asked_by?, approach?, views?, ...)` · `answer_key_question(project, question_id, answer, documents?, ...)` · `key_question_decision(project, question_id, decision, note?, stakeholder?)` | A project's key questions (D341, D342): add or change one with the views that answer it, answer it with links to the artifacts, record the stakeholder's acceptance |
 | `business_model_canvas(project, canvas?, compare_with?)` · `change_business_model_canvas(project, action, ...)` | A project's Business Model Canvases (D344): list, read block by block, compare two; add, change or cross out items, make a working copy, make a clean canvas from one |
+| `customer_journey(project, journey?, compare_with?, find_elements?)` · `change_customer_journey(project, action, ...)` | A project's customer journey maps (D730): list, read stage by stage with the emotion at each step, compare two, find model elements to link; make one (blank or from the starter), add, change or remove stages and parts, link a stage or part to a model element, copy, agree |
+| `deck_sources(project, parts?)` · `deck_outline(project, audience?, slides?)` · `view_picture(model, view, format?, scale?)` | A presentation deck made with your own AI (D731): the content of a project with each part's source, a suggested outline, and a view or drawn view as a PNG, an SVG or its raw data, drawn as on the screens; NOT FOR AI documents by title only; nothing is saved back |
 
 Documents themselves (Word, Excel) are still uploaded on the project's Repository tab.
 

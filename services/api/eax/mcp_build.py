@@ -521,6 +521,118 @@ async def change_business_model_canvas(project: str, action: str, canvas: str = 
 
 
 @mcp.tool()
+async def customer_journey(project: str, journey: str = "", compare_with: str = "", find_elements: str = "") -> Any:
+    """A project's customer journey maps (R5.7-J1): with journey empty, the list (name, kind current | target | working
+    | scenario, status, stages, steps, average emotion) and what a journey is made of (kinds of part, the faces);
+    with a journey id, its stages left to right, each with its parts by kind (steps carry the emotion from -2 very
+    unhappy to +2 very happy), linked model elements, the personas and the emotion curve; with compare_with too, what
+    changed from journey to compare_with, stage by stage. find_elements: words to find elements of the project's
+    models to link (any type)."""
+    from . import journeys as jy
+
+    def run(pc, who):
+        pid = _project_id(pc, project)
+        if find_elements:
+            return jy.elements(pc, pid, who, find_elements, ["all"])
+        if journey and compare_with:
+            return jy.compare(pc, pid, who, journey, compare_with)
+        return jy.get(pc, pid, who, journey) if journey else jy.listing(pc, pid, who)
+    return await _proj(run)
+
+
+@mcp.tool()
+async def change_customer_journey(project: str, action: str, journey: str = "", stage: str = "", item: str = "",
+                                  part: str = "", text: str = "", note: str = "", score: int | None = None,
+                                  name: str = "", kind: str = "", persona: str = "", template: str = "",
+                                  entity: str = "", fields: dict | None = None) -> Any:
+    """Change a project's customer journey maps (contributors; ask the person first, and draft from their interviews or
+    documents only what they confirm). action: "new" (name, kind, persona, template blank | starter), "add-stage"
+    (journey, name, note), "change-stage" (stage, name, note), "remove-stage" (stage), "add" (journey, stage, part, text,
+    note, score for a step: -2 to +2, fields; part persona needs no stage), "change" (item, text, note, score, fields,
+    stage), "remove" (item), "link" (journey, stage or item, entity: an element's id from find_elements), "copy"
+    (journey, name, kind: a target state from a current one), "status" (journey, text: draft | agreed). Parts: step,
+    touchpoint, pain_point, moment, opportunity, persona, or a kind of the project's own (x-...). An opportunity is
+    never made a requirement or work package by this tool."""
+    from . import journeys as jy
+
+    def run(pc, who):
+        pid = _project_id(pc, project)
+        body = {k: v for k, v in {"name": name, "kind": kind, "part": part, "text": text, "note": note, "persona": persona,
+                                  "template": template, "stage": stage, "item": item, "entity": entity, "fields": fields}.items() if v}
+        if score is not None:
+            body["score"] = score
+        acts = {"new": lambda: jy.create(pc, pid, who, body),
+                "add-stage": lambda: jy.add_stage(pc, pid, who, journey, body),
+                "change-stage": lambda: jy.change_stage(pc, pid, who, stage, body),
+                "remove-stage": lambda: jy.remove_stage(pc, pid, who, stage),
+                "add": lambda: jy.add_item(pc, pid, who, journey, body),
+                "change": lambda: jy.change_item(pc, pid, who, item, body),
+                "remove": lambda: jy.remove_item(pc, pid, who, item),
+                "link": lambda: jy.link(pc, pid, who, journey, body),
+                "copy": lambda: jy.copy(pc, pid, who, journey, body),
+                "status": lambda: jy.change(pc, pid, who, journey, {"status": text})}
+        if action not in acts:
+            raise EditError("action: " + ", ".join(acts))
+        return acts[action]()
+    return await _proj(run, write=True)
+
+
+@mcp.tool()
+async def deck_sources(project: str, parts: list[str] | None = None) -> Any:
+    """What a presentation deck about a project can draw on (R5.7-P1): the project (purpose, status, the ADM phase now,
+    completion, goals), its phases with steps done and the deliverables and artifacts with their documents (titles,
+    states, versions), models, views and drawn views, decisions, dispensations, risks, issues, requirements, key
+    questions, sign-offs, stakeholders, canvases and customer journeys, each with its source so a slide can say where it
+    came from. parts: any of project, phases, models, governance, requirements, questions, signoffs, stakeholders,
+    canvases, journeys (default all). Only what you may read. Build the deck in your own client; nothing is saved back.
+    Anything marked not_for_ai is given by its title only: never read or use its content."""
+    from . import deck
+
+    def run(pc, who):
+        return deck.sources(pc, _project_id(pc, project), who, parts)
+    return await _proj(run)
+
+
+@mcp.tool()
+async def deck_outline(project: str, audience: str = "", slides: int = 10) -> Any:
+    """A suggested outline for a deck about a project, from where it is (the phase now, what is done, what is open:
+    questions, risks, sign-offs): slides with their purpose and which deck_sources parts to use. A suggestion only:
+    talk it through with the person and change it."""
+    from . import deck
+
+    def run(pc, who):
+        return deck.outline(pc, _project_id(pc, project), who, audience, slides)
+    return await _proj(run)
+
+
+@mcp.tool()
+async def view_picture(model: str, view: str, format: str = "png", scale: float = 2.0) -> Any:
+    """A view of a model as a picture, drawn by EA Explorer as on its screens, the ArchiMate boxes and icons included
+    (R5.7-P1): view is a view's code (VP-11, list_views) or a drawn view's name or id (list_drawn_views). format: "png"
+    (an image; scale 1 to 3), "svg" (the SVG text) or "data" (the raw data to draw your own: every object with its
+    type, notation, name, code, domain, position, size and colour; every relationship with its type, source, target
+    and end points; the domain bands)."""
+    from . import view_picture as vp
+    data = await _run(vp.view_data, model, view)
+    if not isinstance(data, dict) or data.get("error"):
+        return data
+    about = {"model": data["model"], "view": data["view"], "title": data["title"], "objects": len(data["objects"]),
+             "relationships": len(data["relationships"]), "width": data["width"], "height": data["height"]}
+    if format == "data":
+        return data
+    if format == "svg":
+        return {**about, "svg": vp.to_svg(data)}
+    if format != "png":
+        return {"error": "format: png, svg or data"}
+    try:
+        png = await anyio.to_thread.run_sync(lambda: vp.to_png(data, scale))
+    except EditError as exc:
+        return {"error": str(exc)}
+    from mcp.server.mcpserver import Image
+    return [Image(data=png, format="png"), about]
+
+
+@mcp.tool()
 async def add_placeholder_view(project: str, name: str, kind: str = "text", file_type: str = "", description: str = "",
                                     questions: list[str] | None = None) -> Any:
     """A placeholder view where no view fits a key question: kind "text" (a name and what it will show) or

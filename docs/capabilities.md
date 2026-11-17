@@ -1,4 +1,4 @@
-# What EA Explorer does today (version 5.6.0)
+# What EA Explorer does today (version 5.7.0)
 
 One page for anyone weighing EA Explorer up: what is **built and in the box today**, area by area, and what is still
 **planned**, with its build phase. "Planned" adds to what is already there; it does not mean an area is missing.
@@ -12,7 +12,7 @@ Every phase in detail: [build-phases.md](build-phases.md). Decisions: [decisions
 | Reports and BI | 30 standard reports and 49 views (each as diagram, catalogue, heat map, matrix and relationship list), roadmaps, value stream maps, gap, comparison and common analysis, quality dashboards; Apache Superset for your own |
 | AI | Bring your own AI: an MCP server with about 140 tools and 11 guided prompts; enterprise discovery run by your AI (discovery projects, sources of every kind, Found in, runs tagged before and after, NOT FOR AI respected); your own language model reads, analyses, cleans up and changes models (copy, dedupe, override the parent, every model wizard), previewing every change for your yes and tagging first, as you and with your permissions; every call in an AI activity log |
 | Collaboration and governance | Private changes until committed, conflicts at commit, child models merged back, reviews and approvals, sign-off with a quorum, stakeholder acceptance of answers, a full change log |
-| Projects (TOGAF ADM) | Architecture projects from 14 templates, the TOGAF 10 library (13 phases, 116 steps, 171 deliverables and artifacts), key questions, Business Model Canvases, the Architecture Repository |
+| Projects (TOGAF ADM) | Architecture projects from 14 templates, the TOGAF 10 library (13 phases, 116 steps, 171 deliverables and artifacts), key questions, Business Model Canvases, customer journey maps (5.7), the Architecture Repository |
 | Documents and libraries | Document management (Mayan EDMS) inside projects, the reference library, the enterprise and project libraries with search |
 | Integration | A REST API (OpenAPI), signed webhooks, Excel and CSV in and out with mappings, model packages, the MCP server; discovery: OData feeds read, pushes taken and documents read by AI, proposed as deliveries to review (Release 3, in progress) |
 | Operations | One command (`eax`, full screen or numbered menu) and a console, start-up in two tiers, health, tagged backups and restores, every service switchable, a file explorer in every container |
@@ -140,6 +140,9 @@ Built — every picture is **drawn from the repository when you open it**, so it
   **roadmaps** (plateaus, work packages and deliverables on a timeline).
 - **View diagrams** for all 49 views, and the **metamodel diagram**.
 - **Business Model Canvases**, with differences between two shown in colour (D344).
+- **Customer journey maps** (5.7, D730): stages, steps with how the person feels (-2 to +2, drawn as a curve), touchpoints, pain points, moments that matter, opportunities and your own kinds of part, linked to model elements; compared, exported to PDF, PowerPoint and draw.io.
+- **Logo and branding** (5.7, D729): your logo and name in the top bar, four themes, your own as CSS.
+- **A presentation deck with your own AI** (5.7, D731): MCP tools give a project's content with its sources, an outline, and views as PNG, SVG or data.
 - Click any box to open the entity. Every picture **opens in our draw.io** (D585), and saves as SVG, PNG or CSV.
 
 Built (0.16.0): **drawn views** (phases 28, 29, D354): views drawn in draw.io, inside EA Explorer, with the ArchiMate 4

@@ -36,6 +36,7 @@ import { CalendarView } from "./Calendar";
 import { TrackingSheets } from "./TrackingSheets";
 import { ComplianceWizard } from "./GuidedWizards";
 import { CanvasTab } from "./Canvas";
+import { JourneysTab } from "./Journeys";
 import { ProjectBusinessArtifacts } from "./BusinessArchitecture";
 import { ProjectLibraryTab } from "./Libraries";
 import { PrinciplesTab } from "./Principles";
@@ -1872,7 +1873,7 @@ function Review({ d, lib, purpose, problems }) {
 // the steps and the repository are on Home, phase by phase or for all phases (owner, 8 Nov 2026); Tasks, a scratchpad (D298)
 // phase 13.1 (D303 to D307): Base, Charter, Standards, Governance log
 const TABS = [["home", "Home"], ["phases", "Phases"], ["report", "Project report"], ["base", "Base"], ["charter", "Charter"], ["archrepo", "Enterprise Repository (Project Scope)"], ["content", "Content framework"],
-  ["tasks", "Tasks"], ["models", "Models"], ["organisation", "Organisation"], ["stakeholders", "Stakeholders"], ["questions", "Key questions"], ["canvas", "Business model canvas"], ["business", "Business artifacts"], ["otherdocs", "Other views and documents"], ["principles", "Principles"],
+  ["tasks", "Tasks"], ["models", "Models"], ["organisation", "Organisation"], ["stakeholders", "Stakeholders"], ["questions", "Key questions"], ["canvas", "Business model canvas"], ["journeys", "Customer journeys"], ["business", "Business artifacts"], ["otherdocs", "Other views and documents"], ["principles", "Principles"],
   ["standards", "Standards"], ["governance", "Governance log"], ["library", "Library"], ["views", "Views"], ["reports", "Model reports"], ["quality", "Quality"], ["calendar", "Calendar"], ["sheets", "Sheets"],
   ["analysis", "Gaps and comparison"], ["scenarios", "Scenarios"], ["signoff", "Sign-off"]];
 
@@ -1880,7 +1881,7 @@ const TABS = [["home", "Home"], ["phases", "Phases"], ["report", "Project report
 const PROJECT_GROUPS = [
   ["overview", "Overview", "⌂", ["home", "report", "tasks", "calendar", "signoff"]],
   ["plan", "Plan", "◷", ["phases", "charter", "base"]],
-  ["business", "Business", "◎", ["organisation", "stakeholders", "questions", "canvas", "business"]],
+  ["business", "Business", "◎", ["organisation", "stakeholders", "questions", "canvas", "journeys", "business"]],
   // the project's repository and its content framework side by side (owner, 11 Nov 2026, R2.0: "arch repo and content f/w will be top level and in project both")
   ["architecture", "Architecture", "◫", ["archrepo", "content", "models", "views", "reports", "quality", "analysis", "scenarios"]],
   ["governance", "Governance", "⚖", ["principles", "standards", "governance"]],
@@ -1950,6 +1951,7 @@ function ProjectPage({ id, tab, sub }) {
         {tab === "stakeholders" && <StakeholderMatrix p={p} />}
         {tab === "questions" && <KeyQuestionsPanel p={p} />}
         {tab === "canvas" && <CanvasTab p={p} />}
+        {tab === "journeys" && <JourneysTab p={p} />}
         {tab === "business" && <ProjectBusinessArtifacts p={p} />}
         {["library", "reference"].includes(tab) && <ProjectLibraryHub p={p} sub={tab === "reference" ? "reference" : sub} />}
         {tab === "tasks" && <TasksTab p={p} />}

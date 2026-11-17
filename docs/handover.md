@@ -5,7 +5,7 @@ The state of the work, for whoever picks it up next: a person or another AI with
 Read [AGENTS.md](../AGENTS.md) first, run `eax dev check`, then read this.
 
 Last updated: 17 Nov 2026, Release 5.6 accepted as 5.6.0 (owner, 13:37: "Lets accept this release"; D727).
-Next: Release 5.7, discussed with the owner before it is built; its bug R5.7-V1, the views' missing icons, goes first.
+Now: Release 5.7 built (17 Nov 2026) as 5.7.0, waiting for the owner's clean rebuild, `eax test full`, the backup and restore test and the DR drill, then acceptance.
 
 ## How the owner works
 
@@ -73,9 +73,10 @@ Nothing.
 
 ## Next
 
-Release 5.7 (5.6 accepted 17 Nov 2026, 13:37): R5.7-V1 first (a bug: the views drawn on EA Explorer's screens show
-no ArchiMate icons; build-phases.md), then the rest of 5.7 as agreed with the owner, one question at a time. Then
-Release 6.
+Release 5.7 is built (17 Nov 2026): R5.7-V1 (the views' ArchiMate icons, D728), R5.7-B1 (branding, D729, migration
+0100), R5.7-J1 (customer journeys, D730, migration 0101), R5.7-P1 (the deck tools, D731; the API gains Pillow) and
+R5.7-T1 (the backup test covers them); version 5.7.0 (migration 0102, releases/5.7.0.md). The owner runs a clean
+rebuild, `eax test full`, `eax test backup-restore` and `dr\eax-drill`, then accepts 5.7. Then Release 6.
 
 ## Open questions
 

@@ -1,0 +1,11 @@
+/* EA Explorer: Purple (R5.7-B1): the standard look with purple as its colour. A theme may hold only looks:
+   colours, fonts, spacing, corners. */
+:root {
+  --ink: #211a2e; --quiet: #5b6775; --line: #ddd3ec; --bg: #f8f5fc; --card: #ffffff;
+  --accent: #6b3fb8; --accent-soft: #eee6fa; --ok: #1e7b3c; --bad: #b3261e;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+.topbar { border-bottom: 3px solid #6b3fb8; }
+.topbar .brand { color: #6b3fb8; }
+button.primary { background: #6b3fb8; border-color: #6b3fb8; }
+.tab.on { color: #6b3fb8; }

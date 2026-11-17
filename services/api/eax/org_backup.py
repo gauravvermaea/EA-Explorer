@@ -38,7 +38,14 @@ CORE_TABLES = {
     "surveys": ("SELECT * FROM core.surveys ORDER BY id", "guid"),
     "survey_recipients": ("SELECT * FROM core.survey_recipients ORDER BY id", "guid"),
     "survey_responses": ("SELECT * FROM core.survey_responses ORDER BY id", "guid"),
+    # logo and branding (R5.7-B1, D729): the choice, the themes added, the logo and the tab's icon (images as base64)
+    "branding_choice": ("SELECT * FROM core.settings WHERE key = 'branding'", "key"),
+    "branding_themes": ("SELECT * FROM core.branding_themes ORDER BY slug", "slug"),
+    "branding_files": ("SELECT key, content_type, encode(data, 'base64') AS data, set_by, set_at FROM core.branding_files ORDER BY key", "key"),
+    "branding_fonts": ("SELECT slug, family, weight, style, content_type, encode(data, 'base64') AS data, set_by, set_at "
+                       "FROM core.branding_fonts ORDER BY slug", "slug"),
 }
+TABLE_OF = {"branding_choice": "settings"}     # a part kept under another name than its table
 
 
 def _cols(conn, schema: str, table: str) -> dict[str, str]:
@@ -98,8 +105,8 @@ def _upsert(conn, schema: str, table: str, key: str, rows: list[dict]) -> int:
             if cols[c] in ("json", "jsonb") and vals[c] is not None and not isinstance(vals[c], str):
                 vals[c] = json.dumps(vals[c])
         names = list(vals)
-        placeholders = ", ".join(f"CAST(:{c} AS {cols[c]})" if cols[c] in ("json", "jsonb", "uuid", "timestamptz") else f":{c}"
-                                 for c in names)
+        placeholders = ", ".join(f"CAST(:{c} AS {cols[c]})" if cols[c] in ("json", "jsonb", "uuid", "timestamptz")
+                                 else f"decode(:{c}, 'base64')" if cols[c] == "bytea" else f":{c}" for c in names)
         sets = ", ".join(f"{c} = EXCLUDED.{c}" for c in names if c not in (key, "guid"))
         conn.execute(text(f"""INSERT INTO {schema}.{table} ({", ".join(names)}) VALUES ({placeholders})
                               ON CONFLICT ({key}) DO UPDATE SET {sets}"""), vals)
@@ -125,7 +132,7 @@ def restore(z: zipfile.ZipFile, core, pc, actor: str) -> tuple[str, list[str]]:
             if savepoints:
                 conn.execute(text("SAVEPOINT org_part"))
             try:
-                done.append(f"{_upsert(conn, schema, t, key, data[t])} {t.replace('_', ' ')}")
+                done.append(f"{_upsert(conn, schema, TABLE_OF.get(t, t), key, data[t])} {t.replace('_', ' ')}")
                 if savepoints:
                     conn.execute(text("RELEASE SAVEPOINT org_part"))
             except Exception as exc:  # noqa: BLE001 - one part does not stop the others

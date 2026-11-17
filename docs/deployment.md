@@ -327,7 +327,7 @@ secrets, with the same names):
 |---|---|---|
 | `EAX_FILE_STORE` | `folder`: the work folder | `database`: the files schema (`EAX_FILES_DB_URL`, empty = the repository's database) keeps the self-test's run folders and the exports of deleted models |
 | `EAX_PLATFORM` | `compose`: the operations helper starts the test runner and manages the containers through the Docker socket | `managed`: run the `testrunner-service` (compose profile `platform`), which takes the self-tests the API queues; the Command centre and Containers pages show the platform's commands instead |
-| `EAX_DATA_ROOT` | a laptop: empty (Docker volumes and work/) | one base folder for all the data (R5.4, D687): databases, documents, logs, backups, imports, exports, certificates, reports under it; `eax init` asks for it; mount what you want onto its folders; `eax folders` shows them |
+| `EAX_DATA_ROOT` | a laptop: empty (Docker volumes and work/) | one base folder for all the data (R5.4, D687): databases, documents, logs, backups, imports, exports, certificates, reports under it; `eax init` asks for it; mount what you want onto its folders (the databases on local disk, never a NAS: [setting-up.md](setting-up.md#where-the-data-lives-local-disk-or-nas)); `eax folders` shows them |
 | `EAX_BACKUP_DIR` | a laptop: empty (work/backups) | empty: `<EAX_DATA_ROOT>/backups`; a path puts the backups elsewhere; with neither, no backup is taken |
 | passwords | eaexplorer.env | Docker secrets of the same name (`/run/secrets/EAX_DB_PASSWORD`, or `EAX_DB_PASSWORD_FILE`) |
 

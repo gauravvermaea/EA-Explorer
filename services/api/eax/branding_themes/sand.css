@@ -1,0 +1,11 @@
+/* EA Explorer: Sand (R5.7-B1): the standard look with sand as its colour. A theme may hold only looks:
+   colours, fonts, spacing, corners. */
+:root {
+  --ink: #2b2318; --quiet: #5b6775; --line: #e5d9c8; --bg: #faf6f0; --card: #fffdf9;
+  --accent: #8a5a2b; --accent-soft: #f3e9dc; --ok: #1e7b3c; --bad: #b3261e;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+.topbar { border-bottom: 3px solid #8a5a2b; }
+.topbar .brand { color: #8a5a2b; }
+button.primary { background: #8a5a2b; border-color: #8a5a2b; }
+.tab.on { color: #8a5a2b; }

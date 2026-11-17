@@ -1293,7 +1293,7 @@ def entity_graph(conn, model: Any, focus: Any = None, entity_types: list | None 
         start = None
     nodes = _rows(conn, f"""
         SELECT e.id AS _id, e.guid AS id, e.display_id, e.name, et.name AS entity_type, et.guid AS entity_type_id,
-               l.name AS domain, l.colour, l.sort_order AS domain_order
+               l.name AS domain, l.colour, l.sort_order AS domain_order, et.notation
           FROM core.entities e
           JOIN core.entity_types et ON et.id = e.entity_type_id
           JOIN core.layers l ON l.id = et.layer_id
@@ -1377,7 +1377,7 @@ def entity_paths(conn, model: Any, source: Any, target: Any, max_steps: int = 6,
     on_path = {i for p in paths for i in p}
     nodes = _rows(conn, """
         SELECT e.id AS _id, e.guid AS id, e.display_id, e.name, et.name AS entity_type, et.guid AS entity_type_id,
-               l.name AS domain, l.colour, l.sort_order AS domain_order
+               l.name AS domain, l.colour, l.sort_order AS domain_order, et.notation
           FROM core.entities e JOIN core.entity_types et ON et.id = e.entity_type_id JOIN core.layers l ON l.id = et.layer_id
          WHERE e.id = ANY (:ids)""", ids=list(on_path or {sid, tid}))
     guid = {n["_id"]: n["id"] for n in nodes}

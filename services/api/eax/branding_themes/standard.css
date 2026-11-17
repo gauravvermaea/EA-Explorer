@@ -1,0 +1,7 @@
+/* EA Explorer: Standard (light), today's look (R5.7-B1). Download it, change the values and add it under a name of
+   your own (System admin > Branding). A theme may hold only looks: colours, fonts, spacing, corners. */
+:root {
+  --ink: #1d2733; --quiet: #5b6775; --line: #d9dee5; --bg: #f6f7f9; --card: #ffffff;
+  --accent: #1f5fb8; --accent-soft: #e8f0fb; --ok: #1e7b3c; --bad: #b3261e;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}

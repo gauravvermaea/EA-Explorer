@@ -701,7 +701,7 @@ class GraphQuery(Schema):
 
 class GraphNodeOut(Schema):
     """The shape of graph node in the API's answers: id, display_id, name, entity_type, entity_type_id, domain,
-    colour, domain_order, focus, distance, target."""
+    colour, domain_order, notation, focus, distance, target."""
     id = fields.UUID()
     display_id = fields.String()
     name = fields.String()
@@ -710,6 +710,8 @@ class GraphNodeOut(Schema):
     domain = fields.String()
     colour = fields.String()
     domain_order = fields.Integer()
+    notation = fields.String(allow_none=True, metadata={"description": "The type's ArchiMate 4 element, whose box and icon the "
+                                                                      "screen draws (R5.7-V1); empty for a plain box"})
     focus = fields.Boolean()
     distance = fields.Integer(allow_none=True, metadata={"description": "Steps from the focus (negative: before it, for split and tree)"})
     target = fields.Boolean(metadata={"description": "Paths: the entity the paths lead to"})

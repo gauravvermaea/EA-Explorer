@@ -145,6 +145,7 @@ def trust(options: list[str]) -> None:
 # ---------------------------------------------------------------- the logins (laptop only)
 TEST_USERS = [
     ("user_super_admin", "eax-super-admin", "everything, every model"),
+    ("demo-super-admin", "eax-super-admin", "for demos: everything; the demo project and its models pinned"),
     ("user_it_admin", "eax-it-admin", "runs the installation; no models"),
     ("user_keycloak_admin", "eax-keycloak-admin", "Keycloak console of the realm"),
     ("user_user_admin", "eax-user-admin", "Users page, role mapping; reads no model"),

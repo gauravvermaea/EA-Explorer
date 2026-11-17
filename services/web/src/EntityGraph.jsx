@@ -21,6 +21,7 @@ import { PictureActions } from "./DrawnView";
 import { elk, relColour, straightSection, textWidth } from "./MetamodelDiagram";
 import { fmtDateTime } from "./fmt";
 import { elementTypes } from "./elements.js";
+import { BoxShape, Glyph, hasGlyph } from "./archimateIcons";
 
 const go = (path) => { window.location.hash = path; };
 const NAME_FONT = "600 12px system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif";
@@ -623,9 +624,11 @@ export default function EntityGraph({ model, focus: fixedFocus = null, lockFocus
                   onClick={() => clickBox(n)}
                   onDoubleClick={() => go(`/metamodel/${model}/entity/${n.id}`)}>
                   <title>{`${n.name} (${n.display_id}, ${n.entity_type}). ${!lockFocus && kind === "network" && onClick === "middle" ? "Click: put in the middle. Double-click: open." : "Click: open its page."}`}</title>
-                  <rect width={b.width} height={b.height} rx="6" fill={`#${n.colour || "eeeeee"}`}
+                  {/* the type's ArchiMate box and icon, as draw.io shows them (R5.7-V1) */}
+                  <BoxShape notation={n.notation} width={b.width} height={b.height} fill={`#${n.colour || "eeeeee"}`}
                     stroke={isFocus || n.target ? "#1f5fb8" : "#8a96a3"} strokeWidth={isFocus || n.target ? 3 : 1} />
-                  <text x="10" y="18" fontSize="12" fontWeight="600" fill="#1d2733">{shorten(n.name, b.width - 20)}</text>
+                  <Glyph notation={n.notation} x={b.width - 19} y={5} size={14} />
+                  <text x="10" y="18" fontSize="12" fontWeight="600" fill="#1d2733">{shorten(n.name, b.width - (hasGlyph(n.notation) ? 34 : 20))}</text>
                   <text x="10" y="34" fontSize="10" fill="#5b6775">{n.entity_type} · {n.display_id}</text>
                 </g>
               );

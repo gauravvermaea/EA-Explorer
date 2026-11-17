@@ -1,0 +1,11 @@
+/* EA Explorer: Indigo (R5.7-B1): the standard look with indigo as its colour. A theme may hold only looks:
+   colours, fonts, spacing, corners. */
+:root {
+  --ink: #1b1c33; --quiet: #5b6775; --line: #d6d7ee; --bg: #f5f5fd; --card: #ffffff;
+  --accent: #3b3fb6; --accent-soft: #e6e7fb; --ok: #1e7b3c; --bad: #b3261e;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+.topbar { border-bottom: 3px solid #3b3fb6; }
+.topbar .brand { color: #3b3fb6; }
+button.primary { background: #3b3fb6; border-color: #3b3fb6; }
+.tab.on { color: #3b3fb6; }

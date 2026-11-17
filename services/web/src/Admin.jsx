@@ -58,6 +58,7 @@ const OptimisationPage = lazy(() => import("./Optimisation"));
 const SizingPage = lazy(() => import("./Sizing"));
 const JobsPage = lazy(() => import("./Jobs"));   // R5.30
 const DisasterRecoveryPage = lazy(() => import("./DisasterRecovery"));
+const BrandingPage = lazy(() => import("./BrandingAdmin"));
 const QualityAdmin = lazy(() => import("./Quality").then((x) => ({ default: x.QualityAdmin })));
 
 const TABS = [
@@ -92,6 +93,7 @@ const TABS = [
   ["updates", "Updates", () => can("system.operate"), ["it-admin", "super-admin"]],
   ["commands", "Command centre", () => can("system.operate"), ["it-admin", "super-admin"]],
   ["banner", "Banner", () => can("system.operate"), ["it-admin", "super-admin"]],
+  ["branding", "Branding", () => can("settings.manage"), ["super-admin"]],   // logo, themes and CSS (R5.7-B1)
   ["licences", "Licences", () => true, null],
 ];
 
@@ -146,6 +148,7 @@ export default function Admin({ route }) {
                   : t[0] === "updates" ? <Updates />
                   : t[0] === "commands" ? <CommandCentre route={route} />
                   : t[0] === "banner" ? <BannerAdmin />
+                  : t[0] === "branding" ? <BrandingPage />
                   : t[0] === "licences" ? <Licences />
                     : <Settings group={t[0]} />}
         </Suspense>

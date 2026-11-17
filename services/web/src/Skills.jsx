@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { apiFetch, myInfo, roleName, roles } from "./auth";
 import { refreshAll, useApi } from "./ModelViews";
 import { fmtDateTime } from "./fmt";
+import { MyLook } from "./branding";
 
 export function SkillTags({ value, onChange, suggestions = [], disabled }) {
   const [t, setT] = useState("");
@@ -67,6 +68,7 @@ export default function MyProfile() {
           {data?.modified_at && <span className="small quiet">Last saved {fmtDateTime(data.modified_at)}</span>}
         </div>
       </>}
+      <MyLook />
     </section>
   );
 }

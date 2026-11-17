@@ -1222,6 +1222,219 @@ class CanvasItemRestore(MethodView):
         return _run(lambda c: cv.restore_item(c, project, g.user, iid), write=True, action="project.canvas.item", obj=iid)
 
 
+@blp.route("/projects/<string:project>/journeys")
+class Journeys(MethodView):
+    """/api/v1/projects/{project}/journeys: GET the project's customer journey maps and what one is made of (the kinds
+    of part, the faces of the emotion, the templates); POST a new journey (contributors): {name, kind: current | target
+    | working | scenario, description, persona, template: blank | starter}."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth()
+    def get(self, project):
+        """The project's customer journey maps and what one is made of"""
+        from .. import journeys as jy
+        return _run(lambda c: jy.listing(c, project, g.user))
+
+    @blp.doc(security=SECURITY)
+    @blp.arguments(FreeIn)
+    @blp.response(201, Free)
+    @require_auth()
+    def post(self, data, project):
+        """A new journey (contributors): {name, kind, description, persona, template: blank | starter}"""
+        from .. import journeys as jy
+        return _run(lambda c: jy.create(c, project, g.user, data or {}), write=True, action="project.journey", obj=project)
+
+
+@blp.route("/projects/<string:project>/journeys/elements")
+class JourneyElements(MethodView):
+    """/api/v1/projects/{project}/journeys/elements?q=&type=: GET elements of the project's models to link a stage or a
+    part to (type repeated; type=all for any type; by default the usual ones for a journey)."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth()
+    def get(self, project):
+        """Elements of the project's models to link a stage or a part to"""
+        from .. import journeys as jy
+        return _run(lambda c: jy.elements(c, project, g.user, request.args.get("q", ""), request.args.getlist("type") or None))
+
+
+@blp.route("/projects/<string:project>/journey-kinds")
+class JourneyKinds(MethodView):
+    """/api/v1/projects/{project}/journey-kinds: POST a kind of part of the project's own {label, fields, note}, or extra
+    fields on a standard kind {code, fields} (contributors)."""
+    @blp.doc(security=SECURITY)
+    @blp.arguments(FreeIn)
+    @blp.response(200, Free)
+    @require_auth()
+    def post(self, data, project):
+        """A kind of part of the project's own, or extra fields on a standard kind"""
+        from .. import journeys as jy
+        return _run(lambda c: jy.set_part_kind(c, project, g.user, data or {}), write=True, action="project.journey.kind", obj=project)
+
+
+@blp.route("/projects/<string:project>/journey-kinds/<string:code>")
+class JourneyKind(MethodView):
+    """/api/v1/projects/{project}/journey-kinds/{code}: DELETE a kind of part of the project's own (when no journey
+    uses it), or a standard kind's extra fields."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth()
+    def delete(self, project, code):
+        """A kind of part of the project's own, or a standard kind's extra fields"""
+        from .. import journeys as jy
+        return _run(lambda c: jy.remove_part_kind(c, project, g.user, code), write=True, action="project.journey.kind", obj=project)
+
+
+@blp.route("/projects/<string:project>/journeys/<string:jid>")
+class JourneyOne(MethodView):
+    """/api/v1/projects/{project}/journeys/{jid}: GET a journey: its stages with their parts and linked elements, the
+    personas, the emotion curve, documents and history; PUT its name, kind, status (draft | agreed), description or
+    persona; DELETE remove it."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth()
+    def get(self, project, jid):
+        """A journey: stages, parts, links, personas, the emotion curve, documents and history"""
+        from .. import journeys as jy
+        return _run(lambda c: jy.get(c, project, g.user, jid))
+
+    @blp.doc(security=SECURITY)
+    @blp.arguments(FreeIn)
+    @blp.response(200, Free)
+    @require_auth()
+    def put(self, data, project, jid):
+        """Its name, kind, status (draft | agreed), description or persona"""
+        from .. import journeys as jy
+        return _run(lambda c: jy.change(c, project, g.user, jid, data or {}), write=True, action="project.journey", obj=jid)
+
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth()
+    def delete(self, project, jid):
+        """Remove the journey"""
+        from .. import journeys as jy
+        return _run(lambda c: jy.delete(c, project, g.user, jid), write=True, action="project.journey.removed", obj=jid)
+
+
+@blp.route("/projects/<string:project>/journeys/<string:jid>/<string:act>")
+class JourneyAct(MethodView):
+    """/api/v1/projects/{project}/journeys/{jid}/{act}: POST stages {name, note, after}; items {stage, part, text, note,
+    score, fields}; links {stage | item, entity}; reorder {stages} or {ids}; copy {name, kind}; copy-to {project, name,
+    kind}; documents (multipart "file" and note, or {document, note}). GET export?format=pdf | pptx | drawio
+    [&compare=<another journey>]: the journey (or the comparison) as a file."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth()
+    def post(self, project, jid, act):
+        """stages, items, links, reorder, copy, copy-to or documents"""
+        from .. import journeys as jy
+        data, name, content = _body_and_file()
+        fns = {"stages": lambda c: jy.add_stage(c, project, g.user, jid, data),
+               "items": lambda c: jy.add_item(c, project, g.user, jid, data),
+               "links": lambda c: jy.link(c, project, g.user, jid, data),
+               "reorder": lambda c: jy.reorder(c, project, g.user, jid, data),
+               "copy": lambda c: jy.copy(c, project, g.user, jid, data),
+               "copy-to": lambda c: jy.copy_to(c, project, g.user, jid, data.get("project") or "", data),
+               "documents": lambda c: jy.add_document(c, project, g.user, jid, data, name, content)}
+        if act not in fns:
+            abort(404, message="stages, items, links, reorder, copy, copy-to or documents")
+        return _run(fns[act], write=True, action=f"project.journey.{act}", obj=jid)
+
+    @blp.doc(security=SECURITY)
+    @blp.response(200)
+    @require_auth()
+    def get(self, project, jid, act):
+        """export?format=pdf | pptx | drawio [&compare=<another journey>]: the journey (or the comparison) as a file"""
+        from urllib.parse import quote
+
+        from .. import journeys as jy
+        if act != "export":
+            abort(404, message="export")
+        data, name, ctype = _run(lambda c: jy.export(c, project, g.user, jid, request.args.get("format", "pdf"), request.args.get("compare", "")))
+        return Response(data, mimetype=ctype, headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(name)}"})
+
+
+@blp.route("/projects/<string:project>/journeys/<string:jid>/documents/<string:doc>")
+class JourneyDocument(MethodView):
+    """/api/v1/projects/{project}/journeys/{jid}/documents/{doc}: DELETE take a document off the journey (it stays in
+    the project)."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth()
+    def delete(self, project, jid, doc):
+        """Take a document off the journey (it stays in the project)"""
+        from .. import journeys as jy
+        return _run(lambda c: jy.remove_document(c, project, g.user, jid, doc), write=True, action="project.journey.document", obj=jid)
+
+
+@blp.route("/projects/<string:project>/journeys/<string:a>/compare/<string:b>")
+class JourneyCompare(MethodView):
+    """/api/v1/projects/{project}/journeys/{a}/compare/{b}: GET compare two journeys: stage by stage, the parts added,
+    changed (with the old text and emotion) or removed from a to b, the personas and the linked elements."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth()
+    def get(self, project, a, b):
+        """Compare two journeys stage by stage"""
+        from .. import journeys as jy
+        return _run(lambda c: jy.compare(c, project, g.user, a, b))
+
+
+@blp.route("/projects/<string:project>/journey-stages/<string:sid>")
+class JourneyStage(MethodView):
+    """/api/v1/projects/{project}/journey-stages/{sid}: PUT a stage's name or note; DELETE remove it with its parts."""
+    @blp.doc(security=SECURITY)
+    @blp.arguments(FreeIn)
+    @blp.response(200, Free)
+    @require_auth()
+    def put(self, data, project, sid):
+        """A stage's name or note"""
+        from .. import journeys as jy
+        return _run(lambda c: jy.change_stage(c, project, g.user, sid, data or {}), write=True, action="project.journey.stage", obj=sid)
+
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth()
+    def delete(self, project, sid):
+        """Remove the stage with its parts"""
+        from .. import journeys as jy
+        return _run(lambda c: jy.remove_stage(c, project, g.user, sid), write=True, action="project.journey.stage", obj=sid)
+
+
+@blp.route("/projects/<string:project>/journey-items/<string:iid>")
+class JourneyItem(MethodView):
+    """/api/v1/projects/{project}/journey-items/{iid}: PUT a part's text, note, emotion (steps), fields or stage;
+    DELETE remove it."""
+    @blp.doc(security=SECURITY)
+    @blp.arguments(FreeIn)
+    @blp.response(200, Free)
+    @require_auth()
+    def put(self, data, project, iid):
+        """A part's text, note, emotion (steps), fields or stage"""
+        from .. import journeys as jy
+        return _run(lambda c: jy.change_item(c, project, g.user, iid, data or {}), write=True, action="project.journey.item", obj=iid)
+
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth()
+    def delete(self, project, iid):
+        """Remove the part"""
+        from .. import journeys as jy
+        return _run(lambda c: jy.remove_item(c, project, g.user, iid), write=True, action="project.journey.item", obj=iid)
+
+
+@blp.route("/projects/<string:project>/journey-links/<string:lid>")
+class JourneyLink(MethodView):
+    """/api/v1/projects/{project}/journey-links/{lid}: DELETE take a link to a model element off."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth()
+    def delete(self, project, lid):
+        """Take the link off"""
+        from .. import journeys as jy
+        return _run(lambda c: jy.unlink(c, project, g.user, lid), write=True, action="project.journey.link", obj=lid)
+
+
 @blp.route("/projects/<string:project>/placeholder-views")
 class PlaceholderViews(MethodView):
     """/api/v1/projects/{project}/placeholder-views: POST a placeholder view (contributors): {name, description,

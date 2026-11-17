@@ -1,0 +1,17 @@
+/* EA Explorer: High contrast, for accessibility (R5.7-B1): black on white, strong lines, a dark accent, links
+   underlined and a clear focus ring. A theme may hold only looks: colours, fonts, spacing, corners. */
+:root {
+  --ink: #000000; --quiet: #1a1a1a; --line: #000000; --bg: #ffffff; --card: #ffffff;
+  --accent: #0033a0; --accent-soft: #dfe7ff; --ok: #005a1e; --bad: #9c0000;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+body { font-size: 105%; }
+a { color: #0033a0; text-decoration: underline; }
+a:visited { color: #4b0082; }
+.topbar nav a, .tab { color: #000000; }
+.tab.on { border-bottom: 3px solid #000000; font-weight: 700; }
+button, select, input, textarea { border: 2px solid #000000; color: #000000; }
+button.primary { background: #0033a0; border-color: #0033a0; color: #ffffff; }
+:focus-visible { outline: 3px solid #ff8c00; outline-offset: 2px; }
+table th, table td { border-color: #000000; }
+.small, .quiet, .small-note { color: #1a1a1a; }

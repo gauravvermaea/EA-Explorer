@@ -368,3 +368,27 @@ are in `eax/decisions.py` and `eax/discovery_projects.py` (D248).
 - `core.job_skips` (task_name, in_row, total, last_at): how often the queue keeper took a waiting low-priority recurring
   job off a queue that was too full; in_row goes back to 0 when it runs.
 - Migration 0099 records version 5.6.0 (rows only).
+
+## Logo and branding (Release 5.7, migration 0100; D729)
+
+- `core.branding_files` (key logo|favicon, content_type, data, set_by, set_at): the logo in the top bar and the browser
+  tab's icon, PNG, JPEG, WebP or SVG.
+- `core.branding_themes` (slug, name, css, set_by, set_at): the themes Super Admins added; the four that ship are files
+  in the API (eax/branding_themes). The CSS is checked by eax/branding.py before it is kept (looks only).
+- `core.branding_fonts` (slug, family, weight normal|bold, style normal|italic, content_type, data, set_by, set_at;
+  migration 0103, D736): fonts uploaded for the themes, one file per family, weight and style.
+- The choice is a row of `core.settings` under the key `branding`: {theme, personal, product_name}. Each person's own
+  theme is their setting `theme` in `personal.settings`.
+
+## Customer journey maps (Release 5.7, migration 0101; D730)
+
+- `proj.journeys` (guid, project_id, name, kind current|target|working|scenario, status draft|agreed, description,
+  persona, source_id, source_note, created and changed by and at): a project's journeys, beside the canvases.
+- `proj.journey_stages` (guid, journey_id, sort_order, name, note, lineage): the columns.
+- `proj.journey_items` (guid, journey_id, stage_id or none for a persona, part, sort_order, text, note, score -2..2 for
+  a step's emotion, fields jsonb, lineage): the parts.
+- `proj.journey_links` (guid, journey_id, stage_id or item_id, model_guid, entity_guid, display_id, name, entity_type):
+  links out to model elements, by guid, the name kept (no foreign key: proj may live in its own database, D266).
+- `proj.journey_part_kinds` (project_id, code, label, fields, note): a project's own kinds of part (x-...) and extra
+  fields on the standard ones.
+- `proj.journey_documents`, `proj.journey_events`: the documents behind a journey and every change.

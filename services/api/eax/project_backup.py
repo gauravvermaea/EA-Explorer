@@ -4,7 +4,7 @@ A project backup is one zip file (eax-project-backup/1):
   backup.json                what it is: the project, when, by whom, what it holds
   project/<table>.json       the project's rows: the project, its people and sign-off, models, views, libraries,
                              principles, folders, document classes (items), steps and sub steps, documents and their history,
-                             key questions and placeholder views, canvases, drawn views linked as evidence (with the
+                             key questions and placeholder views, canvases, customer journeys, drawn views linked as evidence (with the
                              view's name, to find it again in a model made again),
                              approval requests and decisions
   models/<guid>.eaxbackup.zip  a model backup (as Model admin makes) of each model the project works on (added, derived
@@ -95,12 +95,21 @@ TABLES = [
     ("canvas_documents", "canvas_id IN (SELECT id FROM proj.canvases WHERE project_id = :p)",
      {"canvas_id": "canvases", "document_id": "documents"}),
     ("canvas_events", "canvas_id IN (SELECT id FROM proj.canvases WHERE project_id = :p)", {"canvas_id": "canvases"}),
+    # customer journey maps (R5.7-J1, D730): a journey before the ones made from it, its stages before its parts
+    ("journeys", "project_id = :p", {"source_id": "journeys"}),
+    ("journey_part_kinds", "project_id = :p", {}),
+    ("journey_stages", "journey_id IN (SELECT id FROM proj.journeys WHERE project_id = :p)", {"journey_id": "journeys"}),
+    ("journey_items", "journey_id IN (SELECT id FROM proj.journeys WHERE project_id = :p)", {"journey_id": "journeys", "stage_id": "journey_stages"}),
+    ("journey_links", "journey_id IN (SELECT id FROM proj.journeys WHERE project_id = :p)",
+     {"journey_id": "journeys", "stage_id": "journey_stages", "item_id": "journey_items"}),
+    ("journey_documents", "journey_id IN (SELECT id FROM proj.journeys WHERE project_id = :p)", {"journey_id": "journeys", "document_id": "documents"}),
+    ("journey_events", "journey_id IN (SELECT id FROM proj.journeys WHERE project_id = :p)", {"journey_id": "journeys"}),
     ("signoff_decisions", """request_id IN (SELECT r.id FROM proj.signoff_requests r JOIN proj.documents d ON d.id = r.document_id
                                              WHERE d.project_id = :p)""", {"request_id": "signoff_requests"}),
     # drawn views as evidence (D408: links only): the view's name rides along so a model made again finds its view
     ("view_evidence", "project_id = :p", {"item_id": "items", "question_id": "key_questions"}),
 ]
-NEW_GUID = {"projects", "items", "documents", "signoff_requests", "steps", "stakeholders", "stakeholder_notes", "tasks", "org_people", "standards", "gov_records", "gov_approvals", "cal_events", "sheets", "repo_tags", "key_questions", "placeholder_views", "canvases", "canvas_items", "view_evidence", "scenario_assessments"}   # tables whose guid is made new (when they have one)
+NEW_GUID = {"projects", "items", "documents", "signoff_requests", "steps", "stakeholders", "stakeholder_notes", "tasks", "org_people", "standards", "gov_records", "gov_approvals", "cal_events", "sheets", "repo_tags", "key_questions", "placeholder_views", "canvases", "canvas_items", "view_evidence", "scenario_assessments", "journeys", "journey_stages", "journey_items", "journey_links"}   # tables whose guid is made new (when they have one)
 
 
 def folder() -> Path:
@@ -600,7 +609,7 @@ def restore(core, pc, user, path: Path, new_name: str = "", over: bool = False, 
         for table, _w, remap in TABLES:
             ids[table] = {}
             rows = load(table)
-            if table == "canvases":         # a canvas before the ones made from it
+            if table in ("canvases", "journeys"):         # a canvas or journey before the ones made from it
                 rows = sorted(rows, key=lambda r: r.get("id") or 0)
             if table == "steps":            # a step before its sub steps
                 rows = sorted(rows, key=lambda r: (r.get("parent_step_id") is not None, r.get("id") or 0))
@@ -638,7 +647,7 @@ def restore(core, pc, user, path: Path, new_name: str = "", over: bool = False, 
                     elif vals[col] is not None:
                         vals[col] = ids[target].get(vals[col])
                         lost = lost or vals[col] is None
-                if lost and table not in ("steps", "tasks", "org_people", "placeholder_views", "key_questions", "canvases"):   # not a placeholder or a question: its file or evidence is simply gone
+                if lost and table not in ("steps", "tasks", "org_people", "placeholder_views", "key_questions", "canvases", "journeys"):   # not a placeholder or a question: its file or evidence is simply gone
                     continue
                 if table == "principles":
                     vals["inherited_from"] = project_of.get(str(r.get("inherited_from")))

@@ -1,0 +1,11 @@
+/* EA Explorer: Rose (R5.7-B1): the standard look with rose as its colour. A theme may hold only looks:
+   colours, fonts, spacing, corners. */
+:root {
+  --ink: #2b1620; --quiet: #5b6775; --line: #ecd3de; --bg: #fcf5f8; --card: #ffffff;
+  --accent: #b8326b; --accent-soft: #fbe6ef; --ok: #1e7b3c; --bad: #b3261e;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+.topbar { border-bottom: 3px solid #b8326b; }
+.topbar .brand { color: #b8326b; }
+button.primary { background: #b8326b; border-color: #b8326b; }
+.tab.on { color: #b8326b; }

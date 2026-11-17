@@ -1,0 +1,11 @@
+/* EA Explorer: Orange (R5.7-B1): the standard look with orange as its colour. A theme may hold only looks:
+   colours, fonts, spacing, corners. */
+:root {
+  --ink: #2b1d12; --quiet: #5b6775; --line: #ecdccd; --bg: #fcf7f2; --card: #ffffff;
+  --accent: #c2540a; --accent-soft: #fdeadb; --ok: #1e7b3c; --bad: #b3261e;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+.topbar { border-bottom: 3px solid #c2540a; }
+.topbar .brand { color: #c2540a; }
+button.primary { background: #c2540a; border-color: #c2540a; }
+.tab.on { color: #c2540a; }

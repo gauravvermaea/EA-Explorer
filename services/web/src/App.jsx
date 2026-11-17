@@ -42,6 +42,7 @@ import { AdminBanner } from "./AdminBanner";
 import { ContainerAlertBanner } from "./Hosts";
 import HelpPanel from "./help/HelpPanel";
 import DocumentationPage from "./Documentation";
+import { BrandMark, loadBranding, useLookFromRoute } from "./branding";
 
 function useHashRoute() {
   const [route, setRoute] = useState(window.location.hash || "#/");
@@ -63,6 +64,8 @@ export default function App() {
   // a self-test in progress (R2.51, D609): who signs in meanwhile waits (testAtSignIn); those already in see a banner
   const [testRun, setTestRun] = useState(null);
   const [testAtSignIn, setTestAtSignIn] = useState(null);   // null: not known yet; true: it was running when they came
+  useLookFromRoute(route);   // #/my-profile?look=standard: the standard look in this browser (R5.7-B1)
+  useEffect(() => { if (signedIn) loadBranding(); }, [signedIn]);   // the logo and the theme (R5.7-B1)
   useEffect(() => {
     if (!signedIn) return undefined;
     const beat = () => apiFetch("/api/v1/heartbeat").then((b) => {
@@ -125,7 +128,7 @@ export default function App() {
       {/* the menu bar only: the Classic screens are gone (owner, 12 Nov 2026, R2.25, D606) */}
       <header className="topbar with-menu">
         <MenuBar route={route} place="left" label="Sites" />
-        <a href="#/" className="brand">EA Explorer</a>
+        <BrandMark />
         {version && <VersionTag version={version} build={build} />}
         <span className="tm-break" aria-hidden="true" /><TopMenu route={route} />
         <TopSearch find />

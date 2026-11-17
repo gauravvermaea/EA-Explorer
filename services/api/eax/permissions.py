@@ -103,6 +103,9 @@ def view_only(roles) -> bool:
 # are laptop test models (eax/seed/build.py test_models_sql).
 TEST_USERS = [
     ("user_super_admin", "eax-super-admin", {}),
+    # the demo account (owner, 17 Nov 2026, 15:18: "create a new user called demo-super-admin we will use this user for
+    # all demos"): a Super Admin with the demo project and its models pinned (eax/seed/sample_demo.py)
+    ("demo-super-admin", "eax-super-admin", {}),
     ("user_it_admin", "eax-it-admin", {}),
     ("user_auditor", "eax-audit", {}),                    # sees everything, changes nothing (R5.22)
     ("user_architecture_board", "eax-architecture-board", {}),   # accepts the organisation's records (R5.5.1)

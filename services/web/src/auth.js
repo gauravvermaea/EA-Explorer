@@ -201,6 +201,20 @@ export async function apiBlobUrl(path) {
   return URL.createObjectURL(await response.blob());
 }
 
+// A text file the API serves (for example a theme's CSS, R5.7-B1)
+export async function apiText(path) {
+  const response = await fetch(path, { headers: await authHeaders() });
+  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+  return response.text();
+}
+
+// A binary file the API serves, as bytes (for example a font for the themes, D736)
+export async function apiBytes(path) {
+  const response = await fetch(path, { headers: await authHeaders() });
+  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+  return response.arrayBuffer();
+}
+
 // Download a file the API makes (for example a model package) and hand it to the browser to save (phase 4);
 // with a body, the request is a POST (for example a comparison's Excel workbook, phase 8.3)
 export async function apiDownload(path, fallbackName = "download", body = undefined) {

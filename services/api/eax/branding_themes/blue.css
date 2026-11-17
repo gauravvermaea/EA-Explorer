@@ -1,0 +1,11 @@
+/* EA Explorer: Blue (R5.7-B1): the standard look with blue as its colour. A theme may hold only looks:
+   colours, fonts, spacing, corners. */
+:root {
+  --ink: #172033; --quiet: #5b6775; --line: #d3dcec; --bg: #f4f7fd; --card: #ffffff;
+  --accent: #1a56db; --accent-soft: #e1ebfd; --ok: #1e7b3c; --bad: #b3261e;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+.topbar { border-bottom: 3px solid #1a56db; }
+.topbar .brand { color: #1a56db; }
+button.primary { background: #1a56db; border-color: #1a56db; }
+.tab.on { color: #1a56db; }

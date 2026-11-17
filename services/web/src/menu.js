@@ -74,6 +74,7 @@ export function menuTree() {
       { label: "Recent and pinned", href: "#/work" },
       { label: "Search everything", href: "#/search" },
       { label: "My profile and skills", href: "#/my-profile" },
+      { label: "Standard look (if a theme is hard to read)", href: "#/my-profile?look=standard" },   // R5.7-B1
       { label: "My tokens and keys", href: "#/admin/machine-access" },
       { label: "Sign out", action: "sign-out" },
     ] },
@@ -194,6 +195,7 @@ export function menuTree() {
         { label: "Application settings", href: "#/admin/application" },
         { label: "System settings", href: "#/admin/system", ok: () => ops() || can("settings.manage") },
         { label: "Banner", href: "#/admin/banner", ok: ops },
+        { label: "Branding: logo and themes", href: "#/admin/branding", ok: () => can("settings.manage") },   // R5.7-B1
         { label: "Licences", href: "#/admin/licences" },
       ] },
       { label: "Users and roles", href: "#/admin/users", ok: () => can("users.read") },

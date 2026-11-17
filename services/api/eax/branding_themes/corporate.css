@@ -1,0 +1,12 @@
+/* EA Explorer: Corporate (muted) (R5.7-B1): quiet greys, a slate accent, a serif for headings and squarer corners.
+   A theme may hold only looks: colours, fonts, spacing, corners. */
+:root {
+  --ink: #2b2f33; --quiet: #646b73; --line: #d4d7db; --bg: #f2f2f0; --card: #fcfcfb;
+  --accent: #3d5a73; --accent-soft: #e6ecf1; --ok: #3f6b4a; --bad: #8f3a34;
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+h1, h2, h3 { font-family: Georgia, Cambria, "Times New Roman", serif; font-weight: 600; letter-spacing: 0.01em; }
+.topbar { border-bottom: 3px solid #3d5a73; }
+.topbar .brand { color: #3d5a73; }
+button, select, input, textarea, .tile, .domain { border-radius: 3px; }
+button.primary { background: #3d5a73; border-color: #3d5a73; }

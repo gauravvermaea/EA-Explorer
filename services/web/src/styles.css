@@ -2879,3 +2879,72 @@ th.sortable { cursor: pointer; }
 .dr-cmd { display: flex; align-items: flex-start; gap: 8px; margin: 6px 0; }
 .dr-cmd pre { flex: 1; margin: 0; padding: 8px 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
   overflow-x: auto; white-space: pre; }
+
+/* Logo and branding (R5.7-B1) */
+.brand.with-logo { display: inline-flex; align-items: center; gap: 8px; }
+.brand-logo { height: 28px; max-width: 180px; object-fit: contain; display: block; }
+.brand-by { font-size: 11px; font-weight: 400; color: var(--quiet); margin-left: 6px; }
+.branding-admin .brand-images { display: flex; flex-wrap: wrap; gap: 16px; }
+.branding-admin .brand-image { border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; background: var(--card); min-width: 260px; }
+.branding-admin .brand-image h3 { margin: 0 0 8px; font-size: 14px; }
+.branding-admin .brand-preview { min-height: 44px; display: flex; align-items: center; }
+.branding-admin .brand-preview img { max-height: 40px; max-width: 220px; }
+.branding-admin .brand-add { display: grid; gap: 8px; max-width: 760px; }
+.branding-admin .brand-add textarea { font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+.branding-admin .button-like { display: inline-block; font: inherit; padding: 6px 14px; border-radius: 6px; border: 1px solid var(--line);
+  background: var(--card); cursor: pointer; }
+.branding-admin .button-like:hover { border-color: var(--accent); }
+.branding-admin .row-gap, .my-look .row-gap { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* Customer journey maps (R5.7-J1) */
+.jm-personas { margin: 4px 0 10px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.jm-persona { border: 1px solid var(--line); background: var(--card); color: var(--ink); }
+.jm-persona.added { background: #dafbe1; border-color: #1a7f37; } .jm-persona.removed { text-decoration: line-through; color: #cf222e; }
+.jm-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
+.jm-grid { border-collapse: separate; border-spacing: 0; width: 100%; table-layout: fixed; font-size: 13px; }
+.jm-grid th, .jm-grid td { border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); padding: 6px; vertical-align: top; text-align: left; }
+.jm-grid th.jm-lab { width: 150px; position: sticky; left: 0; background: var(--bg); z-index: 1; font-weight: 600; }
+.jm-stage { background: #1f5fb8; color: #fff; clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%); }
+.jm-stage .click { cursor: pointer; } .jm-stage .jm-was { display: block; opacity: 0.8; font-weight: 400; }
+.jm-stage.added { background: #dafbe1; color: #116329; } .jm-stage.removed { background: #ffebe9; color: #cf222e; text-decoration: line-through; }
+.jm-stage.changed { background: #fff8c5; color: #7d4e00; }
+.jm-stage-note { font-weight: 400; opacity: 0.85; }
+.jm-stage .jm-edit input { color: var(--ink); }
+.jm-addstage { width: 110px; background: var(--bg); }
+.jm-emotion td { padding: 0; }
+.jm-curve { display: block; width: 100%; height: 120px; }
+.jm-curve .jm-zero { stroke: #8a96a3; stroke-dasharray: 4 4; }
+.jm-curve .jm-sep { stroke: var(--line); }
+.jm-curve .jm-line { fill: none; stroke: var(--accent); stroke-width: 2.5; vector-effect: non-scaling-stroke; }
+.jm-card { background: #fff; border: 1px solid #c9d1d9; border-radius: 6px; padding: 5px 7px; margin-bottom: 5px; line-height: 1.35; color: #1f2328; }
+.jm-card.click { cursor: pointer; } .jm-card.click:hover { border-color: var(--accent); }
+.jm-card.added { background: #dafbe1; border-color: #1a7f37; color: #116329; }
+.jm-card.changed { background: #fff8c5; border-color: #bf8700; }
+.jm-card.removed { background: #ffebe9; border-color: #cf222e; color: #cf222e; }
+.jm-card.removed .jm-text { text-decoration: line-through; }
+.jm-was { color: #cf222e; text-decoration: line-through; font-size: 12px; }
+.jm-fc { margin-right: 5px; font-size: 15px; } .jm-fc s { opacity: 0.6; margin-right: 2px; }
+.jm-note { color: #5b6775; font-size: 11px; margin-top: 2px; }
+.jm-field { color: #3a4450; }
+.jm-add { display: block; opacity: 0.55; } .jm-grid td:hover .jm-add { opacity: 1; }
+.jm-edit { display: flex; flex-direction: column; gap: 4px; }
+.jm-edit input { width: 100%; box-sizing: border-box; }
+.jm-faces { display: inline-flex; gap: 2px; }
+.jm-face { padding: 1px 4px; font-size: 18px; border-radius: 6px; border: 1px solid transparent; background: none; }
+.jm-face.on { border-color: var(--accent); background: var(--accent-soft); }
+.jm-link { margin-bottom: 3px; } .jm-link.added { color: #116329; } .jm-link.removed { color: #cf222e; text-decoration: line-through; }
+.jm-pick { border: 1px solid var(--line); border-radius: 6px; padding: 6px; background: var(--card); }
+.jm-pick input { width: 100%; box-sizing: border-box; }
+.jm-pick ul { list-style: none; padding: 0; margin: 4px 0; max-height: 180px; overflow: auto; }
+.jm-kinds { margin: 10px 0; } .jm-kinds ul { margin: 4px 0 8px 16px; padding: 0; }
+.jm-curve-box { position: relative; height: 120px; }
+.jm-curve-box .jm-curve { position: absolute; inset: 0; }
+.jm-pt { position: absolute; transform: translate(-50%, -50%); font-size: 20px; line-height: 1; cursor: default; }
+/* The theme designer (D735) */
+.theme-designer { border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; background: var(--card); margin: 16px 0; }
+.theme-designer h3 { margin-top: 0; }
+.theme-designer .td-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px 16px; margin: 12px 0; }
+.theme-designer .td-colour { display: flex; align-items: center; gap: 10px; }
+.theme-designer input[type="color"] { width: 44px; height: 32px; padding: 0 2px; border: 1px solid var(--line); background: var(--card); cursor: pointer; }
+.theme-designer .td-sample { padding: 10px; border: 1px dashed var(--line); border-radius: 6px; background: var(--bg); display: flex;
+  flex-wrap: wrap; gap: 10px; align-items: center; }

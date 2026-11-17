@@ -135,6 +135,7 @@ def plan(settings, with_sample: bool) -> list[tuple[str, object]]:
         steps.append(("Sample content: governance, people, calendars, sheets, the board", sample_content))
         steps.append(("Sample key questions in every sample project", sample_questions))
         steps.append(("Sample Business Model Canvases", sample_canvases))
+        steps.append(("Sample customer journeys: today and 2028, linked to the model; one from the starter", sample_journeys))
         steps.append(("Sample drawn views on the demo estate, one as project evidence", sample_drawn_views))
         steps.append(("Sample libraries: the enterprise library and three project libraries", sample_library))
         steps.append(("Sample merge requests and duplicates", sample_merge_dedupe))
@@ -150,6 +151,10 @@ def plan(settings, with_sample: bool) -> list[tuple[str, object]]:
         steps.append(("Sample update history: succeeded, rolled back, not started, scheduled", sample_updates))
         steps.append(("Sample archive: a model archived and one deleted, a project archived", sample_archive))
         steps.append(("Sample derived entity types: Server > Windows Server > Database Server", sample_derived))
+        steps.append(("Sample branding: a theme added beside the four that ship, not chosen", sample_branding))
+        # last: the demo project gathers every kind of content, and demo-super-admin's pins (D734)
+        steps.append(("The demo project: every kind of content in Protea Claims Transformation 2028, pinned for demo-super-admin",
+                      sample_demo))
     if laptop:
         steps.append(("Sample test runs: passed, failed with a screenshot, could not start", sample_tests))
     # the industry packs (D546) are no longer a step here: they load beside these steps, with their own status
@@ -210,6 +215,13 @@ def sample_questions() -> None:
     """Laptop (owner, 9 Nov 2026, D341): key questions in every sample project, in every state, made once per project."""
     from . import sample_questions as sq
     for line in sq.run():
+        _say(line)
+
+
+def sample_journeys() -> None:
+    """Laptop (R5.7-J1): customer journey maps in the sample projects, made once."""
+    from . import sample_journeys as sj
+    for line in sj.run():
         _say(line)
 
 
@@ -328,6 +340,20 @@ def sample_mcp() -> None:
     MCP, and the AI activity log with a call of every kind, made once."""
     from . import sample_mcp as smc
     for line in smc.run():
+        _say(line)
+
+
+def sample_demo() -> None:
+    """Laptop (owner, 17 Nov 2026, 15:18): the demo project with every kind of content, made once part by part."""
+    from . import sample_demo as sd
+    for line in sd.run():
+        _say(line)
+
+
+def sample_branding() -> None:
+    """Laptop (R5.7-B1): a theme added by a Super Admin, not chosen, made once."""
+    from . import sample_branding as sb
+    for line in sb.run():
         _say(line)
 
 

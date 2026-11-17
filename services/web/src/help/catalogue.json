@@ -308,6 +308,16 @@
       "+ New canvas, then fill each box; link boxes to entities in the model."
     ]
   },
+  "tab:Customer journeys": {
+    "what": "The project's customer journey maps: a person's journey with you, stage by stage, with what they do, where they meet you, what hurts, the moments that matter, the opportunities, and how they feel at each step (from -2 to +2, drawn as a curve).",
+    "how": [
+      "+ New journey: start blank or from the starter's typical stages, then click a cell to add or change a part, and a stage's header to rename, move or remove it.",
+      "Give each step a face for how the person feels; the curve above the steps follows them, zero being the line.",
+      "+ link under a stage links it to an element of the project's models (a capability, a business service, an application).",
+      "Make a copy as the target state, change it, then Compare with... to see what was added, changed and removed. Export as PDF, PowerPoint or draw.io.",
+      "Kinds of part and their fields: add a kind of your own, or fields on a standard kind."
+    ]
+  },
   "tab:Business views": {
     "what": "Ready-made business views of the model: value stream maps, capability maps and more.",
     "how": [
@@ -781,6 +791,17 @@
       "Read which to use when: a backup restored here, or DR on another machine.",
       "Pick your system at the top, then copy each command: eax dr-pack to set up a pack, eax-dr to rebuild from it, eax-drill to rehearse.",
       "Run them from the command line; they ask nothing and write a report. Every option is in Documentation › Disaster recovery."
+    ]
+  },
+  "tab:Branding": {
+    "what": "The look of EA Explorer's own screens: the logo, the browser tab's icon, the name in the top bar and the theme. Four themes ship (standard, dark, high contrast, corporate) and Super Admins add their own as CSS.",
+    "how": [
+      "Choose the organisation's theme: it shows at once on your screen so you see how it feels; Save makes it everyone's. Switch on whether each person may pick their own on My profile.",
+      "Upload a logo and a small icon for the browser tab; give a product name, or leave it empty for EA Explorer.",
+      "Theme designer: start from a copy of any theme, change its colours with the colour pickers, its fonts, text size and corners; each change shows at once; Save as a new theme keeps it.",
+      "Fonts: upload your own font (WOFF2, WOFF, TrueType or OpenType) under a family name; it shows in the theme designer's font lists as (uploaded).",
+      "To make a theme: Download CSS of one, change its colours, fonts and corners, and add it under a name. Anything that loads from elsewhere or runs is refused, with the line.",
+      "Anyone who finds a theme hard to read picks Standard look in their own menu; a break-glass session always has it."
     ]
   },
   "tab:Restores": {
@@ -3985,5 +4006,48 @@
   "field:Priority of *": "This kind of job's priority: high runs first, low may miss a turn when the job queue is too full (its next run does the work). Changing it applies to its waiting jobs within a minute; choosing its shipped level puts it back as it ships.",
   "field:Release": "The published releases of the repository's GitHub Releases page newer than the installed version, newest first (RC adds the pre-releases). Choose one to read its release notes below, then Update to this. Nothing from the main branch is ever offered.",
   "field:Repository link (a public GitHub repository)": "The GitHub repository EA Explorer's releases come from, without credentials: its published GitHub Releases are the versions offered. As shipped: https://github.com/gauravvermaea/EA-Explorer.",
-  "field:https://github.com/gauravvermaea/EA-Explorer": "The GitHub repository EA Explorer's releases come from, without credentials: its published GitHub Releases are the versions offered."
+  "field:https://github.com/gauravvermaea/EA-Explorer": "The GitHub repository EA Explorer's releases come from, without credentials: its published GitHub Releases are the versions offered.",
+  "field:Choose a CSS file": "A CSS file from your computer: a theme you downloaded and changed.",
+  "field:Fields": "The kind's own fields, separated by commas, e.g. Owner, Channel.",
+  "field:Find an element": "Words in the element's name or code, in the project's models.",
+  "field:Journey name": "The journey's name, e.g. Make a motor claim.",
+  "field:Kind name": "The name of your own kind of part, e.g. Systems behind it.",
+  "field:Kind of the copy": "What the copy is: a target state, a working copy, a scenario.",
+  "field:My theme": "The theme your screens use; the organisation's is the default.",
+  "field:Name in the top bar": "Your product's name for EA Explorer; empty keeps EA Explorer.",
+  "field:Persona": "Who this journey is about, in a few words.",
+  "field:Stage name": "The stage's name, e.g. Report the claim.",
+  "field:Stage note": "What happens at this stage, in a few words.",
+  "field:Text": "What the part says.",
+  "field:The organisation's theme": "The theme every screen uses unless a person picks their own.",
+  "field:The theme's CSS": "The theme itself: colours, fonts, spacing and corners only.",
+  "field:Theme name": "The theme's name, e.g. Meridian blue.",
+  "field:Which kind": "A new kind of part, or extra fields on a standard kind.",
+  "field:Whose journey": "Whose journey it is, e.g. a motor policyholder.",
+  "button:Add to * in *": "Adds a part of this kind to this stage.",
+  "button:Download CSS": "Saves the theme as a CSS file to change and add back.",
+  "button:Make a copy": "Makes a copy of this journey: a target state, a working copy or a scenario.",
+  "button:Make the journey": "Makes the journey, blank or with the starter's stages.",
+  "button:Take off *": "Takes the link to this element off the stage.",
+  "button:Use the chosen theme again": "Uses the organisation's or your own theme again in this browser.",
+  "button:＋ New journey": "Starts a new customer journey map.",
+  "button:＋ link": "Links this stage to an element of the project's models.",
+  "button:＋ persona": "Adds a persona to the journey.",
+  "button:＋ stage": "Adds a stage at the end of the journey.",
+  "button:try it": "Shows this theme on your screen now; Save keeps it.",
+  "field:Corners": "How round the corners of buttons, boxes and fields are.",
+  "field:Designed theme's name": "The name your theme is saved under.",
+  "field:Headings font": "The font of the headings: one the computers already have.",
+  "field:Start from a copy of": "The theme to start from: your theme is a copy of it, changed.",
+  "field:Text font": "The font of the text: one the computers already have.",
+  "field:Text size": "The size of the text, in pixels.",
+  "button:A button": "A sample: shows how buttons look in the theme you are designing.",
+  "button:A primary button": "A sample: shows how the main buttons look in the theme you are designing.",
+  "button:Save as a new theme": "Keeps the design as a theme of your own; choose it above to use it.",
+  "button:Save changes": "Keeps your changes to the theme you made before.",
+  "button:Stop designing": "Goes back to the theme in use, keeping nothing.",
+  "field:Font family name": "The name a theme uses for the font, e.g. Meridian Sans; the same name for its bold and italic files.",
+  "field:Font style": "Upright or italic: which file of the family this is.",
+  "field:Font weight": "Regular or bold: which file of the family this is.",
+  "button:Upload the font": "Keeps the font file; then choose it in the theme designer."
 }
