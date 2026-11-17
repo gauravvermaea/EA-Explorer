@@ -21,11 +21,10 @@ services:
       driver: json-file
       options: { max-size: "10m", max-file: "5" }
     entrypoint: ["/bin/sh", "/eax-pg/standby-entrypoint.sh"]
+    secrets: [EAX_DB_SUPERUSER_PASSWORD, EAX_REPLICATION_PASSWORD]   # R6-F1: files, never environment variables
     environment:
       PRIMARY_HOST: ${EAX_STANDBY_PRIMARY_HOST:-db}
       PRIMARY_PORT: ${EAX_STANDBY_PRIMARY_PORT:-5432}
-      POSTGRES_PASSWORD: ${EAX_DB_SUPERUSER_PASSWORD:?set EAX_DB_SUPERUSER_PASSWORD}
-      EAX_REPLICATION_PASSWORD: ${EAX_REPLICATION_PASSWORD:?set EAX_REPLICATION_PASSWORD for the standby}
       PGDATA: /var/lib/postgresql/data
     volumes:
       - ${EAX_STANDBY_DATA_DIR:-eax-pgdata-standby}:/var/lib/postgresql/data
@@ -36,6 +35,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 30
+
+secrets:
+  EAX_REPLICATION_PASSWORD:
+    environment: EAX_REPLICATION_PASSWORD
 
 volumes:
   eax-pgdata-standby:

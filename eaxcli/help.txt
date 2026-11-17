@@ -517,21 +517,42 @@ and run {eax} up. A standby is not a backup: the nightly backups stay.
 $ {eax} standby
 $ {eax} standby promote
 
-### secrets [show|push|pull] [--to|--from provider:name]
-> Keeps the passwords in a key vault (a file, AWS, Azure) or takes them back from it.
-The passwords and keys in work/eaexplorer.env can be kept in a key vault as well (D504): file:<path> (a file outside
-the installation, readable by its owner only; also on a DigitalOcean Droplet), aws:<secret name> (Secrets Manager,
-one secret holding them all) or azure:<vault name> (Key Vault, one secret each). The config file says which
-(EAX_SECRETS_FROM). Docker Compose still reads them from the config file when it starts.
-OpenBao (R4.19) is switched off for now (owner, 14 Nov 2026): no installation keeps its passwords there; pull brings
-back the values of one that did.
-  show           where they are kept (the default).
-  push           the config file's values into the vault (eax deploy does this once when you choose a vault).
-  pull           the vault's values into the config file (a dated copy of the file first, in work/config-history),
-                 e.g. after rebuilding the server or rotating a password; then restart.
+### secrets [show|rotate|set|fill|push|pull] [KEY] [--due] [--to|--from file:PATH] [--by WHO]
+> The passwords and keys: their ages, rotating them, and a copy in a file outside the installation.
+Every password and key lives in work/eaexplorer.env and reaches each container as a file of its own (Docker secrets,
+R6-F1), never as an environment variable. No key vault and no cloud service is used (D744, D746).
+  show           every one by name (never its value): how it changes, when it last changed, when it is next due.
+  rotate KEY     a new value now: a database login is changed in the database too, a sign-in client's secret in
+                 Keycloak too; the services that use it are made again (a few seconds each).
+  rotate --due   every one that is due (every 90 days: EAX_ROTATE_PASSWORD_DAYS). A schedule runs this every night at
+                 03:17 (System Admin > Commands > Schedules). A laptop keeps its passwords unless EAX_ROTATE_ON_LAPTOP=on.
+                 What needs a person (the break-glass password, the mail server's, Keycloak's admin) is never rotated
+                 here: the admins are alerted at 30, 14 and 7 days (System Admin > Alerts and > Secrets).
+  set KEY        a value you type (after changing it where it is also kept, e.g. the mail server).
+  fill           the settings a newer release added, put at the end of the config file (a password made strong
+                 and random on a server). eax up does this first, so an update needs no hand editing.
+  push --to file:<path>     a copy of every value in a file outside the installation, readable by its owner only.
+  pull --from file:<path>   the values back from such a file (a dated copy of the config file first); then restart.
+Every restore of the databases and every DR sets each database login's password to the config file in use (R6-D1).
 $ {eax} secrets
-$ {eax} secrets push --to aws:eaexplorer/prod
-$ {eax} secrets pull
+$ {eax} secrets rotate EAX_DB_PASSWORD
+$ {eax} secrets rotate --due
+
+### certs [list|renew|revoke|switch] [WHAT] [--force] [--authority]
+> Certificate mode: EA Explorer's own certificates, which the services sign in to the database with.
+With EAX_AUTH_MODE=certificate the setup service makes EA Explorer's own certificate authority and a certificate for
+each service at every start, on this machine, in the Docker volume eax-certs: never in a backup or a DR pack (a DR copy
+makes its own). The database then accepts only TLS, each service by its certificate, only for its own logins.
+  list           every certificate: who issued it, until when (the default).
+  renew          each one that is due made again (two-thirds of its 30 days gone: EAX_CERT_DAYS); a schedule runs this
+                 every night at 02:41. --force: every one now. --authority: a new authority and every certificate with
+                 it (about every ten years; the database and the services are made again).
+  revoke WHAT    a service's certificate refused at once and a new one issued (WHAT: api, library, views,
+                 keycloak, reports or dms).
+  switch WHAT    how the services sign in, certificate or password (EAX_AUTH_MODE); then eax restart.
+$ {eax} certs
+$ {eax} certs revoke api
+$ {eax} certs switch certificate
 
 ### trust [--remove]
 > Makes the browser trust EA Explorer's local certificate (no more warnings on https://localhost).
@@ -556,14 +577,16 @@ $ {eax} allow add site 10.20.0.0/16 head office
 
 ## Site and deploy
 
-### init [laptop|server]
+### init [laptop|server] [--certificate|--password]
 > Creates the config file work/eaexplorer.env and the work folders. Never overwrites a config file.
-Made from the template for the deployment kind (laptop if not given). Nothing is generated: on a laptop every
-password is P^55w0rd1234&; on a server, replace every change-me value in work/eaexplorer.env before starting.
+Made from the template for the deployment kind (laptop if not given). On a laptop every password is P^55w0rd1234&, as
+before; on a server every password and key is made here, strong and random (R6-C1). --certificate or --password says
+how the services sign in to each other (see certs); with neither, the choice made last time on this machine, else it
+asks, else a laptop uses passwords and a server certificates.
 A server asks for the base folder for all the data (EAX_DATA_ROOT, /srv/eax if nothing is typed; R5.4): a folder
 for each kind goes under it (see folders). A laptop keeps its Docker volumes and work/ unless EAX_DATA_ROOT is set.
 $ {eax} init
-$ {eax} init server
+$ {eax} init server --certificate
 
 ### folders [show]
 > Where the data lives: the base folder and a folder for each kind, where each is and the space free.
@@ -577,22 +600,19 @@ first: a base folder that is not there, or a folder that cannot be written, stop
 folder is (this machine's own disk or a mount) never does. Without EAX_DATA_ROOT nothing changes.
 $ {eax} folders
 
-### deploy [--console|--web] [--kind laptop|server|aws|azure|digitalocean] [--plan] [--yes]
-> Guided deployment: this laptop, a server (here or over SSH), AWS, Azure or DigitalOcean.
+### deploy [--console|--web] [--kind laptop|server] [--plan] [--yes]
+> Guided deployment: this laptop, or a server (here or over SSH, wherever it runs).
 The deployment wizard (D498). It first asks whether to carry on here in the console or in a web page it opens in your
 browser (served by eax itself, before EA Explorer is up); --console or --web skip that question. Then it asks where:
   laptop         this computer: makes the config file if there is none, starts EA Explorer, checks it is healthy.
   server         a Linux server: this one, or another one over SSH from here (a user who may use sudo, signed in
                  with your SSH key). Docker is installed if it is missing; the release is downloaded onto it.
-  aws, azure, digitalocean
-                 creates the machine from your cloud credentials (the aws, az or doctl command must be installed
-                 here): the machine, a data disk, the firewall, a fixed address, storage for off-site backups, the
-                 DNS names; or uses a machine you already have, over SSH.
-For a server or a cloud machine it makes the config file with every password generated, your certificate or a
-self-signed one, starts EA Explorer, checks it is healthy and shows the address and the first sign-in. It can also
-keep the passwords in a key vault (see secrets) and move an existing installation there from one of its
-infrastructure backups. Every step is in work/logs/eax-<time>-deploy.log (passwords masked); a step that fails
-asks: retry, back to the answers, or quit. Cloud credentials are used for this run only unless you ask to keep them.
+A machine in any cloud is a server: make it there, then deploy to it over SSH (no platform-specific code, D746).
+For a server it makes the config file with every password generated and how the services sign in (certificate or
+password; the certificates are made on the server itself, never here), your certificate or a self-signed one, starts
+EA Explorer, checks it is healthy and shows the address and the first sign-in. It can also move an existing
+installation there from one of its infrastructure backups. Every step is in work/logs/eax-<time>-deploy.log (passwords
+masked); a step that fails asks: retry, back to the answers, or quit.
   --plan         show every step and every command it would run, and run nothing.
   --kind K       answer the first question; --answers file.json or --set key=value answer others (the answers'
                  names are shown before it starts); --yes runs without asking (every answer given or default).

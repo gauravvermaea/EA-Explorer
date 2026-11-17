@@ -1,4 +1,6 @@
-"""The SQL window: POST /api/v1/sql/query runs SQL with a PostgreSQL login (see eax/sqlconsole.py)."""
+"""The SQL window: POST /api/v1/sql/query runs SQL (see eax/sqlconsole.py). In password mode a database user and password
+are typed, as before Release 6 (owner, 17 Nov 2026, 20:45: "if username + password is used it comes prepopulated like
+now"); in certificate mode nobody types one: the window's own login for the person's role (D742)."""
 
 from __future__ import annotations
 
@@ -14,8 +16,29 @@ from .schemas import SqlQueryIn, SqlQueryOut
 
 blp = Blueprint(
     "sql", __name__, url_prefix="/api/v1/sql",
-    description="SQL window: run queries with a database login (laptops; Super Admin and IT Admin only)",
+    description="SQL window: run queries as the window's own login for your role (Super Admin and IT Admin only; D742)",
 )
+
+
+def _console() -> tuple[str, str]:
+    """The window's login for the person signed in: a Super Admin's, else an IT Admin's (D742)."""
+    from ..permissions import SUPER_ADMIN
+    return sqlconsole.console_login(g.user.has_role(SUPER_ADMIN))
+
+
+def _creds(data: dict) -> tuple[str, str]:
+    """The login a run uses: the typed user and password in password mode (as before Release 6), the window's own
+    login for the person's role in certificate mode (D742, D752)."""
+    if not sqlconsole.typed_login():
+        return _console()
+    user, pw = str(data.get("username") or ""), str(data.get("password") or "")
+    if not user or not pw:
+        abort(400, message="Give the database user and password (the services sign in with passwords here).")
+    return user, pw
+
+
+def _who(query: dict) -> str:
+    return str(query.get("username") or "") if sqlconsole.typed_login() else _console()[0]
 
 
 def _audit(query: dict, outcome: str, **extra) -> None:
@@ -24,7 +47,7 @@ def _audit(query: dict, outcome: str, **extra) -> None:
             audit.record(conn, actor=g.user.username, action="sql.query", object_type="database",
                          object_id=query.get("database") or "eaexplorer", source="api",
                          request_id=getattr(g, "request_id", None),
-                         details={"db_user": query["username"],
+                         details={"db_user": _who(query),
                                   "outcome": outcome, "sql": query["sql"][:2000], **extra})
     except Exception:  # the audit must never hide the query's own result
         pass
@@ -48,8 +71,7 @@ class SqlQuery(MethodView):
         if not sqlconsole.enabled():
             abort(404, message="The SQL window is turned off on this installation (EAX_SQL_CONSOLE_ENABLED=false).")
         try:
-            result = sqlconsole.run(query.get("database") or "", query["username"], query["password"],
-                                    query["sql"], bool(query.get("keep")))
+            result = sqlconsole.run(query.get("database") or "", *_creds(query), query["sql"], bool(query.get("keep")))
         except sqlconsole.SqlConsoleError as exc:
             _audit(query, "error", error=str(exc)[:500])
             abort(exc.status, message=str(exc), errors=exc.details)
@@ -69,7 +91,8 @@ class SqlDatabases(MethodView):
         if not sqlconsole.enabled():
             abort(404, message="The SQL window is turned off on this installation (EAX_SQL_CONSOLE_ENABLED=false).")
         dbs = sqlconsole.databases()
-        return {"databases": dbs, "about": {d: sqlconsole.ABOUT_DATABASES.get(d, "") for d in dbs}}
+        return {"databases": dbs, "about": {d: sqlconsole.ABOUT_DATABASES.get(d, "") for d in dbs},
+                "typed": sqlconsole.typed_login(), "username": sqlconsole.DEFAULT_USER}
 
 
 @blp.route("/schema")
@@ -121,7 +144,7 @@ class SqlSchema(MethodView):
 def _login(data: dict) -> tuple[str, str, str]:
     if not sqlconsole.enabled():
         abort(404, message="The SQL window is turned off on this installation (EAX_SQL_CONSOLE_ENABLED=false).")
-    return str(data.get("database") or ""), str(data.get("username") or ""), str(data.get("password") or "")
+    return (str(data.get("database") or ""), *_creds(data))
 
 
 def _guard(fn, *args, **kw):
@@ -133,28 +156,28 @@ def _guard(fn, *args, **kw):
 
 @blp.route("/browse")
 class SqlBrowse(MethodView):
-    """/api/v1/sql/browse: POST the tree of a database {database, username, password}: its schemas, tables and views
+    """/api/v1/sql/browse: POST the tree of a database {database}: its schemas, tables and views
     that the login may read, with estimated rows and size (R2.57)."""
     @blp.doc(security=[{"bearerAuth": []}])
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
     @require_auth("system.operate")
     def post(self, data):
-        """The tree of a database {database, username, password}: its schemas, tables and views that the login may read,
+        """The tree of a database {database}: its schemas, tables and views that the login may read,
         with estimated rows and size (R2.57)"""
         return _guard(sqlconsole.browse, *_login(data or {}))
 
 
 @blp.route("/describe")
 class SqlDescribe(MethodView):
-    """/api/v1/sql/describe: POST a table's or view's structure {database, username, password, schema, table}:
+    """/api/v1/sql/describe: POST a table's or view's structure {database, schema, table}:
     columns, indexes, constraints, size, rows, a view's definition (R2.57)."""
     @blp.doc(security=[{"bearerAuth": []}])
     @blp.arguments(FreeIn)
     @blp.response(200, Free)
     @require_auth("system.operate")
     def post(self, data):
-        """A table's or view's structure {database, username, password, schema, table}: columns, indexes, constraints,
+        """A table's or view's structure {database, schema, table}: columns, indexes, constraints,
         size, rows, a view's definition (R2.57)"""
         data = data or {}
         return _guard(sqlconsole.describe, *_login(data), str(data.get("schema") or ""), str(data.get("table") or ""))

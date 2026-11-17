@@ -30,7 +30,6 @@ from .core import (
     setting,
     start_log,
     stop_log,
-    vault_keys_file,
     version,
 )
 
@@ -39,6 +38,15 @@ DOCKER_COMMANDS = {"check", "up", "start-later", "debug", "status", "logs", "dow
                    "stop-backup", "services", "service", "import", "update", "rollback", "test", "standby"}
 KEEP = ("tls",)                       # in work/data: the local certificate, kept by cleanup (D107)
 KEEP_WORK = ("data", "tools")         # in work: data (its tls kept) and tools (uv and its Python, D331)
+
+
+def _fill_config() -> None:
+    """A newer release's new settings (and their passwords, made here) added before anything starts (R6)."""
+    try:
+        from . import secrets
+        secrets.fill(say_=say)
+    except Exception as exc:  # noqa: BLE001 - a start never fails because of it; eax secrets fill says why
+        say(f"The config file could not be brought up to date ({exc}): {EAX} secrets fill", "yellow")
 
 
 def _packs_auto() -> None:
@@ -272,53 +280,80 @@ def console(options: list[str]) -> None:
 
 
 # ---------------------------------------------------------------- init, check, the dispatch
+AUTH_MODES = {"certificate": "Certificates: EA Explorer's own, renewed by themselves; no internal passwords (R6-C1)",
+              "password": "Passwords: as before, rotated by themselves every 90 days (R6-R1)"}
+
+
+def auth_mode(rest: list[str], kind_: str, ask=input, tty: bool | None = None) -> tuple[str, str]:
+    """How the services sign in to each other (R6-C1, D743): --certificate or --password; with neither, the choice made
+    the last time on this machine (persist/, so a clean restart does not ask again), else asked when a person is at the
+    keyboard, else password on a laptop and certificate on a server. Returns (mode, how it was decided)."""
+    import sys
+
+    from . import persist as P
+    if "--certificate" in rest and "--password" in rest:
+        raise Failure("--certificate or --password, not both.")
+    if "--certificate" in rest or "--password" in rest:
+        return ("certificate" if "--certificate" in rest else "password"), "given"
+    kept = P.read_json(P.folder() / "auth.json", {})[0].get("mode")
+    if kept in AUTH_MODES:
+        return kept, "as chosen before"
+    if tty if tty is not None else sys.stdin.isatty():
+        say("How should EA Explorer's services sign in to each other?")
+        for i, v in enumerate(AUTH_MODES.values(), 1):
+            say(f"  {i}  {v}")
+        default = "2" if kind_ == "laptop" else "1"
+        got = (ask(f"Choose 1 or 2 [{default}]: ").strip() or default)
+        return ("certificate" if got in ("1", "certificate") else "password"), "asked"
+    return ("password" if kind_ == "laptop" else "certificate"), "the default"
+
+
 def init(rest: list[str]) -> None:
-    """eax init: the config file from the laptop or server template."""
-    kind_ = rest[0] if rest else "laptop"
+    """eax init [laptop|server] [--certificate|--password]: the config file from the laptop or server template. A server
+    gets strong random passwords made here (R6-C1); a laptop keeps the template's (laptop users carry on as before)."""
+    import re
+
+    from . import persist as P
+    from .secrets import generate
+    words = [w for w in rest if not w.startswith("--")]
+    kind_ = words[0] if words else "laptop"
     template = ROOT / "deploy" / "templates" / f"eaexplorer.{kind_}.env"
     if ENV_FILE.exists():
         raise Failure(f"{ENV_REL} already exists; not overwriting. Use {EAX} cleanup to start again.")
     if not template.exists():
         raise Failure(f"Unknown deployment kind: {kind_}")
+    mode, how = auth_mode(rest, kind_)
     for d in ("logs", "backups", "proxy", "data/imports", "data/exports", "data/tls"):
         (WORK / d).mkdir(parents=True, exist_ok=True)
-    # UTF-8 without BOM and LF endings (Docker Compose reads it cleanly). With the key vault (R4.19, D684; the default,
-    # laptop and server alike): every password and key a reference to OpenBao, each value made there at the first eax up
+    # UTF-8 without BOM and LF endings (Docker Compose reads it cleanly)
     text = "\n".join(template.read_text(encoding="utf-8").splitlines()) + "\n"
-    use_vault = vault_on() and "--no-vault" not in rest        # R4.19: switched off for now (vault.ALLOWED)
-    if use_vault:
-        text = with_vault(text)
-    ENV_FILE.write_text(text, encoding="utf-8", newline="\n")
-    say(f"Created {ENV_REL} ({kind_}) from deploy/templates/eaexplorer.{kind_}.env.")
-    if kind_ != "laptop":
-        _ask_base_folder()
-    if use_vault:
-        say(f"Every password and key is made in the key vault (OpenBao) at the first {EAX} up and kept there; {ENV_REL} "
-            f"holds references only. {EAX} logins shows them; the vault's keys: {_shown(vault_keys_file())}.")
-    elif kind_ == "laptop":
-        info.show_logins()
+    made = 0
+    if kind_ != "laptop":                   # every change-me password made here, strong and random (R6-C1)
+        keys = [m.group(1) for m in re.finditer(r"^([A-Z0-9_]+)=change-me", text, re.MULTILINE)]
+        values = generate(keys)
+        text = re.sub(r"^([A-Z0-9_]+)=change-me.*$", lambda m: f"{m.group(1)}={values.get(m.group(1), m.group(0))}", text,
+                      flags=re.MULTILINE)
+        made = len(values)
+    if re.search(r"^EAX_AUTH_MODE=", text, re.MULTILINE):
+        text = re.sub(r"^EAX_AUTH_MODE=.*$", f"EAX_AUTH_MODE={mode}", text, flags=re.MULTILINE)
     else:
-        say(f"Now replace every change-me value in {ENV_REL} with your own passwords before {EAX} up.")
-
-
-def vault_on() -> bool:
-    """Whether the key vault may be used (it is switched off)."""
-    from . import vault
-    return vault.ALLOWED
-
-
-def _shown(p: Path) -> str:
-    return str(p.relative_to(ROOT)) if p.is_relative_to(ROOT) else str(p)
-
-
-def with_vault(text: str) -> str:
-    """The config file with every password and key (each the server template holds as change-me) a reference to the
-    key vault, and the vault named (EAX_SECRETS_FROM)."""
-    from . import vault
-    from .deploy import secret_values
-    text = vault.with_references(text, secret_values(text))
-    return text.rstrip("\n") + ("\n\n# ---- The key vault (R4.19): every password and key in OpenBao, references above "
-                                "(eax secrets) ----\n" f"EAX_SECRETS_FROM=openbao:{vault.DEFAULT_WHERE}\n")
+        text = text.rstrip("\n") + f"\n\n# How the services sign in to each other (R6-C1)\nEAX_AUTH_MODE={mode}\n"
+    ENV_FILE.write_text(text, encoding="utf-8", newline="\n")
+    try:
+        ENV_FILE.chmod(0o600)
+    except OSError:
+        pass
+    try:
+        P.write_json(P.folder() / "auth.json", {"mode": mode})
+    except Exception:  # noqa: BLE001 - remembering the choice is a convenience
+        pass
+    say(f"Created {ENV_REL} ({kind_}) from deploy/templates/eaexplorer.{kind_}.env; the services sign in with "
+        f"{'certificates' if mode == 'certificate' else 'passwords'} ({how}; {EAX} init --certificate or --password to choose).")
+    if kind_ != "laptop":
+        say(f"{made} passwords and keys were made, strong and random; {EAX} secrets shows them by name, never their values.")
+        _ask_base_folder()
+    else:
+        info.show_logins()
 
 
 BASE_ASK = ("Base folder for all the data (databases, documents, logs, backups, imports, exports, certificates, "
@@ -374,6 +409,7 @@ def dispatch(command: str, rest: list[str], wait_all: bool) -> None:
         check()
     elif command == "up":
         if not rest:                               # the industry packs first (D584); never fatal
+            _fill_config()
             _packs_auto()
         page = stack.upgrade_page(not rest)        # an upgrade (D230): the maintenance page while it rebuilds
         try:
@@ -390,6 +426,7 @@ def dispatch(command: str, rest: list[str], wait_all: bool) -> None:
         stack.later()
     elif command == "debug":
         if not rest:
+            _fill_config()
             _packs_auto()
         code = stack.up(rest, wait_all, no_throw=True)
         if code != 0:
@@ -634,12 +671,15 @@ def main(argv: list[str]) -> int:
         if command == "packs":                  # the industry packs (phase 39, D546): one Python program for every form
             from . import packs
             return packs.main(rest)
+        if command == "certs":                  # certificate mode (R6-C1, D743)
+            from . import certs
+            return certs.main(rest)
         if command in ("deploy", "secrets"):    # phase 36 (D498, D504): one Python program for every form (D500)
             if command == "deploy":
                 from . import deploy
                 return deploy.main(rest)
-            from . import secrets as vault
-            return vault.main(rest)
+            from . import secrets
+            return secrets.main(rest)
     except (Failure, KeyboardInterrupt) as exc:
         say(f"ERROR: {exc}" if isinstance(exc, Failure) else "Stopped.", "red")
         return 1

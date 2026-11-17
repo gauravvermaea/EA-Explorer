@@ -170,58 +170,29 @@ function Get-Setting([string]$Name, [string]$Default = "") {
     $v = ($line -split "=", 2)[1].Trim()
     # strip surrounding single or double quotes
     if ($v.Length -ge 2 -and (($v.StartsWith("'") -and $v.EndsWith("'")) -or ($v.StartsWith('"') -and $v.EndsWith('"')))) { $v = $v.Substring(1, $v.Length - 2) }
-    if ($v.StartsWith("openbao:")) {                      # a reference: the key vault's value (R4.19)
-        Use-VaultEnv
-        $v = [Environment]::GetEnvironmentVariable($Name)
-        if (-not $v) { $v = "" }
-    }
     if ($v -eq "") { return $Default } else { return $v }
 }
 
-# the key vault (R4.19, D684): with EAX_SECRETS_FROM=openbao:..., its container is in every compose command (profile
-# "vault") and, before containers are made, the values behind the config file's references are read into this
-# session's own environment (eaxpy secrets env: over a pipe, never a file); docker compose takes them from there
-function Use-VaultProfile {
+# the services' own config (R6-F1, D745): work/config.env, the config file without its passwords and keys (each value the
+# server template holds as change-me), is what the containers read as their settings; the passwords and keys reach
+# them as files of their own (Docker secrets: docker-compose.yml's secrets, from this command's --env-file), never as
+# environment variables. Written before every compose command, so it never falls behind the config file.
+function Write-ServiceEnv {
     if (-not (Test-Path $EnvFile)) { return }
-    if (-not (Select-String -Path $EnvFile -Pattern "^EAX_SECRETS_FROM=openbao:" -Quiet)) { return }
-    $have = @(($env:COMPOSE_PROFILES -split ",") | Where-Object { $_ })
-    if ($have -notcontains "vault") { $env:COMPOSE_PROFILES = (@($have) + "vault") -join "," }
-}
-
-function Use-VaultEnv {
-    if ($env:EAX_VAULT_RESOLVED) { return }
-    if (-not (Test-Path $EnvFile)) { return }
-    if (-not (Select-String -Path $EnvFile -Pattern "^EAX_SECRETS_FROM=openbao:" -Quiet)) { return }
-    if (-not (Select-String -Path $EnvFile -Pattern "^[A-Z0-9_]+=openbao:" -Quiet)) { return }
-    Use-VaultProfile
-    $lines = & (Join-Path $PSScriptRoot "eaxpy.ps1") secrets env
-    if ($LASTEXITCODE -ne 0) { throw "The key vault (OpenBao) could not be read: .\eaxpy secrets" }
-    foreach ($line in @($lines)) {
-        $i = "$line".IndexOf("=")
-        if ($i -gt 0) { [Environment]::SetEnvironmentVariable("$line".Substring(0, $i), "$line".Substring($i + 1)) }
+    $keys = @{}
+    foreach ($l in Get-Content -Encoding UTF8 "deploy/templates/eaexplorer.server.env") { if ($l -match '^([A-Z0-9_]+)=change-me') { $keys[$Matches[1]] = 1 } }
+    foreach ($k in @("EAX_SMTP_PASSWORD", "EAX_MCP_DEV_TOKEN", "EAX_REMOTE_SECRET_KEY", "EAX_REPLICATION_PASSWORD", "EAX_TEST_USER_PASSWORD", "EAX_ARCHIVE_DB_URL", "EAX_CHANGELOG_DB_URL", "EAX_FARM_DB_URL", "EAX_FILES_DB_URL", "EAX_LIBRARY_MODELS_DB_URL", "EAX_OPERATIONS_DB_URL", "EAX_PERSONAL_DB_URL", "EAX_PROJECTS_DB_URL", "EAX_TESTS_DB_URL")) { $keys[$k] = 1 }
+    $kept = New-Object System.Collections.Generic.List[string]
+    $kept.Add("# Written by eax from eaexplorer.env without its passwords and keys (R6-F1). Do not edit; change eaexplorer.env.")
+    foreach ($l in Get-Content -Encoding UTF8 $EnvFile) {
+        if ($l -match '^([A-Z0-9_]+)=' -and $keys.ContainsKey($Matches[1])) { continue }
+        $kept.Add($l)
     }
-    $env:EAX_VAULT_RESOLVED = "1"
+    [System.IO.File]::WriteAllText((Join-Path $PSScriptRoot "work/config.env"), (($kept -join "`n") + "`n"), $Utf8)
 }
 
 # where the data lives (R5.4, D687): with one base folder (EAX_DATA_ROOT), each folder is made and checked and its
 # value put in this session's environment before containers are made (eaxpy folders env); docker compose takes them
-# a server or platform keeps all its data under one base folder (R5.4, D687; it replaced the backups question, R2.44):
-# asked by init, kept as EAX_DATA_ROOT (the template's /srv/eax when nothing is typed)
-function Set-BaseFolder {
-    $path = Join-Path $PSScriptRoot $EnvFile
-    $content = [System.IO.File]::ReadAllText($path)
-    $default = "/srv/eax"
-    $m = [regex]::Match($content, "(?m)^EAX_DATA_ROOT=(.*)$")
-    if ($m.Success -and $m.Groups[1].Value.Trim()) { $default = $m.Groups[1].Value.Trim() }
-    $bdir = ""
-    try { $bdir = Read-Host "Base folder for all the data (databases, documents, logs, backups, imports, exports, certificates, reports); mount what you want onto its folders later [$default]" } catch { $bdir = "" }
-    if (-not $bdir) { $bdir = $default }
-    if ($m.Success) { $content = [regex]::Replace($content, "(?m)^EAX_DATA_ROOT=.*$", "EAX_DATA_ROOT=$bdir") }
-    else { $content = $content.TrimEnd("`n") + "`nEAX_DATA_ROOT=$bdir`n" }
-    [System.IO.File]::WriteAllText($path, $content, $Utf8)
-    Write-Log "All the data goes under $bdir (EAX_DATA_ROOT), a folder for each kind, made at the first .\eax up; .\eax folders shows them."
-}
-
 function Use-DataFolders {
     if ($env:EAX_FOLDERS_RESOLVED) { return }
     if (-not (Test-Path $EnvFile)) { return }
@@ -255,8 +226,8 @@ function Get-ComposeArgs([string[]]$Arguments) {
     $env:EAX_BUILD = Get-BuildId
     if (-not $env:EAX_COMMIT) { $env:EAX_COMMIT = "$(Invoke-Quiet git @("rev-parse", "HEAD"))".Trim() }
     if (-not $env:EAX_BUILT_AT) { $env:EAX_BUILT_AT = "$(Invoke-Quiet git @("log", "-1", "--format=%cI"))".Trim() }
-    Use-VaultProfile
-    if ($Arguments.Count -gt 0 -and @("up", "run", "create") -contains $Arguments[0]) { Use-VaultEnv; Use-DataFolders }
+    Write-ServiceEnv
+    if ($Arguments.Count -gt 0 -and @("up", "run", "create") -contains $Arguments[0]) { Use-DataFolders }
     $kind = Get-Setting "EAX_DEPLOYMENT" "laptop"
     # plain progress and no colour codes, so the log reads cleanly
     # scale-out extra files (phase 36.3, D521): EAX_COMPOSE_EXTRA=standby,shared-storage... (deploy/compose/scale)
@@ -266,6 +237,8 @@ function Get-ComposeArgs([string[]]$Arguments) {
         if (-not (Test-Path $f)) { throw "EAX_COMPOSE_EXTRA names $x, but there is no $f." }
         $extra += @("-f", $f)
     }
+    # certificate mode (R6-C1, D743): the services sign in to the database with EA Explorer's own certificates
+    if ((Get-Setting "EAX_AUTH_MODE" "password") -eq "certificate") { $extra += @("-f", "deploy/compose/auth/docker-compose.certificate.yml") }
     return @("compose", "--ansi", "never", "--progress", "plain", "--env-file", $EnvFile,
              "-f", "docker-compose.yml", "-f", "deploy/compose/docker-compose.$kind.yml") + $extra + $Arguments
 }
@@ -1035,7 +1008,7 @@ if ($Command -eq "menu") {   # the numbered menu (R2.29): one Python program for
     & (Join-Path $PSScriptRoot "eaxpy.ps1") menu
     exit $LASTEXITCODE
 }
-if (($Command -in @("deploy", "secrets", "packs", "schedule", "persist", "folders", "allow", "drill", "dr-pack", "sign", "verify", "db", "ticket", "jobs", "optimise", "estimate", "dev")) -or ($Command -eq "logs" -and $RestArgs.Count -gt 0 -and $RestArgs[0] -in @("backup", "clean")) -or ($Command -eq "test" -and ($RestArgs -contains "--reset-survival" -or $RestArgs -contains "backup-restore" -or $RestArgs -contains "restore" -or $RestArgs -contains "full"))) {   # packs (D546); schedule (D559); test --reset-survival (D561); test backup-restore, restore, full (R5.6-B1)
+if (($Command -in @("init", "certs", "deploy", "secrets", "packs", "schedule", "persist", "folders", "allow", "drill", "dr-pack", "sign", "verify", "db", "ticket", "jobs", "optimise", "estimate", "dev")) -or ($Command -eq "logs" -and $RestArgs.Count -gt 0 -and $RestArgs[0] -in @("backup", "clean")) -or ($Command -eq "test" -and ($RestArgs -contains "--reset-survival" -or $RestArgs -contains "backup-restore" -or $RestArgs -contains "restore" -or $RestArgs -contains "full"))) {   # packs (D546); schedule (D559); test --reset-survival (D561); test backup-restore, restore, full (R5.6-B1)
     # phase 36 (D498, D504): one Python program for every form (D500); eaxpy.ps1 fetches uv and Python into work\tools
     & (Join-Path $PSScriptRoot "eaxpy.ps1") $Command @RestArgs
     exit $LASTEXITCODE
@@ -1059,34 +1032,6 @@ try {
     if ($Command -in @("check", "up", "start-later", "debug", "status", "logs", "down", "backup", "backups", "restore", "restores", "restore-log", "databases", "footprint",
                        "delete-backup", "delete-restore", "app-backup", "restore-model", "restore-app", "stop-backup", "services", "service", "import", "update", "rollback", "test", "standby")) { Assert-Docker }
     switch ($Command) {
-        "init" {
-            $kind = if ($RestArgs.Count -gt 0) { $RestArgs[0] } else { "laptop" }
-            $template = "deploy/templates/eaexplorer.$kind.env"
-            if (Test-Path $EnvFile) { throw "$EnvFile already exists; not overwriting. Use .\eax cleanup to start again." }
-            if (-not (Test-Path $template)) { throw "Unknown deployment kind: $kind" }
-            # Plain copy, UTF-8 without BOM and LF endings (Docker Compose reads it cleanly). No passwords are generated.
-            foreach ($d in "work/logs", "work/backups", "work/proxy", "work/data/imports", "work/data/exports", "work/data/tls") { New-Item -ItemType Directory -Force -Path $d | Out-Null }
-            $lines = Get-Content $template
-            # the key vault (R4.19, D684; the default, laptop and server alike): every password and key (each one the
-            # server template holds as change-me) a reference to OpenBao, made there at the first .\eax up
-            $useVault = $false   # R4.19: OpenBao switched off for now (owner, 14 Nov 2026); was: -not ($RestArgs -contains "--no-vault")
-            if ($useVault) {
-                $keys = @(Get-Content "deploy/templates/eaexplorer.server.env" | Where-Object { $_ -match "^[A-Z0-9_]+=change-me" } | ForEach-Object { ($_ -split "=", 2)[0] })
-                $lines = @($lines | ForEach-Object { $k = ($_ -split "=", 2)[0]; if ($_ -match "^[A-Z0-9_]+=" -and $keys -contains $k) { "$k=openbao:$k" } else { $_ } })
-                $lines += @("", "# ---- The key vault (R4.19): every password and key in OpenBao, references above (eax secrets) ----", "EAX_SECRETS_FROM=openbao:eax/eaexplorer")
-            }
-            [System.IO.File]::WriteAllText((Join-Path $PSScriptRoot $EnvFile), (($lines -join "`n") + "`n"), $Utf8)
-            Write-Log "Created $EnvFile ($kind) from $template."
-            if ($useVault) {
-                Write-Log "Every password and key is made in the key vault (OpenBao) at the first .\eax up and kept there; $EnvFile holds references only. .\eax logins shows them; the vault's keys: persist\vault\keys.json."
-                if ($kind -ne "laptop") { Set-BaseFolder }
-            }
-            elseif ($kind -eq "laptop") { Show-Logins }
-            else {
-                Set-BaseFolder
-                Write-Log "Now replace every change-me value in $EnvFile with your own passwords before .\eax up."
-            }
-        }
         "check" {
             if ((Invoke-Logged "docker" @("version", "--format", "Docker {{.Server.Version}}")) -ne 0) { throw "Docker Desktop is not running." }
             Invoke-Logged "docker" @("compose", "version") | Out-Null
@@ -1095,6 +1040,8 @@ try {
             Write-Log "Compose configuration is valid."
         }
         "up"      {
+            # a newer release's new settings first, their passwords made here (R6; eax secrets fill); never fatal
+            & (Join-Path $PSScriptRoot "eaxpy.ps1") secrets fill; $global:LASTEXITCODE = 0
             # the industry packs first (D584): new or changed files from the pack sources into library/industry-packs;
             # quick when nothing changed; a start never fails because of them
             if ($RestArgs.Count -eq 0) { & (Join-Path $PSScriptRoot "eaxpy.ps1") packs auto; $global:LASTEXITCODE = 0 }
@@ -1105,6 +1052,7 @@ try {
         }
         "start-later" { Invoke-Later }
         "debug" {
+            & (Join-Path $PSScriptRoot "eaxpy.ps1") secrets fill; $global:LASTEXITCODE = 0   # a newer release's new settings (R6)
             if ($RestArgs.Count -eq 0) { & (Join-Path $PSScriptRoot "eaxpy.ps1") packs auto; $global:LASTEXITCODE = 0 }   # D584
             $code = Invoke-Up $RestArgs -NoThrow
             if ($code -ne 0) { Write-Log "docker compose up failed (exit $code); recording what is running anyway." "Red" }

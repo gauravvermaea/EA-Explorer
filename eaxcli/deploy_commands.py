@@ -34,7 +34,7 @@ class Target:
 
     @classmethod
     def from_answers(cls, a: dict, deployed: bool) -> Target:
-        """The server the wizard set up, once it is deployed (a server over SSH, or a cloud machine); else here."""
+        """The server the wizard set up, once it is deployed (a server over SSH); else here."""
         from . import deploy as D
         if not deployed or not D._remote(a) or not a.get("ssh_target"):
             return cls()

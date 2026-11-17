@@ -85,6 +85,40 @@ class Databases(MethodView):
         return {"databases": dbs.status(), "guide": "docs/databases.md"}
 
 
+@blp.route("/admin/secrets")
+class Secrets(MethodView):
+    """/api/v1/admin/secrets (R6-S1, D743): GET every password, key and certificate by name (never a value): how it is
+    rotated, when it last changed, when it is next due, and what needs a person. Super Admins and IT Admins."""
+    @blp.doc(security=[{"bearerAuth": []}])
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def get(self):
+        """Every password, key and certificate by name (never a value): how it is rotated, when it last changed, when it
+        is next due, and what needs a person (R6-S1)"""
+        return _ops("GET", "/secrets", timeout=30)
+
+
+@blp.route("/admin/secrets/rotate")
+class SecretsRotate(MethodView):
+    """/api/v1/admin/secrets/rotate (R6-R1, D743): POST {key} (a password or key, or "--due" for every one that is due):
+    rotated now in the Command centre's runner, which changes it in the database or Keycloak too and makes the
+    services that use it again (a few seconds each). In the audit trail."""
+    @blp.doc(security=[{"bearerAuth": []}])
+    @blp.arguments(FreeIn)
+    @blp.response(202, Free)
+    @require_auth("system.operate")
+    def post(self, data):
+        """Rotate a password or key now, or every one that is due (key "--due"); in the audit trail (R6-R1)"""
+        key = str((data or {}).get("key") or "")
+        if not key:
+            abort(400, message="Which one? key: its setting's name, or --due.")
+        out = _ops("POST", "/secrets/rotate", {"key": key, "by": g.user.username}, timeout=30)
+        with get_engine().begin() as conn:
+            audit.record(conn, actor=g.user.username, action="secrets.rotate", object_type="secret", object_id=key,
+                         details={"run": out.get("run")})
+        return out
+
+
 @blp.route("/admin/logs/files")
 class LogFiles(MethodView):
     """/api/v1/admin/logs/files: GET the containers' logs kept on disk, one file a day (R2.32): ?service= for one

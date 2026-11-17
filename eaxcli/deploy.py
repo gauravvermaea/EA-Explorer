@@ -1,18 +1,14 @@
 """eax deploy (phase 36, D498, D500 to D506): a deployment wizard, in the console or in a local web page, with the same
 questions and steps in both.
 
-Where to deploy (the five kinds, D416, D457):
+Where to deploy (D416, D457; no platform-specific code, D746: a machine in any cloud is a server reached over SSH):
   laptop        this computer, Docker Desktop
   server        a Linux server, run on the server itself or from here over SSH; Docker is installed if it is missing
-  aws           an EC2 machine (created from the person's credentials, or one that exists) running our Docker stack
-  azure         an Azure VM (created or existing), the same
-  digitalocean  a Droplet (created or existing), the same
 
 The wizard asks its questions (QUESTIONS, shown only when they apply), makes the steps for the answers (steps_for) and
 runs them one by one. Every step is logged (work/logs/eax-<time>-deploy.log, passwords masked). A step that fails
 stops and asks: Retry, Back (to the answers, kept) or Quit. --plan prints every step and every command it would run,
-and runs nothing. Cloud credentials are used for this run only, unless the person asks to keep them
-(work/deploy-credentials.env, readable by the owner only).
+and runs nothing.
 
 Command line: eax deploy [--console|--web] [--kind K] [--answers file.json] [--set key=value ...] [--plan] [--yes]
 """
@@ -38,14 +34,9 @@ from .core import EAX, ROOT, WINDOWS, WORK, Failure, log_only, say
 KINDS = {
     "laptop": "This computer (a laptop or desktop with Docker Desktop)",
     "server": "A Linux server (one you have: this one, or one reached over SSH)",
-    "aws": "Amazon Web Services (an EC2 machine running our Docker stack)",
-    "azure": "Microsoft Azure (a virtual machine running our Docker stack)",
-    "digitalocean": "DigitalOcean (a Droplet running our Docker stack)",
 }
-CLOUDS = ("aws", "azure", "digitalocean")
 INSTALL_FILE = WORK / "install.json"            # written by the installer: where this copy came from (D502)
-CREDENTIALS_FILE = WORK / "deploy-credentials.env"
-SECRET_KEYS = ("aws_secret_access_key", "do_token", "spaces_secret", "az_client_secret", "first_admin_password")
+SECRET_KEYS = ("first_admin_password",)
 
 
 # ---------------------------------------------------------------- the questions
@@ -94,19 +85,11 @@ def _ssh_key_default(_a: dict) -> str:
 
 def _remote(a: dict) -> bool:
     """The installation is on another machine, reached over SSH."""
-    return a.get("kind") in CLOUDS or (a.get("kind") == "server" and a.get("where") == "ssh")
-
-
-def _create(a: dict) -> bool:
-    return a.get("kind") in CLOUDS and a.get("cloud_mode", "create") == "create"
+    return a.get("kind") == "server" and a.get("where") == "ssh"
 
 
 def _server_like(a: dict) -> bool:
-    return a.get("kind") in ("server", *CLOUDS)
-
-
-def _suffix(a: dict) -> str:
-    return re.sub(r"[^a-z0-9]", "", a.get("name", "eaexplorer").lower())[:20] or "eaexplorer"
+    return a.get("kind") == "server"
 
 
 QUESTIONS: list[Question] = [
@@ -114,64 +97,11 @@ QUESTIONS: list[Question] = [
     Question("where", "Run on this server, or set up another server from here over SSH?", "here",
              {"here": "This machine is the server (Linux)", "ssh": "Another server, reached over SSH from here"},
              when=lambda a: a.get("kind") == "server"),
-    Question("cloud_mode", "Create the machine in the cloud, or use one you already have?", "create",
-             {"create": "Create it for me (from my cloud credentials)", "existing": "Use a machine I already have (over SSH)"},
-             when=lambda a: a.get("kind") in CLOUDS),
-    Question("name", "A short name for this installation (used to name the cloud resources)", "eaexplorer",
-             when=lambda a: _create(a)),
-    # --- AWS
-    Question("aws_profile", "AWS CLI profile to use (leave empty to type an access key below)", "default",
-             when=lambda a: _create(a) and a["kind"] == "aws", required=False),
-    Question("aws_access_key_id", "AWS access key ID (only if no profile; used for this run only)", "",
-             when=lambda a: _create(a) and a["kind"] == "aws" and not a.get("aws_profile"), required=False),
-    Question("aws_secret_access_key", "AWS secret access key", "", secret=True,
-             when=lambda a: _create(a) and a["kind"] == "aws" and not a.get("aws_profile") and a.get("aws_access_key_id")),
-    Question("aws_region", "AWS region", "af-south-1", when=lambda a: _create(a) and a["kind"] == "aws",
-             help="af-south-1 is Cape Town; any region works."),
-    Question("aws_instance_type", "EC2 instance type (16 GB of memory or more)", "t3.xlarge",
-             when=lambda a: _create(a) and a["kind"] == "aws"),
-    Question("aws_zone_id", "Route 53 hosted zone ID for the DNS names (leave empty to set DNS yourself)", "",
-             when=lambda a: _create(a) and a["kind"] == "aws", required=False),
-    # --- Azure
-    Question("az_subscription", "Azure subscription (name or ID; empty: the current one of az account show)", "",
-             when=lambda a: _create(a) and a["kind"] == "azure", required=False),
-    Question("az_client_id", "Service principal's application (client) ID (empty: the az login already on this computer)", "",
-             when=lambda a: _create(a) and a["kind"] == "azure", required=False,
-             help="Needed when deploying from the System admin > Deploy page (no az login there)."),
-    Question("az_client_secret", "Service principal's secret", "", secret=True,
-             when=lambda a: _create(a) and a["kind"] == "azure" and a.get("az_client_id")),
-    Question("az_tenant", "Tenant ID", "", when=lambda a: _create(a) and a["kind"] == "azure" and a.get("az_client_id")),
-    Question("az_location", "Azure region", "southafricanorth", when=lambda a: _create(a) and a["kind"] == "azure"),
-    Question("az_group", "Resource group (created if missing)", lambda a: f"{_suffix(a)}-rg",
-             when=lambda a: _create(a) and a["kind"] == "azure"),
-    Question("az_size", "VM size (16 GB of memory or more)", "Standard_D4s_v5", when=lambda a: _create(a) and a["kind"] == "azure"),
-    Question("az_dns_zone", "Azure DNS zone for the names, and its resource group as zone/group (leave empty to set DNS yourself)",
-             "", when=lambda a: _create(a) and a["kind"] == "azure", required=False),
-    # --- DigitalOcean
-    Question("do_token", "DigitalOcean API token (empty: doctl's current context; used for this run only)", "", secret=True,
-             when=lambda a: _create(a) and a["kind"] == "digitalocean", required=False),
-    Question("do_region", "DigitalOcean region", "lon1", when=lambda a: _create(a) and a["kind"] == "digitalocean"),
-    Question("do_size", "Droplet size (16 GB of memory or more)", "s-8vcpu-16gb", when=lambda a: _create(a) and a["kind"] == "digitalocean"),
-    Question("do_domain", "DigitalOcean domain for the DNS names (leave empty to set DNS yourself)", "",
-             when=lambda a: _create(a) and a["kind"] == "digitalocean", required=False),
-    Question("do_load_balancer", "Put a DigitalOcean load balancer in front (for more Droplets later)?", "no",
-             {"no": "No: one Droplet", "yes": "Yes: a load balancer passing https through to the Droplet"},
-             when=lambda a: _create(a) and a["kind"] == "digitalocean"),
-    Question("spaces_key", "Spaces access key, for off-site backups (empty: skip off-site backups)", "",
-             when=lambda a: _create(a) and a["kind"] == "digitalocean", required=False),
-    Question("spaces_secret", "Spaces secret key", "", secret=True,
-             when=lambda a: _create(a) and a["kind"] == "digitalocean" and a.get("spaces_key")),
-    # --- all clouds that are created
-    Question("disk_gb", "Data disk size in GB (databases, documents, backups)", "100", when=_create),
-    Question("admin_cidr", "Address range allowed to use SSH (your address, e.g. 196.25.1.10/32)", "0.0.0.0/0", when=_create,
-             help="0.0.0.0/0 lets anyone try SSH (keys only); your own address is safer."),
-    Question("offsite_backups", "Copy the nightly backups to the cloud's storage (S3, Blob storage, Spaces)?", "yes",
-             {"yes": "Yes: a bucket or container is made and backups are copied every night", "no": "No"}, when=_create),
     # --- SSH
-    Question("ssh_target", "The server to set up, as user@address", "", when=lambda a: _remote(a) and not _create(a),
+    Question("ssh_target", "The server to set up, as user@address", "", when=_remote,
              help="A user who may use sudo, e.g. ubuntu@203.0.113.10"),
     Question("ssh_key", "SSH private key to sign in with", _ssh_key_default, when=_remote,
-             help="For a machine created here, its public key (.pub beside it) is put on the machine."),
+             help="The key whose public half the server already has."),
     Question("ssh_port", "SSH port", "22", when=_remote),
     # --- the installation
     Question("hostname", "The address people will open (a DNS name)", lambda a: "ea.example.org", when=_server_like,
@@ -194,20 +124,9 @@ QUESTIONS: list[Question] = [
              {"empty": "Start empty", "backup": "Move an existing installation: restore one of its infrastructure backups"}),
     Question("backup_dir", "The infrastructure backup's folder on this computer (from the old installation's work/backups/infrastructure)",
              "", when=lambda a: a.get("move_from") == "backup"),
-    Question("vault", "Keep the passwords in a key vault too?", "none",
-             {"none": "No: only in the config file (readable by its owner only)",
-              "file": "A file outside the installation (e.g. /etc/eaexplorer/secrets.env)",
-              "aws": "AWS Secrets Manager", "azure": "Azure Key Vault",
-              "digitalocean": "DigitalOcean: a file on the Droplet, readable by root only"},
-             when=_server_like),
-    Question("vault_name", "The vault: a file path, a Secrets Manager secret name, or a Key Vault name",
-             lambda a: {"file": "/etc/eaexplorer/secrets.env", "aws": f"{_suffix(a)}/eaexplorer",
-                        "azure": f"{_suffix(a)}-kv", "digitalocean": "/etc/eaexplorer/secrets.env"}.get(a.get("vault"), ""),
-             when=lambda a: _server_like(a) and a.get("vault", "none") != "none"),
-    Question("keep_credentials", "Keep the cloud credentials for next time (in work/deploy-credentials.env)?", "no",
-             {"no": "No: used for this run only", "yes": "Yes: kept on this computer, readable by me only"},
-             when=lambda a: _create(a) and bool(a.get("aws_access_key_id") or a.get("do_token") or a.get("spaces_key")
-                                                 or a.get("az_client_id"))),
+    Question("auth", "How the services sign in to each other (R6-C1)", "certificate",
+             {"certificate": "Certificates (EA Explorer's own, renewed by themselves; no internal passwords)",
+              "password": "Passwords (made here, rotated by themselves every 90 days)"}, when=_server_like),
 ]
 BY_KEY = {q.key: q for q in QUESTIONS}
 
@@ -279,8 +198,7 @@ def server_config(answers: dict, template: Path | None = None) -> tuple[str, dic
         "EAX_DATA_ROOT": data,                 # one base folder, a folder per kind under it (R5.4, D687)
         "EAX_DEPLOYMENT": "server",
     }
-    if answers.get("vault", "none") != "none":
-        sets["EAX_SECRETS_FROM"] = f"{'file' if answers['vault'] == 'digitalocean' else answers['vault']}:{answers.get('vault_name', '')}"
+    sets["EAX_AUTH_MODE"] = answers.get("auth", "certificate")      # R6-C1: the keys are made on the server itself
     made: dict[str, str] = {}
     lines = []
     seen = set()
@@ -308,9 +226,10 @@ def server_config(answers: dict, template: Path | None = None) -> tuple[str, dic
 
 
 def secret_values(env_text: str) -> dict[str, str]:
-    """The passwords and keys of a config file (every key the server template holds as change-me)."""
-    template = (ROOT / "deploy" / "templates" / "eaexplorer.server.env").read_text(encoding="utf-8")
-    keys = {m.group(1) for m in re.finditer(r"^([A-Z0-9_]+)=change-me", template, re.MULTILINE)}
+    """The passwords and keys of a config file (core.secret_keys: every key the server template holds as change-me,
+    and the few it leaves empty)."""
+    from .core import secret_keys
+    keys = secret_keys()
     out = {}
     for m in re.finditer(r"^([A-Z0-9_]+)=(.*)$", env_text, re.MULTILINE):
         if m.group(1) in keys:
@@ -364,7 +283,7 @@ class Ctx:
     values: dict = field(default_factory=dict)          # what earlier steps found out (an instance ID, an address)
     printed: list = field(default_factory=list)          # the plan, line by line
     mask: set = field(default_factory=set)               # values never written to the log
-    env: dict = field(default_factory=dict)              # extra environment for the cloud CLIs (credentials)
+    env: dict = field(default_factory=dict)              # extra environment for the commands run
     out: Callable[[str], None] = print
     reveal: bool = True                                  # the first password shown once on screen (never from the page)
 
@@ -455,32 +374,12 @@ class Step:
     fn: Callable[[Ctx], None]
 
 
-def jget(text: str, *path, default: str = "") -> str:
-    """A value from a CLI's JSON output (plan mode: the default)."""
-    try:
-        v = json.loads(text)
-        for p in path:
-            v = v[p]
-        return str(v)
-    except (ValueError, KeyError, IndexError, TypeError):
-        return default
-
-
 # ---------------------------------------------------------------- the steps of each kind
 def steps_for(a: dict) -> list[Step]:
-    """A deployment's steps by its kind (laptop, server over SSH, or a cloud)."""
-    kind = a["kind"]
-    if kind == "laptop":
+    """A deployment's steps by its kind (laptop, or a server here or over SSH, D746)."""
+    if a["kind"] == "laptop":
         return laptop_steps(a)
-    steps: list[Step] = []
-    if kind == "aws" and _create(a):
-        steps += aws_steps(a)
-    elif kind == "azure" and _create(a):
-        steps += azure_steps(a)
-    elif kind == "digitalocean" and _create(a):
-        steps += do_steps(a)
-    steps += server_steps(a)
-    return steps
+    return server_steps(a)
 
 
 def laptop_steps(a: dict) -> list[Step]:
@@ -571,7 +470,7 @@ DOCKER_INSTALL = ("if ! command -v docker >/dev/null 2>&1; then curl -fsSL https
 
 def server_steps(a: dict) -> list[Step]:
     """A Linux server (this one, or over SSH; a cloud machine just made): Docker, the release, the config, start,
-    health, off-site backups, the key vault, and moving an old installation here."""
+    health, and moving an old installation here."""
     folder, data = a["install_dir"].rstrip("/"), a["data_dir"].rstrip("/")
     q = shlex.quote
     steps: list[Step] = []
@@ -587,16 +486,7 @@ def server_steps(a: dict) -> list[Step]:
         ctx.remote(DOCKER_INSTALL, "Docker and Docker Compose (installed from get.docker.com if missing)")
 
     def disk(ctx: Ctx):
-        dev = ctx.values.get("data_device", "")
-        if not dev:
-            ctx.remote(f"sudo mkdir -p {q(data)}", "the data folder")
-            return
-        ctx.remote(f"set -e; D={q(dev)}; for i in $(seq 1 30); do [ -e \"$D\" ] && break; sleep 5; done; "
-                   f"sudo blkid \"$D\" >/dev/null 2>&1 || sudo mkfs.ext4 -q \"$D\"; sudo mkdir -p {q(data)}; "
-                   f"U=$(sudo blkid -s UUID -o value \"$D\"); grep -q \"$U\" /etc/fstab || "
-                   f"echo \"UUID=$U {data} ext4 defaults,nofail 0 2\" | sudo tee -a /etc/fstab >/dev/null; "
-                   f"mountpoint -q {q(data)} || sudo mount {q(data)}",
-                   f"the data disk ({dev}) formatted once and mounted at {data}")
+        ctx.remote(f"sudo mkdir -p {q(data)}", "the data folder")
 
     def release(ctx: Ctx):
         if not _remote(ctx.answers):
@@ -612,8 +502,7 @@ def server_steps(a: dict) -> list[Step]:
         found = ctx.remote(f"test -f {q(where)}/work/eaexplorer.env && echo exists || true", "a config file there already?")
         if "exists" in found:
             ctx.note("    the server has a config file already: kept as it is (its passwords match its databases)")
-            ctx.values["config_text"] = ctx.remote(f"sudo cat {q(where)}/work/eaexplorer.env", "read it (for the key vault)") \
-                if ctx.answers.get("vault", "none") != "none" else ""
+            ctx.values["config_text"] = ""
             return
         text, made = server_config(ctx.answers)
         ctx.mask.update(made.values())
@@ -641,30 +530,6 @@ def server_steps(a: dict) -> list[Step]:
             ctx.upload(src / f, f"/tmp/{f}", f"your certificate's {f}")
         ctx.remote(f"sudo install -m 644 /tmp/tls.crt {q(data)}/tls/tls.crt && sudo install -m 600 /tmp/tls.key {q(data)}/tls/tls.key "
                    f"&& rm -f /tmp/tls.crt /tmp/tls.key", "into the certificate folder")
-
-    def vault(ctx: Ctx):
-        from . import secrets as vault_
-        provider, name = (ctx.answers["vault"], ctx.answers["vault_name"])
-        values = secret_values(ctx.values.get("config_text", ""))
-        ctx.mask.update(values.values())
-        if ctx.plan and not values:
-            values = {k: "<generated>" for k in secret_values((ROOT / "deploy" / "templates" / "eaexplorer.server.env")
-                                                              .read_text(encoding="utf-8").replace("=change-me", "=x"))}
-        for where_, what, *rest in vault_.push_commands(provider, name, values, ctx.answers):
-            if where_ == "remote":
-                ctx.remote(what, rest[0], input_text=rest[1] if len(rest) > 1 else None)
-            elif where_ == "file":
-                path, body = what, rest[0]
-                ctx.note(f"    write {path} (readable by you only, deleted after the next command)")
-                if not ctx.plan:
-                    Path(path).parent.mkdir(parents=True, exist_ok=True)
-                    Path(path).write_text(body, encoding="utf-8")
-                    _owner_only(Path(path))
-            elif where_ == "delete":
-                if not ctx.plan:
-                    Path(what).unlink(missing_ok=True)
-            else:
-                ctx.run(what, rest[0], ok_codes=tuple(rest[1]) if len(rest) > 1 else (0,))
 
     def start(ctx: Ctx):
         where = ctx.values.get("folder", folder)
@@ -698,21 +563,10 @@ def server_steps(a: dict) -> list[Step]:
         if not ctx.plan:
             archive.unlink(missing_ok=True)
 
-    def offsite(ctx: Ctx):
-        line = ctx.values.get("offsite_cron", "")
-        if not line:
-            ctx.note("    no off-site storage was made: skipped")
-            return
-        ctx.remote(f"echo {q(line)} | sudo tee /etc/cron.d/eaexplorer-offsite >/dev/null && sudo chmod 644 /etc/cron.d/eaexplorer-offsite",
-                   "a nightly copy of work/backups to the cloud's storage (03:30)")
-
     def done(ctx: Ctx):
         pw = ctx.values.get("first_admin_password", "")
         ctx.note(f"    EA Explorer is at https://{a['hostname']}  (reports: https://reports.{a['hostname']}, "
                  f"documents: https://docs.{a['hostname']})")
-        ip = ctx.values.get("public_ip", "")
-        if ip:
-            ctx.note(f"    The server's public address is {ip}: the three DNS names must point at it.")
         ctx.note(f"    First sign-in: eaadmin, with the password in {folder}/work/eaexplorer.env (EAX_FIRST_ADMIN_PASSWORD); "
                  "Keycloak asks for a new one at the first sign-in.")
         if pw and not ctx.plan and ctx.reveal:
@@ -722,19 +576,15 @@ def server_steps(a: dict) -> list[Step]:
 
     steps.append(Step("Reach the server", reach))
     steps.append(Step("Docker on the server (installed if missing)", docker))
-    steps.append(Step("The data folder" + (" and its disk" if _create(a) else ""), disk))
+    steps.append(Step("The data folder", disk))
     steps.append(Step("Download EA Explorer onto the server" if _remote(a) else "Use this copy of EA Explorer", release))
     steps.append(Step("Make the config file: the site, the folders, every password generated", config))
     if a.get("tls") == "own":
         steps.append(Step("Your certificate", certificate))
-    if a.get("vault", "none") != "none":
-        steps.append(Step(f"Keep the passwords in the key vault ({a['vault']})", vault))
     steps.append(Step("Start EA Explorer", start))
     steps.append(Step("Check that it is healthy", healthy))
     if a.get("move_from") == "backup":
         steps.append(Step("Move the old installation here: restore its backup", restore))
-    if _create(a) and a.get("offsite_backups") == "yes":
-        steps.append(Step("Copy the backups off the machine every night", offsite))
     steps.append(Step("The address and the first sign-in", done))
     return steps
 
@@ -744,274 +594,13 @@ def _owner_only(path: Path) -> None:
         os.chmod(path, 0o600)
 
 
-def _pubkey(a: dict) -> Path:
-    return Path(a["ssh_key"] + ".pub").expanduser()
-
-
-def _need_cli(ctx: Ctx, name: str, how: str) -> None:
-    if ctx.plan:
-        return
-    if not shutil.which(name):
-        raise StepFailed(f"The {name} command is not installed here. {how}")
-
-
-def _dns_names(a: dict) -> list[str]:
-    h = a["hostname"]
-    return [h, f"reports.{h}", f"docs.{h}"]
-
-
-# --- AWS: a key pair, a security group, an EC2 machine with a data disk, an Elastic IP, an S3 bucket, Route 53
-def aws_steps(a: dict) -> list[Step]:
-    """The steps of a deployment to AWS (a machine made or used, then EA Explorer on it)."""
-    n, region = _suffix(a), a["aws_region"]
-
-    def cli(ctx: Ctx, args: list[str], what: str = "") -> str:
-        base = ["aws", "--region", region, "--output", "json"]
-        if ctx.answers.get("aws_profile"):
-            base += ["--profile", ctx.answers["aws_profile"]]
-        return ctx.run([*base, *args], what)
-
-    def creds(ctx: Ctx):
-        _need_cli(ctx, "aws", "Install the AWS CLI (https://aws.amazon.com/cli/) and run this again.")
-        if ctx.answers.get("aws_access_key_id"):
-            ctx.env.update(AWS_ACCESS_KEY_ID=ctx.answers["aws_access_key_id"],
-                           AWS_SECRET_ACCESS_KEY=ctx.answers.get("aws_secret_access_key", ""))
-            ctx.mask.add(ctx.answers.get("aws_secret_access_key", ""))
-        cli(ctx, ["sts", "get-caller-identity"], "who these credentials are")
-
-    def network(ctx: Ctx):
-        key = f"{n}-key"
-        cli(ctx, ["ec2", "import-key-pair", "--key-name", key, "--public-key-material", f"fileb://{_pubkey(a)}"],
-            "your SSH public key")
-        sg = jget(cli(ctx, ["ec2", "create-security-group", "--group-name", f"{n}-sg",
-                            "--description", "EA Explorer: https, http (redirect), client certificates, SSH"]),
-                  "GroupId", default="<security-group-id>")
-        ctx.values["sg"] = sg
-        for port, cidr in (("443", "0.0.0.0/0"), ("80", "0.0.0.0/0"), ("9443", "0.0.0.0/0"), ("22", a["admin_cidr"])):
-            cli(ctx, ["ec2", "authorize-security-group-ingress", "--group-id", sg, "--protocol", "tcp", "--port", port,
-                      "--cidr", cidr], f"open {port}")
-
-    def machine(ctx: Ctx):
-        image = "resolve:ssm:/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id"
-        disks = json.dumps([{"DeviceName": "/dev/sda1", "Ebs": {"VolumeSize": 40, "VolumeType": "gp3"}},
-                            {"DeviceName": "/dev/sdf", "Ebs": {"VolumeSize": int(a["disk_gb"]), "VolumeType": "gp3",
-                                                                "DeleteOnTermination": False}}])
-        out = cli(ctx, ["ec2", "run-instances", "--image-id", image, "--instance-type", a["aws_instance_type"],
-                        "--key-name", f"{n}-key", "--security-group-ids", ctx.get("sg", "<security-group-id>"),
-                        "--block-device-mappings", disks, "--metadata-options", "HttpTokens=required",
-                        "--tag-specifications", f"ResourceType=instance,Tags=[{{Key=Name,Value={n}}},{{Key=app,Value=eaexplorer}}]"],
-                  "an Ubuntu 24.04 machine with a data disk")
-        ctx.values["instance"] = jget(out, "Instances", 0, "InstanceId", default="<instance-id>")
-        cli(ctx, ["ec2", "wait", "instance-running", "--instance-ids", ctx.get("instance")], "until it runs")
-        alloc = jget(cli(ctx, ["ec2", "allocate-address", "--domain", "vpc"], "a fixed public address (Elastic IP)"),
-                     "AllocationId", default="<allocation-id>")
-        ip = jget(cli(ctx, ["ec2", "describe-addresses", "--allocation-ids", alloc]), "Addresses", 0, "PublicIp", default="<public-ip>")
-        cli(ctx, ["ec2", "associate-address", "--instance-id", ctx.get("instance"), "--allocation-id", alloc], "give it the address")
-        ctx.values.update(public_ip=ip, ssh_target=f"ubuntu@{ip}", data_device="/dev/nvme1n1")
-
-    def storage(ctx: Ctx):
-        bucket = f"{n}-backups-{_secrets.token_hex(3)}"
-        args = ["s3api", "create-bucket", "--bucket", bucket]
-        if region != "us-east-1":
-            args += ["--create-bucket-configuration", f"LocationConstraint={region}"]
-        cli(ctx, args, "the bucket for off-site backups")
-        cli(ctx, ["s3api", "put-public-access-block", "--bucket", bucket, "--public-access-block-configuration",
-                  "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true"], "never public")
-        role = f"{n}-backup-role"
-        trust = json.dumps({"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"Service": "ec2.amazonaws.com"},
-                                                                    "Action": "sts:AssumeRole"}]})
-        policy = json.dumps({"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": ["s3:PutObject", "s3:ListBucket"],
-                                                                     "Resource": [f"arn:aws:s3:::{bucket}", f"arn:aws:s3:::{bucket}/*"]}]})
-        cli(ctx, ["iam", "create-role", "--role-name", role, "--assume-role-policy-document", trust], "a role the machine uses")
-        cli(ctx, ["iam", "put-role-policy", "--role-name", role, "--policy-name", "eaexplorer-backups", "--policy-document", policy],
-            "it may only write to the bucket")
-        cli(ctx, ["iam", "create-instance-profile", "--instance-profile-name", role])
-        cli(ctx, ["iam", "add-role-to-instance-profile", "--instance-profile-name", role, "--role-name", role])
-        time.sleep(0 if ctx.plan else 10)                 # IAM is eventually consistent
-        cli(ctx, ["ec2", "associate-iam-instance-profile", "--instance-id", ctx.get("instance"), "--iam-instance-profile", f"Name={role}"])
-        ctx.values["offsite_cron"] = (f"30 3 * * * root command -v aws >/dev/null || snap install aws-cli --classic; "
-                                      f"aws s3 sync {a['install_dir'].rstrip('/')}/work/backups s3://{bucket}/ --only-show-errors")
-
-    def dns(ctx: Ctx):
-        changes = {"Changes": [{"Action": "UPSERT", "ResourceRecordSet": {"Name": name, "Type": "A", "TTL": 300,
-                                                                          "ResourceRecords": [{"Value": ctx.get("public_ip")}]}}
-                               for name in _dns_names(a)]}
-        cli(ctx, ["route53", "change-resource-record-sets", "--hosted-zone-id", a["aws_zone_id"], "--change-batch", json.dumps(changes)],
-            "the three DNS names")
-
-    steps = [Step("Check the AWS credentials", creds), Step("Key pair and security group", network),
-             Step("The machine, its data disk and a fixed address", machine)]
-    if a.get("offsite_backups") == "yes":
-        steps.append(Step("An S3 bucket for off-site backups", storage))
-    if a.get("aws_zone_id"):
-        steps.append(Step("DNS names in Route 53", dns))
-    return steps
-
-
-# --- Azure: a resource group, a VM with a data disk and a DNS label, the ports, a storage account, Azure DNS
-def azure_steps(a: dict) -> list[Step]:
-    """The steps of a deployment to Azure."""
-    n, group, loc = _suffix(a), a["az_group"], a["az_location"]
-
-    def az(ctx: Ctx, args: list[str], what: str = "") -> str:
-        base = ["az", *args, "--output", "json"]
-        if ctx.answers.get("az_subscription") and args[0] not in ("account",):
-            base += ["--subscription", ctx.answers["az_subscription"]]
-        return ctx.run(base, what)
-
-    def creds(ctx: Ctx):
-        _need_cli(ctx, "az", "Install the Azure CLI (https://aka.ms/azure-cli), run az login, and run this again.")
-        if ctx.answers.get("az_client_id"):
-            ctx.mask.add(ctx.answers.get("az_client_secret", ""))
-            ctx.run(["az", "login", "--service-principal", "--username", ctx.answers["az_client_id"],
-                     "--password", ctx.answers.get("az_client_secret", ""), "--tenant", ctx.answers.get("az_tenant", ""),
-                     "--output", "none"], "sign in as the service principal")
-        az(ctx, ["account", "show"], "signed in (az login first if this fails)")
-
-    def machine(ctx: Ctx):
-        az(ctx, ["group", "create", "--name", group, "--location", loc], "the resource group")
-        out = az(ctx, ["vm", "create", "--resource-group", group, "--name", n, "--image", "Ubuntu2404", "--size", a["az_size"],
-                       "--admin-username", "eaxadmin", "--ssh-key-values", str(_pubkey(a)), "--public-ip-sku", "Standard",
-                       "--public-ip-address-dns-name", n, "--data-disk-sizes-gb", a["disk_gb"], "--assign-identity",
-                       "--os-disk-size-gb", "64"], "an Ubuntu 24.04 VM with a data disk")
-        ip = jget(out, "publicIpAddress", default="<public-ip>")
-        ctx.values.update(public_ip=ip, ssh_target=f"eaxadmin@{ip}", data_device="/dev/disk/azure/scsi1/lun0",
-                          principal=jget(out, "identity", "systemAssignedIdentity", default=jget(out, "identity", "principalId", default="<principal-id>")))
-        az(ctx, ["vm", "open-port", "--resource-group", group, "--name", n, "--port", "80,443,9443", "--priority", "900"],
-           "open https, http (redirect) and client certificates")
-        if a["admin_cidr"] != "0.0.0.0/0":
-            az(ctx, ["network", "nsg", "rule", "update", "--resource-group", group, "--nsg-name", f"{n}NSG",
-                     "--name", "default-allow-ssh", "--source-address-prefixes", a["admin_cidr"]], "SSH only from your address")
-
-    def storage(ctx: Ctx):
-        account = re.sub(r"[^a-z0-9]", "", f"{n}bk{_secrets.token_hex(3)}")[:24]
-        out = az(ctx, ["storage", "account", "create", "--name", account, "--resource-group", group, "--location", loc,
-                       "--sku", "Standard_ZRS", "--min-tls-version", "TLS1_2", "--allow-blob-public-access", "false"],
-                 "a storage account for off-site backups")
-        scope = jget(out, "id", default="<storage-account-id>")
-        az(ctx, ["storage", "container", "create", "--account-name", account, "--name", "backups", "--auth-mode", "login"])
-        az(ctx, ["role", "assignment", "create", "--assignee", ctx.get("principal", "<principal-id>"),
-                 "--role", "Storage Blob Data Contributor", "--scope", scope], "the VM may write there")
-        ctx.values["offsite_cron"] = (f"30 3 * * * root command -v azcopy >/dev/null || (curl -fsSL https://aka.ms/downloadazcopy-v10-linux "
-                                      f"| tar -xz -C /tmp && cp /tmp/azcopy_linux_amd64_*/azcopy /usr/local/bin/); "
-                                      f"azcopy login --identity && azcopy sync {a['install_dir'].rstrip('/')}/work/backups "
-                                      f"https://{account}.blob.core.windows.net/backups --recursive")
-
-    def dns(ctx: Ctx):
-        zone, _, zgroup = a["az_dns_zone"].partition("/")
-        for name in _dns_names(a):
-            rel = name.removesuffix("." + zone) if name.endswith("." + zone) else name
-            az(ctx, ["network", "dns", "record-set", "a", "add-record", "--resource-group", zgroup or group, "--zone-name", zone,
-                     "--record-set-name", rel, "--ipv4-address", ctx.get("public_ip")], f"{name}")
-
-    steps = [Step("Check the Azure sign-in", creds), Step("The resource group, the VM, its data disk and ports", machine)]
-    if a.get("offsite_backups") == "yes":
-        steps.append(Step("A storage account for off-site backups", storage))
-    if a.get("az_dns_zone"):
-        steps.append(Step("DNS names in Azure DNS", dns))
-    return steps
-
-
-# --- DigitalOcean: an SSH key, a Droplet, a volume, a cloud firewall, a Spaces bucket, DNS, a load balancer
-def do_steps(a: dict) -> list[Step]:
-    """The steps of a deployment to DigitalOcean."""
-    n, region = _suffix(a), a["do_region"]
-
-    def doctl(ctx: Ctx, args: list[str], what: str = "") -> str:
-        return ctx.run(["doctl", *args, "--output", "json"], what)
-
-    def creds(ctx: Ctx):
-        _need_cli(ctx, "doctl", "Install doctl (https://docs.digitalocean.com/reference/doctl/how-to/install/) and run this again.")
-        if ctx.answers.get("do_token"):
-            ctx.env["DIGITALOCEAN_ACCESS_TOKEN"] = ctx.answers["do_token"]
-            ctx.mask.add(ctx.answers["do_token"])
-        doctl(ctx, ["account", "get"], "the account")
-
-    def machine(ctx: Ctx):
-        key = jget(doctl(ctx, ["compute", "ssh-key", "import", f"{n}-key", "--public-key-file", str(_pubkey(a))], "your SSH public key"),
-                   0, "fingerprint", default="<key-fingerprint>")
-        out = doctl(ctx, ["compute", "droplet", "create", n, "--image", "ubuntu-24-04-x64", "--size", a["do_size"],
-                          "--region", region, "--ssh-keys", key, "--tag-names", "eaexplorer", "--enable-monitoring", "--wait"],
-                    "an Ubuntu 24.04 Droplet")
-        droplet = jget(out, 0, "id", default="<droplet-id>")
-        ip = "<public-ip>"
-        try:
-            ip = next(x["ip_address"] for x in json.loads(out)[0]["networks"]["v4"] if x["type"] == "public")
-        except (ValueError, KeyError, IndexError, StopIteration, TypeError):
-            pass
-        ctx.values.update(droplet=droplet, public_ip=ip, ssh_target=f"root@{ip}")
-        vol = jget(doctl(ctx, ["compute", "volume", "create", f"{n}-data", "--region", region, "--size", f"{a['disk_gb']}GiB",
-                               "--fs-type", "ext4"], "the data volume"), 0, "id", default="<volume-id>")
-        doctl(ctx, ["compute", "volume-action", "attach", vol, droplet, "--wait"], "attach it")
-        ctx.values["data_device"] = f"/dev/disk/by-id/scsi-0DO_Volume_{n}-data"
-        rules = (f"protocol:tcp,ports:22,address:{a['admin_cidr']} protocol:tcp,ports:443,address:0.0.0.0/0,address:::/0 "
-                 "protocol:tcp,ports:80,address:0.0.0.0/0,address:::/0 protocol:tcp,ports:9443,address:0.0.0.0/0,address:::/0")
-        doctl(ctx, ["compute", "firewall", "create", "--name", f"{n}-fw", "--droplet-ids", droplet, "--inbound-rules", rules,
-                    "--outbound-rules", "protocol:tcp,ports:all,address:0.0.0.0/0,address:::/0 protocol:udp,ports:all,address:0.0.0.0/0,address:::/0"],
-              "the cloud firewall")
-
-    def storage(ctx: Ctx):
-        bucket = f"{n}-backups-{_secrets.token_hex(3)}"
-        endpoint = f"https://{region}.digitaloceanspaces.com"
-        ctx.mask.add(a.get("spaces_secret", ""))
-        env = {"AWS_ACCESS_KEY_ID": a["spaces_key"], "AWS_SECRET_ACCESS_KEY": a.get("spaces_secret", "")}
-        old = dict(ctx.env)
-        ctx.env.update(env)
-        try:
-            _need_cli(ctx, "aws", "Spaces buckets are made with the AWS CLI (S3-compatible): install it and run this again.")
-            ctx.run(["aws", "s3api", "create-bucket", "--bucket", bucket, "--endpoint-url", endpoint, "--region", "us-east-1"],
-                    "a Spaces bucket for off-site backups (S3-compatible)")
-        finally:
-            ctx.env = old
-        creds_file = "/etc/eaexplorer/spaces.env"     # put on the Droplet later (_spaces_key_step), once it is reachable
-        ctx.values["spaces_env"] = (creds_file, a["spaces_key"], a.get("spaces_secret", ""))
-        ctx.values["offsite_cron"] = (f"30 3 * * * root command -v aws >/dev/null || snap install aws-cli --classic; "
-                                      f"set -a; . {creds_file}; aws s3 sync {a['install_dir'].rstrip('/')}/work/backups "
-                                      f"s3://{bucket}/ --endpoint-url {endpoint} --only-show-errors")
-
-    def dns(ctx: Ctx):
-        dom = a["do_domain"]
-        for name in _dns_names(a):
-            rel = name.removesuffix("." + dom) if name.endswith("." + dom) else "@" if name == dom else name
-            doctl(ctx, ["compute", "domain", "records", "create", dom, "--record-type", "A", "--record-name", rel,
-                        "--record-data", ctx.get("public_ip"), "--record-ttl", "300"], name)
-
-    def balancer(ctx: Ctx):
-        doctl(ctx, ["compute", "load-balancer", "create", "--name", f"{n}-lb", "--region", region, "--droplet-ids", ctx.get("droplet"),
-                    "--forwarding-rules", ("entry_protocol:tcp,entry_port:443,target_protocol:tcp,target_port:443 "
-                                           "entry_protocol:tcp,entry_port:80,target_protocol:tcp,target_port:80"),
-                    "--health-check", "protocol:tcp,port:443"], "https passed through to the Droplet")
-
-    steps = [Step("Check the DigitalOcean token", creds), Step("The Droplet, its volume and the cloud firewall", machine)]
-    if a.get("offsite_backups") == "yes" and a.get("spaces_key"):
-        steps.append(Step("A Spaces bucket for off-site backups", storage))
-    if a.get("do_domain"):
-        steps.append(Step("DNS names in DigitalOcean", dns))
-    if a.get("do_load_balancer") == "yes":
-        steps.append(Step("A load balancer", balancer))
-    return steps
-
-
-def _spaces_key_step(a: dict) -> Step:
-    def put(ctx: Ctx):
-        f, key, secret = ctx.values.get("spaces_env", ("/etc/eaexplorer/spaces.env", "<key>", "<secret>"))
-        ctx.mask.add(secret)
-        ctx.remote(f"sudo mkdir -p /etc/eaexplorer && sudo install -m 600 /dev/stdin {f}", "the Spaces key on the Droplet (root only)",
-                   input_text=f"AWS_ACCESS_KEY_ID={key}\nAWS_SECRET_ACCESS_KEY={secret}\n")
-    return Step("The Spaces key on the Droplet, for the nightly copy", put)
-
-
 def all_steps(a: dict) -> list[Step]:
-    """Every step of a deployment, the off-site backups' step added when asked."""
-    steps = steps_for(a)
-    if a.get("kind") == "digitalocean" and _create(a) and a.get("offsite_backups") == "yes" and a.get("spaces_key"):
-        i = next(i for i, s in enumerate(steps) if s.title.startswith("Copy the backups"))
-        steps.insert(i, _spaces_key_step(a))
-    return steps
+    """Every step of a deployment."""
+    return steps_for(a)
 
 
 # ---------------------------------------------------------------- running a whole deployment
-RESULT_KEYS = ("public_ip", "ssh_target", "instance", "droplet", "folder")
+RESULT_KEYS = ("ssh_target", "folder")
 
 
 def run(answers: dict, plan: bool, on_fail: Callable[[Step, str], str], out: Callable[[str], None] = print,
@@ -1051,34 +640,9 @@ def run(answers: dict, plan: bool, on_fail: Callable[[Step, str], str], out: Cal
     if result is not None:
         result.pop("_ctx", None)
         result.update({k: v for k, v in ctx.values.items() if k in RESULT_KEYS and v})
-    if a.get("keep_credentials") == "yes" and not plan and reveal:
-        keep_credentials(a)
     out("")
     out("The plan above runs nothing; without --plan it is carried out." if plan else "Done.")
     return "done"
-
-
-def keep_credentials(a: dict) -> None:
-    """Only when asked (D506): the cloud credentials, for the next run, readable by this user only."""
-    keys = ("aws_access_key_id", "aws_secret_access_key", "do_token", "spaces_key", "spaces_secret", "az_client_id",
-            "az_client_secret", "az_tenant")
-    CREDENTIALS_FILE.parent.mkdir(parents=True, exist_ok=True)
-    CREDENTIALS_FILE.write_text("".join(f"{k}={a[k]}\n" for k in keys if a.get(k)), encoding="utf-8", newline="\n")
-    _owner_only(CREDENTIALS_FILE)
-    say(f"The cloud credentials are kept in {CREDENTIALS_FILE} (readable by you only); delete it to forget them.")
-
-
-def kept_credentials() -> dict:
-    """The cloud credentials kept from earlier deployments."""
-    out = {}
-    try:
-        for line in CREDENTIALS_FILE.read_text(encoding="utf-8").splitlines():
-            k, _, v = line.partition("=")
-            if k and v:
-                out[k] = v
-    except OSError:
-        pass
-    return out
 
 
 # ---------------------------------------------------------------- the console wizard
@@ -1118,7 +682,6 @@ def console(answers: dict, plan: bool, yes: bool) -> int:
     """The deployment wizard in the terminal: the questions, the plan, then the steps."""
     say("")
     say("EA Explorer deployment (eax deploy, D498). Enter keeps the [default]; Ctrl+C stops.", "cyan")
-    answers = {**kept_credentials(), **answers}
     while True:
         for q in visible(answers):
             if q.key in answers and answers[q.key] not in (None, ""):
@@ -1219,7 +782,7 @@ def main(options: list[str]) -> int:
             from . import deploy_web
             return deploy_web.serve(answers, plan)
         if yes:
-            a = complete({**kept_credentials(), **answers})
+            a = complete(answers)
             result = run(a, plan, lambda s, w: "quit", out=say)
             return 0 if result == "done" else 1
         return console(answers, plan, yes)

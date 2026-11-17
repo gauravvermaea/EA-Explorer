@@ -5,6 +5,15 @@
 # started, in the background, from reports-start.sh (R2.39, owner, 12 Nov 2026: "why report is taking so long, can
 # content load not run after up of report?": Reports waited for all of it, many minutes, while the sample data loaded).
 set -e
+# the passwords and keys as files of their own (Docker secrets under /run/secrets, R6-F1, D745): read into this
+# process's environment only, never the container's settings (docker inspect shows none)
+for _f in /run/secrets/EAX_*; do
+  [ -f "$_f" ] || continue
+  _n=$(basename "$_f")
+  _v=$(cat "$_f")
+  [ -n "$_v" ] && export "$_n=$_v"
+done
+unset _f _n _v
 
 echo "EA Explorer: Superset database upgrade"
 superset db upgrade

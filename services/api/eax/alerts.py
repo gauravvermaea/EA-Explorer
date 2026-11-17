@@ -6,6 +6,8 @@ Every minute (the job eax.alerts_run) each check gives a state, OK, WARNING, CRI
   disk             the fullest disk the installation uses (its data folders, Docker's): % used
   memory           the container nearest its memory limit: % of the limit
   certificate      days until the front door's certificate ends
+  secrets          days until the soonest password, key or certificate that needs a person is due (R6-R1: at 30, 14
+                   and 7 days), or one that should have rotated by itself and did not
   db_connections   the database's connections, % of its limit
   db_long_tx       the longest open transaction (or session idle in one), minutes
   web_errors       server errors (5xx) in the web log in the last hour
@@ -50,6 +52,7 @@ DEFAULTS: dict[str, tuple[str, str, float, float, bool]] = {
     "disk": ("The fullest disk the installation uses", "% used", 80, 90, True),
     "memory": ("The container nearest its memory limit", "% of its limit", 85, 95, True),
     "certificate": ("Days until the front door's certificate ends", "days", 21, 7, False),
+    "secrets": ("Days until a password, key or certificate needs a person (R6-R1; System Admin › Secrets)", "days", 30, 7, False),
     "db_connections": ("The database's connections", "% of its limit", 80, 90, True),
     "db_long_tx": ("The longest open transaction", "minutes", 30, 120, True),
     "web_errors": ("Server errors (5xx) in the last hour", "calls", 10, 50, True),
@@ -125,6 +128,29 @@ def measure_certificate() -> tuple[float | None, str]:
     end = cert.not_valid_after_utc
     days = (end - datetime.now(UTC)).total_seconds() / 86400
     return round(days, 1), f"ends {end:%Y-%m-%d} ({days:.0f} days)"
+
+
+def measure_secrets(listing: dict | None = None) -> tuple[float | None, str]:
+    """R6-R1 (D743): what needs a person, from the operations helper's Secrets listing: the fewest days until one is due
+    (a secret kept elsewhere or offline, a certificate that does not renew by itself), and any that should have rotated
+    or renewed by itself and is overdue (then 0 days: critical). Warned at 30, 14 and 7 days by the levels."""
+    data = listing if listing is not None else _ops("/secrets")
+    days_, names = None, []
+    for s in [*(data.get("secrets") or []), *(data.get("certificates") or [])]:
+        left = s.get("days_left")
+        if left is None:
+            continue
+        auto = s.get("auto", False)
+        if auto and left >= -1:          # rotates by itself: only a day overdue says it did not
+            continue
+        n = 0 if auto else left
+        if days_ is None or n < days_:
+            days_ = n
+        if n <= 30:
+            names.append(f"{s.get('key') or s.get('name')} ({'overdue: did not rotate by itself' if auto else f'{left} days'})")
+    if days_ is None:
+        return 999.0, "nothing needs a person"
+    return float(max(days_, 0)), ("needs a person: " + "; ".join(names[:8])) if names else f"the next in {days_} days"
 
 
 def measure_db(conn) -> dict[str, tuple[float | None, str]]:
@@ -246,6 +272,7 @@ def seen_now(conn, cfg: dict[str, dict]) -> dict[str, dict]:
     except Exception as exc:  # noqa: BLE001
         out["service:health"] = {"state": UNKNOWN, "value": None, "message": str(exc)[:200], "what": "Service health"}
     measures = [("disk", measure_disk), ("memory", measure_memory), ("certificate", measure_certificate),
+                ("secrets", measure_secrets),
                 ("web_errors", measure_web_errors), ("self_test", measure_self_test), ("security", measure_security)]
     for key, fn in measures:
         if not cfg.get(key, {}).get("enabled", True):

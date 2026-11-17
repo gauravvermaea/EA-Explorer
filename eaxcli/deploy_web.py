@@ -24,7 +24,7 @@ PAGE = Path(__file__).with_name("deploy.html")
 class State:
     """The web deployment wizard's state: answers, plan, log lines, steps and the decision after a failure."""
     def __init__(self, answers: dict, plan: bool):
-        self.answers = {**D.kept_credentials(), **answers}
+        self.answers = dict(answers)
         self.plan = plan
         self.lines: list[str] = []
         self.steps: list[dict] = []

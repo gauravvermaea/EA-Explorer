@@ -3,6 +3,10 @@
 import tomllib
 from pathlib import Path
 
+from . import secretfiles as _secretfiles
+
+_secretfiles.load()          # the passwords and keys from their files, before any setting is read (R6-F1, D745)
+
 _VERSION_FILE = Path(__file__).resolve().parent.parent / "version.toml"
 
 

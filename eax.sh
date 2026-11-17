@@ -232,29 +232,20 @@ setting() {
   local v
   v=$(grep -E "^$1=" "$ENV_FILE" 2>/dev/null | head -n1 | cut -d= -f2- | tr -d '\r') || true
   v="${v#\'}"; v="${v%\'}"; v="${v#\"}"; v="${v%\"}"
-  case "$v" in openbao:*) vault_env >&2 || true; v=$(printenv "$1" || true) ;; esac   # a reference: the vault's value (R4.19)
   echo "${v:-${2:-}}"
 }
-# the key vault (R4.19, D684): with EAX_SECRETS_FROM=openbao:..., its container is in every compose command (profile
-# "vault") and, before containers are made, the values behind the config file's references are read into this shell's
-# own environment (eaxpy secrets env: over a pipe, never a file); docker compose takes them from there
-vault_profile() {
-  grep -q '^EAX_SECRETS_FROM=openbao:' "$ENV_FILE" 2>/dev/null || return 0
-  case ",${COMPOSE_PROFILES:-}," in *,vault,*) ;; *) export COMPOSE_PROFILES="${COMPOSE_PROFILES:+$COMPOSE_PROFILES,}vault" ;; esac
-}
-vault_env() {
-  [ -z "${EAX_VAULT_RESOLVED:-}" ] || return 0
-  grep -q '^EAX_SECRETS_FROM=openbao:' "$ENV_FILE" 2>/dev/null || return 0
-  grep -qE '^[A-Z0-9_]+=openbao:' "$ENV_FILE" || return 0
-  vault_profile
-  local lines line
-  lines=$("$ROOT/eaxpy.sh" secrets env) || { echo "ERROR: the key vault (OpenBao) could not be read: ./eaxpy.sh secrets"; return 1; }
-  while IFS= read -r line; do
-    [ -n "$line" ] && export "$line"
-  done <<EOF_VAULT
-$lines
-EOF_VAULT
-  export EAX_VAULT_RESOLVED=1
+# the services' own config (R6-F1, D745): work/config.env, the config file without its passwords and keys (each value the
+# server template holds as change-me), is what the containers read as their settings; the passwords and keys reach them
+# as files of their own (Docker secrets: docker-compose.yml's secrets, from this command's --env-file), never as
+# environment variables. Written before every compose command, so it never falls behind the config file.
+service_env() {
+  [ -f "$ENV_FILE" ] || return 0
+  local keys
+  keys="$(grep -oE '^[A-Z0-9_]+=change-me' deploy/templates/eaexplorer.server.env | cut -d= -f1 | tr '\n' ' ') EAX_SMTP_PASSWORD EAX_MCP_DEV_TOKEN EAX_REMOTE_SECRET_KEY EAX_REPLICATION_PASSWORD EAX_TEST_USER_PASSWORD EAX_ARCHIVE_DB_URL EAX_CHANGELOG_DB_URL EAX_FARM_DB_URL EAX_FILES_DB_URL EAX_LIBRARY_MODELS_DB_URL EAX_OPERATIONS_DB_URL EAX_PERSONAL_DB_URL EAX_PROJECTS_DB_URL EAX_TESTS_DB_URL"
+  { echo "# Written by eax from eaexplorer.env without its passwords and keys (R6-F1). Do not edit; change eaexplorer.env."
+    tr -d '\r' < "$ENV_FILE" | awk -v keys="$keys" 'BEGIN { n = split(keys, a, " "); for (i = 1; i <= n; i++) k[a[i]] = 1 }
+      { split($0, p, "="); if ($0 ~ /^[A-Z0-9_]+=/ && (p[1] in k)) next; print }'
+  } > work/config.env
 }
 # where the data lives (R5.4, D687): with one base folder (EAX_DATA_ROOT), each folder is made and checked and its value
 # put in this shell's environment before containers are made (eaxpy folders env); docker compose takes them from there
@@ -285,8 +276,8 @@ compose() {
   EAX_BUILD=$(build_id); EAX_COMMIT=${EAX_COMMIT:-$(git rev-parse HEAD 2>/dev/null || true)}
   EAX_BUILT_AT=${EAX_BUILT_AT:-$(git log -1 --format=%cI 2>/dev/null || true)}
   export EAX_BUILD EAX_COMMIT EAX_BUILT_AT
-  vault_profile
-  case "${1:-}" in up|run|create) vault_env || return 1; folders_env || return 1 ;; esac
+  service_env || return 1
+  case "${1:-}" in up|run|create) folders_env || return 1 ;; esac
   # plain progress and no colour codes, so the log reads cleanly
   # scale-out extra files (phase 36.3, D521): EAX_COMPOSE_EXTRA=standby,shared-storage... (deploy/compose/scale)
   set -- $(compose_extra) "$@"
@@ -299,6 +290,9 @@ compose_extra() {
     [ -f "$f" ] || { echo "EAX_COMPOSE_EXTRA names $x, but there is no $f." >&2; return 1; }
     printf -- '-f %s ' "$f"
   done
+  # certificate mode (R6-C1, D743): the services sign in to the database with EA Explorer's own certificates
+  [ "$(setting EAX_AUTH_MODE password)" = "certificate" ] && printf -- '-f %s ' deploy/compose/auth/docker-compose.certificate.yml
+  return 0
 }
 
 # Versions, containers, images, every container's recent log and the (masked) config, into the log only
@@ -588,7 +582,6 @@ trust() {
 }
 
 show_logins() {
-  vault_env || true            # once, in this shell: each setting below then reads its value (R4.19)
   if [ "$(kind)" != "laptop" ]; then
     echo "Logins are only printed for a laptop (development) installation. See $ENV_FILE."
     return 0
@@ -803,7 +796,7 @@ case "$CMD" in
   menu) EAX_FORM=sh exec "$BASH" ./eaxpy.sh menu ;;   # the numbered menu (R2.29), one Python program for every form
   screen) EAX_FORM=sh exec "$BASH" ./eaxpy.sh screen ;;   # the full screen (R3.1), Python with Textual
   measure) EAX_FORM=sh exec "$BASH" ./eaxpy.sh "$@" ;;   # memory measured in one go (R3.5-M1); eax commands run back here
-  deploy|secrets|packs|schedule|persist|folders|allow|drill|dr-pack|sign|verify|db|ticket|jobs|optimise|estimate|dev)   # packs (D546); schedule (D559); persist (R2.26); folders (R5.4); allow (R5.2); drill (R5.6-B2)
+  certs|deploy|secrets|packs|schedule|persist|folders|allow|drill|dr-pack|sign|verify|db|ticket|jobs|optimise|estimate|dev)   # packs (D546); schedule (D559); persist (R2.26); folders (R5.4); allow (R5.2); drill (R5.6-B2)
     # phase 36 (D498, D504): one Python program for every form (D500): eaxpy.sh fetches uv and Python into work/tools
     exec "$BASH" ./eaxpy.sh "$@" ;;
   restart)
@@ -844,43 +837,8 @@ case "$CMD" in check|up|start-later|debug|status|logs|down|backup|backups|footpr
 
 case "$CMD" in
   init)
-    K="${2:-laptop}"
-    [ -f "$ENV_FILE" ] && { err "$ENV_FILE already exists; not overwriting. Use ./eax.sh cleanup to start again."; exit 1; }
-    [ -f "deploy/templates/eaexplorer.$K.env" ] || { err "unknown deployment kind: $K"; exit 1; }
-    mkdir -p work/logs work/backups work/proxy work/data/imports work/data/exports work/data/tls
-    # LF endings. The key vault (R4.19, D684; the default, laptop and server alike): every password and key (each one
-    # the server template holds as change-me) a reference to OpenBao, made there at the first ./eax.sh up
-    NOVAULT=1   # R4.19: OpenBao switched off for now (owner, 14 Nov 2026); was: --no-vault only
-    if [ -z "$NOVAULT" ]; then
-      KEYS=$(grep -oE '^[A-Z0-9_]+=change-me' deploy/templates/eaexplorer.server.env | cut -d= -f1 | tr '\n' ' ')
-      tr -d '\r' < "deploy/templates/eaexplorer.$K.env" | awk -v keys="$KEYS" '
-        BEGIN { n = split(keys, a, " "); for (i = 1; i <= n; i++) k[a[i]] = 1 }
-        { split($0, p, "="); if ($0 ~ /^[A-Z0-9_]+=/ && (p[1] in k)) print p[1] "=openbao:" p[1]; else print }
-        END { print ""; print "# ---- The key vault (R4.19): every password and key in OpenBao, references above (eax secrets) ----";
-              print "EAX_SECRETS_FROM=openbao:eax/eaexplorer" }' > "$ENV_FILE"
-    else
-      tr -d '\r' < "deploy/templates/eaexplorer.$K.env" > "$ENV_FILE"
-    fi
-    chmod 600 "$ENV_FILE"
-    echo "Created $ENV_FILE ($K) from deploy/templates/eaexplorer.$K.env."
-    if [ -z "$NOVAULT" ]; then
-      echo "Every password and key is made in the key vault (OpenBao) at the first ./eax.sh up and kept there; $ENV_FILE holds references only. ./eax.sh logins shows them; the vault's keys: persist/vault/keys.json."
-    fi
-    if [ -z "$NOVAULT" ] && [ "$K" = "laptop" ]; then :
-    elif [ "$K" = "laptop" ]; then show_logins
-    else
-      # a server or platform keeps all its data under one base folder (R5.4, D687; it replaced the backups question)
-      BDEF=$(setting EAX_DATA_ROOT /srv/eax); BDIR=""
-      if [ -t 0 ]; then
-        read -r -p "Base folder for all the data (databases, documents, logs, backups, imports, exports, certificates, reports); mount what you want onto its folders later [$BDEF]: " BDIR
-      fi
-      BDIR=${BDIR:-$BDEF}
-      if grep -q '^EAX_DATA_ROOT=' "$ENV_FILE"; then sed -i "s|^EAX_DATA_ROOT=.*|EAX_DATA_ROOT=$BDIR|" "$ENV_FILE"
-      else printf '\nEAX_DATA_ROOT=%s\n' "$BDIR" >> "$ENV_FILE"; fi
-      echo "All the data goes under $BDIR (EAX_DATA_ROOT), a folder for each kind, made at the first ./eax.sh up; ./eax.sh folders shows them."
-      [ -n "$NOVAULT" ] && echo "Now replace every change-me value in $ENV_FILE with your own passwords before ./eax.sh up."
-    fi
-    ;;
+    # R6-C1 (D743): --certificate or --password, asked when neither is given; one Python program for every form (D500)
+    exec "$BASH" ./eaxpy.sh "$@" ;;
   check)
     docker version --format 'Docker {{.Server.Version}}' || { err "Docker is not running."; exit 1; }
     docker compose version
@@ -890,6 +848,7 @@ case "$CMD" in
     ;;
   up)
     shift
+    "$BASH" ./eaxpy.sh secrets fill || true      # a newer release's new settings first, their passwords made here (R6)
     # the industry packs first (D584): new or changed files from the pack sources; quick when nothing changed; never fatal
     if [ "$#" -eq 0 ]; then "$BASH" ./eaxpy.sh packs auto || true; fi
     # an upgrade (D230): while a running installation is rebuilt, the proxy shows the maintenance page
@@ -909,6 +868,7 @@ case "$CMD" in
   start-later) start_later ;;
   debug)
     shift
+    "$BASH" ./eaxpy.sh secrets fill || true      # a newer release's new settings (R6)
     if [ "$#" -eq 0 ]; then "$BASH" ./eaxpy.sh packs auto || true; fi        # the industry packs first (D584)
     if ! up_services "$@"; then echo "docker compose up failed; recording what is running anyway."; fi
     diagnostics

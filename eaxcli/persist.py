@@ -7,7 +7,6 @@ ever deletes, as small JSON files a person can also read and edit by hand:
   persist/schedules.json      scheduled eax commands (eaxcli/schedules.py)
   persist/banner.json         the banner under the top bar (eaxcli/banner.py)
   persist/safety-backups/     the backup taken before a command that deletes everything (eaxcli/commands.py)
-  persist/vault/keys.json     the key vault's unseal key and root token (eaxcli/vault.py, R4.19): never deleted here
   persist/test-results/       the reset-survival test's results (eaxcli/reset_survival.py)
 
 The JSON files are the source of truth. They are written atomically (a temporary file, then a rename), with the last
@@ -94,10 +93,10 @@ WHAT = {
     "banner.json": "the banner under the top bar and its history (no banner once deleted)",
     "settings.json": "the Self-test page's settings (the defaults once deleted)",
     "test-results": "the reset-survival test's results",
-    "vault": "the key vault's unseal key and root token (R4.19): never deleted here (without them the vault, and every "
-             "password in it, cannot be opened)",
+    "auth.json": "how the services sign in, certificate or password, as eax init last chose it (R6-C1; asked again once deleted)",
+    "secrets": "when each password and certificate was last changed, never their values (R6-R1; their ages start again once deleted)",
 }
-NEVER = {"vault"}       # listed, never deleted from here (R4.19)
+NEVER: set[str] = set()      # listed, never deleted from here (the key vault's keys were, until OpenBao was dropped, D744)
 
 
 def _size(p: Path) -> int:

@@ -77,6 +77,8 @@ class HeartbeatView(MethodView):
             "database": db,
             "jobs": jobs,
             "maintenance": maintenance.state(),
+            "site_purpose": _purpose() if db["reachable"] else None,   # Release 6.5 (D749): a label at the top
+            "dr_copy": _dr() if db["reachable"] else None,             # a DR copy: read only, kept up to date
             "test_in_progress": _test_in_progress() if db["reachable"] else None,   # R2.51 (D609)
         }
 
@@ -122,6 +124,16 @@ class ServicesView(MethodView):
         the overall status is ok, degraded, or down when the database is down. Always answers 200.
         """
         return health.check_all()
+
+
+def _purpose():
+    from .. import pairing
+    return pairing.purpose()
+
+
+def _dr():
+    from .. import pairing
+    return pairing.dr_copy()
 
 
 def _test_in_progress():

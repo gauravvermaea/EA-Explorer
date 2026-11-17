@@ -28,7 +28,7 @@ NOT_ALLOWED = set(";|&$`<>()\\\"'\n\r\t*?![]{}~#")
 
 OFFLINE = {"stop", "restart", "up", "update", "rollback", "restore", "restore-app", "maintenance", "standby"}
 WIPE = {"cleanup", "clean-run", "clean-restart", "clean-debug"}
-HOST = {"init", "check", "trust", "deploy", "secrets", "document", "schedule", "persist", "drill", "dr-pack"}
+HOST = {"init", "check", "trust", "deploy", "document", "schedule", "persist", "drill", "dr-pack"}   # secrets, certs: from the web too (R6-S1)
 INTERACTIVE = {"console", "restore-model"}     # ask as they go: in the Console only
 FOLLOWS = {"logs", "debug"}                       # keep going until stopped: the page offers Stop
 STOPPABLE = FOLLOWS | {"status", "diag", "test", "backups", "restores", "databases", "footprint", "url", "logins", "services", "help", "import",
@@ -39,7 +39,6 @@ HOST_WHY = {
     "check": "It checks that Docker runs on the machine itself.",
     "trust": "It adds the certificate to the trusted certificates of the computer you browse from.",
     "deploy": "The deployment wizard runs on the machine you deploy from (it has its own Commands and Console tabs).",
-    "secrets": "It reads and writes cloud key vaults with the cloud credentials of the machine itself.",
     "document": "It opens a page in the browser of the machine itself; the Documentation page has the same.",
     "schedule": "On this page use the Schedules tab instead: the same schedules, with a form and the checks of who may make which.",
     "persist": "On the web use System Admin > Persist: the same list, with Delete beside each item (R2.26).",

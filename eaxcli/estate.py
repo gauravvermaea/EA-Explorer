@@ -58,7 +58,7 @@ NOT_DRAWN = {
     "testrunner-service": "the test runner kept running for the web, part of the Test runner",
 }
 # what a compose profile means, said beside the container (the rest: started on demand)
-PROFILE_SAYS = {"vault": "with the key vault"}
+PROFILE_SAYS: dict[str, str] = {}
 GROUP_ORDER = ["Users", "Edge", "Application", "Platform", "Operations", "Data"]
 FILL = {"Users": "#fff4e5", "Edge": "#fde2e4", "Application": "#e3f0ff", "Platform": "#e8f5e9", "Operations": "#f3e8ff",
         "Data": "#fff9c4", "frontend": "#e3f0ff", "backend": "#e8f5e9", "terminal": "#f3e8ff", "published": "#fde2e4",

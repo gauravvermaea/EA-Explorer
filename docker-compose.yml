@@ -23,35 +23,6 @@ x-logging: &logging
       max-size: "${EAX_DOCKER_LOG_KB:-100}k"
       max-file: "5"
 
-# Every password and key (each value the server template holds as change-me), for the services that read the config
-# file (env_file): taken here from docker compose's own environment, so with the key vault (R4.19, D684: OpenBao; the
-# config file holding references) each container gets the value eax read from the vault, and without it the config
-# file's own value as before. tests/test_vault.py keeps this list whole.
-x-secrets: &secrets
-  EAX_DB_SUPERUSER_PASSWORD: ${EAX_DB_SUPERUSER_PASSWORD:-}
-  EAX_DB_PASSWORD: ${EAX_DB_PASSWORD:-}
-  EAX_DB_REPORT_PASSWORD: ${EAX_DB_REPORT_PASSWORD:-}
-  EAX_DB_MIGRATOR_PASSWORD: ${EAX_DB_MIGRATOR_PASSWORD:-}
-  EAX_KEYCLOAK_DB_PASSWORD: ${EAX_KEYCLOAK_DB_PASSWORD:-}
-  EAX_SUPERSET_DB_PASSWORD: ${EAX_SUPERSET_DB_PASSWORD:-}
-  EAX_MAYAN_DB_PASSWORD: ${EAX_MAYAN_DB_PASSWORD:-}
-  EAX_LIBRARY_DB_PASSWORD: ${EAX_LIBRARY_DB_PASSWORD:-}
-  EAX_LIBRARY_KEY: ${EAX_LIBRARY_KEY:-}
-  EAX_VIEWS_DB_PASSWORD: ${EAX_VIEWS_DB_PASSWORD:-}
-  EAX_VIEWS_KEY: ${EAX_VIEWS_KEY:-}
-  EAX_OPS_TOKEN: ${EAX_OPS_TOKEN:-}
-  EAX_DMS_BROKER_PASSWORD: ${EAX_DMS_BROKER_PASSWORD:-}
-  EAX_DMS_BROKER_PASSWORD_URLENC: ${EAX_DMS_BROKER_PASSWORD_URLENC:-}
-  EAX_KC_ADMIN_PASSWORD: ${EAX_KC_ADMIN_PASSWORD:-}
-  EAX_FIRST_ADMIN_PASSWORD: ${EAX_FIRST_ADMIN_PASSWORD:-}
-  EAX_SUPERSET_OIDC_SECRET: ${EAX_SUPERSET_OIDC_SECRET:-}
-  EAX_MAYAN_OIDC_SECRET: ${EAX_MAYAN_OIDC_SECRET:-}
-  EAX_KC_SERVICE_SECRET: ${EAX_KC_SERVICE_SECRET:-}
-  EAX_BREAK_GLASS_PASSWORD: ${EAX_BREAK_GLASS_PASSWORD:-}
-  EAX_SUPERSET_SECRET_KEY: ${EAX_SUPERSET_SECRET_KEY:-}
-  EAX_SUPERSET_ADMIN_PASSWORD: ${EAX_SUPERSET_ADMIN_PASSWORD:-}
-  EAX_MAYAN_ADMIN_PASSWORD: ${EAX_MAYAN_ADMIN_PASSWORD:-}
-
 # Where the data lives (R5.4, D687): with one base folder (EAX_DATA_ROOT) eax works out each folder and gives it to
 # docker compose in its own environment; the containers that read the config file take the same values here.
 x-folders: &folders
@@ -64,6 +35,90 @@ x-folders: &folders
   EAX_EXPORT_DIR: ${EAX_EXPORT_DIR:-}
   EAX_TLS_DIR: ${EAX_TLS_DIR:-}
   EAX_REPORTS_DIR: ${EAX_REPORTS_DIR:-}
+
+# Every password and key (each value the server template holds as change-me) reaches the containers as a file of its own
+# under /run/secrets, named as the setting (R6-F1, D745), never as an environment variable: docker inspect and the
+# containers' settings show none. Each comes from docker compose's own environment (eax gives it the config file with
+# --env-file); each service lists only those it needs. Our own services read them into their process at start
+# (eax/secretfiles.py and each entrypoint.sh); the others through their own *_FILE setting or a small start script
+# (deploy/secrets). work/config.env, the config file without them, is what the containers read as their settings.
+secrets:
+  EAX_DB_SUPERUSER_PASSWORD:
+    environment: EAX_DB_SUPERUSER_PASSWORD
+  EAX_DB_PASSWORD:
+    environment: EAX_DB_PASSWORD
+  EAX_CONSOLE_IT_PASSWORD:
+    environment: EAX_CONSOLE_IT_PASSWORD
+  EAX_CONSOLE_SUPER_PASSWORD:
+    environment: EAX_CONSOLE_SUPER_PASSWORD
+  EAX_DB_REPORT_PASSWORD:
+    environment: EAX_DB_REPORT_PASSWORD
+  EAX_DB_MIGRATOR_PASSWORD:
+    environment: EAX_DB_MIGRATOR_PASSWORD
+  EAX_KEYCLOAK_DB_PASSWORD:
+    environment: EAX_KEYCLOAK_DB_PASSWORD
+  EAX_SUPERSET_DB_PASSWORD:
+    environment: EAX_SUPERSET_DB_PASSWORD
+  EAX_MAYAN_DB_PASSWORD:
+    environment: EAX_MAYAN_DB_PASSWORD
+  EAX_LIBRARY_DB_PASSWORD:
+    environment: EAX_LIBRARY_DB_PASSWORD
+  EAX_LIBRARY_KEY:
+    environment: EAX_LIBRARY_KEY
+  EAX_VIEWS_DB_PASSWORD:
+    environment: EAX_VIEWS_DB_PASSWORD
+  EAX_VIEWS_KEY:
+    environment: EAX_VIEWS_KEY
+  EAX_OPS_TOKEN:
+    environment: EAX_OPS_TOKEN
+  EAX_DMS_BROKER_PASSWORD:
+    environment: EAX_DMS_BROKER_PASSWORD
+  EAX_DMS_BROKER_PASSWORD_URLENC:
+    environment: EAX_DMS_BROKER_PASSWORD_URLENC
+  EAX_KC_ADMIN_PASSWORD:
+    environment: EAX_KC_ADMIN_PASSWORD
+  EAX_FIRST_ADMIN_PASSWORD:
+    environment: EAX_FIRST_ADMIN_PASSWORD
+  EAX_SUPERSET_OIDC_SECRET:
+    environment: EAX_SUPERSET_OIDC_SECRET
+  EAX_MAYAN_OIDC_SECRET:
+    environment: EAX_MAYAN_OIDC_SECRET
+  EAX_KC_SERVICE_SECRET:
+    environment: EAX_KC_SERVICE_SECRET
+  EAX_BREAK_GLASS_PASSWORD:
+    environment: EAX_BREAK_GLASS_PASSWORD
+  EAX_SUPERSET_SECRET_KEY:
+    environment: EAX_SUPERSET_SECRET_KEY
+  EAX_SUPERSET_ADMIN_PASSWORD:
+    environment: EAX_SUPERSET_ADMIN_PASSWORD
+  EAX_MAYAN_ADMIN_PASSWORD:
+    environment: EAX_MAYAN_ADMIN_PASSWORD
+  EAX_SMTP_PASSWORD:
+    environment: EAX_SMTP_PASSWORD
+  EAX_MCP_DEV_TOKEN:
+    environment: EAX_MCP_DEV_TOKEN
+  EAX_REMOTE_SECRET_KEY:
+    environment: EAX_REMOTE_SECRET_KEY
+  EAX_TEST_USER_PASSWORD:
+    environment: EAX_TEST_USER_PASSWORD
+  EAX_ARCHIVE_DB_URL:
+    environment: EAX_ARCHIVE_DB_URL
+  EAX_CHANGELOG_DB_URL:
+    environment: EAX_CHANGELOG_DB_URL
+  EAX_FARM_DB_URL:
+    environment: EAX_FARM_DB_URL
+  EAX_FILES_DB_URL:
+    environment: EAX_FILES_DB_URL
+  EAX_LIBRARY_MODELS_DB_URL:
+    environment: EAX_LIBRARY_MODELS_DB_URL
+  EAX_OPERATIONS_DB_URL:
+    environment: EAX_OPERATIONS_DB_URL
+  EAX_PERSONAL_DB_URL:
+    environment: EAX_PERSONAL_DB_URL
+  EAX_PROJECTS_DB_URL:
+    environment: EAX_PROJECTS_DB_URL
+  EAX_TESTS_DB_URL:
+    environment: EAX_TESTS_DB_URL
 
 networks:
   frontend:
@@ -81,6 +136,7 @@ volumes:
   eax-rendered:      # files rendered by the setup service from eaexplorer.env (Superset sample)
   eax-kc-import:     # the Keycloak realm rendered by the setup service
   eax-superset-home:
+  eax-certs:         # certificate mode's authority and certificates (R6-C1): used only with deploy/compose/auth
 
 services:
 
@@ -88,14 +144,15 @@ services:
   # Renders the Keycloak realm and the Superset sample from the config file, and creates a
   # self-signed TLS certificate if none exists. Runs on every start; it is idempotent.
   setup:
+    secrets: [EAX_DB_SUPERUSER_PASSWORD, EAX_DB_PASSWORD, EAX_CONSOLE_IT_PASSWORD, EAX_CONSOLE_SUPER_PASSWORD, EAX_DB_REPORT_PASSWORD, EAX_DB_MIGRATOR_PASSWORD, EAX_KEYCLOAK_DB_PASSWORD, EAX_SUPERSET_DB_PASSWORD, EAX_MAYAN_DB_PASSWORD, EAX_LIBRARY_DB_PASSWORD, EAX_LIBRARY_KEY, EAX_VIEWS_DB_PASSWORD, EAX_VIEWS_KEY, EAX_OPS_TOKEN, EAX_DMS_BROKER_PASSWORD, EAX_DMS_BROKER_PASSWORD_URLENC, EAX_KC_ADMIN_PASSWORD, EAX_FIRST_ADMIN_PASSWORD, EAX_SUPERSET_OIDC_SECRET, EAX_MAYAN_OIDC_SECRET, EAX_KC_SERVICE_SECRET, EAX_BREAK_GLASS_PASSWORD, EAX_SUPERSET_SECRET_KEY, EAX_SUPERSET_ADMIN_PASSWORD, EAX_MAYAN_ADMIN_PASSWORD, EAX_SMTP_PASSWORD, EAX_MCP_DEV_TOKEN, EAX_REMOTE_SECRET_KEY, EAX_TEST_USER_PASSWORD, EAX_ARCHIVE_DB_URL, EAX_CHANGELOG_DB_URL, EAX_FARM_DB_URL, EAX_FILES_DB_URL, EAX_LIBRARY_MODELS_DB_URL, EAX_OPERATIONS_DB_URL, EAX_PERSONAL_DB_URL, EAX_PROJECTS_DB_URL, EAX_TESTS_DB_URL]   # R6-F1: files under /run/secrets, never environment variables
     build:
       context: ./services/api
     image: eaexplorer/api:${EAX_VERSION:-dev}
     command: ["python", "-m", "eax.setup"]
     user: "0"            # writes the certificate and rendered files into volumes owned by root
-    env_file: work/eaexplorer.env
+    env_file: work/config.env     # the config file without its passwords and keys (R6-F1)
     environment:
-      <<: [*secrets, *folders]
+      <<: *folders
     volumes:
       - ${EAX_TLS_DIR:-eax-tls}:/tls
       - eax-rendered:/rendered
@@ -162,18 +219,18 @@ services:
   # removes copies at once); nginx spreads API calls across them and each runs background jobs. No container_name and
   # no published port, so it can have several copies; stopping one waits for the jobs it runs to finish.
   api:
+    secrets: [EAX_DB_SUPERUSER_PASSWORD, EAX_DB_PASSWORD, EAX_CONSOLE_IT_PASSWORD, EAX_CONSOLE_SUPER_PASSWORD, EAX_DB_REPORT_PASSWORD, EAX_DB_MIGRATOR_PASSWORD, EAX_KEYCLOAK_DB_PASSWORD, EAX_SUPERSET_DB_PASSWORD, EAX_MAYAN_DB_PASSWORD, EAX_LIBRARY_DB_PASSWORD, EAX_LIBRARY_KEY, EAX_VIEWS_DB_PASSWORD, EAX_VIEWS_KEY, EAX_OPS_TOKEN, EAX_DMS_BROKER_PASSWORD, EAX_DMS_BROKER_PASSWORD_URLENC, EAX_KC_ADMIN_PASSWORD, EAX_FIRST_ADMIN_PASSWORD, EAX_SUPERSET_OIDC_SECRET, EAX_MAYAN_OIDC_SECRET, EAX_KC_SERVICE_SECRET, EAX_BREAK_GLASS_PASSWORD, EAX_SUPERSET_SECRET_KEY, EAX_SUPERSET_ADMIN_PASSWORD, EAX_MAYAN_ADMIN_PASSWORD, EAX_SMTP_PASSWORD, EAX_MCP_DEV_TOKEN, EAX_REMOTE_SECRET_KEY, EAX_TEST_USER_PASSWORD, EAX_ARCHIVE_DB_URL, EAX_CHANGELOG_DB_URL, EAX_FARM_DB_URL, EAX_FILES_DB_URL, EAX_LIBRARY_MODELS_DB_URL, EAX_OPERATIONS_DB_URL, EAX_PERSONAL_DB_URL, EAX_PROJECTS_DB_URL, EAX_TESTS_DB_URL]   # R6-F1: files under /run/secrets, never environment variables
     build:
       context: ./services/api
     image: eaexplorer/api:${EAX_VERSION:-dev}
     <<: [*restart, *logging]
     stop_grace_period: 2m
-    env_file: work/eaexplorer.env
+    env_file: work/config.env     # the config file without its passwords and keys (R6-F1)
     environment:
-      <<: [*secrets, *folders]          # the passwords and keys (the vault's when it is used, R4.19)
+      <<: *folders
       EAX_ROLE: api            # entrypoint runs migrations, then the web API and the job runner
       EAX_SERVE: ${EAX_API_SERVE:-all}   # everything, the operations and personal data parts too (D677, R3.5-M1b)
       EAX_OPS_URL: http://ops:8090                       # the operations helper (phase 10, D183)
-      EAX_OPS_TOKEN: ${EAX_OPS_TOKEN:-eax-ops-laptop}
       # the build shown top left with the release (R2.47): set by eax from git when it starts the stack, or by CI
       EAX_BUILD: ${EAX_BUILD:-dev}
       EAX_BUILT_AT: ${EAX_BUILT_AT:-}
@@ -212,13 +269,14 @@ services:
       start_period: 30s
 
   backup:
+    secrets: [EAX_DB_SUPERUSER_PASSWORD, EAX_ARCHIVE_DB_URL, EAX_CHANGELOG_DB_URL, EAX_FARM_DB_URL, EAX_FILES_DB_URL, EAX_LIBRARY_MODELS_DB_URL, EAX_OPERATIONS_DB_URL, EAX_PERSONAL_DB_URL, EAX_PROJECTS_DB_URL, EAX_TESTS_DB_URL]   # R6-F1: files under /run/secrets, never environment variables
     build:
       context: ./services/backup
     image: eaexplorer/backup:${EAX_VERSION:-dev}
     <<: [*restart, *logging]
-    env_file: work/eaexplorer.env
+    env_file: work/config.env     # the config file without its passwords and keys (R6-F1)
     environment:          # where the library's and the views' databases are (their own servers in production, D410)
-      <<: [*secrets, *folders]          # the passwords and keys (the vault's when it is used, R4.19)
+      <<: *folders
       EAX_LIBRARY_DB_HOST: ${EAX_LIBRARY_DB_HOST:-db}
       EAX_VIEWS_DB_HOST: ${EAX_VIEWS_DB_HOST:-db}
     depends_on:
@@ -231,20 +289,21 @@ services:
       - ${EAX_REPORTS_DIR:-eax-superset-home}:/superset-home           # Superset's home: its secret key and uploads
       - ${EAX_IMPORT_DIR:-eax-imports}:/imports    # the API's import folder
       - ${EAX_EXPORT_DIR:-eax-exports}:/exports    # the API's export folder
-      - ${EAX_PERSIST_DIR:-./persist}:/persist     # the settings that survive resets (D558), the vault's keys (R4.19)
+      - ${EAX_PERSIST_DIR:-./persist}:/persist     # the settings that survive resets (D558)
     networks: [backend]
 
   # The library (phase 15.2, D346): the organisation's and the projects' libraries, a service of its own with its own
   # database (eaxlibrary, made on first start), migrations and API (/api/library/v1). On a laptop its database shares the
   # PostgreSQL server; in production it gets its own (scale-out story). Optional: EAX_SERVICE_LIBRARY; started after the core.
   library:
+    secrets: [EAX_DB_SUPERUSER_PASSWORD, EAX_DB_PASSWORD, EAX_LIBRARY_DB_PASSWORD, EAX_LIBRARY_KEY]   # R6-F1: files under /run/secrets, never environment variables
     build:
       context: ./services/library
     image: eaexplorer/library:${EAX_VERSION:-dev}
     <<: [*restart, *logging]
-    env_file: work/eaexplorer.env
+    env_file: work/config.env     # the config file without its passwords and keys (R6-F1)
     environment:
-      <<: [*secrets, *folders]          # the passwords and keys (the vault's when it is used, R4.19)
+      <<: *folders
       EAX_API_INTERNAL_URL: http://api:8000
       EAX_LIBRARY_DB_HOST: ${EAX_LIBRARY_DB_HOST:-db}
     depends_on:
@@ -269,13 +328,14 @@ services:
   # a service of its own with its own database (eaxviews, made on first start), migrations and API (/api/views/v1). It
   # asks the main API who the person is and what they may do with the model. Optional: EAX_SERVICE_VIEWS.
   views:
+    secrets: [EAX_DB_SUPERUSER_PASSWORD, EAX_DB_PASSWORD, EAX_VIEWS_DB_PASSWORD, EAX_VIEWS_KEY]   # R6-F1: files under /run/secrets, never environment variables
     build:
       context: ./services/views
     image: eaexplorer/views:${EAX_VERSION:-dev}
     <<: [*restart, *logging]
-    env_file: work/eaexplorer.env
+    env_file: work/config.env     # the config file without its passwords and keys (R6-F1)
     environment:
-      <<: [*secrets, *folders]          # the passwords and keys (the vault's when it is used, R4.19)
+      <<: *folders
       EAX_API_INTERNAL_URL: http://api:8000
       EAX_VIEWS_DB_HOST: ${EAX_VIEWS_DB_HOST:-db}
     depends_on:
@@ -298,14 +358,15 @@ services:
   # with the api container's settings. It makes its own test database (EAX_TEST_DB_NAME, default eaxtest) and its own
   # copy of the API on it, so the installation's data is never touched; results go to the database and work/tests.
   testrunner:
+    secrets: [EAX_DB_SUPERUSER_PASSWORD, EAX_DB_PASSWORD, EAX_CONSOLE_IT_PASSWORD, EAX_CONSOLE_SUPER_PASSWORD, EAX_DB_REPORT_PASSWORD, EAX_DB_MIGRATOR_PASSWORD, EAX_KEYCLOAK_DB_PASSWORD, EAX_SUPERSET_DB_PASSWORD, EAX_MAYAN_DB_PASSWORD, EAX_LIBRARY_DB_PASSWORD, EAX_LIBRARY_KEY, EAX_VIEWS_DB_PASSWORD, EAX_VIEWS_KEY, EAX_OPS_TOKEN, EAX_DMS_BROKER_PASSWORD, EAX_DMS_BROKER_PASSWORD_URLENC, EAX_KC_ADMIN_PASSWORD, EAX_FIRST_ADMIN_PASSWORD, EAX_SUPERSET_OIDC_SECRET, EAX_MAYAN_OIDC_SECRET, EAX_KC_SERVICE_SECRET, EAX_BREAK_GLASS_PASSWORD, EAX_SUPERSET_SECRET_KEY, EAX_SUPERSET_ADMIN_PASSWORD, EAX_MAYAN_ADMIN_PASSWORD, EAX_SMTP_PASSWORD, EAX_MCP_DEV_TOKEN, EAX_REMOTE_SECRET_KEY, EAX_TEST_USER_PASSWORD, EAX_ARCHIVE_DB_URL, EAX_CHANGELOG_DB_URL, EAX_FARM_DB_URL, EAX_FILES_DB_URL, EAX_LIBRARY_MODELS_DB_URL, EAX_OPERATIONS_DB_URL, EAX_PERSONAL_DB_URL, EAX_PROJECTS_DB_URL, EAX_TESTS_DB_URL]   # R6-F1: files under /run/secrets, never environment variables
     profiles: ["test"]
     build:
       context: ./services/api
       dockerfile: Dockerfile.test
     image: eaexplorer/testrunner:${EAX_VERSION:-dev}
-    env_file: work/eaexplorer.env
+    env_file: work/config.env     # the config file without its passwords and keys (R6-F1)
     environment:
-      <<: [*secrets, *folders]          # the passwords and keys (the vault's when it is used, R4.19)
+      <<: *folders
       EAX_TEST_RESULTS: /results
       EAX_TEST_DATA: /testdata                      # the test data, shared with the outside test bench (D580)
     volumes:
@@ -329,13 +390,14 @@ services:
   # (EAX_PLATFORM=managed, profile "platform") it waits for the runs the API queues and runs them itself; the security
   # scanners need the socket and are left out there. On a laptop or server the operations helper starts the runner.
   testrunner-service:
+    secrets: [EAX_DB_SUPERUSER_PASSWORD, EAX_DB_PASSWORD, EAX_CONSOLE_IT_PASSWORD, EAX_CONSOLE_SUPER_PASSWORD, EAX_DB_REPORT_PASSWORD, EAX_DB_MIGRATOR_PASSWORD, EAX_KEYCLOAK_DB_PASSWORD, EAX_SUPERSET_DB_PASSWORD, EAX_MAYAN_DB_PASSWORD, EAX_LIBRARY_DB_PASSWORD, EAX_LIBRARY_KEY, EAX_VIEWS_DB_PASSWORD, EAX_VIEWS_KEY, EAX_OPS_TOKEN, EAX_DMS_BROKER_PASSWORD, EAX_DMS_BROKER_PASSWORD_URLENC, EAX_KC_ADMIN_PASSWORD, EAX_FIRST_ADMIN_PASSWORD, EAX_SUPERSET_OIDC_SECRET, EAX_MAYAN_OIDC_SECRET, EAX_KC_SERVICE_SECRET, EAX_BREAK_GLASS_PASSWORD, EAX_SUPERSET_SECRET_KEY, EAX_SUPERSET_ADMIN_PASSWORD, EAX_MAYAN_ADMIN_PASSWORD, EAX_SMTP_PASSWORD, EAX_MCP_DEV_TOKEN, EAX_REMOTE_SECRET_KEY, EAX_TEST_USER_PASSWORD, EAX_ARCHIVE_DB_URL, EAX_CHANGELOG_DB_URL, EAX_FARM_DB_URL, EAX_FILES_DB_URL, EAX_LIBRARY_MODELS_DB_URL, EAX_OPERATIONS_DB_URL, EAX_PERSONAL_DB_URL, EAX_PROJECTS_DB_URL, EAX_TESTS_DB_URL]   # R6-F1: files under /run/secrets, never environment variables
     profiles: ["platform"]
     image: eaexplorer/testrunner:${EAX_VERSION:-dev}
     <<: [*restart, *logging]
     entrypoint: ["python", "-m", "eax.testing.waiter"]
-    env_file: work/eaexplorer.env
+    env_file: work/config.env     # the config file without its passwords and keys (R6-F1)
     environment:
-      <<: [*secrets, *folders]          # the passwords and keys (the vault's when it is used, R4.19)
+      <<: *folders
       EAX_PLATFORM: managed
       EAX_TEST_DATA: /testdata
     networks: [frontend, backend]
@@ -347,12 +409,12 @@ services:
   # services on and off from the console (D191): it writes the config file in the work folder (a dated copy first, in
   # work/config-history) and starts or stops their containers.
   ops:
+    secrets: [EAX_OPS_TOKEN]   # R6-F1: files under /run/secrets, never environment variables
     build:
       context: ./services/ops
     image: eaexplorer/ops:${EAX_VERSION:-dev}
     <<: [*restart, *logging]
     environment:
-      EAX_OPS_TOKEN: ${EAX_OPS_TOKEN:-eax-ops-laptop}   # a server sets its own (the setup refuses this one there)
       EAX_PERSIST_DIR: /eax-persist      # persist/ as mounted below: the settings that survive resets (D558)
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -371,21 +433,16 @@ services:
     networks: [backend, terminal]
 
   db:
+    secrets: [EAX_DB_SUPERUSER_PASSWORD, EAX_DB_PASSWORD, EAX_DB_REPORT_PASSWORD, EAX_DB_MIGRATOR_PASSWORD, EAX_KEYCLOAK_DB_PASSWORD, EAX_SUPERSET_DB_PASSWORD, EAX_MAYAN_DB_PASSWORD]   # R6-F1: files under /run/secrets, never environment variables
     image: ${EAX_IMAGE_POSTGRES:-postgres:17-alpine}
     <<: [*restart, *logging]
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${EAX_DB_SUPERUSER_PASSWORD:?set EAX_DB_SUPERUSER_PASSWORD in work/eaexplorer.env}
+      POSTGRES_PASSWORD_FILE: /run/secrets/EAX_DB_SUPERUSER_PASSWORD     # R6-F1: the image's own *_FILE setting
       POSTGRES_DB: postgres
       EAX_DB_NAME: ${EAX_DB_NAME:-eaexplorer}
-      EAX_DB_PASSWORD: ${EAX_DB_PASSWORD:?set EAX_DB_PASSWORD}
-      EAX_DB_REPORT_PASSWORD: ${EAX_DB_REPORT_PASSWORD:?set EAX_DB_REPORT_PASSWORD}
-      EAX_DB_MIGRATOR_PASSWORD: ${EAX_DB_MIGRATOR_PASSWORD:?set EAX_DB_MIGRATOR_PASSWORD}
-      EAX_KEYCLOAK_DB_PASSWORD: ${EAX_KEYCLOAK_DB_PASSWORD:?set EAX_KEYCLOAK_DB_PASSWORD}
-      EAX_SUPERSET_DB_PASSWORD: ${EAX_SUPERSET_DB_PASSWORD:?set EAX_SUPERSET_DB_PASSWORD}
       EAX_SUPERSET_DB_HOST: ${EAX_SUPERSET_DB_HOST:-db}            # R2.50: its own server when set
       EAX_SUPERSET_DB_PORT: ${EAX_SUPERSET_DB_PORT:-5432}
-      EAX_MAYAN_DB_PASSWORD: ${EAX_MAYAN_DB_PASSWORD:?set EAX_MAYAN_DB_PASSWORD}
     volumes:
       - ${EAX_DATA_DIR:-eax-pgdata}:/var/lib/postgresql/data
       - ./deploy/postgres/initdb:/docker-entrypoint-initdb.d:ro
@@ -399,22 +456,25 @@ services:
   # Valkey, used only by Mayan EDMS as its task queue and lock store (Celery broker).
   # Nothing of ours and not Superset uses it: their state lives in PostgreSQL.
   dms-broker:
+    secrets: [EAX_DMS_BROKER_PASSWORD]   # R6-F1: files under /run/secrets, never environment variables
     image: ${EAX_IMAGE_VALKEY:-valkey/valkey:8-alpine}
     <<: [*restart, *logging]
-    command: ["valkey-server", "--requirepass", "${EAX_DMS_BROKER_PASSWORD:?set EAX_DMS_BROKER_PASSWORD}", "--save", ""]
+    # the password from its file (R6-F1): docker inspect shows the command as written here, not the password
+    command: ["sh", "-c", "exec valkey-server --requirepass \"$$(cat /run/secrets/EAX_DMS_BROKER_PASSWORD)\" --save ''"]
     networks: [backend]
     healthcheck:
-      test: ["CMD-SHELL", "valkey-cli -a \"$$VALKEY_PASSWORD\" ping | grep -q PONG"]
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$(cat /run/secrets/EAX_DMS_BROKER_PASSWORD)\" valkey-cli ping | grep -q PONG"]
       interval: 10s
       timeout: 5s
       retries: 10
-    environment:
-      VALKEY_PASSWORD: ${EAX_DMS_BROKER_PASSWORD}
 
   # ---------------------------------------------------------------- identity (out of the box)
   keycloak:
+    secrets: [EAX_KEYCLOAK_DB_PASSWORD, EAX_KC_ADMIN_PASSWORD]   # R6-F1: files under /run/secrets, never environment variables
     image: ${EAX_IMAGE_KEYCLOAK:-quay.io/keycloak/keycloak:26.0}
     <<: [*restart, *logging]
+    # its database and admin passwords from their files (R6-F1; Keycloak has no *_FILE settings): deploy/secrets
+    entrypoint: ["/bin/bash", "/eax-secrets/keycloak-start.sh"]
     command: ["start", "--import-realm"]
     depends_on:
       db:
@@ -426,7 +486,6 @@ services:
       KC_LOG_LEVEL: ${EAX_KC_LOG_LEVEL:-info}   # R5.6: info by default (debug, info, warn, error)
       KC_DB_URL: jdbc:postgresql://${EAX_KEYCLOAK_DB_HOST:-db}:${EAX_KEYCLOAK_DB_PORT:-5432}/keycloak   # R2.50: its own server when set
       KC_DB_USERNAME: keycloak
-      KC_DB_PASSWORD: ${EAX_KEYCLOAK_DB_PASSWORD}
       KC_HTTP_ENABLED: "true"
       KC_HTTP_RELATIVE_PATH: /auth
       KC_HOSTNAME: https://${EAX_HOSTNAME:-localhost}:${EAX_HTTPS_PORT:-443}/auth
@@ -434,11 +493,11 @@ services:
       KC_PROXY_HEADERS: xforwarded
       KC_HEALTH_ENABLED: "true"
       KC_BOOTSTRAP_ADMIN_USERNAME: ${EAX_KC_ADMIN:-kcadmin}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${EAX_KC_ADMIN_PASSWORD:?set EAX_KC_ADMIN_PASSWORD}
       # its Java heap by setting (R3.5), not a share of the whole host's memory (Keycloak's default)
       JAVA_OPTS_KC_HEAP: ${EAX_KEYCLOAK_HEAP:--Xms64m -Xmx512m}
     volumes:
       - eax-kc-import:/opt/keycloak/data/import:ro
+      - ./deploy/secrets:/eax-secrets:ro
     networks: [frontend, backend]
     # ready when it answers a realm (the image has bash but no curl); the start waits for it before saying people can
     # sign in (the first tier of the start-up, D255)
@@ -462,6 +521,7 @@ services:
 
   # ---------------------------------------------------------------- reports (out of the box, plus drivers)
   reports-init:
+    secrets: [EAX_SUPERSET_DB_PASSWORD, EAX_SUPERSET_OIDC_SECRET, EAX_SUPERSET_SECRET_KEY, EAX_SUPERSET_ADMIN_PASSWORD]   # R6-F1: files under /run/secrets, never environment variables
     build:
       context: ./deploy/superset
       args:
@@ -472,9 +532,9 @@ services:
     # showed "unhealthy" on every start (R2.20)
     healthcheck:
       disable: true
-    env_file: work/eaexplorer.env
+    env_file: work/config.env     # the config file without its passwords and keys (R6-F1)
     environment:
-      <<: [*secrets, *folders]          # the passwords and keys (the vault's when it is used, R4.19)
+      <<: *folders
       SUPERSET_CONFIG_PATH: /app/eax/superset_config.py
     depends_on:
       db:
@@ -491,6 +551,7 @@ services:
     <<: *logging
 
   reports:
+    secrets: [EAX_SUPERSET_DB_PASSWORD, EAX_SUPERSET_OIDC_SECRET, EAX_SUPERSET_SECRET_KEY, EAX_SUPERSET_ADMIN_PASSWORD]   # R6-F1: files under /run/secrets, never environment variables
     # Same image as reports-init. The build section is repeated so Compose builds it instead of
     # trying to pull eaexplorer/superset from Docker Hub (it is never published there).
     build:
@@ -501,9 +562,9 @@ services:
     <<: [*restart, *logging]
     # the server starts at once; the report dashboards and datasets load in the background (R2.39)
     command: ["/bin/sh", "/app/eax/reports-start.sh"]
-    env_file: work/eaexplorer.env
+    env_file: work/config.env     # the config file without its passwords and keys (R6-F1)
     environment:
-      <<: [*secrets, *folders]          # the passwords and keys (the vault's when it is used, R4.19)
+      <<: *folders
       SUPERSET_CONFIG_PATH: /app/eax/superset_config.py
     depends_on:
       reports-init:
@@ -516,8 +577,13 @@ services:
 
   # ---------------------------------------------------------------- documents (out of the box)
   dms:
+    secrets: [EAX_MAYAN_DB_PASSWORD, EAX_DMS_BROKER_PASSWORD_URLENC, EAX_MAYAN_OIDC_SECRET, EAX_MAYAN_ADMIN_PASSWORD]   # R6-F1: files under /run/secrets, never environment variables
     image: ${EAX_IMAGE_MAYAN:-mayanedms/mayanedms:s4}
     <<: [*restart, *logging]
+    # {{EAX_...}} in its settings filled from the secret files as it starts (R6-F1; Mayan has no *_FILE settings), so
+    # docker inspect shows the placeholders, never the passwords: deploy/secrets/mayan-start.sh
+    entrypoint: ["/bin/bash", "/eax-secrets/mayan-start.sh"]
+    command: ["run_all"]
     depends_on:
       db:
         condition: service_healthy
@@ -526,11 +592,11 @@ services:
       keycloak:
         condition: service_started
     environment:
-      MAYAN_DATABASES: '{"default":{"ENGINE":"django.db.backends.postgresql","NAME":"mayan","USER":"mayan","PASSWORD":"${EAX_MAYAN_DB_PASSWORD}","HOST":"${EAX_MAYAN_DB_HOST:-db}","PORT":"${EAX_MAYAN_DB_PORT:-5432}"}}'
-      MAYAN_CELERY_BROKER_URL: redis://:${EAX_DMS_BROKER_PASSWORD_URLENC:?set EAX_DMS_BROKER_PASSWORD_URLENC}@dms-broker:6379/0
-      MAYAN_CELERY_RESULT_BACKEND: redis://:${EAX_DMS_BROKER_PASSWORD_URLENC}@dms-broker:6379/1
+      MAYAN_DATABASES: '{"default":{"ENGINE":"django.db.backends.postgresql","NAME":"mayan","USER":"mayan","PASSWORD":"{{EAX_MAYAN_DB_PASSWORD}}","HOST":"${EAX_MAYAN_DB_HOST:-db}","PORT":"${EAX_MAYAN_DB_PORT:-5432}"}}'
+      MAYAN_CELERY_BROKER_URL: redis://:{{EAX_DMS_BROKER_PASSWORD_URLENC}}@dms-broker:6379/0
+      MAYAN_CELERY_RESULT_BACKEND: redis://:{{EAX_DMS_BROKER_PASSWORD_URLENC}}@dms-broker:6379/1
       MAYAN_LOCK_MANAGER_BACKEND: mayan.apps.lock_manager.backends.redis_lock.RedisLock
-      MAYAN_LOCK_MANAGER_BACKEND_ARGUMENTS: '{"redis_url":"redis://:${EAX_DMS_BROKER_PASSWORD_URLENC}@dms-broker:6379/2"}'
+      MAYAN_LOCK_MANAGER_BACKEND_ARGUMENTS: '{"redis_url":"redis://:{{EAX_DMS_BROKER_PASSWORD_URLENC}}@dms-broker:6379/2"}'
       MAYAN_ALLOWED_HOSTS: '["*"]'
       MAYAN_CSRF_TRUSTED_ORIGINS: '["https://docs.${EAX_HOSTNAME:-localhost}:${EAX_HTTPS_PORT:-443}","https://docs.${EAX_HOSTNAME:-localhost}"]'
       # Sign-in through Keycloak. Discovery is fetched inside the Docker network; Keycloak then
@@ -538,12 +604,12 @@ services:
       # To fall back to Mayan's own login, set EAX_MAYAN_AUTH_BACKEND in work/eaexplorer.env to
       # mayan.apps.authentication.authentication_backends.AuthenticationBackendModelUsernamePassword
       MAYAN_AUTHENTICATION_BACKEND: ${EAX_MAYAN_AUTH_BACKEND:-mayan.apps.authentication_oidc.authentication_backends.AuthenticationBackendOIDC}
-      MAYAN_AUTHENTICATION_BACKEND_ARGUMENTS: '{"oidc_discovery_url":"http://keycloak:8080/auth/realms/${EAX_KEYCLOAK_REALM:-eaexplorer}/.well-known/openid-configuration","oidc_rp_client_id":"mayan","oidc_rp_client_secret":"${EAX_MAYAN_OIDC_SECRET}","oidc_rp_sign_algo":"RS256"}'
+      MAYAN_AUTHENTICATION_BACKEND_ARGUMENTS: '{"oidc_discovery_url":"http://keycloak:8080/auth/realms/${EAX_KEYCLOAK_REALM:-eaexplorer}/.well-known/openid-configuration","oidc_rp_client_id":"mayan","oidc_rp_client_secret":"{{EAX_MAYAN_OIDC_SECRET}}","oidc_rp_sign_algo":"RS256"}'
       # Behind the proxy: trust its https and host headers so redirects use https://docs.<host>
       MAYAN_SECURE_PROXY_SSL_HEADER: '["HTTP_X_FORWARDED_PROTO","https"]'
       MAYAN_USE_X_FORWARDED_HOST: "true"
       MAYAN_AUTOADMIN_USERNAME: ${EAX_MAYAN_ADMIN_USER:-admin}
-      MAYAN_AUTOADMIN_PASSWORD: ${EAX_MAYAN_ADMIN_PASSWORD:?set EAX_MAYAN_ADMIN_PASSWORD}
+      MAYAN_AUTOADMIN_PASSWORD: "{{EAX_MAYAN_ADMIN_PASSWORD}}"
       MAYAN_AUTOADMIN_EMAIL: ${EAX_FIRST_ADMIN_EMAIL:-admin@example.org}
       # memory (R3.5; the smoke test of 14 Nov 2026: Documents 1.9 to 2.6 GB, half of everything): Mayan's workers A, B
       # and C default to one process per CPU core each; one each on a laptop (documents processed one at a time, nothing
@@ -554,4 +620,5 @@ services:
       MAYAN_WORKER_C_CONCURRENCY: ${EAX_MAYAN_WORKER_CONCURRENCY:-1}
     volumes:
       - ${EAX_DOCS_DIR:-eax-docs}:/var/lib/mayan
+      - ./deploy/secrets:/eax-secrets:ro
     networks: [frontend, backend]

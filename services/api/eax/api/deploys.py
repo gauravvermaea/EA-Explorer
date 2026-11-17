@@ -1,5 +1,5 @@
 """System admin > Deploy (phase 36, D555 to D557): Super Admins and IT Admins deploy EA Explorer from this installation
-to another place (a server over SSH; AWS, Azure or DigitalOcean), with the eax deploy steps run by the operations
+to another server, reached over SSH wherever it runs (D746), with the eax deploy steps run by the operations
 helper. Plans first; progress, Retry / Back / Quit and the log; the history of targets. Fleet management is R2."""
 
 from __future__ import annotations

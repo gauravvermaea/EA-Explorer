@@ -3,6 +3,10 @@
 # slot exist there, copies the primary once (pg_basebackup, which also writes standby.signal and how to reach the
 # primary), then runs PostgreSQL as a hot standby that follows the primary continuously (read only).
 set -eu
+# the passwords as files of their own (Docker secrets, R6-F1, D745): read into this process only
+POSTGRES_PASSWORD="$(cat /run/secrets/EAX_DB_SUPERUSER_PASSWORD)"
+EAX_REPLICATION_PASSWORD="$(cat /run/secrets/EAX_REPLICATION_PASSWORD)"
+export POSTGRES_PASSWORD EAX_REPLICATION_PASSWORD
 PGDATA="${PGDATA:-/var/lib/postgresql/data}"
 echo "EA Explorer standby: waiting for the primary ${PRIMARY_HOST}:${PRIMARY_PORT}"
 until pg_isready -h "$PRIMARY_HOST" -p "$PRIMARY_PORT" -U postgres >/dev/null 2>&1; do sleep 2; done

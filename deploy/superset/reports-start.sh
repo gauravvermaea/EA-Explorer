@@ -1,6 +1,15 @@
 #!/bin/sh
 # The Reports server (the reports service): the report content loads in the background (reports-content.sh, its output
 # in this container's log), and the server starts at once (R2.39).
+# the passwords and keys as files of their own (Docker secrets under /run/secrets, R6-F1, D745): read into this
+# process's environment only, never the container's settings (docker inspect shows none)
+for _f in /run/secrets/EAX_*; do
+  [ -f "$_f" ] || continue
+  _n=$(basename "$_f")
+  _v=$(cat "$_f")
+  [ -n "$_v" ] && export "$_n=$_v"
+done
+unset _f _n _v
 sh /app/eax/reports-content.sh 2>&1 | sed -u 's/^/[content] /' &   # -u: each line in the log at once
 
 # Superset's own start script, wherever this image keeps it

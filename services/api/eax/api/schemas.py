@@ -20,7 +20,8 @@ class JobQueueStatus(Schema):
 
 class Heartbeat(Schema):
     """The shape of heartbeat in the API's answers: status, service, version, versions_match, warning, deployment,
-    time, database, jobs, maintenance."""
+    time, database, jobs, maintenance, the build, a self-test in progress, the site's purpose and whether it is a DR
+    copy."""
     status = fields.String(required=True, metadata={
         "description": "ok; warning when the API and database versions differ; degraded when the database cannot be reached"})
     service = fields.String(required=True)
@@ -33,6 +34,18 @@ class Heartbeat(Schema):
     jobs = fields.Nested(JobQueueStatus, required=True)
     maintenance = fields.Dict(allow_none=True, metadata={
         "description": "Set while a backup is restored (phase 8.4): what, since when, by whom; the installation is read only"})
+    # the release's build top left (R2.47) and a self-test in progress (R2.51): answered by the view all along, but left
+    # out of the answer until they were named here (owner's laptop: "build dev" whatever the build; no self-test banner)
+    build = fields.String(allow_none=True, metadata={"description": "The build: the commit's short id or the CI number; dev when not known"})
+    built_at = fields.String(allow_none=True)
+    commit = fields.String(allow_none=True)
+    channel = fields.String(allow_none=True)
+    platform = fields.String(allow_none=True)
+    file_store = fields.String(allow_none=True)
+    test_in_progress = fields.Dict(allow_none=True, metadata={"description": "A self-test in progress (R2.51): who, since when"})
+    site_purpose = fields.String(allow_none=True, metadata={"description": "The site's purpose label (PROD by default; Release 6.5)"})
+    dr_copy = fields.Dict(allow_none=True, metadata={
+        "description": "Set when this site is a DR copy (Release 6.5): from which site, the last batch; read only"})
 
 
 class HeartbeatRecordIn(Schema):
@@ -910,10 +923,11 @@ class MermaidOut(Schema):
 
 
 class SqlQueryIn(Schema):
-    """The shape of sql query sent to the API: database, username, password, sql, keep."""
+    """The shape of sql query sent to the API: database, username, password, sql, keep (username and password in password
+    mode only; in certificate mode the window's own login for the person's role, D742, D752)."""
     database = fields.String(load_default="eaexplorer", metadata={"description": "Database on this installation's server"})
-    username = fields.String(required=True, metadata={"description": "PostgreSQL user, for example eax_app or postgres"})
-    password = fields.String(required=True, load_only=True)
+    username = fields.String(load_default="", metadata={"description": "PostgreSQL user, for example eax_app (password mode; ignored in certificate mode)"})
+    password = fields.String(load_default="", load_only=True)
     sql = fields.String(required=True, metadata={"description": "One or more SQL statements"})
     keep = fields.Boolean(load_default=False, metadata={"description": "Commit at the end (keep the changes); otherwise rolled back"})
 

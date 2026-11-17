@@ -1,0 +1,137 @@
+# Certificate mode (R6-C1, D743): EAX_AUTH_MODE=certificate in the config file adds this file to every compose command
+# (eax.ps1, eax.sh and eaxcli: compose_extra). The setup service makes EA Explorer's own certificate authority and a
+# certificate for each service at each start, in the volume eax-certs (never in a backup or a DR pack: a DR copy makes
+# its own, R6-D1); each service sees only its own folder (volume subpath) at /eax-certs. PostgreSQL accepts only TLS,
+# each service by its certificate (deploy/postgres/certificate), the superuser by its password over TLS.
+# PostgreSQL's client library reads PGSSL* by itself, so EA Explorer's own code, Reports and Documents need no change.
+x-pg-client: &pg-client
+  PGSSLMODE: verify-full
+  PGSSLROOTCERT: /eax-certs/ca.crt
+  PGSSLCERT: /eax-certs/client.crt
+  PGSSLKEY: /eax-certs/client.key
+
+services:
+  setup:
+    environment:
+      EAX_CERTS_DIR: /eax-certs
+    volumes:
+      - eax-certs:/eax-certs
+
+  db:
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+    # the standby's settings too (they do nothing without it), so certificate mode and a standby go together
+    command: ["postgres", "-c", "ssl=on", "-c", "ssl_cert_file=/eax-certs/server.crt", "-c", "ssl_key_file=/eax-certs/server.key",
+              "-c", "ssl_ca_file=/eax-certs/ca.crt", "-c", "ssl_crl_file=/eax-certs/crl.pem",
+              "-c", "hba_file=/eax-pg-cert/pg_hba.conf", "-c", "ident_file=/eax-pg-cert/pg_ident.conf",
+              "-c", "wal_level=replica", "-c", "max_wal_senders=10", "-c", "max_replication_slots=10", "-c", "wal_keep_size=1GB"]
+    volumes:
+      - ./deploy/postgres/certificate:/eax-pg-cert:ro
+      - type: volume
+        source: eax-certs
+        target: /eax-certs
+        read_only: true
+        volume: {subpath: db}
+
+  api:
+    environment: *pg-client
+    volumes:
+      - type: volume
+        source: eax-certs
+        target: /eax-certs
+        read_only: true
+        volume: {subpath: api}
+
+  testrunner:
+    environment: *pg-client
+    volumes:
+      - type: volume
+        source: eax-certs
+        target: /eax-certs
+        read_only: true
+        volume: {subpath: api}
+
+  testrunner-service:
+    environment: *pg-client
+    volumes:
+      - type: volume
+        source: eax-certs
+        target: /eax-certs
+        read_only: true
+        volume: {subpath: api}
+
+  library:
+    environment: *pg-client
+    volumes:
+      - type: volume
+        source: eax-certs
+        target: /eax-certs
+        read_only: true
+        volume: {subpath: library}
+
+  views:
+    environment: *pg-client
+    volumes:
+      - type: volume
+        source: eax-certs
+        target: /eax-certs
+        read_only: true
+        volume: {subpath: views}
+
+  keycloak:
+    # keycloak-start.sh points PostgreSQL's Java driver at its certificate (PKCS#8) when the folder has one
+    volumes:
+      - type: volume
+        source: eax-certs
+        target: /eax-certs
+        read_only: true
+        volume: {subpath: keycloak}
+
+  reports-init:
+    environment: *pg-client
+    volumes:
+      - type: volume
+        source: eax-certs
+        target: /eax-certs
+        read_only: true
+        volume: {subpath: reports}
+
+  reports:
+    environment: *pg-client
+    volumes:
+      - type: volume
+        source: eax-certs
+        target: /eax-certs
+        read_only: true
+        volume: {subpath: reports}
+
+  dms:
+    environment: *pg-client
+    volumes:
+      - type: volume
+        source: eax-certs
+        target: /eax-certs
+        read_only: true
+        volume: {subpath: dms}
+
+  backup:
+    # the superuser's password over TLS: only the authority's certificate, to check the database's
+    environment:
+      PGSSLMODE: verify-full
+      PGSSLROOTCERT: /eax-certs/ca.crt
+    volumes:
+      - type: volume
+        source: eax-certs
+        target: /eax-certs
+        read_only: true
+        volume: {subpath: backup}
+
+  ops:
+    # the certificates' summary for System Admin › Secrets (ca/summary.json: names and dates, never a key)
+    volumes:
+      - type: volume
+        source: eax-certs
+        target: /eax-certs-summary
+        read_only: true
+        volume: {subpath: summary}

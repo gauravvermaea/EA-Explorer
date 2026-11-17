@@ -211,7 +211,7 @@ def attached(args: list[str]) -> int:
 
 # ---------------------------------------------------------------- the config file
 def setting(name: str, default: str = "") -> str:
-    """A value of the config file; one it holds as a reference to the key vault (R4.19), the vault's value."""
+    """A value of the config file."""
     if not ENV_FILE.exists():
         return default
     for line in ENV_FILE.read_text(encoding="utf-8").splitlines():
@@ -219,85 +219,11 @@ def setting(name: str, default: str = "") -> str:
             v = line.split("=", 1)[1].strip()
             if len(v) >= 2 and v[0] == v[-1] and v[0] in "'\"":
                 v = v[1:-1]
-            if v.startswith("openbao:"):
-                vault_env()
-                return os.environ.get(name, "") or default
             return v or default
     return default
 
 
-# ---------------------------------------------------------------- the key vault (R4.19, D684)
-_vault = {"done": False}
 CREATING = ("up", "run", "create")           # the compose commands that make containers: they need the values
-
-
-def vault_keys_file() -> Path:
-    """Where the key vault's unseal keys are kept."""
-    from . import vault
-    persist = ""
-    if ENV_FILE.exists():
-        m = re.search(r"^EAX_PERSIST_DIR=(.*)$", ENV_FILE.read_text(encoding="utf-8"), re.MULTILINE)
-        persist = m.group(1).strip().strip("'\"") if m else ""
-    return vault.keys_path(ROOT, persist)
-
-
-def vault_profile() -> None:
-    """With the vault, its container is part of every compose command (profile "vault"), so down stops it too."""
-    from . import vault
-    if ENV_FILE.exists() and vault.where(ENV_FILE.read_text(encoding="utf-8")):
-        have = [p for p in os.environ.get("COMPOSE_PROFILES", "").split(",") if p]
-        if "vault" not in have:
-            os.environ["COMPOSE_PROFILES"] = ",".join([*have, "vault"])
-
-
-def vault_start() -> None:
-    """Starts the vault's container (its profile switched on, whatever the config file says yet: eax secrets migrate runs
-    before EAX_SECRETS_FROM is there); a failure to start it is said with docker compose's own words."""
-    have = [p for p in os.environ.get("COMPOSE_PROFILES", "").split(",") if p]
-    if "vault" not in have:
-        os.environ["COMPOSE_PROFILES"] = ",".join([*have, "vault"])
-    r = subprocess.run(_compose_base(["up", "-d", "--no-deps", "openbao"]), cwd=ROOT, capture_output=True, text=True,
-                       encoding="utf-8", errors="replace", check=False)
-    code, out = r.returncode, (r.stdout or "") + (r.stderr or "")
-    log_only(out)
-    if code != 0:
-        raise Failure("docker compose could not start the key vault (openbao): "
-                      + " | ".join(ln.strip() for ln in out.splitlines() if ln.strip())[-600:])
-
-
-def vault_log_tail(lines: int = 25) -> str:
-    """The vault container's last log lines, to say why it did not answer (empty when there are none)."""
-    code, out = capture(_compose_base(["logs", "--no-color", "--tail", str(lines), "openbao"]))
-    out = "\n".join(ln for ln in out.splitlines() if ln.strip())
-    return f"\nIts log (the last {lines} lines):\n{out}" if code == 0 and out else ""
-
-
-def vault_env() -> dict[str, str]:
-    """The vault's values for the config file's references, read once into this program's own environment (never a
-    file): docker compose takes them from there, as values in its environment win over the config file's. Starts and
-    unseals the vault when it needs to (eaxcli/vault.py)."""
-    from . import vault
-    if _vault["done"] or not ENV_FILE.exists():
-        return {}
-    text = ENV_FILE.read_text(encoding="utf-8")
-    where_ = vault.where(text)
-    if not where_ or not vault.references(text):
-        return {}
-    if not vault.ALLOWED:                        # switched off (R4.19): a config file still pointing there is said
-        raise Failure(f"{ENV_REL} keeps its passwords in OpenBao (EAX_SECRETS_FROM), but {vault.OFF}")
-    _vault["done"] = True
-    vault_profile()
-
-    try:
-        client = vault.ready(vault_keys_file(), vault.url_for(text), where_, vault_start, say)
-        values = vault.resolve(text, client, where_)
-    except vault.VaultError as exc:
-        _vault["done"] = False
-        raise Failure(f"The key vault: {exc}{vault_log_tail()}") from exc
-    os.environ.update(values)
-    if not client.audited:
-        log_only("The key vault's audit log is off: this OpenBao does not take audit devices through its API.")
-    return values
 
 
 def kind() -> str:
@@ -363,11 +289,50 @@ def compose_args(args: list[str]) -> list[str]:
     on."""
     if not ENV_FILE.exists():
         raise Failure(f"No {ENV_REL} yet: run {EAX} init first.")
-    vault_profile()
+    write_config_env()
     if args and args[0] in CREATING:
-        vault_env()
         folders_env()
     return _compose_base(args)
+
+
+# passwords and keys the server template leaves empty rather than change-me (set only when used); eax.ps1, eax.sh and
+# docker-compose.yml's secrets name the same (tests/test_r6_secret_files.py); a database's own address (R2.50) holds its
+# login's password, so it is one too
+EXTRA_SECRET_KEYS = ("EAX_SMTP_PASSWORD", "EAX_MCP_DEV_TOKEN", "EAX_REMOTE_SECRET_KEY", "EAX_REPLICATION_PASSWORD",
+                     "EAX_TEST_USER_PASSWORD", "EAX_ARCHIVE_DB_URL",
+                     "EAX_CHANGELOG_DB_URL",
+                     "EAX_FARM_DB_URL",
+                     "EAX_FILES_DB_URL",
+                     "EAX_LIBRARY_MODELS_DB_URL",
+                     "EAX_OPERATIONS_DB_URL",
+                     "EAX_PERSONAL_DB_URL",
+                     "EAX_PROJECTS_DB_URL",
+                     "EAX_TESTS_DB_URL")
+
+
+def secret_keys() -> set[str]:
+    """The passwords and keys: every key the server template holds as change-me (D504), and EXTRA_SECRET_KEYS."""
+    template = (ROOT / "deploy" / "templates" / "eaexplorer.server.env").read_text(encoding="utf-8")
+    return {m.group(1) for m in re.finditer(r"^([A-Z0-9_]+)=change-me", template, re.MULTILINE)} | set(EXTRA_SECRET_KEYS)
+
+
+def config_without_secrets(text: str, keys: set[str]) -> str:
+    """The config file without its passwords and keys (pure)."""
+    lines = ["# Written by eax from eaexplorer.env without its passwords and keys (R6-F1). Do not edit; change eaexplorer.env."]
+    for line in text.splitlines():
+        m = re.match(r"^([A-Z0-9_]+)=", line)
+        if m and m.group(1) in keys:
+            continue
+        lines.append(line)
+    return "\n".join(lines) + "\n"
+
+
+def write_config_env() -> Path:
+    """work/config.env (R6-F1, D745): the settings the containers read, without the passwords and keys, which reach them
+    as files of their own (Docker secrets), never as environment variables. eax.ps1 and eax.sh write the same."""
+    out = WORK / "config.env"
+    out.write_text(config_without_secrets(ENV_FILE.read_text(encoding="utf-8"), secret_keys()), encoding="utf-8", newline="\n")
+    return out
 
 
 def folders_env() -> None:
@@ -400,6 +365,8 @@ def _compose_base(args: list[str]) -> list[str]:
         if not (ROOT / f).exists():
             raise Failure(f"EAX_COMPOSE_EXTRA names {x}, but there is no {f}.")
         extra += ["-f", f]
+    if setting("EAX_AUTH_MODE", "password") == "certificate":      # certificate mode (R6-C1, D743)
+        extra += ["-f", "deploy/compose/auth/docker-compose.certificate.yml"]
     return ["docker", "compose", "--ansi", "never", "--progress", "plain", "--env-file", ENV_REL,
             "-f", "docker-compose.yml", "-f", f"deploy/compose/docker-compose.{kind()}.yml", *extra, *args]
 

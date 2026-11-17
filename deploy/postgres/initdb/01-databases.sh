@@ -7,6 +7,15 @@
 #                one that may load or change locked reference models)
 #   keycloak, superset, mayan : created empty here; each product creates its own tables
 set -eu
+# the passwords and keys as files of their own (Docker secrets under /run/secrets, R6-F1, D745): read into this
+# process's environment only, never the container's settings (docker inspect shows none)
+for _f in /run/secrets/EAX_*; do
+  [ -f "$_f" ] || continue
+  _n=$(basename "$_f")
+  _v=$(cat "$_f")
+  [ -n "$_v" ] && export "$_n=$_v"
+done
+unset _f _n _v
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname postgres \
   -v eax_db="${EAX_DB_NAME:-eaexplorer}" \

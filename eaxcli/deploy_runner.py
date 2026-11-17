@@ -1,11 +1,10 @@
 """A deployment started from System admin > Deploy (D555): the eax deploy steps (eaxcli/deploy.py) driven by files in
 one run folder, so the page can follow it and survive reloads. The operations helper runs this: a plan in its own
-container, a deployment in a short-lived deployer container (deploy/deployer: ssh, curl, git and the aws, az and
-doctl CLIs) with only the run folder and the release's eaxcli and templates mounted.
+container, a deployment in a short-lived deployer container (deploy/deployer: ssh, curl and git) with only the run folder and the release's eaxcli and templates mounted.
 
 The run folder:
   answers.json    the answers (no secrets)                 written by the helper
-  secrets.json    the cloud credentials, readable by root only; ssh_key: the private key (both deleted at the end
+  secrets.json    other secrets given for the run, readable by root only; ssh_key: the private key (both deleted at the end
                   unless the person asked to keep them, then moved to the helper's own store, never shown again)
   state.json      status (running, failed, done, planned, quit), the steps, the failure, the result
   log.txt         everything the steps say (passwords, keys and tokens masked)

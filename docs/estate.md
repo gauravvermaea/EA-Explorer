@@ -83,11 +83,11 @@ in draw.io); System Admin › Estate draws them for the running installation.
 | ops | `eaexplorer/ops:dev` | backend, terminal | - | /var/run/docker.sock → /var/run/docker.sock, ./work → /eax-work, ./persist → /eax-persist, ./logs → /eax-logs, ./work/backups → /backups, ./docker-compose.yml → /eax-repo/docker-compose.yml, ./deploy → /eax-repo/deploy, ./eaxcli → /eax-repo/eaxcli, ./services/api/version.toml → /eax-repo/services/api/version.toml |
 | db | `postgres:17-alpine` | backend | - | eax-pgdata → /var/lib/postgresql/data, ./deploy/postgres/initdb → /docker-entrypoint-initdb.d |
 | dms-broker | `valkey/valkey:8-alpine` | backend | - | - |
-| keycloak | `quay.io/keycloak/keycloak:26.0` | frontend, backend | - | eax-kc-import → /opt/keycloak/data/import |
+| keycloak | `quay.io/keycloak/keycloak:26.0` | frontend, backend | - | eax-kc-import → /opt/keycloak/data/import, ./deploy/secrets → /eax-secrets |
 | drawio | `eaexplorer/drawio:dev` | frontend | - | - |
 | reports-init (runs once at start) | `eaexplorer/superset:dev` | backend | - | ./deploy/superset → /app/eax, eax-rendered → /rendered, eax-superset-home → /app/superset_home |
 | reports | `eaexplorer/superset:dev` | frontend, backend | - | ./deploy/superset → /app/eax, eax-rendered → /rendered, eax-superset-home → /app/superset_home |
-| dms | `mayanedms/mayanedms:s4` | frontend, backend | - | eax-docs → /var/lib/mayan |
+| dms | `mayanedms/mayanedms:s4` | frontend, backend | - | eax-docs → /var/lib/mayan, ./deploy/secrets → /eax-secrets |
 
 The backend and terminal networks are internal: nothing on them is reachable from outside but through the
 front door. Each database can live on a server of its own (docs/databases.md).
