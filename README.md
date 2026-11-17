@@ -61,6 +61,7 @@ area by area: [docs/capabilities.md](docs/capabilities.md).
 | 6 | | The key vault (OpenBao), once its details are agreed | planned |
 | 6.5 | | Server sync (migrations), DR sync, content promotion from dev to prod, a developer and author mode with its menus | planned |
 | 7 | | Help and videos | planned |
+| 8 | | Code quality: every SonarQube issue fixed, and no new ones from then on | planned |
 
 ## Quick start (laptop)
 
