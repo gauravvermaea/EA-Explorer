@@ -4,8 +4,8 @@ The state of the work, for whoever picks it up next: a person or another AI with
 13 Nov 2026: "what happens if I need another ai to work on this"). **Updated at the end of every working session.**
 Read [AGENTS.md](../AGENTS.md) first, run `eax dev check`, then read this.
 
-Last updated: 16 Nov 2026, Release 5.6 built as 5.6.0, waiting for the owner's clean rebuild, full test and acceptance.
-Next: Release 5.7 (agreed, built only after 5.6 is accepted; its bug R5.7-V1, the views' missing icons, goes first).
+Last updated: 17 Nov 2026, Release 5.6 accepted as 5.6.0 (owner, 13:37: "Lets accept this release"; D727).
+Next: Release 5.7, discussed with the owner before it is built; its bug R5.7-V1, the views' missing icons, goes first.
 
 ## How the owner works
 
@@ -35,7 +35,10 @@ keeper, migration 0098), R5.6-U1 and U2 versions only from the published GitHub 
 Latest channel gone; drop-downs on Updates and Deploy). Then R5.6-B2 (D714 to D718): eax-dr, eax-drill and `eax dr-pack`
 in the dr folder; the DR pack carries the code as it runs (no GitHub needed), a fingerprint and checksums; the DR
 document (when a backup, when DR) with a PDF; the Self-test page lists the backup and DR tests it does not run.
-Migrations 0098 and 0099. Waiting for the owner's acceptance: the backup and restore test, then the DR drill.
+Migrations 0098 and 0099. The owner's backup and restore test passed and the DR drill ran on his laptop; the faults
+his runs found are fixed (D719 to D726: the background waited for before every backup, every infrastructure backup
+behind the maintenance page, broad checks, eax maintenance status and clear, the drill's own folders and clean-up,
+the Windows PowerShell 5.1 faults, DR letting people in as soon as the screens are up). Accepted 17 Nov 2026.
 
 Release 5.5 released as 5.5.0 (owner, 16 Nov 2026: "Build this release"; D706): R5.5 enterprise discovery as the owner
 designed it (D705: EA Explorer the source and sink, the people's own AI runs it through eight MCP tools; discovery
@@ -70,8 +73,9 @@ Nothing.
 
 ## Next
 
-Release 5.6 (accepted 5.5 on 16 Nov 2026, 15:36): the owner's backup and restore test (a synchronous script in eax,
-D708), job priorities, Updates and Deploy from GitHub Releases. Then Release 5.7, Release 6.
+Release 5.7 (5.6 accepted 17 Nov 2026, 13:37): R5.7-V1 first (a bug: the views drawn on EA Explorer's screens show
+no ArchiMate icons; build-phases.md), then the rest of 5.7 as agreed with the owner, one question at a time. Then
+Release 6.
 
 ## Open questions
 
