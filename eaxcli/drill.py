@@ -10,9 +10,15 @@ temp location - backups, env etc; then at dr location download the install from 
 
   eax drill info                       version, deployment kind, repository, where the backups, the config and persist/ are
   eax drill running                    whether this installation runs (the API and sign-in answer)
+  eax drill preflight <temp> <dr>      before anything is touched, in seconds: free disk for the backup, its copy and the
+                                       DR copy (too little fails); containers not healthy and the background busy (warnings)
+  eax drill smoke-result               after a smoke test that failed: whether every failed check failed only on timing
+                                       (then a warning, the drill carries on) or found a fault (a failure)
+  eax drill diagnose <folder>          after a failure: every container's state and the last lines of its log, into <folder>
   eax drill quiet on|off               the maintenance page and the background paused, or back
   eax drill content <state file>       a test project, models and content of every kind (the backup and restore test's);
-                                       the state (ids, its snapshot, the test accounts' tokens) written to the file
+                                       the state (ids, its snapshot, the test accounts' tokens) written to the file; a kind
+                                       that could not be made is a warning (it is then not checked after the restore)
   eax drill content-check <state file> the test's content read here and compared with its snapshot: exit 1 when it differs
   eax drill content-remove <state file> the test's content, accounts and record removed here
   eax drill idle                       waits until the background has finished what it was doing (at most half an hour)
@@ -295,12 +301,158 @@ def content(path: str) -> dict:
     snap = _api("snapshot", st)
     st["snapshot"] = snap
     Path(path).write_text(json.dumps(st), encoding="utf-8")
-    out = {"made": len(st.get("made") or []), "sid": st.get("sid"), "file": path}
-    if bad:
-        out["error"] = "not made: " + "; ".join(bad[:10])
-    elif snap.get("error"):
+    out = {"made": len(st.get("made") or []) - len(bad), "sid": st.get("sid"), "file": path}
+    if snap.get("error"):
         out["error"] = f"its snapshot: {snap['error']}"
+    elif bad:
+        # a kind that could not be made is a warning: the drill carries on and that kind is not checked after the restore
+        # (it is in neither snapshot); the test's accounts, models and project not made stop start() itself (the owner,
+        # 17 Nov 2026, 19:05: "have make things warning and fail and can we continue with it")
+        out["warnings"] = [f"not made (not checked after the restore): {b}" for b in bad[:20]]
     return out
+
+
+# ---------------------------------------------------------------- warnings and failures (the owner, 17 Nov 2026, 19:05)
+GB = 1 << 30
+MIN_BACKUP = 5 * GB       # what a backup is taken to need when there is none yet to measure
+
+
+def _nearest(path: str) -> Path:
+    """The folder itself, or its nearest parent that exists (the DR and temp folders may not be made yet)."""
+    p = Path(path).expanduser().resolve()
+    while not p.exists() and p != p.parent:
+        p = p.parent
+    return p
+
+
+def _size(folder: Path) -> int:
+    return sum(f.stat().st_size for f in folder.rglob("*") if f.is_file())
+
+
+def last_backup_bytes(backups: Path) -> int:
+    """The size of the newest infrastructure backup here (0 when there is none)."""
+    try:
+        folders = sorted((d for d in Path(backups).iterdir() if d.is_dir()), key=lambda d: d.stat().st_mtime)
+    except OSError:
+        return 0
+    return _size(folders[-1]) if folders else 0
+
+
+def disk_needs(backup: int, backups: str, temp: str, dr: str, free=lambda p: shutil.disk_usage(p).free, device=None) -> list[str]:
+    """What each disk lacks (pure but for free): the backup (one and a half times the last), its copy in the temp folder
+    (the same again), and the DR copy (its code and work folders, half of it). Folders on the same disk add up."""
+    need: dict[object, int] = {}
+    where: dict[object, list[str]] = {}
+    path: dict[object, Path] = {}
+    for label, folder, n in (("the backup", backups, backup * 3 // 2), ("its copy in the temp folder", temp, backup * 6 // 5),
+                             ("the DR copy's folder", dr, backup // 2)):
+        p = _nearest(folder)
+        disk = (device or _device)(p)          # the same disk (or mount) adds up, whatever the folder
+        need[disk] = need.get(disk, 0) + n
+        where.setdefault(disk, []).append(label)
+        path.setdefault(disk, p)
+    out = []
+    for disk, n in need.items():
+        have = free(path[disk])
+        if have < n:
+            out.append(f"{path[disk]}: {have / GB:.1f} GB free, {n / GB:.1f} GB needed for {', '.join(where[disk])}")
+    return out
+
+
+def _device(p: Path) -> object:
+    """Which disk or mount a folder is on (its device number; the drive on Windows)."""
+    try:
+        return os.stat(p).st_dev
+    except OSError:
+        return p.anchor or str(p)
+
+
+def container_states() -> list[dict]:
+    """This installation's containers: name, state and health."""
+    r = subprocess.run(["docker", "ps", "-a", "--filter", f"label=com.docker.compose.project={project()}",
+                        "--format", "{{.Names}}|{{.State}}|{{.Status}}"], capture_output=True, text=True,
+                       encoding="utf-8", errors="replace")
+    out = []
+    for line in (r.stdout or "").splitlines():
+        name, _, rest = line.partition("|")
+        state, _, status = rest.partition("|")
+        health = "unhealthy" if "(unhealthy)" in status else "starting" if "(health: starting)" in status else \
+            "healthy" if "(healthy)" in status else ""
+        out.append({"name": name, "state": state, "status": status, "health": health})
+    return out
+
+
+def not_well(c: dict) -> bool:
+    """A container that should be running and is not, or is not healthy (pure). One that runs once at start and ends
+    well (setup, reports-init: "Exited (0)") is as it should be (the owner's drill, 17 Nov 2026, 19:45)."""
+    if c["state"] == "exited" and re.search(r"Exited \(0\)", c.get("status") or ""):
+        return False
+    return c["state"] != "running" or c["health"] in ("unhealthy", "starting")
+
+
+def preflight(temp: str, dr: str) -> dict:
+    """Before anything is touched, in seconds: the disks (too little fails), the containers and the background (warnings)."""
+    inf = info()
+    size = last_backup_bytes(Path(inf["backups"]))
+    warnings = []
+    if not size:
+        warnings.append(f"no earlier backup to measure: a backup is taken to need {MIN_BACKUP // GB} GB")
+    lacking = disk_needs(size or MIN_BACKUP, inf["backups"], temp, dr)
+    for c in container_states():
+        if not_well(c):
+            warnings.append(f"container {c['name']}: {c['status']}")
+    bz = _api("busy", {})
+    if bz.get("error"):
+        warnings.append(f"the background could not be asked: {bz['error']}")
+    warnings += [f"the background is busy: {b}" for b in bz.get("busy") or []]
+    out = {"backup_gb": round((size or MIN_BACKUP) / GB, 2), "warnings": warnings}
+    if lacking:
+        out["error"] = "too little disk: " + "; ".join(lacking)
+    return out
+
+
+# a failed check that says only that something was slow (the owner's full test, 17 Nov 2026: "VP-25 ... not loaded after
+# 60 seconds"): a warning in the drill, not a failure
+TIMING = re.compile(r"not loaded after \d+ seconds|timed? ?out|no answer after|took (longer|over|more)|slower than|"
+                    r"too slow|still loading|did not answer within", re.I)
+
+
+def timing_only(failed: list[dict]) -> bool:
+    """Whether every failed check failed only on timing (pure)."""
+    return bool(failed) and all(TIMING.search(f"{f.get('name', '')} {f.get('detail', '')}") for f in failed)
+
+
+def smoke_result() -> dict:
+    """After `eax test smoke` failed: a warning when it failed only on timing, a failure when it found a fault."""
+    r = _api("failed", {})
+    if r.get("error"):
+        return {"error": f"the smoke test failed, and its checks could not be read: {r['error']}"}
+    failed = r.get("failed") or []
+    lines = [f"{f['suite']} {f['name']}: {f['detail'][:200]}" for f in failed]
+    if timing_only(failed):
+        return {"run": r.get("run"), "warnings": [f"smoke test, only slow (run {r.get('run')}): {x}" for x in lines[:20]]}
+    if not failed:
+        return {"error": f"the smoke test failed (run {r.get('run')}, {r.get('state')}) with no failed check recorded"}
+    return {"error": f"the smoke test found faults (run {r.get('run')}): " + "; ".join(lines[:10])}
+
+
+LOG_LINES = 200
+
+
+def diagnose(folder: str) -> dict:
+    """After a failure: every container's state (containers.txt) and the last LOG_LINES lines of each one's log
+    (logs/<name>.log) written into folder, so a failure explains itself without running the drill again."""
+    dest = Path(folder).expanduser()
+    (dest / "logs").mkdir(parents=True, exist_ok=True)
+    states = container_states()
+    (dest / "containers.txt").write_text("\n".join(f"{c['name']}  {c['state']}  {c['status']}" for c in states) + "\n",
+                                         encoding="utf-8")
+    for c in states:
+        r = subprocess.run(["docker", "logs", "--tail", str(LOG_LINES), "--timestamps", c["name"]], capture_output=True,
+                           text=True, encoding="utf-8", errors="replace")
+        (dest / "logs" / f"{c['name']}.log").write_text((r.stdout or "") + (r.stderr or ""), encoding="utf-8")
+    bad = [f"{c['name']} ({c['status']})" for c in states if not_well(c)]
+    return {"folder": str(dest), "containers": len(states), "not_well": bad}
 
 
 def content_check(path: str) -> dict:
@@ -327,6 +479,12 @@ def main(args: list[str]) -> int:
             out = info()
         elif cmd == "running":
             out = running()
+        elif cmd == "preflight" and len(rest) >= 2:
+            out = preflight(rest[0], rest[1])
+        elif cmd == "smoke-result":
+            out = smoke_result()
+        elif cmd == "diagnose" and rest:
+            out = diagnose(rest[0])
         elif cmd == "quiet" and rest[:1] in (["on"], ["off"]):
             out = _ops("quiet", rest[0])
         elif cmd == "content" and rest:
@@ -371,11 +529,13 @@ def main(args: list[str]) -> int:
             if out["version"] != version():
                 out["error"] = f"the code copied says version {out['version']}, the installation {version()}"
         else:
-            out = {"error": "eax drill info | running | quiet on|off | content|content-check|content-remove <state file> | "
+            out = {"error": "eax drill info | running | preflight <temp> <dr> | smoke-result | diagnose <folder> | quiet on|off | content|content-check|content-remove <state file> | "
                             "idle | remove-copy <name> | delete-backup <name> | fingerprint <file> | backup | shutdown | restore <name> | compare <a> <b> | code <folder>"}
     except (Failure, OSError, ValueError) as exc:
         out = {"error": str(exc)[:1000]}
     print(json.dumps(out, default=str), flush=True)
+    for w in out.get("warnings") or []:
+        say(f"eax drill {cmd}: warning: {w}", "yellow")
     if out.get("error"):
         say(f"eax drill {cmd}: {out['error']}", "red")
     return 1 if out.get("error") else 0

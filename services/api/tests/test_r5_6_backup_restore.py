@@ -317,7 +317,7 @@ def test_the_api_side_says_what_is_there_and_what_differs():
     d = A.differences(snap, other)
     assert "documents: 1 row(s) before, 0 after" in d and "self_test_x_1: entities 7 before, 6 after" in d
     assert A.digest([("a", 1)]) == A.digest([("a", "1")]) and A.doc_text("x").startswith(b"EA Explorer")
-    assert set(A.COMMANDS) == {"start", "snapshot", "after", "finish", "idle"}
+    assert set(A.COMMANDS) == {"start", "snapshot", "after", "finish", "idle", "busy", "failed"}   # busy, failed: the drill (D747)
 
 
 # ---------------------------------------------------------------- how eax reaches it, and the old suite gone

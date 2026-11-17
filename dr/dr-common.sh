@@ -2,7 +2,11 @@
 # dr-common.sh: what eax-dr.sh and eax-drill.sh share (R5.6-B2), sourced from the same folder. Each script sets INSTALL
 # (the installation's folder) and LOG (its log file) before it uses these. Bash, standard tools, curl, sha256sum.
 
-RESULTS=()      # "ok|FAILED<TAB>step<TAB>seconds<TAB>detail"
+RESULTS=()      # "ok|warn|FAILED<TAB>step<TAB>seconds<TAB>detail"
+# a step's warnings (the owner, 17 Nov 2026, 19:05): a problem that does not make the drill untrue is noted and the drill
+# carries on; a failure stops it. eax drill's answers carry their warnings ("warnings": [...]) and eax notes them here.
+ALL_WARNINGS=()
+STEP_WARNINGS=$(mktemp)
 command -v sha256sum >/dev/null 2>&1 || sha256sum() { shasum -a 256 "$@"; }    # macOS
 
 say() { printf '%s\n' "$*"; printf '%s %s\n' "$(date +%H:%M:%S)" "$*" >>"$LOG"; }
@@ -12,15 +16,20 @@ say() { printf '%s\n' "$*"; printf '%s %s\n' "$(date +%H:%M:%S)" "$*" >>"$LOG"; 
 step() {
   local name=$1; shift
   say ""; say "> $name"
-  local t0=$SECONDS rc tmp last
+  local t0=$SECONDS rc tmp last w n
   tmp=$(mktemp)
+  : >"$STEP_WARNINGS"
   "$@" > >(tee "$tmp") 2>&1 && rc=0 || rc=$?
   wait $! 2>/dev/null || true
   cat "$tmp" >>"$LOG"
   last=$(grep -v '^    ' "$tmp" | grep . | tail -n 1)
   rm -f "$tmp"
   local s=$((SECONDS - t0))
-  if [ "$rc" -eq 0 ]; then
+  n=$(grep -c . "$STEP_WARNINGS" 2>/dev/null || true); n=${n:-0}
+  if [ "$rc" -eq 0 ] && [ "$n" -gt 0 ]; then
+    while IFS= read -r w; do [ -n "$w" ] && ALL_WARNINGS+=("$name - $w"); done <"$STEP_WARNINGS"
+    RESULTS+=("warn	$name	$s	$last ($n warning(s): $(paste -sd ';' "$STEP_WARNINGS"))"); say "  WARN $name ($s s): $last; $n warning(s)"
+  elif [ "$rc" -eq 0 ]; then
     RESULTS+=("ok	$name	$s	$last"); say "  ok   $name ($s s)${last:+: $last}"
   else
     RESULTS+=("FAILED	$name	$s	$last"); say "  FAIL $name: ${last:-exit $rc}"; exit 1
@@ -36,11 +45,33 @@ eax() {
   rc=${PIPESTATUS[0]}
   EAX_JSON=$(grep '^[[:space:]]*{' "$tmp" | tail -n 1)
   rm -f "$tmp"
+  local w
+  while IFS= read -r w; do
+    [ -n "$w" ] || continue
+    printf '%s\n' "$w" >>"$STEP_WARNINGS"; say "  warning: $w"
+  done < <(json_list warnings "$EAX_JSON")
   if [ "$rc" -ne 0 ] || [ -n "$(json_get error "$EAX_JSON" 2>/dev/null)" ]; then
     echo "./eax.sh $* failed: $(json_get error "$EAX_JSON" || echo "exit $rc")"; return 1; fi
 }
 
 # json_get key json: one top-level value of a JSON line (python3 when there, else a plain match for strings/numbers)
+# An installation's background start (eax up's second tier, D255) still running: its logs say "Everything is started."
+# when done. The drill waits for it before removing the DR copy (the owner's drill, 17 Nov 2026, 21:10). Up to $2 minutes.
+wait_later_start() {
+  local folder=$1 minutes=${2:-20} end f open
+  end=$(( $(date +%s) + minutes * 60 ))
+  while [ "$(date +%s)" -lt "$end" ]; do
+    open=0
+    for f in "$folder"/work/logs/eax-*-start-later.log; do
+      [ -f "$f" ] || continue
+      grep -qF "Everything is started." "$f" || open=1
+    done
+    [ "$open" -eq 0 ] && return 0
+    sleep 10
+  done
+  return 1
+}
+
 json_get() {
   if command -v python3 >/dev/null 2>&1; then
     python3 -c 'import json,sys
@@ -50,6 +81,14 @@ print(" ".join(map(str, v)) if isinstance(v, list) else v)' "$1" "$2" 2>/dev/nul
   else
     printf '%s' "$2" | grep -o "\"$1\": *\(\"[^\"]*\"\|[0-9.]*\)" | head -n 1 | sed 's/^[^:]*: *//; s/^"//; s/"$//' | grep .
   fi
+}
+
+# json_list key json: a top-level list of a JSON line, one item a line (nothing without python3)
+json_list() {
+  command -v python3 >/dev/null 2>&1 || return 0
+  python3 -c 'import json,sys
+d=json.loads(sys.argv[2] or "{}")
+for v in d.get(sys.argv[1]) or []: print(str(v).replace("\n", " "))' "$1" "$2" 2>/dev/null
 }
 
 # backup_whole folder: every file SHA256SUMS lists, as it says; prints how many

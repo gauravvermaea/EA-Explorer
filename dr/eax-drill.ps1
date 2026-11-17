@@ -14,8 +14,14 @@
   remove and create destination folders. Expect them to be cleaned and deleted".
 
   Asks nothing. One step after another, stopping at the first that fails:
+    Each problem is a failure (the drill stops) or a warning (noted, the drill carries on, the report lists it first):
+    too little disk, the installation down, the backup, its checksums, the restore or the data after it are failures; a
+    kind of test content not made (then not checked after the restore), a smoke test only slow, a container still
+    starting or the background busy are warnings. A failure leaves diagnostics\ beside the report (every container's
+    state and its log's last lines). The owner, 17 Nov 2026, 19:05.
     1. checks, nothing touched: the installation is there and running; the DR and temp folders are apart from it and
-       hold nothing but an earlier drill's leftovers (a DR copy, drill-* folders); then those leftovers are removed (the
+       hold nothing but an earlier drill's leftovers (a DR copy, drill-* folders); the pre-flight (free disk for the
+       backup, its copy and the DR copy; containers and the background); then those leftovers are removed (the
        earlier DR copy from Docker too) and the folders made
     2. the smoke test; a test project, models and content of every kind (as the backup and restore test makes them)
     3. the maintenance page on, the background paused, the fingerprint of every table and file; a full backup
@@ -64,7 +70,18 @@ function Disposable-Temp([string]$Folder) {
     return $true
 }
 
+# the smoke test: passed; or failed only on timing (a warning, the drill carries on); or found a fault (a failure)
+function Smoke {
+    try { Eax @("test", "smoke") | Out-Null; return "passed" }
+    catch {
+        $why = $_.Exception.Message
+        $r = Eax @("drill", "smoke-result")       # fails the step itself when a check found a fault
+        return "passed, but $(@($r.warnings).Count) check(s) only slow ($why)"
+    }
+}
+
 $Started = Get-Date
+$Diag = $null
 $Lines = New-Object System.Collections.Generic.List[string]
 $Results = New-Object System.Collections.Generic.List[object]
 . (Join-Path $Here "dr-common.ps1")    # Say, Step, Eax, Sha, Test-BackupWhole, Test-CodeWhole
@@ -99,17 +116,20 @@ try {
         if (@($info.shared).Count) { throw ("the config file puts data in this machine's own folders (" + (@($info.shared) -join ", ") +
             "): a DR copy on this machine would use the same folders and its restore would write over the installation's data. Rehearse on another machine with a DR pack instead") }
         Eax @("drill", "running") | Out-Null
-        "running, version $($info.version)" }
+        # the pre-flight (19:05): too little disk fails now, in seconds, not half an hour in; a container still starting or
+        # the background busy is a warning
+        $pf = Eax @("drill", "preflight", $Temp, $Dr)
+        "running, version $($info.version); a backup of about $($pf.backup_gb) GB fits" }
     Step "an earlier drill's leftovers removed and the folders made" {
         $r = Eax @("drill", "remove-copy", $DrProject)
         if (Test-Path -LiteralPath $Dr) { Remove-Item -Recurse -Force -LiteralPath $Dr }
         Get-ChildItem -Force -LiteralPath $Temp | Where-Object { $_.Name -ne $Stamp } | Remove-Item -Recurse -Force
         New-Item -ItemType Directory -Force $Dr | Out-Null
         "$($r.containers) container(s), $($r.volumes) volume(s) of an earlier DR copy removed" }
-    Step "the smoke test, before" { Eax @("test", "smoke") | Out-Null; "passed" }
+    Step "the smoke test, before" { Smoke }
     Step "a test project, models and content of every kind" {
         $script:contentWhere = $Install     # set first: a step that fails half way may have made some of it
-        $c = Eax @("drill", "content", $State); "$($c.made) kinds made and read back" }
+        $c = Eax @("drill", "content", $State); "$($c.made) kinds made and read back" }   # a kind not made: a warning
     Step "the maintenance page on and the background paused" { Eax @("drill", "quiet", "on") | Out-Null; $script:quietWhere = $Install }
     Step "the background finished what it was doing" { $w = Eax @("drill", "idle"); "waited $($w.waited) s" }
     Step "the fingerprint before (every table and file)" {
@@ -150,11 +170,13 @@ try {
     Step "the test content found in the DR copy as it was made" { $c = Eax @("drill", "content-check", $State); "$($c.kinds) kinds, the same" }
     Step "the background back and the maintenance page off" { Eax @("drill", "quiet", "off") | Out-Null; $script:quietWhere = "" }
     Step "the rest of the DR copy up (Reports, Documents, Diagrams)" { Eax @("up", "--wait-all") | Out-Null; "every container up" }
-    Step "the smoke test, after" { Eax @("test", "smoke") | Out-Null; "passed" }
+    Step "the smoke test, after" { Smoke }
     Step "the test content removed from the DR copy" { Eax @("drill", "content-remove", $State) | Out-Null; $script:contentWhere = ""; "removed" }
     $exit = 0
 } catch {
     $exit = 1
+    # the failure explains itself (19:05): every container's state and the last lines of each one's log, where it failed
+    try { $script:Diag = Eax @("drill", "diagnose", (Join-Path $Run "diagnostics")) } catch { }
 } finally {
     $notes = New-Object System.Collections.Generic.List[string]
     foreach ($w in @($quietWhere) | Where-Object { $_ }) {
@@ -170,6 +192,7 @@ try {
     if ($drStarted) {
         $drReports = Join-Path $Dr "work\dr"
         if (Test-Path $drReports) { Copy-Item -Recurse -Force $drReports (Join-Path $Run "eax-dr") }
+        if (-not (Wait-LaterStart $Dr 20)) { $notes.Add("The DR copy's background start was still running after 20 minutes; removed anyway.") }
         try { $r = Eax @("drill", "remove-copy", $DrProject); $notes.Add("The DR copy removed from Docker: $($r.containers) container(s), $($r.volumes) volume(s).") }
         catch { $notes.Add("The DR copy could not be removed from Docker: $($_.Exception.Message). Run ``.\eax drill remove-copy $DrProject`` in the installation.") }
         try { Remove-Item -Recurse -Force -LiteralPath $Dr; $notes.Add("The DR folder $Dr deleted.") }
@@ -184,16 +207,23 @@ try {
     if ($BackupName) {
         if ($ok) {
             try { Eax @("drill", "delete-backup", $BackupName) | Out-Null; $notes.Add("The drill's backup $BackupName deleted.") }
-            catch { $notes.Add("The drill's backup $BackupName could not be deleted: ``.\eax delete-backup $BackupName``.") }
-        } else { $notes.Add("The drill's backup $BackupName is kept (pinned) in the installation's backups: ``.\eax delete-backup $BackupName`` when done.") }
+            catch { $notes.Add("The drill's backup $BackupName could not be deleted: ``.\eax drill delete-backup $BackupName``.") }
+        } else { $notes.Add("The drill's backup $BackupName is kept (pinned) in the installation's backups: ``.\eax drill delete-backup $BackupName`` when done.") }
     }
     if ($contentWhere) { $notes.Add("The test content (self_test_...) may still be in $contentWhere; the next self-test run there removes it.") }
     $mins = [int]((Get-Date) - $Started).TotalMinutes
     $md = @("# EA Explorer restore drill, $($Started.ToString('yyyy-MM-dd HH:mm'))", "",
-            "**$(if ($ok) { 'Passed' } else { 'Failed' })** in $mins minutes. Installation ``$Original``, DR copy ``$Dr`` ($DrProject), version $($info.version), backup ``$BackupName``.", "")
+            "**$(if (-not $ok) { 'Failed' } elseif ($AllWarnings.Count) { "Passed with $($AllWarnings.Count) warning(s)" } else { 'Passed' })** in $mins minutes. Installation ``$Original``, DR copy ``$Dr`` ($DrProject), version $($info.version), backup ``$BackupName``.", "")
     if ($script:Recovery) { $md += "Recovery time (from shutting the installation down to the DR copy restored and sign-in working): $($script:Recovery) minutes.", "" }
     $md += "| | Step | Seconds | Detail |", "| --- | --- | --- | --- |"
-    foreach ($r in $Results) { $md += "| $(if ($r.ok) { 'ok' } else { 'FAILED' }) | $($r.step) | $($r.seconds) | $(($r.detail -replace '\|', '/')) |" }
+    foreach ($r in $Results) { $md += "| $(if (-not $r.ok) { 'FAILED' } elseif ($r.warn) { 'warn' } else { 'ok' }) | $($r.step) | $($r.seconds) | $(($r.detail -replace '\|', '/')) |" }
+    if ($AllWarnings.Count) {
+        $md += "", "## Warnings (the drill carried on)", ""
+        foreach ($w in $AllWarnings) { $md += "- $w" } }
+    if ($Diag) {
+        $md += "", "## Diagnostics", "", "Every container's state and the last lines of each one's log: ``diagnostics\containers.txt`` and ``diagnostics\logs\`` beside this report.", ""
+        if (@($Diag.not_well).Count) { foreach ($b in @($Diag.not_well)) { $md += "- not well: $b" } }
+        else { $md += "- every container was running" } }
     $md += "", "## Afterwards", ""
     foreach ($n in $notes) { $md += "- $n" }
     # the report and the logs kept in the installation; the temp folder deleted
@@ -204,7 +234,7 @@ try {
         Set-Content -Encoding UTF8 (Join-Path $Run "drill.log") $Lines
         try {
             New-Item -ItemType Directory -Force $keep | Out-Null
-            foreach ($f in @("report.md", "drill.log", "eax-dr")) {
+            foreach ($f in @("report.md", "drill.log", "eax-dr", "diagnostics")) {
                 if (Test-Path (Join-Path $Run $f)) { Copy-Item -Recurse -Force (Join-Path $Run $f) $keep } }
             $report = Join-Path $keep "report.md"
             Remove-Item -Recurse -Force -LiteralPath $Run
@@ -212,6 +242,8 @@ try {
         } catch { Say "The report could not be moved into the installation: $($_.Exception.Message)" "Yellow" }
     }
     foreach ($n in $notes) { Say $n "Yellow" }
-    Say ("`nEA Explorer restore drill " + $(if ($ok) { "PASSED" } else { "FAILED" }) + " in $mins minutes. Report: $report") $(if ($ok) { "Green" } else { "Red" })
+    foreach ($w in $AllWarnings) { Say "warning: $w" "Yellow" }
+    $verdict = if (-not $ok) { "FAILED" } elseif ($AllWarnings.Count) { "PASSED with $($AllWarnings.Count) warning(s)" } else { "PASSED" }
+    Say ("`nEA Explorer restore drill $verdict in $mins minutes. Report: $report") $(if (-not $ok) { "Red" } elseif ($AllWarnings.Count) { "Yellow" } else { "Green" })
 }
 exit $exit

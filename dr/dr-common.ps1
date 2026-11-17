@@ -11,17 +11,33 @@ function Say([string]$Text, [string]$Color = "Gray") {
 # Step's own names start with "step": a block runs inside Step and sees its variables, so a block's $name was Step's
 # $Name, the step's title (the owner's drill, 17 Nov 2026, 09:02: "Cannot find path ...\infrastructure\the backup, the
 # env file and the code copied into the temp folder and checked").
+# A step's warnings (the owner, 17 Nov 2026, 19:05: "have make things warning and fail and can we continue with it"): a
+# problem that does not make the drill untrue (a kind of test content not made, a smoke test only slow, a container
+# still starting) is noted and the drill carries on; a failure stops it. eax drill's answers carry their warnings
+# ("warnings": [...]) and Eax notes them here.
+$StepWarnings = New-Object System.Collections.Generic.List[string]
+$AllWarnings = New-Object System.Collections.Generic.List[string]
+function Warn([string]$Text) {
+    $script:StepWarnings.Add($Text)
+    Say "  warning: $Text" "Yellow"
+}
+
 function Step([string]$StepTitle, [scriptblock]$StepBody) {
     Say "`n> $StepTitle" "Cyan"
     $stepStart = Get-Date
+    $script:StepWarnings = New-Object System.Collections.Generic.List[string]
     try {
         $stepDetail = & $StepBody
         $stepSecs = [int]((Get-Date) - $stepStart).TotalSeconds
-        $Results.Add([pscustomobject]@{ step = $StepTitle; ok = $true; seconds = $stepSecs; detail = "$stepDetail" })
-        Say "  ok   $StepTitle ($stepSecs s)$(if ($stepDetail) { ': ' + $stepDetail })" "Green"
+        $stepWarn = @($script:StepWarnings)
+        foreach ($stepW in $stepWarn) { $script:AllWarnings.Add("$StepTitle - $stepW") }
+        $Results.Add([pscustomobject]@{ step = $StepTitle; ok = $true; warn = $stepWarn.Count; seconds = $stepSecs;
+                                        detail = "$stepDetail$(if ($stepWarn.Count) { " ($($stepWarn.Count) warning(s): " + ($stepWarn -join '; ') + ')' })" })
+        if ($stepWarn.Count) { Say "  WARN $StepTitle ($stepSecs s): $stepDetail; $($stepWarn.Count) warning(s)" "Yellow" }
+        else { Say "  ok   $StepTitle ($stepSecs s)$(if ($stepDetail) { ': ' + $stepDetail })" "Green" }
     } catch {
         $stepSecs = [int]((Get-Date) - $stepStart).TotalSeconds
-        $Results.Add([pscustomobject]@{ step = $StepTitle; ok = $false; seconds = $stepSecs; detail = "$($_.Exception.Message)" })
+        $Results.Add([pscustomobject]@{ step = $StepTitle; ok = $false; warn = 0; seconds = $stepSecs; detail = "$($_.Exception.Message)" })
         Say "  FAIL $StepTitle : $($_.Exception.Message)" "Red"
         throw
     }
@@ -51,6 +67,7 @@ function Eax([string[]]$EaxArgs) {
     foreach ($l in @($out)) { if ("$l".TrimStart().StartsWith("{")) { try { $json = "$l" | ConvertFrom-Json } catch { } } }
     # a step's own answer saying it failed counts too, whatever the exit code came back as (the owner's drill, 11:13:
     # {"error": "14 container(s) left"} was taken as done)
+    if ($json -and $json.warnings) { foreach ($w in @($json.warnings)) { Warn "$w" } }
     if ($code -ne 0 -or ($json -and $json.error)) {
         $why = if ($json -and $json.error) { $json.error } else { "exit $code" }
         throw ".\eax $($EaxArgs -join ' ') failed: $why"
@@ -60,6 +77,21 @@ function Eax([string[]]$EaxArgs) {
 
 # Every text file is read as UTF-8 (Windows PowerShell 5.1 reads ANSI otherwise): the owner's drill, 17 Nov 2026, 11:45,
 # failed on "TOGAF® Template - Architecture Definition.docx", whose name CODE.sha256 holds in UTF-8.
+# An installation's background start (eax up's second tier, D255) still running: its logs say "Everything is started."
+# when done. The drill waits for it before removing the DR copy, or the folder is locked by its log and the background
+# start creates containers again after they were removed (the owner's drill, 17 Nov 2026, 21:10). Up to $Minutes.
+function Wait-LaterStart([string]$Folder, [int]$Minutes = 20) {
+    $logs = Join-Path $Folder "work\logs"
+    $end = (Get-Date).AddMinutes($Minutes)
+    while ((Get-Date) -lt $end) {
+        $open = @(Get-ChildItem -LiteralPath $logs -Filter "eax-*-start-later.log" -ErrorAction SilentlyContinue |
+            Where-Object { -not (Select-String -Encoding UTF8 -LiteralPath $_.FullName -SimpleMatch "Everything is started." -Quiet) })
+        if ($open.Count -eq 0) { return $true }
+        Start-Sleep -Seconds 10
+    }
+    return $false
+}
+
 function Sha([string]$Path) { (Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash.ToLower() }
 
 function Test-BackupWhole([string]$Folder) {

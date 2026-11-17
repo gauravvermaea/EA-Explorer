@@ -176,8 +176,40 @@ def _json_line(stdout: str) -> dict:
     return {"error": "no answer: " + ((stdout or "").strip().splitlines() or ["nothing printed"])[-1][:300]}
 
 
-def run_in(target: list[str], args: list[str], state: dict | None = None, timeout: int = 6 * 3600) -> dict:
-    """One command in a container, waited for: its progress shown as it comes (standard error), its JSON answer kept."""
+SERVICE_WAIT = 20 * 60        # how long a command waits for its container to be running (the later part may be building it)
+
+
+def service_running(service: str) -> bool:
+    """Whether the service's container is running now (docker compose ps)."""
+    try:
+        r = subprocess.run(compose_args(["ps", "--status", "running", "--services"]), cwd=ROOT, capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", timeout=60, check=False)
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return False
+    return service in (r.stdout or "").split()
+
+
+def wait_for_service(service: str, limit: int = SERVICE_WAIT, running=service_running, sleep=time.sleep, clock=time.monotonic) -> bool:
+    """Waits until the service's container runs, up to limit seconds. `eax up` starts the core and builds the rest (the
+    operations helper among it) in the background (D255), so a command needing the operations helper right after an
+    `eax up` waited for nothing and failed with "service ops is not running" (the owner's drill, 17 Nov 2026, 21:09)."""
+    if running(service):
+        return True
+    say(f"    waiting for {service} to be running (the rest of EA Explorer is still starting; up to {limit // 60} minutes)")
+    end = clock() + limit
+    while clock() < end:
+        sleep(5)
+        if running(service):
+            say(f"    {service} is running")
+            return True
+    return False
+
+
+def run_in(target: list[str], args: list[str], state: dict | None = None, timeout: int = 6 * 3600, wait=wait_for_service) -> dict:
+    """One command in a container, waited for: its progress shown as it comes (standard error), its JSON answer kept.
+    The container is waited for first when it is not running yet."""
+    if target[:2] == ["exec", "-T"] and not wait(target[2]):
+        return {"error": f"{target[2]} did not start within {SERVICE_WAIT // 60} minutes: eax status, eax logs {target[2]}"}
     cmd = compose_args([*target, *args])
     log_only("> " + " ".join([*target[1:4], *target[4:], *args]))
     try:

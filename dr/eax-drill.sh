@@ -56,7 +56,9 @@ START=$SECONDS
 ORIGINAL=$INSTALL VERSION="" BACKUPS="" CONFIG="" NAME="" COPY="" SHUT=0 QUIET_IN="" CONTENT_IN="" RECOVERY="" DR_STARTED=0
 
 finish() {
-  local rc=$? extra=() notes=() n r
+  local rc=$? extra=() notes=() n r diag=""
+  # the failure explains itself (19:05): every container's state and its log's last lines, where it failed
+  if [ "$rc" -ne 0 ] && eax drill diagnose "$RUN/diagnostics" >/dev/null 2>&1; then diag=$(json_get not_well "$EAX_JSON" || echo ""); fi
   if [ -n "$QUIET_IN" ]; then INSTALL=$QUIET_IN; eax drill quiet off >/dev/null 2>&1; fi
   # the test content removed wherever EA Explorer still runs with it, before its state (and tokens) goes
   if [ -n "$CONTENT_IN" ] && [ -f "$STATE" ] && ! { [ "$SHUT" -eq 1 ] && [ "$CONTENT_IN" = "$ORIGINAL" ]; }; then
@@ -67,6 +69,7 @@ finish() {
   # put everything back (09:03): the DR copy out of Docker and its folder gone, the installation started again
   if [ "$DR_STARTED" -eq 1 ]; then
     [ -d "$DR/work/dr" ] && cp -R "$DR/work/dr" "$RUN/eax-dr" 2>/dev/null
+    wait_later_start "$DR" 20 || notes+=("The DR copy's background start was still running after 20 minutes; removed anyway.")
     if eax drill remove-copy "$DR_PROJECT" >/dev/null; then
       notes+=("The DR copy removed from Docker: $(json_get containers "$EAX_JSON") container(s), $(json_get volumes "$EAX_JSON") volume(s).")
     else notes+=("The DR copy could not be removed from Docker: run \`./eax drill remove-copy $DR_PROJECT\` in the installation."); fi
@@ -80,23 +83,33 @@ finish() {
   if [ -n "$NAME" ]; then
     if [ "$rc" -eq 0 ]; then
       if eax drill delete-backup "$NAME" >/dev/null; then notes+=("The drill's backup $NAME deleted.")
-      else notes+=("The drill's backup $NAME could not be deleted: \`./eax delete-backup $NAME\`."); fi
-    else notes+=("The drill's backup $NAME is kept (pinned) in the installation's backups: \`./eax delete-backup $NAME\` when done."); fi
+      else notes+=("The drill's backup $NAME could not be deleted: \`./eax drill delete-backup $NAME\`."); fi
+    else notes+=("The drill's backup $NAME is kept (pinned) in the installation's backups: \`./eax drill delete-backup $NAME\` when done."); fi
   fi
   [ -n "$CONTENT_IN" ] && notes+=("The test content (self_test_...) may still be in $CONTENT_IN; the next self-test run there removes it.")
   [ -n "$RECOVERY" ] && extra+=("Recovery time (from shutting the installation down to the DR copy restored and sign-in working): $RECOVERY minutes.")
+  if [ "${#ALL_WARNINGS[@]}" -gt 0 ]; then
+    extra+=("" "## Warnings (the drill carried on)" "")
+    for n in "${ALL_WARNINGS[@]}"; do extra+=("- $n"); done
+  fi
+  if [ -d "$RUN/diagnostics" ]; then
+    extra+=("" "## Diagnostics" "" "Every container's state and the last lines of each one's log: \`diagnostics/containers.txt\` and \`diagnostics/logs/\` beside this report." "")
+    extra+=("- ${diag:+not well: }${diag:-every container was running}")
+  fi
   extra+=("" "## Afterwards" "")
   for n in ${notes[@]+"${notes[@]}"}; do extra+=("- $n"); done
   report "$RUN/report.md" "EA Explorer restore drill, $STAMP" \
-    "$([ "$rc" -eq 0 ] && echo Passed || echo Failed) in $(((SECONDS - START) / 60)) minutes. Installation \`$ORIGINAL\`, DR copy \`$DR\` ($DR_PROJECT), version ${VERSION:-?}, backup \`${NAME:-none}\`." \
+    "$(if [ "$rc" -ne 0 ]; then echo Failed; elif [ "${#ALL_WARNINGS[@]}" -gt 0 ]; then echo "Passed with ${#ALL_WARNINGS[@]} warning(s)"; else echo Passed; fi) in $(((SECONDS - START) / 60)) minutes. Installation \`$ORIGINAL\`, DR copy \`$DR\` ($DR_PROJECT), version ${VERSION:-?}, backup \`${NAME:-none}\`." \
     ${extra[@]+"${extra[@]}"}
   # the report and the logs kept in the installation; the temp folder deleted
   r="$RUN/report.md"
   mkdir -p "$KEEP" 2>/dev/null && r="$KEEP/report.md"
   for n in ${notes[@]+"${notes[@]}"}; do say "$n"; done
-  say ""; say "EA Explorer restore drill $([ "$rc" -eq 0 ] && echo PASSED || echo FAILED) in $(((SECONDS - START) / 60)) minutes. Report: $r"
+  for n in ${ALL_WARNINGS[@]+"${ALL_WARNINGS[@]}"}; do say "warning: $n"; done
+  say ""; say "EA Explorer restore drill $(if [ "$rc" -ne 0 ]; then echo FAILED; elif [ "${#ALL_WARNINGS[@]}" -gt 0 ]; then echo "PASSED with ${#ALL_WARNINGS[@]} warning(s)"; else echo PASSED; fi) in $(((SECONDS - START) / 60)) minutes. Report: $r"
   if [ -d "$KEEP" ] && cp -R "$RUN/report.md" "$RUN/drill.log" "$KEEP/" 2>/dev/null; then
     [ -d "$RUN/eax-dr" ] && cp -R "$RUN/eax-dr" "$KEEP/"
+    [ -d "$RUN/diagnostics" ] && cp -R "$RUN/diagnostics" "$KEEP/"
     rm -rf "$RUN"; rmdir "$TEMP" 2>/dev/null
   fi
   return 0
@@ -117,7 +130,9 @@ checks() {
   case "$EAX_JSON" in *'"shared": []'*|*'"shared":[]'*) ;; *'"shared"'*)
     echo "the config file puts data in this machine's own folders ($(json_get shared "$EAX_JSON")): a DR copy on this machine would use the same folders and its restore would write over the installation's data. Rehearse on another machine with a DR pack instead"; return 1;; esac
   eax drill running || return 1
-  echo "running, version $VERSION"
+  # the pre-flight (19:05): too little disk fails now, in seconds; a container still starting or the background busy warns
+  eax drill preflight "$TEMP" "$DR" || return 1
+  echo "running, version $VERSION; a backup of about $(json_get backup_gb "$EAX_JSON") GB fits"
 }
 
 leftovers() {
@@ -126,6 +141,13 @@ leftovers() {
   rm -rf "$DR" && mkdir -p "$DR" || return 1
   find "$TEMP" -mindepth 1 -maxdepth 1 ! -name "drill-$STAMP" -exec rm -rf {} + || return 1
   echo "$n of an earlier DR copy removed"
+}
+
+# the smoke test: passed; or failed only on timing (a warning, the drill carries on); or found a fault (a failure)
+smoke() {
+  if eax test smoke; then echo "passed"; return 0; fi
+  eax drill smoke-result || return 1
+  echo "passed, but some checks only slow"
 }
 
 content() { CONTENT_IN=$INSTALL; eax drill content "$STATE" || return 1; echo "$(json_get made "$EAX_JSON") kinds made and read back"; }
@@ -161,7 +183,7 @@ compare() {
 say "EA Explorer restore drill: $INSTALL backed up and shut down; a copy built from its own code in $DR and restored. Nothing is asked."
 step "checks (nothing touched yet)" checks
 step "an earlier drill's leftovers removed and the folders made" leftovers
-step "the smoke test, before" eax test smoke
+step "the smoke test, before" smoke
 step "a test project, models and content of every kind" content
 step "the maintenance page on and the background paused" quiet_on
 step "the background finished what it was doing" eax drill idle
@@ -179,6 +201,6 @@ step "the fingerprint after, compared with before (every table and file)" compar
 step "the test content found in the DR copy as it was made" eax drill content-check "$STATE"
 step "the background back and the maintenance page off" quiet_off
 step "the rest of the DR copy up (Reports, Documents, Diagrams)" eax up --wait-all
-step "the smoke test, after" eax test smoke
+step "the smoke test, after" smoke
 step "the test content removed from the DR copy" content_remove
 exit 0

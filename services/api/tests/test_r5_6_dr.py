@@ -313,7 +313,8 @@ def test_eax_drill_runs_end_to_end_from_the_installations_own_code_with_no_githu
     calls = (tmp_path / "all-calls.txt").read_text().splitlines()
     mine = [c.split(": ", 1)[1] for c in calls if c.startswith(f"{inst}: ")]
     there = [c.split(": ", 1)[1] for c in calls if c.startswith(f"{dr}: ")]
-    assert mine[mine.index("drill running") + 1] == "drill remove-copy eaexplorer-dr"   # the earlier copy cleared first
+    assert mine[mine.index("drill running") + 1].startswith("drill preflight ")          # the pre-flight (D747)
+    assert mine[mine.index("drill running") + 2] == "drill remove-copy eaexplorer-dr"   # the earlier copy cleared first
     assert mine.index("drill shutdown") < mine.index(next(c for c in mine if c.startswith("drill code ")))
     assert "drill restore 20261116T010000Z-nightly" in there and "test smoke" in there   # built and tested there
     assert mine[-3:] == ["drill remove-copy eaexplorer-dr", "up --wait-all", "drill delete-backup 20261116T010000Z-nightly"]
@@ -363,7 +364,8 @@ def test_no_step_block_can_see_step_s_own_variables_by_mistake():
     import re
     common = (DR / "dr-common.ps1").read_text()
     step = common[common.index("function Step("):common.index("\n}\n", common.index("function Step("))]
-    own = {v.lower() for v in re.findall(r"\$([A-Za-z]\w*)", step)} - {"results", "_", "true", "false"}
+    # $script:... names are the scripts' shared ones on purpose (the warnings, D747), not Step's own
+    own = {v.lower() for v in re.findall(r"\$(?!script:)([A-Za-z]\w*)", step)} - {"results", "_", "true", "false"}
     assert own and all(v.startswith("step") for v in own), own
     for f in ("eax-dr.ps1", "eax-drill.ps1"):
         used = {v.lower() for v in re.findall(r"\$(?:script:)?([A-Za-z]\w*)", (DR / f).read_text())}

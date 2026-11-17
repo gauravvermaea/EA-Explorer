@@ -29,7 +29,9 @@ folder for the DR copy and a temp folder:
 
 1. Checks, nothing touched: the installation runs (it stops if not); the DR and temp folders are apart from it and hold
    nothing but an earlier drill's leftovers, which are then removed (the earlier DR copy from Docker too) and the
-   folders made. A folder holding anything else is refused, never deleted.
+   folders made. A folder holding anything else is refused, never deleted. The pre-flight, in seconds: enough free
+   disk for the backup, its copy and the DR copy (too little stops it); a container still starting or the background
+   busy is a warning.
 2. The smoke test, then a test project, models and content of every kind.
 3. The maintenance page on and the background paused, a fingerprint of every table and file, a full backup; the test
    content removed from the installation again and the background back.
@@ -41,6 +43,12 @@ folder for the DR copy and a temp folder:
 7. In the DR copy: every table and file compared with before, the test content found as it was made, the smoke test.
 
 8. Then, passed or failed, it puts everything back by itself: the DR copy removed from Docker (its containers and data) and the DR folder deleted, the temp folder deleted, the installation started again, the drill's backup deleted (kept when the drill failed).
+
+**Warnings and failures** (owner, 17 Nov 2026): a kind of test content that could not be made (then not checked after the
+restore), a smoke test only slow, a container still starting or the background busy is a warning: noted, the drill
+carries on, and it ends `PASSED with N warning(s)`. Too little disk, the installation down, the backup, its checksums,
+the restore, the data after it or a smoke test that found a fault is a failure and stops it; a failure leaves
+`diagnostics/` beside the report (every container's state and its log's last lines).
 
 The report stays in the installation (`work/tests/drill-<time>/report.md`) and gives the recovery time. It can be started from the
 installation's own dr folder: it never overwrites the installation; the DR copy always goes into a new folder.

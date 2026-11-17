@@ -262,7 +262,8 @@ def start(state: dict) -> dict:
         if _ok(made, "a document class", s == 200 and bool(item), _why(out)):
             content = doc_text(sid)
             extra["item"] = str(item)
-            s, d = _upload_waiting(a, f"/api/v1/projects/{proj}/items/{item}/documents", f"self_test_{sid}.txt", content)
+            s, d = _upload_waiting(a, f"/api/v1/projects/{proj}/items/{item}/documents", f"self_test_{sid}.txt", content,
+                                   item=item)
             doc = (d or {}).get("id") if isinstance(d, dict) else None
             if _ok(made, "a document with its file", s in (200, 201) and bool(doc), _why(d)):
                 extra.update(document=str(doc), document_sha=hashlib.sha256(content).hexdigest())
@@ -336,8 +337,53 @@ def _branding(a: Api, made: list, extra: dict, sid: str) -> None:
         _ok(made, "the test account's own theme", s == 200, _why(out))
 
 
-def _upload_waiting(a: Api, path: str, name: str, content: bytes, seconds: int = 300) -> tuple[int, Any]:
-    """An upload, tried again for up to five minutes while the document class's folder is still being made in Documents."""
+FOLDER_WAIT = 1800        # seconds to wait for a document class's folder in Documents (the restore drill, 17 Nov 2026)
+
+
+def folder_ready(item: int | str) -> tuple[bool, str]:
+    """Whether a document class's folder exists in Documents yet, and if not, how its project's repository build stands
+    (its state and note: 'building', 'pending', or 'failed' with the reason)."""
+    from ..db import get_projects_engine
+    with get_projects_engine().begin() as conn:
+        # the class as the API gives it: its guid (the owner's drill, 17 Nov 2026, 19:45: "invalid literal for int() ...
+        # 'ff46f97a-...'"), or its number
+        r = conn.execute(text("""SELECT i.mayan_cabinet_id, p.repo_state, p.repo_note, p.repo_tries FROM proj.items i
+                                   JOIN proj.projects p ON p.id = i.project_id
+                                  WHERE i.guid::text = :i OR i.id::text = :i"""), {"i": str(item)}).mappings().first()
+    if not r:
+        return False, "the document class is not in the database"
+    if r["mayan_cabinet_id"]:
+        return True, "ready"
+    return False, f"the project's documents: {r['repo_state']} (try {r['repo_tries']}){': ' + r['repo_note'] if r['repo_note'] else ''}"
+
+
+def _wait_for_folder(item: int | str, seconds: int = FOLDER_WAIT) -> tuple[bool, str]:
+    """Waits until the document class's folder is made in Documents. A new test project's repository first copies its
+    templates (more than a hundred documents), and the new class's folder is made by the build after that; when the
+    installation has just run the smoke test, Documents is busy, and five minutes was not enough (the owner's restore
+    drill, 17 Nov 2026: "The project's repository is not built yet in Documents"). It follows the build itself, saying
+    how it stands every minute, rather than guessing a time."""
+    t0, said = time.time(), 0.0
+    while True:
+        ok, how = folder_ready(item)
+        if ok:
+            return True, f"ready after {int(time.time() - t0)} seconds"
+        if time.time() - t0 > seconds:
+            return False, f"not ready after {seconds // 60} minutes; {how}"
+        if time.time() - said >= 60:
+            say(f"waiting for the document class's folder in Documents ({int(time.time() - t0)} s): {how}")
+            said = time.time()
+        time.sleep(10)
+
+
+def _upload_waiting(a: Api, path: str, name: str, content: bytes, seconds: int = 300, item: int | str | None = None
+                    ) -> tuple[int, Any]:
+    """An upload: first waits for the document class's folder in Documents (when the class is given), then tries again
+    for up to five minutes while Documents answers it is not ready."""
+    if item not in (None, ""):
+        ok, how = _wait_for_folder(item)
+        if not ok:
+            return 409, {"detail": f"The project's repository is not built yet in Documents: {how}"}
     end = time.time() + seconds
     while True:
         s, d = a.upload(path, name, content)
@@ -512,7 +558,7 @@ def after(state: dict) -> dict:
     rec("S5", "a new ADR, numbered after the last", s == 201 and now_n > before_n, f"{ids.get('adr_ref')} then {(out or {}).get('ref')}")
     if ids.get("document") and ids.get("project"):
         # S7: the document's record and its file came back together (Documents may still be starting: waited for)
-        end, s, body = time.time() + 300, 0, b""
+        end, s, body = time.time() + FOLDER_WAIT, 0, b""        # Documents may take long to start after a restore
         while time.time() < end:
             s, body = a.download(f"/api/v1/projects/{ids['project']}/documents/{ids['document']}")
             if s == 200:
@@ -521,7 +567,8 @@ def after(state: dict) -> dict:
         same = hashlib.sha256(body).hexdigest() == ids.get("document_sha")
         rec("S7", "the document's file downloads with the checksum it was uploaded with", s == 200 and same, f"{s}, same={same}")
         s, d = _upload_waiting(a, f"/api/v1/projects/{ids['project']}/items/{ids.get('item')}/documents",
-                               f"self_test_{sid}_after.txt", b"EA Explorer backup and restore test, after the restore\n")
+                               f"self_test_{sid}_after.txt", b"EA Explorer backup and restore test, after the restore\n",
+                               item=ids.get("item"))
         rec("S5", "a document uploaded", s in (200, 201), f"{s} {_why(d)}")
     else:
         rec("S7", "the document's file downloads with its checksum", None, "no document was made")
@@ -651,11 +698,32 @@ def idle(state: dict) -> dict:
         time.sleep(IDLE_EVERY)
 
 
-COMMANDS = {"start": start, "snapshot": snapshot, "after": after, "finish": finish, "idle": idle}
+def busy_now(state: dict) -> dict:
+    """What the background is doing now, without waiting (the restore drill's pre-flight: a warning, not a failure). The
+    repositories' recurring job is always due within the minute while the installation is not quiet: not counted."""
+    from ..quiet import QUIET_RUNS
+    return {"busy": [b for b in busy() if not (b.endswith("(waiting)") and any(f"the job {r} " in b for r in QUIET_RUNS))]}
+
+
+def failed_checks(state: dict) -> dict:
+    """The newest finished self-test run's failed checks (the restore drill tells a smoke test that failed only on timing
+    from one that found a fault)."""
+    eng = store.engine()
+    with eng.connect() as conn:
+        pick = next((r for r in store.runs(conn, 10) if r["state"] not in store.OPEN), None)
+        if not pick:
+            return {"error": "no self-test run has finished"}
+        d = store.run_detail(conn, pick["id"], "failed") or {"results": []}
+    return {"run": pick["id"], "state": pick["state"],
+            "failed": [{"suite": x["suite"], "name": x["name"], "detail": (x["detail"] or "")[:500]} for x in d["results"][:200]]}
+
+
+COMMANDS = {"start": start, "snapshot": snapshot, "after": after, "finish": finish, "idle": idle, "busy": busy_now,
+            "failed": failed_checks}
 
 
 def main(argv: list[str]) -> int:
-    """python -m eax.testing.backup_restore <start|snapshot|after|finish|idle> (the state as JSON on standard input)."""
+    """python -m eax.testing.backup_restore <start|snapshot|after|finish|idle|busy|failed> (the state as JSON on standard input)."""
     cmd = argv[0] if argv else ""
     if cmd not in COMMANDS:
         print(json.dumps({"error": f"one of {', '.join(COMMANDS)}"}))

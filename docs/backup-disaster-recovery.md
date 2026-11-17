@@ -266,7 +266,9 @@ installation, without touching that installation's folder or data, and proves it
    It asks nothing. One step after another:
    - checks: the installation runs (it stops if not); the DR and temp folders are apart from it and hold nothing
       but an earlier drill's leftovers, which are then removed (the earlier DR copy from Docker too) and the folders
-      made. A folder holding anything else is refused, never deleted;
+      made. A folder holding anything else is refused, never deleted. The pre-flight, in seconds: enough free disk for
+      the backup, its copy and the DR copy (too little stops it now, not half an hour in); a container still starting
+      or the background busy is a warning;
    - the smoke test, then a test project, models and content of every kind;
    - the maintenance page on, the fingerprint, a full backup; the test content removed from the installation again,
       the maintenance page off;
@@ -280,7 +282,14 @@ installation, without touching that installation's folder or data, and proves it
    - everything put back: the DR copy removed from Docker (its containers and data) and the DR folder deleted, the
       temp folder deleted, the installation started again, the drill's backup deleted (kept when the drill failed).
 
-   Check: it ends with `EA Explorer restore drill PASSED`. The report stays in the installation
+   **Warnings and failures.** A problem that does not make the drill untrue is a **warning**: noted, the drill
+   carries on, and the report lists it first (a kind of test content that could not be made, which is then not checked
+   after the restore; a smoke test whose only failures were slowness; a container still starting; the background
+   busy). Everything else is a **failure** and stops it: too little disk, the installation down, the backup or its
+   checksums, the restore, the data after it, a smoke test that found a fault. A failure leaves `diagnostics\` beside
+   the report: every container's state and the last lines of each one's log, so it explains itself.
+
+   Check: it ends with `EA Explorer restore drill PASSED` (or `PASSED with N warning(s)`: read them in the report). The report stays in the installation
    (`work/tests/drill-<time>/report.md`, with the drill's log and eax-dr's report) and gives the recovery time: from
    shutting the installation down to the DR copy restored and up.
 
