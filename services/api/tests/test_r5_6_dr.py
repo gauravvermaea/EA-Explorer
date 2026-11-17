@@ -317,3 +317,22 @@ def test_system_admin_has_a_disaster_recovery_tab_with_the_steps_and_commands_fo
     for step in ("Set it up: make a DR pack", "Recover on another machine", "Rehearse it: the restore drill", "A backup or DR: which one"):
         assert step in page, step
     assert "#/documentation/backup-disaster-recovery" in page and "needs no GitHub" in page
+
+
+def test_a_programs_messages_on_its_error_stream_never_fail_a_powershell_step():
+    """The owner's drill, 17 Nov 2026, 08:17: "FAIL a test project, models and content of every kind : the test's record:
+    self-test run 14": Windows PowerShell 5.1 turned the test's progress line (on its error stream) into an error, and with
+    $ErrorActionPreference = "Stop" it ended the step. Every program the scripts run goes through Invoke-Native, which turns
+    such lines back into text; only the exit code says whether it failed."""
+    common = (DR / "dr-common.ps1").read_text()
+    assert 'function Invoke-Native' in common and '$ErrorActionPreference = "Continue"' in common
+    assert "[System.Management.Automation.ErrorRecord]" in common
+    assert "Invoke-Native { & $Ps -NoProfile -ExecutionPolicy Bypass -File $eaxPs1 @EaxArgs }" in common
+    import re
+    for f in ("eax-dr.ps1", "eax-drill.ps1"):
+        for line in (DR / f).read_text().splitlines():
+            code = line.split("#")[0]
+            if re.search(r"&\s*(docker|git)\b", code):
+                assert "Invoke-Native" in code, (f, line)                              # never a bare program call
+            assert "2>&1" not in code and "*> $null" not in code, (f, line)
+

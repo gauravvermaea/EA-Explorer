@@ -24,11 +24,21 @@ function Step([string]$Name, [scriptblock]$Body) {
     }
 }
 
+# A program's own messages on its error stream are not failures: Windows PowerShell 5.1 turns each such line into an
+# error, and with $ErrorActionPreference = "Stop" the first one ended the step (the owner's drill, 17 Nov 2026, 08:17:
+# "FAIL a test project, models and content of every kind : the test's record: self-test run 14", a progress line the
+# test writes to its error stream). Only the program's exit code says whether it failed.
+function Invoke-Native([scriptblock]$Block) {
+    $ErrorActionPreference = "Continue"          # this function's own: the scripts keep "Stop"
+    & $Block 2>&1 | ForEach-Object { if ($_ -is [System.Management.Automation.ErrorRecord]) { $_.Exception.Message } else { "$_" } }
+}
+
 function Eax([string[]]$EaxArgs) {
     # one eax command in the install folder, waited for; its lines shown and kept; the last JSON line returned
     Push-Location $Install
     try {
-        $out = & $Ps -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Install "eax.ps1") @EaxArgs 2>&1 | ForEach-Object {
+        $eaxPs1 = Join-Path $Install "eax.ps1"
+        $out = Invoke-Native { & $Ps -NoProfile -ExecutionPolicy Bypass -File $eaxPs1 @EaxArgs } | ForEach-Object {
             $l = "$_"; Write-Host "    $l"; $Lines.Add("    $l"); $l }
         $code = $LASTEXITCODE
     } finally { Pop-Location }

@@ -117,10 +117,10 @@ try {
         if (-not $vals["EAX_DEPLOYMENT"] -and -not $vals["EAX_HOSTNAME"]) { throw "$EnvFile does not read as EA Explorer's env file (no EAX_DEPLOYMENT, no EAX_HOSTNAME)" }
         if ((Test-Path $Install) -and (Get-ChildItem -Force $Install | Select-Object -First 1)) { throw "$Install is not empty: give a new or empty folder" }
         if ($Backup.StartsWith($Install + "\", [StringComparison]::OrdinalIgnoreCase)) { throw "the backup may not be inside the install folder" }
-        & docker info --format "{{.ServerVersion}}" *> $null
+        Invoke-Native { & docker info --format "{{.ServerVersion}}" } | Out-Null
         if ($LASTEXITCODE -ne 0) { throw "Docker does not answer: start Docker Desktop" }
         if ($Project -notmatch '^[a-z0-9][a-z0-9_-]*$') { throw "-Project is lower-case letters, digits, - and _" }
-        $mine = @(& docker ps -aq --filter "label=com.docker.compose.project=$Project")
+        $mine = @(Invoke-Native { & docker ps -aq --filter "label=com.docker.compose.project=$Project" } | Where-Object { $_ -match '^[0-9a-f]{12,}$' })
         if ($mine.Count -gt 0) { throw "Docker already has $($mine.Count) container(s) named $Project (another installation): give another -Project" }
         if ($Code) {
             $c = Test-CodeWhole $Code $Version
@@ -139,7 +139,7 @@ try {
             Get-ChildItem -Force -LiteralPath $Code | Copy-Item -Destination $Install -Recurse -Force
             Remove-Item -Force (Join-Path $Install "CODE.sha256")
         } elseif (Get-Command git -ErrorAction SilentlyContinue) {
-            & git -c advice.detachedHead=false clone --quiet --depth 1 --branch "v$Version" $Repo $Install 2>&1 | ForEach-Object { Say "    $_" }
+            Invoke-Native { & git -c advice.detachedHead=false clone --quiet --depth 1 --branch "v$Version" $Repo $Install } | ForEach-Object { Say "    $_" }
             if ($LASTEXITCODE -ne 0) { throw "git clone of v$Version failed" }
         } else {
             $zip = Join-Path ([IO.Path]::GetTempPath()) "eax-v$Version.zip"

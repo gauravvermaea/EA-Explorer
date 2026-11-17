@@ -68,16 +68,17 @@ try {
             if ((Inside $p $Install) -or (Inside $Install $p)) { throw "$p must be a folder of its own, outside $Install" } }
         if ((Inside $Dr $Temp) -or (Inside $Temp $Dr)) { throw "the DR folder and the temp folder must be apart" }
         if ((Test-Path $Dr) -and (Get-ChildItem -Force $Dr | Select-Object -First 1)) { throw "$Dr is not empty: the DR copy always goes into a new folder" }
-        & docker info --format "{{.ServerVersion}}" *> $null
+        Invoke-Native { & docker info --format "{{.ServerVersion}}" } | Out-Null
         if ($LASTEXITCODE -ne 0) { throw "Docker does not answer: start Docker Desktop" }
         $script:info = Eax @("drill", "info")
         Eax @("drill", "running") | Out-Null
-        $other = @(& docker ps -aq --filter "label=com.docker.compose.project=$DrProject")
+        $other = @(Invoke-Native { & docker ps -aq --filter "label=com.docker.compose.project=$DrProject" } | Where-Object { $_ -match '^[0-9a-f]{12,}$' })
         if ($other.Count -gt 0) { throw "a DR copy from an earlier drill is still in Docker ($DrProject): in its folder run .\eax cleanup --all" }
         "running, version $($info.version)" }
     Step "the smoke test, before" { Eax @("test", "smoke") | Out-Null; "passed" }
     Step "a test project, models and content of every kind" {
-        $c = Eax @("drill", "content", $State); $script:contentWhere = $Install; "$($c.made) kinds made and read back" }
+        $script:contentWhere = $Install     # set first: a step that fails half way may have made some of it
+        $c = Eax @("drill", "content", $State); "$($c.made) kinds made and read back" }
     Step "the maintenance page on and the background paused" { Eax @("drill", "quiet", "on") | Out-Null; $script:quietWhere = $Install }
     Step "the background finished what it was doing" { $w = Eax @("drill", "idle"); "waited $($w.waited) s" }
     Step "the fingerprint before (every table and file)" {
@@ -134,7 +135,7 @@ try {
     if ($script:Recovery) { $md += "Recovery time (from shutting the installation down to the DR copy restored and up): $($script:Recovery) minutes.", "" }
     $md += "| | Step | Seconds | Detail |", "| --- | --- | --- | --- |"
     foreach ($r in $Results) { $md += "| $(if ($r.ok) { 'ok' } else { 'FAILED' }) | $($r.step) | $($r.seconds) | $(($r.detail -replace '\|', '/')) |" }
-    if ($contentWhere) { $md += "", "The test content (self_test_...) is still in $contentWhere; the next self-test run removes it." }
+    if ($contentWhere) { $md += "", "The test content (self_test_...) may still be in $contentWhere. To remove it, there: ``.\eax drill content-remove $State`` (or the next self-test run removes it)." }
     if ($shutDown) {
         $back = @("", "## Back to the installation", "", "    cd `"$Dr`"; .\eax down", "    cd `"$($info.root)`"; .\eax up", "",
                   "Or keep the DR copy: it runs at the same address, under the Docker name $DrProject.")

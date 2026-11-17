@@ -43,7 +43,7 @@ finish() {
   rm -f "$STATE"
   [ -n "$RECOVERY" ] && extra+=("Recovery time (from shutting the installation down to the DR copy restored and up): $RECOVERY minutes.")
   [ "$rc" -eq 0 ] && [ -n "$COPY" ] && rm -rf "$(dirname "$COPY")" "$RUN/code"
-  [ -n "$CONTENT_IN" ] && extra+=("" "The test content (self_test_...) is still in $CONTENT_IN; the next self-test run removes it.")
+  [ -n "$CONTENT_IN" ] && extra+=("" "The test content (self_test_...) may still be in $CONTENT_IN. To remove it, there: \`./eax drill content-remove $STATE\` (or the next self-test run removes it).")
   if [ "$SHUT" -eq 1 ]; then
     extra+=("" "## Back to the installation" "" "    cd \"$DR\" && ./eax.sh down" "    cd \"$ORIGINAL\" && ./eax.sh up" ""
             "Or keep the DR copy: it runs at the same address, under the Docker name $DR_PROJECT.")
@@ -74,7 +74,7 @@ checks() {
   echo "running, version $VERSION"
 }
 
-content() { eax drill content "$STATE" || return 1; CONTENT_IN=$INSTALL; echo "$(json_get made "$EAX_JSON") kinds made and read back"; }
+content() { CONTENT_IN=$INSTALL; eax drill content "$STATE" || return 1; echo "$(json_get made "$EAX_JSON") kinds made and read back"; }
 quiet_on() { eax drill quiet on || return 1; QUIET_IN=$INSTALL; }
 quiet_off() { eax drill quiet off || return 1; QUIET_IN=""; }
 backup() { eax drill backup || return 1; NAME=$(json_get name "$EAX_JSON"); echo "$NAME"; }
