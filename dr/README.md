@@ -8,7 +8,7 @@ hold EA Explorer). Each script has a PowerShell form (Windows) and a bash form (
 Make a DR pack on the running installation (`eax dr-pack <folder>`: a backup, the version, the env file, the code
 that runs there (`code/`, with `CODE.sha256`), this folder, `fingerprint.json` and `PACK.sha256`). On the new machine, from the pack's dr folder:
 
-    .\eax-dr.ps1 -Pack .. -Install C:\EA-Explorer
+    .\eax-dr -Pack .. -Install C:\EA-Explorer
     ./eax-dr.sh --pack .. --install /opt/ea-explorer
 
 It checks every file of the pack, copies the pack's code into the install folder (no GitHub needed; `-GitHub` takes
@@ -24,10 +24,12 @@ pack: `-Backup <folder> -Env <file> -Code <folder>` (a copy of the code `eax dri
 Proves eax-dr works, on a running installation, without touching its folder. Give it the running installation, a new
 folder for the DR copy and a temp folder:
 
-    .\eax-drill.ps1 -Install C:\Users\you\EA-Explorer -Dr C:\EA-DR\drill1 -Temp C:\EA-DR\temp
+    .\eax-drill -Install C:\Users\you\EA-Explorer -Dr C:\EA-DR\drill1 -Temp C:\EA-DR\temp
     ./eax-drill.sh --install ~/EA-Explorer --dr /ea-dr/drill1 --temp /ea-dr/temp
 
-1. Checks, nothing touched: the installation runs (it stops if not); the DR folder is new or empty and apart from it.
+1. Checks, nothing touched: the installation runs (it stops if not); the DR and temp folders are apart from it and hold
+   nothing but an earlier drill's leftovers, which are then removed (the earlier DR copy from Docker too) and the
+   folders made. A folder holding anything else is refused, never deleted.
 2. The smoke test, then a test project, models and content of every kind.
 3. The maintenance page on and the background paused, a fingerprint of every table and file, a full backup; the test
    content removed from the installation again and the background back.
@@ -38,6 +40,7 @@ folder for the DR copy and a temp folder:
    and restores the backup into it.
 7. In the DR copy: every table and file compared with before, the test content found as it was made, the smoke test.
 
-The DR copy is left running at the same address. To go back: `eax down` in the DR folder, then `eax up` in the
-installation. The report (`<temp>/drill-<time>/report.md`) gives the recovery time. It can be started from the
+8. Then, passed or failed, it puts everything back by itself: the DR copy removed from Docker (its containers and data) and the DR folder deleted, the temp folder deleted, the installation started again, the drill's backup deleted (kept when the drill failed).
+
+The report stays in the installation (`work/tests/drill-<time>/report.md`) and gives the recovery time. It can be started from the
 installation's own dr folder: it never overwrites the installation; the DR copy always goes into a new folder.

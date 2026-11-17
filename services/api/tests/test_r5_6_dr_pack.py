@@ -151,3 +151,32 @@ def test_eax_dr_compares_the_fingerprint_and_a_given_env_file_is_not_checked():
     assert "allow|drill|dr-pack|sign" in (REPO / "eax.sh").read_text()
     assert 'elif command == "dr-pack":' in (REPO / "eaxcli/main.py").read_text()
     assert "### dr-pack <folder>" in (REPO / "eaxcli/help.txt").read_text()
+
+
+def test_the_code_carries_the_helpers_own_uv_and_python_so_no_github_is_needed(tmp_path):
+    """eaxpy fetches uv and Python from GitHub when work/tools is missing: the copy takes work/tools (not its cache, not the
+    rest of work/)."""
+    root = tmp_path / "inst"
+    (root / "services" / "api").mkdir(parents=True)
+    (root / "services" / "api" / "version.toml").write_text('version = "5.6.0"\n')
+    for f in ("work/tools/uv.exe", "work/tools/python/cpython-3.12/python.exe", "work/tools/python/cpython-3.12/Lib/x.pyc",
+              "work/tools/cache/big.whl", "work/eaexplorer.env", "work/backups/b/manifest.json", "work/logs/x.log"):
+        (root / f).parent.mkdir(parents=True, exist_ok=True)
+        (root / f).write_text("x")
+    got = {p.as_posix() for p in P.DRL.code_files(root)}
+    assert got == {"services/api/version.toml", "work/tools/uv.exe", "work/tools/python/cpython-3.12/python.exe",
+                   "work/tools/python/cpython-3.12/Lib/x.pyc"}                     # the Python as it is, .pyc included
+
+
+def test_the_code_leaves_out_data_logs_and_secrets_kept_beside_it(tmp_path):
+    """A review before the owner's next drill (17 Nov 2026): logs/ (open while containers run), persist/ and data/ (they come
+    back with the backup), testbench's filled-in credentials.json, the built web, and env files but deploy/templates'."""
+    root = tmp_path / "inst"
+    for f in ("services/api/version.toml", "logs/web/2026-11-17", "persist/settings.json", "data/x", "testbench/data/credentials.json",
+              "testbench/data/cases.json", "testbench/reports/r.html", "services/web/dist/index.html", "eaexplorer.env",
+              "deploy/templates/laptop.env", "services/api/eax/our_plugin.py", "library/templates/togaf/a.docx"):
+        (root / f).parent.mkdir(parents=True, exist_ok=True)
+        (root / f).write_text("x")
+    got = {p.as_posix() for p in P.DRL.code_files(root)}
+    assert got == {"services/api/version.toml", "testbench/data/cases.json", "deploy/templates/laptop.env",
+                   "services/api/eax/our_plugin.py", "library/templates/togaf/a.docx"}

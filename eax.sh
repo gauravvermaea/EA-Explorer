@@ -934,7 +934,8 @@ case "$CMD" in
       on) mkdir -p work/proxy; echo maintenance > work/proxy/maintenance
           echo "The maintenance page is shown to everyone until: ./eax.sh maintenance off" ;;
       off) rm -f work/proxy/maintenance; echo "The maintenance page is off." ;;
-      *) echo "Usage: ./eax.sh maintenance on|off"; exit 2 ;;
+      status|clear) shift; exec "$BASH" ./eaxpy.sh maintenance "$@" ;;   # what a cut-off backup or DR run left (R5.6)
+      *) echo "Usage: ./eax.sh maintenance on|off|status|clear"; exit 2 ;;
     esac ;;
   restore) service_on backups || { err "backups are switched off: ./eax.sh service backups on"; exit 1; }
            shift; VER=$(sed -n 's/^version = "\(.*\)"/\1/p' services/api/version.toml)

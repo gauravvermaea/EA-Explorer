@@ -23,6 +23,9 @@ temp location - backups, env etc; then at dr location download the install from 
   eax drill compare <a> <b>            two fingerprints compared (what the installation writes by itself is not): exit 1
                                        when data was lost or added; values the installation rewrote by itself are
                                        allowed and listed (backup_restore.same)
+  eax drill remove-copy <name>         a DR copy's Docker containers, data (volumes) and networks removed, by its Docker
+                                       name (eaexplorer-dr); never this installation's own; images kept (shared names)
+  eax drill delete-backup <name>       one of this installation's backups unpinned and deleted (the drill's own)
   eax drill code <folder>              this installation's code copied into a new folder, with CODE.sha256 (a checksum
                                        of every file): eax-dr builds from it with no GitHub (the owner, 16 Nov 2026, 22:44)"""
 
@@ -66,17 +69,42 @@ def backups_folder(setting: str) -> Path:
 # not code: the installation's own data and what tools make (never in a DR pack or a drill's copy)
 CODE_SKIP_DIRS = {"work", ".git", "node_modules", "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", ".venv",
                   "venv", ".idea", ".vscode"}
+# data and secrets kept beside the code (as .gitignore names them): never code. logs/ is every container's daily log
+# (and open while they run), persist/ and data/ come back with the backup, testbench's credentials.json is filled in
+# by hand, the web's dist/ is built; an env file holds passwords (deploy/templates' are blanks, and are code)
+CODE_SKIP_PATHS = {"logs", "persist", "data", "testbench/reports", "testbench/data/credentials.json", "services/web/dist"}
 CODE_SKIP_FILES = re.compile(r"\.(pyc|pyo|swp|tmp|log)$|^(\.DS_Store|Thumbs\.db|CODE\.sha256)$")
 
 
+# the one part of work/ that goes with the code: work/tools, the helper's own uv and Python (eaxpy fetches them from
+# GitHub when they are missing, so a DR copy without them would need GitHub after all); not its download cache
+TOOLS_SKIP = {"cache"}
+
+
 def code_files(root: Path, skip: Path | None = None) -> list[Path]:
-    """The installation's code: every file under root but work/, git's folder, packages and caches (and skip, a folder
-    being written into), sorted; paths relative to root."""
+    """The installation's code: every file under root but work/ (except work/tools, the helper's uv and Python), git's
+    folder, packages and caches (and skip, a folder being written into), sorted; paths relative to root."""
     out = []
     for dirpath, dirs, files in os.walk(root):
         d = Path(dirpath)
-        dirs[:] = sorted(x for x in dirs if x not in CODE_SKIP_DIRS and (skip is None or (d / x).resolve() != skip))
-        out += [(d / f).relative_to(root) for f in sorted(files) if not CODE_SKIP_FILES.search(f)]
+        rel = d.relative_to(root).parts
+        if rel[:1] == ("work",):
+            if len(rel) == 1:
+                dirs[:] = [x for x in dirs if x == "tools"]
+                continue                                    # no file of work/ itself
+            if len(rel) == 2:
+                dirs[:] = sorted(x for x in dirs if x not in TOOLS_SKIP)
+            else:
+                dirs[:] = sorted(dirs)
+            out += [(d / f).relative_to(root) for f in sorted(files)]
+            continue
+        here = "/".join(rel)
+        dirs[:] = sorted(x for x in dirs if (x not in CODE_SKIP_DIRS or (not rel and x == "work"))
+                         and f"{here}/{x}".lstrip("/") not in CODE_SKIP_PATHS
+                         and (skip is None or (d / x).resolve() != skip))
+        out += [(d / f).relative_to(root) for f in sorted(files) if not CODE_SKIP_FILES.search(f)
+                and f"{here}/{f}".lstrip("/") not in CODE_SKIP_PATHS
+                and not (f.endswith(".env") and here != "deploy/templates")]
     return out
 
 
@@ -146,7 +174,23 @@ def info() -> dict:
             "repo": vals.get("EAX_UPDATE_GIT_URL", "") or "https://github.com/gauravvermaea/EA-Explorer",
             "config": str(WORK / "eaexplorer.env"), "persist": str(P.folder()),
             "backups": str(backups_folder(vals.get("EAX_BACKUP_DIR", "")) / "infrastructure"),
-            "root": str(ROOT)}
+            "root": str(ROOT), "shared": shared_folders(vals)}
+
+
+FOLDER_SETTINGS = ("EAX_DATA_ROOT", "EAX_DATA_DIR", "EAX_DOCS_DIR", "EAX_LOGS_DIR", "EAX_BACKUP_DIR", "EAX_IMPORT_DIR",
+                   "EAX_EXPORT_DIR", "EAX_TLS_DIR", "EAX_REPORTS_DIR", "EAX_PERSIST_DIR", "EAX_PACKS_DIR", "EAX_LIBRARY_DIR")
+
+
+def shared_folders(vals: dict) -> list[str]:
+    """The settings that put data in a folder of this machine by its full path (pure). A DR copy on the same machine,
+    started with the same config file, would use those very folders: its restore would write over the installation's
+    own data. The drill refuses then (a review of 17 Nov 2026, before the owner's next drill)."""
+    out = []
+    for k in FOLDER_SETTINGS:
+        v = (vals.get(k) or "").strip().strip("'\"")
+        if v and (v.startswith(("/", "\\", "~")) or re.match(r"^[A-Za-z]:", v)):
+            out.append(f"{k}={v}")
+    return out
 
 
 def containers(state: str = "") -> list[str]:
@@ -169,14 +213,62 @@ def running() -> dict:
 
 
 def shutdown() -> dict:
-    """Every container stopped and removed; the volumes (the data) and the images kept."""
-    r = subprocess.run(compose_args(["down", "--remove-orphans"]), cwd=ROOT, env={**os.environ, "COMPOSE_PROFILES": "*"},
+    """Every container stopped and removed; the volumes (the data) and the images kept.
+
+    The owner's drill, 17 Nov 2026, 11:13: "14 container(s) left" after docker compose down. Compose leaves the
+    containers of services whose profile is not switched on (they are not orphans to it), and COMPOSE_PROFILES="*" is
+    not understood by every compose. So every profile the compose files name is switched on by name, and any container
+    of this installation still there afterwards is removed directly (its volumes stay)."""
+    env = {**os.environ}
+    r = subprocess.run(compose_args(["config", "--profiles"]), cwd=ROOT, env=env, capture_output=True, text=True,
+                       encoding="utf-8", errors="replace")
+    profiles = [p for p in (r.stdout or "").split() if re.fullmatch(r"[A-Za-z0-9_.-]+", p)]
+    if profiles:
+        env["COMPOSE_PROFILES"] = ",".join(profiles)
+    r = subprocess.run(compose_args(["down", "--remove-orphans"]), cwd=ROOT, env=env,
                        capture_output=True, text=True, encoding="utf-8", errors="replace")
     left = containers()
-    out = {"containers_left": len(left)}
-    if r.returncode or left:
-        out["error"] = (f"{len(left)} container(s) left" + (f"; docker compose: {(r.stderr or r.stdout).strip().splitlines()[-1][:300]}"
-                                                            if r.returncode and (r.stderr or r.stdout).strip() else ""))
+    forced = 0
+    if left:                                           # what compose did not take: removed directly, volumes kept
+        subprocess.run(["docker", "rm", "-f", *left], capture_output=True, text=True, encoding="utf-8", errors="replace")
+        forced = len(left)
+        left = containers()
+    out = {"containers_left": len(left), "removed_directly": forced, "profiles": profiles}
+    if left:
+        names = subprocess.run(["docker", "ps", "-a", "--format", "{{.Names}} ({{.Status}})", "--filter",
+                                f"label=com.docker.compose.project={project()}"], capture_output=True, text=True).stdout.split("\n")
+        out["error"] = (f"{len(left)} container(s) left: " + ", ".join(n for n in names if n)[:400]
+                        + (f"; docker compose: {(r.stderr or r.stdout).strip().splitlines()[-1][:300]}"
+                           if r.returncode and (r.stderr or r.stdout).strip() else ""))
+    return out
+
+
+def remove_copy(name: str) -> dict:
+    """A DR copy gone from Docker: its containers, volumes (its data) and networks, found by the Docker name compose
+    gives them (com.docker.compose.project). Not its images: they carry the same names as the installation's
+    (eaexplorer/api:dev and the rest), so removing them would remove the installation's too. The owner, 17 Nov 2026, 09:03: "For testing auto remove and create destination
+    folders. Expect them to be cleaned and deleted". Never this installation's own name."""
+    if not re.fullmatch(r"[a-z0-9][a-z0-9_-]*", name or ""):
+        return {"error": f"{name!r} is not a Docker name"}
+    if name == project():
+        return {"error": f"{name} is this installation's own Docker name: never removed this way"}
+    label = f"label=com.docker.compose.project={name}"
+
+    def ids(*what: str) -> list[str]:
+        r = subprocess.run(["docker", *what, "--filter", label], capture_output=True, text=True, encoding="utf-8", errors="replace")
+        return r.stdout.split()
+
+    out = {}
+    for kind, listing, removing in (("containers", ("ps", "-aq"), ("rm", "-f")),
+                                    ("volumes", ("volume", "ls", "-q"), ("volume", "rm", "-f")),
+                                    ("networks", ("network", "ls", "-q"), ("network", "rm"))):
+        found = sorted(set(ids(*listing)))
+        if found:
+            subprocess.run(["docker", *removing, *found], capture_output=True, text=True, encoding="utf-8", errors="replace")
+        left = ids(*listing)
+        out[kind] = len(found)
+        if left:
+            out["error"] = f"{len(set(left))} {kind} of {name} could not be removed"
     return out
 
 
@@ -244,6 +336,12 @@ def main(args: list[str]) -> int:
         elif cmd == "content-remove" and rest:
             st = _state(rest[0])
             out = _api("finish", {**st, "results": [], "keep": False})
+        elif cmd == "remove-copy" and rest:
+            out = remove_copy(rest[0])
+        elif cmd == "delete-backup" and rest:
+            out = _ops("delete", rest[0])
+            if out.get("left"):
+                out["error"] = f"{rest[0]} could not be deleted"
         elif cmd == "idle":
             out = _api("idle", {})
         elif cmd == "fingerprint" and rest:
@@ -274,7 +372,7 @@ def main(args: list[str]) -> int:
                 out["error"] = f"the code copied says version {out['version']}, the installation {version()}"
         else:
             out = {"error": "eax drill info | running | quiet on|off | content|content-check|content-remove <state file> | "
-                            "idle | fingerprint <file> | backup | shutdown | restore <name> | compare <a> <b> | code <folder>"}
+                            "idle | remove-copy <name> | delete-backup <name> | fingerprint <file> | backup | shutdown | restore <name> | compare <a> <b> | code <folder>"}
     except (Failure, OSError, ValueError) as exc:
         out = {"error": str(exc)[:1000]}
     print(json.dumps(out, default=str), flush=True)

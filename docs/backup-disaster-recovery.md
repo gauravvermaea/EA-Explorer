@@ -6,7 +6,9 @@ the machine, with a checksum of every file and a fingerprint of all the data. Th
 `dr` folder) does the rebuild in one command: it checks the pack, builds EA Explorer from the pack's own code (GitHub is
 not needed), restores everything, and proves it by comparing every table and file with the pack's fingerprint.
 
-On Windows type `.\eax`; on Linux and macOS `./eax`. Below it is written `eax`.
+On Windows type `.\eax`; on Linux and macOS `./eax`. Below it is written `eax`. The DR tool and the drill are the same:
+on Windows `.\eax-dr` and `.\dr\eax-drill` work in Command Prompt and in PowerShell alike (typing the `.ps1` file's
+name in Command Prompt opens it in an editor instead); on Linux and macOS `./eax-dr.sh` and `./dr/eax-drill.sh`.
 
 ## A backup or DR: which one when
 
@@ -81,7 +83,10 @@ pack after you change it.
 
 `code/` is EA Explorer's code **exactly as it runs on this machine**: the installation's folder copied file by file, not
 the release from GitHub. Whatever was changed or added there comes with it (a fix applied by hand, a plugin, a connector
-set up, code added later), and the new machine needs no GitHub access. Left out: `work/` (the data: in the backup),
+set up, code added later), and the new machine needs no GitHub access. It takes `work/tools` too (the command line's own
+uv and Python, which would otherwise be downloaded from GitHub; on another kind of system they are downloaded again).
+Left out: the rest of `work/`, `logs/`, `persist/` and `data/` (the data: in the backup or rewritten as it runs),
+files that hold passwords (env files but the blank templates, the test bench's filled-in `credentials.json`),
 git's own folder, downloaded packages (`node_modules`) and caches. `code/CODE.sha256` holds a checksum of every file of it.
 
 Anything that customises EA Explorer must therefore live in the installation's folder or in its data (the databases,
@@ -132,7 +137,7 @@ point).
 
    ```
    cd D:\ea-dr-pack-2026-11-16\dr
-   .\eax-dr.ps1 -Pack .. -Install C:\EA-Explorer
+   .\eax-dr -Pack .. -Install C:\EA-Explorer
    ```
 
    On Linux and macOS:
@@ -148,12 +153,15 @@ point).
       empty; Docker answers; the pack's code is whole (`CODE.sha256`) and of the version;
    - the pack's code copied into the install folder (no GitHub);
    - the env file and the backup put in place;
-   - EA Explorer built and started (the longest step the first time: the images are built);
-   - the maintenance page on, everything restored from the backup, EA Explorer started again;
+   - EA Explorer built and its core started (the longest step the first time: the images are built; the rest is not
+      waited for here, as the restore replaces every database);
+   - the maintenance page on, everything restored from the backup, EA Explorer's core started again (sign-in, the
+      API, the screens);
    - **every table and file compared with the pack's fingerprint**: the proof that everything came back as it was
       when the pack was made (the few tables EA Explorer writes by itself, such as sessions and logs, are listed, not
       compared);
-   - the maintenance page off, and the smoke test.
+   - the maintenance page off: **everyone can sign in as soon as the screens are up**; then the rest (Reports,
+      Documents, Diagrams) is waited for while people work, and the smoke test runs.
 
    Check: the last line says `EA Explorer DR DONE`. The report is in `<install>/work/dr/dr-<time>/report.md`, with
    the comparison and the recovery time.
@@ -187,7 +195,7 @@ The DR tool also takes the parts on their own, when you have a backup but no pac
 With a copy of the code, which `eax drill code <folder>` makes on the running installation (no GitHub):
 
 ```
-.\eax-dr.ps1 -Backup <backup folder> -Install C:\EA-Explorer -Code <code folder> -Env <eaexplorer.env>
+.\eax-dr -Backup <backup folder> -Install C:\EA-Explorer -Code <code folder> -Env <eaexplorer.env>
 ./eax-dr.sh --backup <backup folder> --install /opt/ea-explorer --code <code folder> --env <eaexplorer.env>
 ```
 
@@ -195,7 +203,7 @@ Or, with no copy of the code, the published release from GitHub (only what is in
 lost machine are not there):
 
 ```
-.\eax-dr.ps1 -Backup <backup folder> -Install C:\EA-Explorer -Version 5.6.0 -Env <eaexplorer.env>
+.\eax-dr -Backup <backup folder> -Install C:\EA-Explorer -Version 5.6.0 -Env <eaexplorer.env>
 ./eax-dr.sh --backup <backup folder> --install /opt/ea-explorer --version 5.6.0 --env <eaexplorer.env>
 ```
 
@@ -246,7 +254,7 @@ installation, without touching that installation's folder or data, and proves it
 9. Give it the running installation, a new folder for the DR copy and a temp folder. On Windows:
 
    ```
-   .\dr\eax-drill.ps1 -Install C:\Users\you\EA-Explorer -Dr C:\EA-DR\drill1 -Temp C:\EA-DR\temp
+   .\dr\eax-drill -Install C:\Users\you\EA-Explorer -Dr C:\EA-DR\drill1 -Temp C:\EA-DR\temp
    ```
 
    On Linux and macOS:
@@ -256,7 +264,9 @@ installation, without touching that installation's folder or data, and proves it
    ```
 
    It asks nothing. One step after another:
-   - checks: the installation runs (it stops if not); the DR folder is new and apart from the installation;
+   - checks: the installation runs (it stops if not); the DR and temp folders are apart from it and hold nothing
+      but an earlier drill's leftovers, which are then removed (the earlier DR copy from Docker too) and the folders
+      made. A folder holding anything else is refused, never deleted;
    - the smoke test, then a test project, models and content of every kind;
    - the maintenance page on, the fingerprint, a full backup; the test content removed from the installation again,
       the maintenance page off;
@@ -266,20 +276,18 @@ installation, without touching that installation's folder or data, and proves it
    - eax-dr builds the DR copy in the DR folder from that code (no GitHub), under its own Docker name
       (`eaexplorer-dr`, its own data), and restores the backup into it;
    - in the DR copy: every table and file compared with the fingerprint, the test content found as it was made, the
-      smoke test.
+      smoke test;
+   - everything put back: the DR copy removed from Docker (its containers and data) and the DR folder deleted, the
+      temp folder deleted, the installation started again, the drill's backup deleted (kept when the drill failed).
 
-   Check: it ends with `EA Explorer restore drill PASSED`. The report (`<temp>/drill-<time>/report.md`) gives the
-   recovery time: from shutting the installation down to the DR copy restored and up.
+   Check: it ends with `EA Explorer restore drill PASSED`. The report stays in the installation
+   (`work/tests/drill-<time>/report.md`, with the drill's log and eax-dr's report) and gives the recovery time: from
+   shutting the installation down to the DR copy restored and up.
 
-10. Go back to the installation (the DR copy is left running at the same address):
+10. Open EA Explorer.
 
-    ```
-    cd C:\EA-DR\drill1; .\eax down
-    cd C:\Users\you\EA-Explorer; .\eax up
-    ```
-
-    Check: the installation opens as before. Delete the DR folder when you no longer need it (first `eax cleanup --all`
-    in it, to remove its Docker data).
+    Check: the installation opens as before, and the DR and temp folders are gone. If the report's "Afterwards" says a
+    step of the clean-up could not be done, it gives the command for it.
 
 Run it once a month ([Restore drill: once a month](backup-drill-monthly.md)), and after each upgrade. The same rebuild
 done by hand, step by step, is in [Restore drill: EA Explorer onto a new machine](backup-drill-new-machine.md).
@@ -307,13 +315,13 @@ System Admin › Backups, tagged `dr-pack`.
 ### eax-dr: rebuild EA Explorer from a pack (or from a backup)
 
 ```
-.\eax-dr.ps1 -Pack <pack> -Install <folder> [-Env <file>] [-Project <name>] [-GitHub [-Version <x.y.z>] [-Repo <link>]]
+.\eax-dr -Pack <pack> -Install <folder> [-Env <file>] [-Project <name>] [-GitHub [-Version <x.y.z>] [-Repo <link>]]
 ./eax-dr.sh --pack <pack> --install <folder> [--env <file>] [--project <name>] [--github [--version <x.y.z>] [--repo <link>]]
 
-.\eax-dr.ps1 -Backup <backup folder> -Install <folder> -Env <file> -Code <code folder> [-Project <name>]
+.\eax-dr -Backup <backup folder> -Install <folder> -Env <file> -Code <code folder> [-Project <name>]
 ./eax-dr.sh --backup <backup folder> --install <folder> --env <file> --code <code folder> [--project <name>]
 
-.\eax-dr.ps1 -Backup <backup folder> -Install <folder> -Env <file> -Version <x.y.z> [-Project <name>] [-Repo <link>]
+.\eax-dr -Backup <backup folder> -Install <folder> -Env <file> -Version <x.y.z> [-Project <name>] [-Repo <link>]
 ./eax-dr.sh --backup <backup folder> --install <folder> --env <file> --version <x.y.z> [--project <name>] [--repo <link>]
 ```
 
@@ -334,19 +342,37 @@ Run it from the `dr` folder (the pack's own, or any copy). Report: `<install>/wo
 ### eax-drill: rehearse a recovery
 
 ```
-.\eax-drill.ps1 -Install <running installation> -Dr <new folder> -Temp <folder>
+.\eax-drill -Install <running installation> -Dr <new folder> -Temp <folder>
 ./eax-drill.sh --install <running installation> --dr <new folder> --temp <folder>
 ```
 
 | Part (Windows / Linux) | What it is |
 | --- | --- |
 | `-Install` / `--install` | The running installation to rehearse on. Its folder and data are never changed; it is shut down during the drill. |
-| `-Dr` / `--dr` | A new or empty folder for the DR copy, outside the installation. |
-| `-Temp` / `--temp` | A folder for the copies of the backup, the env file and the code, the fingerprints and the report, outside the installation and the DR folder. |
+| `-Dr` / `--dr` | A folder for the DR copy, outside the installation: new, empty, or an earlier drill's DR copy. Made by the drill and deleted at the end. |
+| `-Temp` / `--temp` | A folder for the copies of the backup, the env file and the code and the fingerprints, outside the installation and the DR folder: new, empty, or holding only earlier drills' folders. Made by the drill and deleted at the end. |
 
-The DR copy is built from the installation's own code, copied into the temp folder (no GitHub). Report:
-`<temp>/drill-<time>/report.md`. Go back afterwards: `eax down` in the DR folder, `eax up` in the
-installation.
+The DR copy is built from the installation's own code, copied into the temp folder (no GitHub). Then, passed or failed, it puts everything back by itself: the DR copy removed from Docker (its containers
+and data; the images are shared with the installation and kept) and the DR folder deleted, the temp folder deleted, the installation started again, the drill's backup
+deleted (kept when the drill failed). Report:
+`work/tests/drill-<time>/report.md` in the installation.
+
+### eax maintenance status and clear: after a run was cut off
+
+A backup, a restore, the backup and restore test, the drill and a DR pack put the maintenance page on and pause the
+background, and take both off at the end, also when they fail. If one is cut off half way (the machine slept, the
+window was closed, something crashed), the page may stay on. In the EA Explorer folder:
+
+```
+eax maintenance status
+eax maintenance clear
+```
+
+| Part | What it is |
+| --- | --- |
+| `status` | Shows what was left: the maintenance page, a restore's record that it is under way, the background paused. Changes nothing. |
+| `clear` | Removes all three: EA Explorer opens again and its recurring jobs run (what was missed runs at its next turn). Refuses while the backup container is still running a backup or a restore. |
+| `--force` | With `clear`: clears even then. Nothing is stopped either way. |
 
 ### eax drill code: copy the code on its own
 

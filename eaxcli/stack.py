@@ -248,19 +248,72 @@ def servers(args: list[str]) -> None:
     compose(["up", "-d", "--no-deps", "--no-recreate", "--scale", f"api={n}", "api"])
 
 
-def maintenance(arg: str) -> None:
-    """eax maintenance on|off: the maintenance page at the front door."""
+# what a backup, a restore, the backup and restore test, the drill or a DR pack leaves when it is cut off (R5.6; the
+# owner, 17 Nov 2026, 11:19: "add another feature in eax that removes the mantainance page, just in case something
+# crashed in backup or DR run")
+LEFT_BEHIND = (("proxy/maintenance", "the maintenance page"),
+               ("maintenance.json", "a restore's record that it is under way"),
+               ("quiet.json", "the background paused (recurring jobs and schedules wait)"))
+BUSY_IN_BACKUP = "backup.sh|restore.sh|fingerprint.sh|dumpdb.sh|pg_dump|pg_restore|pg_dumpall"
+
+
+def _left_behind() -> list[tuple[str, str, str]]:
+    """(file, what it is, what it says) for each one there."""
+    out = []
+    for rel, what in LEFT_BEHIND:
+        f = WORK / rel
+        if f.exists():
+            try:
+                said = f.read_text(encoding="utf-8").strip().replace("\n", " ")[:200]
+            except OSError:
+                said = ""
+            out.append((rel, what, said))
+    return out
+
+
+def _backup_working() -> list[str]:
+    """What the backup container is running now (a backup, a restore, a fingerprint), or [] (also when it is stopped)."""
+    lines = compose_out(["exec", "-T", "backup", "sh", "-c", f"pgrep -af '{BUSY_IN_BACKUP}' | grep -v pgrep || true"])
+    return [ln for ln in lines if ln.strip()]
+
+
+def maintenance(arg: str, rest: list[str] | None = None) -> None:
+    """eax maintenance on|off|status|clear: the maintenance page at the front door; status and clear also cover what a
+    cut-off backup, restore, test, drill or DR pack leaves (the page, a restore's record, the paused background)."""
     flag = WORK / "proxy" / "maintenance"
-    if arg not in ("on", "off"):
-        raise Failure(f"Usage: {EAX} maintenance on|off")
+    rest = rest or []
+    if arg not in ("on", "off", "status", "clear"):
+        raise Failure(f"Usage: {EAX} maintenance on|off|status|clear [--force]")
     if arg == "on":
         flag.parent.mkdir(parents=True, exist_ok=True)
         flag.write_text("maintenance\n", encoding="utf-8", newline="\n")
         say(f"The maintenance page is shown to everyone until: {EAX} maintenance off")
-    else:
+        return
+    if arg == "off":
         if flag.exists():
             flag.unlink()
-        say("The maintenance page is off.")
+        say("The maintenance page is off." + ("" if not (WORK / "quiet.json").exists() and not (WORK / "maintenance.json").exists()
+                                              else f" Something else is still left: {EAX} maintenance status"))
+        return
+    left = _left_behind()
+    working = _backup_working()
+    if not left:
+        say("Nothing is left: no maintenance page, no restore under way, the background runs.", "green")
+    for rel, what, said in left:
+        say(f"  {what} (work/{rel})" + (f": {said}" if said else ""), "yellow")
+    if working:
+        say("The backup container is working now: " + "; ".join(w[:120] for w in working[:5]), "yellow")
+    if arg == "status" or not left:
+        if left and arg == "status":
+            say(f"To clear it: {EAX} maintenance clear" + (" (after it has finished, or with --force)" if working else ""))
+        return
+    if working and "--force" not in rest:
+        raise Failure("A backup or a restore is still running (above): nothing was cleared. Wait for it to finish, or, if "
+                      f"you are sure it is stuck, {EAX} maintenance clear --force (nothing is stopped either way).")
+    for rel, what, _ in left:
+        (WORK / rel).unlink(missing_ok=True)
+        say(f"  cleared: {what}", "green")
+    say("EA Explorer is open again and the background runs; what was missed runs at its next turn.", "green")
 
 
 def upgrade_page(all_services: bool) -> bool:

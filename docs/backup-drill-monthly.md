@@ -47,11 +47,12 @@ On Windows type `.\eax`; on Linux and macOS `./eax`. Below it is written `eax`.
    DR copy goes into a new folder, built from this installation's own code, as a DR pack carries it: no GitHub):
 
    ```
-   .\dr\eax-drill.ps1 -Install <this installation> -Dr <new folder> -Temp <temp folder>
+   .\dr\eax-drill -Install <this installation> -Dr <new folder> -Temp <temp folder>
    ```
 
    Check: it ends with `EA Explorer restore drill PASSED`: every table and file of the DR copy matched the fingerprint
-   taken before the backup. Then go back: `eax down` in the DR folder, `eax up` in the installation.
+   taken before the backup. It cleans up by itself: the DR copy and both folders are removed and the installation is
+   started again; the report is in the installation's `work/tests/drill-<time>/`.
 
 6. Make this month's DR pack and keep it away from the machine:
 

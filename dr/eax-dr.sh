@@ -17,8 +17,10 @@
 #      the version published there (never the main branch)
 #   2. the code into the install folder: copied from the pack or --code, else that release from GitHub (git, or its tarball)
 #   3. the env file as work/eaexplorer.env, the work folders, the backup copied into work/backups/infrastructure
-#   4. built and started; 5. the maintenance page on, the background paused, the full restore, started again;
-#   6. the background back, the maintenance page off; the smoke test. Report: <install>/work/dr/dr-<time>/.
+#   4. built, its core started; 5. the maintenance page on, the background paused, the full restore, the core started
+#   again; 6. the background back, the maintenance page off: everyone can sign in as soon as the screens are up (13:25:
+#   "The DR should let us in as soon as the web is up"); then the rest waited for and the smoke test.
+#   Report: <install>/work/dr/dr-<time>/.
 set -uo pipefail
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 PACK="" BACKUP="" INSTALL="" VERSION="" ENV_FILE="" REPO="" PROJECT=eaexplorer KEEP_QUIET=0 NO_SMOKE=0 FINGERPRINT="" CODE="" GITHUB=0
@@ -69,7 +71,7 @@ finish() {
   [ -d "$INSTALL/work" ] || dir="${TMPDIR:-/tmp}/eax-dr-$STAMP"
   mkdir -p "$dir"
   report "$dir/report.md" "EA Explorer DR, $STAMP" "$result in $(((SECONDS - START) / 60)) minutes. Backup \`$BACKUP\`, install \`$INSTALL\`, version $VERSION." \
-    ${RECOVERY:+"Recovery time (from the restore's start to EA Explorer up again): $RECOVERY minutes."}
+    ${RECOVERY:+"Recovery time (from the restore's start to sign-in working again): $RECOVERY minutes."}
   cp "$LOG" "$dir/dr.log"
   say ""; say "EA Explorer DR $( [ "$rc" -eq 0 ] && echo DONE || echo FAILED ) in $(((SECONDS - START) / 60)) minutes. Report: $dir/report.md"
 }
@@ -151,13 +153,18 @@ say "EA Explorer DR: builds $INSTALL from the backup $BACKUP, version $VERSION. 
 step "checks (nothing touched yet)" checks
 step "the code of v$VERSION $([ -n "$CODE" ] && echo "from $CODE (no GitHub)" || echo "from GitHub")" code
 step "the env file, the work folders and the backup in place" in_place
-step "EA Explorer built and started" eax up --wait-all
+# the core only: the restore replaces every database, so waiting for a new installation's sample data and packs to load
+# (up to 30 minutes, the owner's drill of 17 Nov 2026, 13:22) was time lost; everything is waited for after it
+step "EA Explorer built and its core started" eax up
 T1=$SECONDS
 step "the maintenance page on and the background paused" eax drill quiet on
 step "the full restore of $NAME" eax drill restore "$NAME"
-step "EA Explorer started again" eax up --wait-all
+step "EA Explorer's core started again (sign-in, the API, the screens)" eax up
 [ -z "$FINGERPRINT" ] || step "every table and file compared with the pack's fingerprint" compare_pack
 RECOVERY=$(((SECONDS - T1) / 60))
-[ "$KEEP_QUIET" -eq 1 ] || step "the background back and the maintenance page off" eax drill quiet off
-[ "$NO_SMOKE" -eq 1 ] || step "the smoke test" eax test smoke
+[ "$KEEP_QUIET" -eq 1 ] || step "the background back and the maintenance page off: everyone can sign in" eax drill quiet off
+if [ "$NO_SMOKE" -eq 0 ]; then
+  step "the rest up (Reports, Documents, Diagrams), while people work" eax up --wait-all
+  step "the smoke test" eax test smoke
+fi
 exit 0

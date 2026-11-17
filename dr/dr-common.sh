@@ -36,7 +36,8 @@ eax() {
   rc=${PIPESTATUS[0]}
   EAX_JSON=$(grep '^[[:space:]]*{' "$tmp" | tail -n 1)
   rm -f "$tmp"
-  if [ "$rc" -ne 0 ]; then echo "./eax.sh $* failed: $(json_get error "$EAX_JSON" || echo "exit $rc")"; return 1; fi
+  if [ "$rc" -ne 0 ] || [ -n "$(json_get error "$EAX_JSON" 2>/dev/null)" ]; then
+    echo "./eax.sh $* failed: $(json_get error "$EAX_JSON" || echo "exit $rc")"; return 1; fi
 }
 
 # json_get key json: one top-level value of a JSON line (python3 when there, else a plain match for strings/numbers)

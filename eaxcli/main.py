@@ -432,7 +432,7 @@ def dispatch(command: str, rest: list[str], wait_all: bool) -> None:
     elif command == "restore-app":
         stack.interactive([*api, "restore-all"], rest)
     elif command == "maintenance":
-        stack.maintenance(rest[0] if rest else "")
+        stack.maintenance(rest[0] if rest else "", rest[1:])
     elif command == "restore":
         need_backups()
         stack.backup_helpers()

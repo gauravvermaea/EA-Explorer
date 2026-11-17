@@ -250,13 +250,13 @@ function Chooser({ data, onStarted }) {
             <tr><td>The backup and restore test</td><td><code>eax test backup-restore</code></td>
               <td>The maintenance page on; two backups with test content between them; each restored and every table and file
                 compared; the installation left as it was. About 30 minutes. Report in <code>work/tests/backup-restore-&lt;time&gt;/</code>.</td></tr>
-            <tr><td>The restore drill (DR rehearsal)</td><td><code>.\dr\eax-drill.ps1 -Install &lt;this folder&gt; -Dr &lt;new folder&gt; -Temp &lt;folder&gt;</code>
+            <tr><td>The restore drill (DR rehearsal)</td><td><code>.\dr\eax-drill -Install &lt;this folder&gt; -Dr &lt;new folder&gt; -Temp &lt;folder&gt;</code>
               <br /><code>./dr/eax-drill.sh --install &lt;this folder&gt; --dr &lt;new folder&gt; --temp &lt;folder&gt;</code></td>
               <td>Backs this installation up, shuts it down, builds a copy in a new folder from its own code with eax-dr, restores
-                it and compares every table and file. Report in <code>&lt;temp&gt;/drill-&lt;time&gt;/</code>; then <code>eax down</code> in
-                the DR folder and <code>eax up</code> here.</td></tr>
+                it and compares every table and file; then removes the copy and both folders and starts this installation again.
+                Report in <code>work/tests/drill-&lt;time&gt;/</code>.</td></tr>
             <tr><td>A DR pack, rebuilt on another machine</td><td><code>eax dr-pack &lt;folder&gt;</code>, then on the other machine
-              <br /><code>.\eax-dr.ps1 -Pack .. -Install &lt;folder&gt;</code></td>
+              <br /><code>.\eax-dr -Pack .. -Install &lt;folder&gt;</code></td>
               <td>The real recovery: the pack carries the backup, the version, the env file and the code; eax-dr rebuilds and
                 compares with the pack's fingerprint.</td></tr>
           </tbody>

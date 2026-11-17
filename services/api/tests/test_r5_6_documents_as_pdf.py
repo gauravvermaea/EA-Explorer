@@ -81,7 +81,7 @@ def test_the_dr_document_covers_the_pack_the_move_and_the_dr_tool_in_the_web_and
                  "## 4. The checksums and the fingerprint, explained", "## 5. Rehearse it: eax-drill",
                  "## 6. The commands, in full", "### eax dr-pack", "### eax-dr", "### eax-drill"):
         assert part in text, part
-    assert "eax dr-pack" in text and "eax-dr.ps1 -Pack" in text and "./eax-dr.sh --pack" in text and "eax-drill.ps1 -Install" in text
+    assert "eax dr-pack" in text and ".\\eax-dr -Pack" in text and "./eax-dr.sh --pack" in text and ".\\dr\\eax-drill -Install" in text
     for opt in ("-Pack", "-Install", "-Backup", "-Version", "-Env", "-Project", "-Repo", "-Dr", "-Temp"):
         assert f"`{opt}`" in text, opt                                  # every option of the commands explained
     assert "PACK.sha256" in text and "fingerprint.json" in text

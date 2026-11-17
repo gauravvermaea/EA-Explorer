@@ -127,9 +127,13 @@ def test_eax_drill_always_needs_a_new_folder_apart_from_the_installation(tmp_pat
     assert "must be a folder of its own" in _drill(inst, inst / "dr", tmp_path / "temp", env).stdout
     assert "must be a folder of its own" in _drill(inst, tmp_path / "dr", inst / "temp", env).stdout
     (tmp_path / "used").mkdir()
-    (tmp_path / "used" / "x").write_text("x")
-    assert "is not empty" in _drill(inst, tmp_path / "used", tmp_path / "temp", env).stdout
-    assert not (inst / "calls.txt").exists()                                            # eax never called
+    (tmp_path / "used" / "x").write_text("x")                                           # not a drill's: never deleted
+    assert "holds something other than an earlier drill's DR copy" in _drill(inst, tmp_path / "used", tmp_path / "temp", env).stdout
+    assert (tmp_path / "used" / "x").exists()
+    (tmp_path / "mine").mkdir()
+    (tmp_path / "mine" / "notes.txt").write_text("x")
+    r = _drill(inst, tmp_path / "dr2", tmp_path / "mine", env)
+    assert r.returncode == 2 and "holds files other than an earlier drill's" in r.stdout and (tmp_path / "mine" / "notes.txt").exists()
 
 
 def test_the_drill_uses_eax_dr_from_its_own_folder_and_keeps_the_dr_copy_apart():
@@ -197,7 +201,7 @@ def test_eax_drill_steps_answer_in_json_and_never_from_the_web(tmp_path, capsys,
 FAKE_EAX = r'''#!/bin/sh
 # an installation stood in: every command written down (in work/, which is never code), each answered
 here=$(cd "$(dirname "$0")" && pwd)
-mkdir -p "$here/work"; echo "$*" >> "$here/work/calls.txt"
+mkdir -p "$here/work"; echo "$*" >> "$here/work/calls.txt"; [ -z "${CALLS_ALL:-}" ] || echo "$here: $*" >> "$CALLS_ALL"
 case "$*" in
   'drill info') printf '{"version": "5.6.0", "repo": "https://github.com/a/b", "backups": "%s/bk", "config": "%s/work/eaexplorer.env"}\n' "$here" "$here";;
   'drill running') echo '{"running": true}';;
@@ -206,6 +210,7 @@ case "$*" in
   'drill code '*) python3 -c 'import json, sys; sys.path.insert(0, sys.argv[1]); from pathlib import Path; from eaxcli.drill import copy_code
 print(json.dumps(copy_code(Path(sys.argv[2]), Path(sys.argv[3]))))' "@REPO@" "$3" "$here";;
   'drill compare '*) echo '{"tables": 5, "files": 2}';;
+  'drill remove-copy '*) echo '{"containers": 3, "volumes": 2, "networks": 1}';;
   *) echo '{}';;
 esac
 '''
@@ -217,6 +222,8 @@ def _code_source(tmp_path: Path, version="5.6.0") -> Path:
     (src / "services" / "api" / "eax").mkdir(parents=True)
     (src / "services" / "api" / "version.toml").write_text(f'version = "{version}"\n')
     (src / "services" / "api" / "eax" / "our_connector.py").write_text("# set up on this machine only\n")
+    (src / "library" / "Phase A").mkdir(parents=True)                                  # a name beyond ASCII (11:45)
+    (src / "library" / "Phase A" / "TOGAF® Template [draft].docx").write_bytes(b"docx")
     (src / "eax.sh").write_text(FAKE_EAX.replace("@REPO@", str(REPO)))
     return src
 
@@ -258,8 +265,12 @@ def test_eax_dr_builds_from_the_packs_code_with_no_github(tmp_path):
     assert (new / "services" / "api" / "eax" / "our_connector.py").exists()            # the customisation came too
     assert not (new / "CODE.sha256").exists() and os.access(new / "eax.sh", os.X_OK)
     calls = (new / "work" / "calls.txt").read_text().splitlines()
-    assert calls[:3] == ["up --wait-all", "drill quiet on", "drill restore 20261116T010000Z-nightly"]
-    assert any(c.startswith("drill compare ") for c in calls) and calls[-2:] == ["drill quiet off", "test smoke"]
+    # the core only before the restore (13:22: a new installation's sample data was waited for, up to 30 minutes, and
+    # then replaced); everything waited for after it
+    assert calls[:4] == ["up", "drill quiet on", "drill restore 20261116T010000Z-nightly", "up"]
+    # 13:25: "The DR should let us in as soon as the web is up": the door opens on the core, the rest after it
+    assert calls.index("drill quiet off") < calls.index("up --wait-all") < calls.index("test smoke")
+    assert any(c.startswith("drill compare ") for c in calls) and calls[-3:] == ["drill quiet off", "up --wait-all", "test smoke"]
     assert (new / "work" / "backups" / "infrastructure" / "20261116T010000Z-nightly" / "manifest.json").exists()
 
 
@@ -283,26 +294,33 @@ def test_eax_dr_refuses_damaged_code_or_code_of_another_version(tmp_path):
 
 
 @needs_bash
-def test_eax_drill_runs_end_to_end_from_the_installations_own_code_with_no_github(tmp_path):
+def test_eax_drill_runs_end_to_end_from_the_installations_own_code_with_no_github_and_puts_everything_back(tmp_path):
+    """09:03: "For testing auto remove and create destination folders. Expect them to be cleaned and deleted"."""
     inst = _code_source(tmp_path)
     (inst / "work").mkdir()
     (inst / "work" / "eaexplorer.env").write_text("EAX_DEPLOYMENT=laptop\n")
     shutil.copytree(_backup(tmp_path), inst / "bk" / "20261116T010000Z-nightly")
     dr, temp = tmp_path / "dr1", tmp_path / "temp"
+    (dr / "work").mkdir(parents=True)                                                   # an earlier drill's DR copy
+    (dr / "work" / "compose-project").write_text("eaexplorer-dr\n")
+    (temp / "drill-20261101T010101Z" / "backup").mkdir(parents=True)                    # and its temp folder
+    env = {**_offline(tmp_path), "CALLS_ALL": str(tmp_path / "all-calls.txt")}
     r = subprocess.run(["bash", str(DR / "eax-drill.sh"), "--install", str(inst), "--dr", str(dr), "--temp", str(temp)],
-                       env=_offline(tmp_path), capture_output=True, text=True, timeout=180)
+                       env=env, capture_output=True, text=True, timeout=180)
     assert r.returncode == 0, r.stdout[-3000:]
     assert "PASSED" in r.stdout and "from the copied code (no GitHub)" in r.stdout
     assert not (tmp_path / "net.txt").exists()
-    mine = (inst / "work" / "calls.txt").read_text().splitlines()
+    calls = (tmp_path / "all-calls.txt").read_text().splitlines()
+    mine = [c.split(": ", 1)[1] for c in calls if c.startswith(f"{inst}: ")]
+    there = [c.split(": ", 1)[1] for c in calls if c.startswith(f"{dr}: ")]
+    assert mine[mine.index("drill running") + 1] == "drill remove-copy eaexplorer-dr"   # the earlier copy cleared first
     assert mine.index("drill shutdown") < mine.index(next(c for c in mine if c.startswith("drill code ")))
-    assert (dr / "services" / "api" / "eax" / "our_connector.py").exists()             # the DR copy has its code
-    assert (dr / "work" / "compose-project").read_text().strip() == "eaexplorer-dr"
-    drc = (dr / "work" / "calls.txt").read_text().splitlines()
-    assert "drill restore 20261116T010000Z-nightly" in drc and "test smoke" in drc
-    run = next(temp.glob("drill-*"))
-    assert not (run / "code").exists() and not (run / "backup").exists()               # copies removed after a pass
-    assert "Passed" in (run / "report.md").read_text()
+    assert "drill restore 20261116T010000Z-nightly" in there and "test smoke" in there   # built and tested there
+    assert mine[-3:] == ["drill remove-copy eaexplorer-dr", "up --wait-all", "drill delete-backup 20261116T010000Z-nightly"]
+    assert not dr.exists() and not temp.exists()                                        # cleaned and deleted
+    report = next((inst / "work" / "tests").glob("drill-*/report.md")).read_text()
+    assert "Passed" in report and "The DR folder" in report and "The installation started again." in report
+    assert (inst / "work" / "tests").glob("drill-*/drill.log")
 
 
 def test_system_admin_has_a_disaster_recovery_tab_with_the_steps_and_commands_for_both_systems():
@@ -311,8 +329,8 @@ def test_system_admin_has_a_disaster_recovery_tab_with_the_steps_and_commands_fo
     admin, page = (web / "Admin.jsx").read_text(), (web / "DisasterRecovery.jsx").read_text()
     assert admin.index('["restores", "Restores"') < admin.index('["disaster-recovery", "Disaster recovery"')
     assert '"#/admin/disaster-recovery"' in (web / "menu.js").read_text()
-    for cmd in (".\\\\eax dr-pack", "./eax dr-pack", ".\\\\eax-dr.ps1 -Pack .. -Install", "./eax-dr.sh --pack .. --install",
-                ".\\\\dr\\\\eax-drill.ps1 -Install", "./dr/eax-drill.sh --install", "eax test backup-restore"):
+    for cmd in (".\\\\eax dr-pack", "./eax dr-pack", ".\\\\eax-dr -Pack .. -Install", "./eax-dr.sh --pack .. --install",
+                ".\\\\dr\\\\eax-drill -Install", "./dr/eax-drill.sh --install", "eax test backup-restore"):
         assert cmd in page, cmd
     for step in ("Set it up: make a DR pack", "Recover on another machine", "Rehearse it: the restore drill", "A backup or DR: which one"):
         assert step in page, step
@@ -335,4 +353,168 @@ def test_a_programs_messages_on_its_error_stream_never_fail_a_powershell_step():
             if re.search(r"&\s*(docker|git)\b", code):
                 assert "Invoke-Native" in code, (f, line)                              # never a bare program call
             assert "2>&1" not in code and "*> $null" not in code, (f, line)
+
+
+
+def test_no_step_block_can_see_step_s_own_variables_by_mistake():
+    """The owner's drill, 17 Nov 2026, 09:02: a block inside Step read $name and got Step's $Name (the step's title), so the
+    backup's copy was looked for under "...\\infrastructure\\the backup, the env file and the code copied ...". Step's own
+    names now start with "step", and the scripts never use a name Step has."""
+    import re
+    common = (DR / "dr-common.ps1").read_text()
+    step = common[common.index("function Step("):common.index("\n}\n", common.index("function Step("))]
+    own = {v.lower() for v in re.findall(r"\$([A-Za-z]\w*)", step)} - {"results", "_", "true", "false"}
+    assert own and all(v.startswith("step") for v in own), own
+    for f in ("eax-dr.ps1", "eax-drill.ps1"):
+        used = {v.lower() for v in re.findall(r"\$(?:script:)?([A-Za-z]\w*)", (DR / f).read_text())}
+        assert not (used & own), (f, used & own)
+        assert "$name" not in (DR / f).read_text().lower().replace("$backupname", "")
+
+
+@needs_bash
+def test_a_failed_drill_still_puts_everything_back_and_keeps_its_backup(tmp_path):
+    inst = _code_source(tmp_path)
+    eax = (inst / "eax.sh").read_text().replace("  'drill compare '*)", "  'drill content-check '*) echo '{\"error\": \"differs\"}'; exit 1;;\n  'drill compare '*)")
+    (inst / "eax.sh").write_text(eax)
+    (inst / "work").mkdir()
+    (inst / "work" / "eaexplorer.env").write_text("EAX_DEPLOYMENT=laptop\n")
+    shutil.copytree(_backup(tmp_path), inst / "bk" / "20261116T010000Z-nightly")
+    dr, temp = tmp_path / "dr1", tmp_path / "temp"
+    env = {**_offline(tmp_path), "CALLS_ALL": str(tmp_path / "all-calls.txt")}
+    r = subprocess.run(["bash", str(DR / "eax-drill.sh"), "--install", str(inst), "--dr", str(dr), "--temp", str(temp)],
+                       env=env, capture_output=True, text=True, timeout=180)
+    assert r.returncode == 1 and "FAILED" in r.stdout
+    mine = [c.split(": ", 1)[1] for c in (tmp_path / "all-calls.txt").read_text().splitlines() if c.startswith(f"{inst}: ")]
+    assert mine[-2:] == ["drill remove-copy eaexplorer-dr", "up --wait-all"]           # copy gone, installation back
+    assert not any(c.startswith("drill delete-backup") for c in mine)                    # the backup kept
+    assert not dr.exists() and not temp.exists()
+    report = next((inst / "work" / "tests").glob("drill-*/report.md")).read_text()
+    assert "Failed" in report and "is kept (pinned)" in report
+
+
+def test_remove_copy_never_touches_this_installation_and_the_powershell_drill_cleans_up_the_same_way(monkeypatch):
+    monkeypatch.setattr(D, "project", lambda: "eaexplorer")
+    assert "never removed" in D.remove_copy("eaexplorer")["error"] and "not a Docker name" in D.remove_copy("../x")["error"]
+    seen = []
+
+    class R:
+        stdout = ""
+    monkeypatch.setattr(D.subprocess, "run", lambda a, **k: seen.append(a) or R())
+    assert D.remove_copy("eaexplorer-dr") == {"containers": 0, "volumes": 0, "networks": 0}   # images shared: kept
+    assert not any("image" in a for a in seen)
+    assert all("label=com.docker.compose.project=eaexplorer-dr" in a for a in seen)
+    ps = (DR / "eax-drill.ps1").read_text()
+    for must in ('Disposable-Dr $Dr', 'Disposable-Temp $Temp', '@("drill", "remove-copy", $DrProject)', '@("up", "--wait-all")',
+                 '@("drill", "delete-backup", $BackupName)', 'work\\tests\\$Stamp', "Remove-Item -Recurse -Force -LiteralPath $Dr"):
+        assert must in ps, must
+    assert ps.index("Disposable-Temp $Temp") < ps.index("New-Item -ItemType Directory -Force $Run")
+
+
+def test_shutdown_switches_every_profile_on_and_removes_what_compose_leaves(monkeypatch, tmp_path):
+    """The owner's drill, 17 Nov 2026, 11:13: {"containers_left": 14, "error": "14 container(s) left"} after compose down."""
+    monkeypatch.setattr(D, "compose_args", lambda a: ["docker", "compose", *a])
+    monkeypatch.setattr(D, "project", lambda: "eaexplorer")
+    left = {"ids": ["c1", "c2"]}
+    seen = []
+
+    class R:
+        returncode, stderr = 0, ""
+
+        def __init__(self, out=""):
+            self.stdout = out
+
+    def run(a, **k):
+        seen.append((a, k.get("env", {}).get("COMPOSE_PROFILES")))
+        if a[:3] == ["docker", "compose", "config"]:
+            return R("analytics\ndocuments\nvault\n")
+        if a[:3] == ["docker", "rm", "-f"]:
+            left["ids"] = []
+        return R(" ".join(left["ids"]) if a[:2] == ["docker", "ps"] else "")
+    monkeypatch.setattr(D.subprocess, "run", run)
+    out = D.shutdown()
+    assert out == {"containers_left": 0, "removed_directly": 2, "profiles": ["analytics", "documents", "vault"]}
+    down = next(x for x in seen if x[0][:3] == ["docker", "compose", "down"])
+    assert down[1] == "analytics,documents,vault"                                   # every profile, by name
+    assert (["docker", "rm", "-f", "c1", "c2"], None) in seen                       # only containers: no -v
+    left["ids"] = ["c3"]
+    monkeypatch.setattr(D.subprocess, "run", lambda a, **k: R("c3" if a[:2] == ["docker", "ps"] else ""))
+    assert "1 container(s) left" in D.shutdown()["error"]
+
+
+def test_a_step_that_answers_with_an_error_fails_even_when_its_exit_code_says_ok():
+    """11:13: the drill took {"error": "14 container(s) left"} as "ok ... stopped"."""
+    common = (DR / "dr-common.ps1").read_text()
+    assert "if ($code -ne 0 -or ($json -and $json.error))" in common and "$code = $global:NativeExit" in common
+    assert '[ -n "$(json_get error "$EAX_JSON" 2>/dev/null)" ]' in (DR / "dr-common.sh").read_text()
+    for f in ("eax-dr.ps1", "eax-drill.ps1"):
+        lines = (DR / f).read_text().splitlines()
+        for i, line in enumerate(lines):
+            if "$LASTEXITCODE" in line:
+                assert "Invoke-Native" not in lines[i - 1], (f, line)                 # wrapped programs: NativeExit
+
+
+@needs_bash
+def test_the_bash_drill_stops_when_shutdown_answers_with_an_error_and_exit_zero(tmp_path):
+    inst = _code_source(tmp_path)
+    eax = (inst / "eax.sh").read_text().replace("  'drill compare '*)",
+                                                "  'drill shutdown') echo '{\"containers_left\": 14, \"error\": \"14 container(s) left\"}';;\n  'drill compare '*)")
+    (inst / "eax.sh").write_text(eax)
+    (inst / "work").mkdir()
+    (inst / "work" / "eaexplorer.env").write_text("EAX_DEPLOYMENT=laptop\n")
+    shutil.copytree(_backup(tmp_path), inst / "bk" / "20261116T010000Z-nightly")
+    r = subprocess.run(["bash", str(DR / "eax-drill.sh"), "--install", str(inst), "--dr", str(tmp_path / "dr1"), "--temp",
+                        str(tmp_path / "temp")], env=_offline(tmp_path), capture_output=True, text=True, timeout=180)
+    assert r.returncode == 1 and "FAIL the installation shut down" in r.stdout and "14 container(s) left" in r.stdout
+    assert "eax-dr" not in (inst / "work" / "calls.txt").read_text()
+
+
+def test_every_text_file_the_powershell_scripts_read_is_read_as_utf8():
+    """The owner's drill, 17 Nov 2026, 11:45: "TOGAF® Template - Architecture Definition.docx in the code is missing or does
+    not match its checksum": Windows PowerShell 5.1 read CODE.sha256 as ANSI, so the name came out garbled."""
+    import re
+    for f in ("dr-common.ps1", "eax-dr.ps1", "eax-drill.ps1"):
+        for line in (DR / f).read_text(encoding="utf-8").splitlines():
+            for m in re.finditer(r"\b(Get-Content|Select-String)\b", line.split("#")[0]):
+                assert line[m.end():].startswith(" -Encoding UTF8"), (f, line)
+
+
+
+def test_eax_ps1_starts_in_a_folder_that_is_not_a_git_checkout():
+    """The owner's drill, 17 Nov 2026, 12:28: in the DR copy (no .git) eax up stopped at "fatal: not a git repository":
+    Windows PowerShell 5.1 with $ErrorActionPreference "Stop" turns a program's error-stream message into an error even
+    with 2>$null. Every such call in eax.ps1 now goes through Invoke-Quiet (its error stream dropped, never an error)."""
+    import re
+    ps = (REPO / "eax.ps1").read_text(encoding="utf-8")
+    fn = ps[ps.index("function Invoke-Quiet"):ps.index("\n}\n", ps.index("function Invoke-Quiet"))]
+    assert '$ErrorActionPreference = "Continue"' in fn and "$global:QuietExit = $LASTEXITCODE" in fn
+    for i, line in enumerate(ps.splitlines(), 1):
+        code = line.split("#")[0]
+        if "2>$null" in code:
+            assert "& $Exe @Arguments 2>$null" in code, (i, line)                   # only inside Invoke-Quiet
+        assert not re.search(r"&\s*git\b", code), (i, line)                         # git only through Invoke-Quiet
+    assert 'Invoke-Quiet git @("rev-parse", "--short", "HEAD")' in ps and "$global:QuietExit -ne 0" in ps
+
+
+def test_the_drill_and_the_dr_tool_start_from_command_prompt_too():
+    """The owner, 17 Nov 2026, 12:44: typed .\\dr\\eax-drill.ps1 in Command Prompt, which opened it in VS Code. eax-drill.cmd
+    and eax-dr.cmd start them in PowerShell from either shell, as eax.cmd does; the documents show those names."""
+    for n in ("eax-drill", "eax-dr"):
+        cmd = (DR / f"{n}.cmd").read_bytes()
+        assert b"\r\n" in cmd and f'powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0{n}.ps1" %*'.encode() in cmd
+        assert b"exit /b %ERRORLEVEL%" in cmd
+    from eaxcli import drpack
+    assert "eax-drill.cmd" in drpack.DR_FILES and "eax-dr.cmd" in drpack.DR_FILES
+    for doc in ("docs/backup-disaster-recovery.md", "docs/backup-drill-monthly.md", "docs/testing.md", "dr/README.md",
+                "services/web/src/DisasterRecovery.jsx", "services/web/src/TestRuns.jsx"):
+        t = (REPO / doc).read_text(encoding="utf-8")
+        assert "eax-drill.ps1 -Install" not in t and "eax-dr.ps1 -Pack" not in t, doc
+
+
+def test_the_dr_tool_starts_only_the_core_before_the_restore_in_both_forms():
+    ps, sh = (DR / "eax-dr.ps1").read_text(), (DR / "eax-dr.sh").read_text()
+    assert 'Step "EA Explorer built and its core started" { Eax @("up") | Out-Null' in ps
+    assert 'step "EA Explorer built and its core started" eax up\n' in sh
+    for t, s in ((ps, "Step "), (sh, "step ")):
+        assert t.index(s + '"EA Explorer built and its core') < t.index(s + '"the full restore of') \
+            < t.index(s + '"EA Explorer\'s core started again') < t.index(s + '"the background back and the maintenance page off: everyone') < t.index(s + '"the rest up')
 

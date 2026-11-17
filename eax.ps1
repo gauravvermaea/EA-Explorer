@@ -86,6 +86,17 @@ function Hide-Secrets([string]$Line) {
     return $Line
 }
 
+# Runs a program for its output alone: its error stream thrown away, never an error here. With $ErrorActionPreference
+# "Stop", Windows PowerShell 5.1 turns a program's message on its error stream into an error even with 2>$null, so
+# "git rev-parse" outside a git checkout ("fatal: not a git repository") stopped eax up (the owner's DR drill, 17 Nov
+# 2026, 12:28: a DR copy has no .git). The exit code is in $global:QuietExit.
+function Invoke-Quiet([string]$Exe, [string[]]$Arguments) {
+    $ErrorActionPreference = "Continue"
+    $global:QuietExit = 0
+    & $Exe @Arguments 2>$null
+    $global:QuietExit = $LASTEXITCODE
+}
+
 # Runs a program; every output line goes to the console (unless -Quiet) and to the log.
 function Invoke-Logged([string]$Exe, [string[]]$Arguments, [switch]$Quiet, [switch]$Mask) {
     if ($script:Log) { $script:Log.WriteLine(""); $script:Log.WriteLine("> $Exe $($Arguments -join ' ')") }
@@ -228,9 +239,9 @@ function Use-DataFolders {
 # differ from it), "dev" outside git; the commit and its time, so the API container is made again only when they change
 function Get-BuildId {
     if ($env:EAX_BUILD) { return $env:EAX_BUILD }
-    $c = (& git rev-parse --short HEAD 2>$null)
-    if ($LASTEXITCODE -ne 0 -or -not $c) { return "dev" }
-    $changed = (& git status --porcelain --untracked-files=no 2>$null)
+    $c = (Invoke-Quiet git @("rev-parse", "--short", "HEAD"))
+    if ($global:QuietExit -ne 0 -or -not $c) { return "dev" }
+    $changed = (Invoke-Quiet git @("status", "--porcelain", "--untracked-files=no"))
     if ($changed) { $c = "$c-changed" }
     return "$c".Trim()
 }
@@ -242,8 +253,8 @@ function Get-Release {
 function Get-ComposeArgs([string[]]$Arguments) {
     if (-not (Test-Path $EnvFile)) { throw "No $EnvFile yet: run .\eax init first." }
     $env:EAX_BUILD = Get-BuildId
-    if (-not $env:EAX_COMMIT) { $env:EAX_COMMIT = "$(& git rev-parse HEAD 2>$null)".Trim() }
-    if (-not $env:EAX_BUILT_AT) { $env:EAX_BUILT_AT = "$(& git log -1 --format=%cI 2>$null)".Trim() }
+    if (-not $env:EAX_COMMIT) { $env:EAX_COMMIT = "$(Invoke-Quiet git @("rev-parse", "HEAD"))".Trim() }
+    if (-not $env:EAX_BUILT_AT) { $env:EAX_BUILT_AT = "$(Invoke-Quiet git @("log", "-1", "--format=%cI"))".Trim() }
     Use-VaultProfile
     if ($Arguments.Count -gt 0 -and @("up", "run", "create") -contains $Arguments[0]) { Use-VaultEnv; Use-DataFolders }
     $kind = Get-Setting "EAX_DEPLOYMENT" "laptop"
@@ -285,7 +296,7 @@ function Save-Diagnostics {
         Invoke-Logged "docker" (Get-ComposeArgs @("ps", "-a")) -Quiet | Out-Null
         Invoke-Logged "docker" (Get-ComposeArgs @("images")) -Quiet | Out-Null
         $old = $ErrorActionPreference; $ErrorActionPreference = "Continue"
-        $services = & docker @(Get-ComposeArgs @("config", "--services")) 2>$null
+        $services = Invoke-Quiet docker @(Get-ComposeArgs @("config", "--services"))
         $ErrorActionPreference = $old
         foreach ($s in $services) {
             if ($s) { Invoke-Logged "docker" (Get-ComposeArgs @("logs", "--no-color", "--timestamps", "--tail", "300", $s)) -Quiet -Mask | Out-Null }
@@ -343,7 +354,7 @@ $CoreServices = @("db", "setup", "proxy", "web", "keycloak", "api")
 function Get-Tiers {
     $off = @(Get-OffContainers)
     $old = $ErrorActionPreference; $ErrorActionPreference = "Continue"
-    $all = @(& docker @(Get-ComposeArgs @("config", "--services")) 2>$null | Where-Object { $_ })
+    $all = @(Invoke-Quiet docker @(Get-ComposeArgs @("config", "--services")) | Where-Object { $_ })
     $ErrorActionPreference = $old
     $on = @($all | Where-Object { $_ -notin $off })
     return @{ First = @($on | Where-Object { $_ -in $CoreServices }); Later = @($on | Where-Object { $_ -notin $CoreServices }); Off = $off }
@@ -365,7 +376,7 @@ function Wait-Core([int]$Minutes = 15) {
         $old = $ErrorActionPreference; $ErrorActionPreference = "Continue"
         # R5.41: Windows could not start docker.exe for one look ("The paging file is too small", 16 Nov 2026): that
         # look is skipped and the wait goes on, instead of stopping the whole clean-restart
-        try { $rows = @(& docker @(Get-ComposeArgs @("ps", "-a", "--format", "{{.Name}}|{{.State}}|{{.Health}}", "api", "keycloak")) 2>$null | Where-Object { $_ -match "\|" }) }
+        try { $rows = @(Invoke-Quiet docker @(Get-ComposeArgs @("ps", "-a", "--format", "{{.Name}}|{{.State}}|{{.Health}}", "api", "keycloak")) | Where-Object { $_ -match "\|" }) }
         catch { $rows = @(); Write-DockerMiss $_ }
         $ErrorActionPreference = $old
         $now = ($rows | ForEach-Object { $p = $_ -split "\|"; "$($p[0]): $(if ($p[2]) { $p[2] } else { $p[1] })" }) -join ", "
@@ -389,7 +400,7 @@ function Wait-All([int]$Minutes = 30) {
     Write-Log "Waiting for everything: Reports, Documents, Diagrams and the sample data (up to $Minutes minutes)..."
     while ((Get-Date) -lt $until) {
         $old = $ErrorActionPreference; $ErrorActionPreference = "Continue"
-        try { $now = @(& docker @(Get-ComposeArgs @("exec", "-T", "api", "python", "-c", $py)) 2>$null | Where-Object { $_ -match "\|" }) | Select-Object -Last 1 }
+        try { $now = @(Invoke-Quiet docker @(Get-ComposeArgs @("exec", "-T", "api", "python", "-c", $py)) | Where-Object { $_ -match "\|" }) | Select-Object -Last 1 }
         catch { $now = $null; Write-DockerMiss $_ }
         $ErrorActionPreference = $old
         if ($now -and $now -ne $last) { Write-Log "  $(($now -split '\|', 2)[1])"; $last = $now }
@@ -467,12 +478,12 @@ function Invoke-Later {
 # the operations helper; and this computer's drive the project sits on, read here (so it shows with the helper down too)
 function Show-FileSystems {
     Write-Log ""
-    $ops = @(& docker @(Get-ComposeArgs @("ps", "--status", "running", "-q", "ops")) 2>$null | Where-Object { $_ })
+    $ops = @(Invoke-Quiet docker @(Get-ComposeArgs @("ps", "--status", "running", "-q", "ops")) | Where-Object { $_ })
     if ($ops.Count -gt 0) {
-        & docker @(Get-ComposeArgs @("exec", "-T", "ops", "python3", "/app/ops.py", "filesystems")) 2>$null | ForEach-Object { Write-Log $_ }
+        Invoke-Quiet docker @(Get-ComposeArgs @("exec", "-T", "ops", "python3", "/app/ops.py", "filesystems")) | ForEach-Object { Write-Log $_ }
     } else {
         Write-Log "File systems: the operations helper is not running, so Docker's disk is not read (docker system df below)." "Yellow"
-        & docker system df 2>$null | ForEach-Object { Write-Log "  $_" }
+        Invoke-Quiet docker @("system", "df") | ForEach-Object { Write-Log "  $_" }
     }
     try {
         $drive = Get-PSDrive -Name ((Split-Path -Qualifier $PSScriptRoot).TrimEnd(":")) -ErrorAction Stop
@@ -853,7 +864,7 @@ function Invoke-Interactive([string[]]$Target, [string[]]$Arguments) {
 function Set-UpgradePage([bool]$All) {
     if (-not $All -or (Test-Path "work/proxy/maintenance")) { return $false }
     $old = $ErrorActionPreference; $ErrorActionPreference = "Continue"
-    $running = @(& docker @(Get-ComposeArgs @("ps", "--status", "running", "-q", "proxy")) 2>$null | Where-Object { $_ })
+    $running = @(Invoke-Quiet docker @(Get-ComposeArgs @("ps", "--status", "running", "-q", "proxy")) | Where-Object { $_ })
     $ErrorActionPreference = $old
     if ($running.Count -eq 0) { return $false }
     New-Item -ItemType Directory -Force -Path "work/proxy" | Out-Null
@@ -1123,7 +1134,11 @@ try {
         "restore-app" { Invoke-Interactive @("api", "python", "-m", "eax.backups_cli", "restore-all") $RestArgs }
         "maintenance" {
             $flag = "work/proxy/maintenance"
-            if ($RestArgs.Count -lt 1 -or $RestArgs[0] -notin @("on", "off")) { throw "Usage: .\eax maintenance on|off" }
+            if ($RestArgs.Count -ge 1 -and $RestArgs[0] -in @("status", "clear")) {   # what a cut-off backup or DR run left (R5.6)
+                & (Join-Path $PSScriptRoot "eaxpy.ps1") maintenance @RestArgs
+                exit $LASTEXITCODE
+            }
+            if ($RestArgs.Count -lt 1 -or $RestArgs[0] -notin @("on", "off")) { throw "Usage: .\eax maintenance on|off|status|clear" }
             if ($RestArgs[0] -eq "on") {
                 New-Item -ItemType Directory -Force -Path "work/proxy" | Out-Null
                 [System.IO.File]::WriteAllText((Join-Path $PSScriptRoot $flag), "maintenance`n", $Utf8)

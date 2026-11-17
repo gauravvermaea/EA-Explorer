@@ -15,7 +15,7 @@ def _body(name: str) -> str:
 def test_every_look_while_waiting_survives_docker_not_starting():
     for fn in ("Wait-Core", "Wait-All"):
         body = _body(fn)
-        looks = [ln for ln in body.splitlines() if "& docker" in ln]
+        looks = [ln for ln in body.splitlines() if "& docker" in ln or "Invoke-Quiet docker" in ln]   # R5.6: Invoke-Quiet
         assert looks, fn
         for ln in looks:
             assert re.match(r"\s*try \{", ln), (fn, ln.strip())

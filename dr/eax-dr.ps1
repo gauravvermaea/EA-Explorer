@@ -18,11 +18,13 @@
        release's zip when git is missing)
     3. the env file put in place as work/eaexplorer.env, the work folders made, the backup copied into
        work/backups/infrastructure
-    4. EA Explorer built and started (eax up --wait-all)
+    4. EA Explorer built and its core started (eax up; the rest is waited for after the restore)
     5. the maintenance page on and the background paused, then the full restore of the backup (every database, the
        documents, the certificate, the reports' home, the import and export folders, persist/ and the config), and
-       EA Explorer started again
-    6. the background back and the maintenance page off, then the smoke test
+       EA Explorer's core started again (sign-in, the API, the screens)
+    6. the background back and the maintenance page off: everyone can sign in as soon as the screens are up (the owner,
+       17 Nov 2026, 13:25: "The DR should let us in as soon as the web is up"); then the rest (Reports, Documents,
+       Diagrams) waited for and the smoke test
   A report and the whole log go to <install>/work/dr/dr-<time>/.
 
   With -Pack (a folder eax dr-pack made, R5.6-B2, owner 22:12): the backup, the version, the env file and the code come
@@ -61,7 +63,7 @@ if ($Pack) {
     if ($inPack.Count -ne 1) { Write-Host "$Pack is not a DR pack (it needs one backup in backup\)" -ForegroundColor Red; exit 2 }
     if (-not $Backup) { $Backup = $inPack[0].FullName }
     if (-not $EnvFile) { $EnvFile = Join-Path $Pack "eaexplorer.env" }
-    if (-not $Version -and (Test-Path (Join-Path $Pack "VERSION.txt"))) { $Version = (Get-Content (Join-Path $Pack "VERSION.txt") -TotalCount 1).Trim() }
+    if (-not $Version -and (Test-Path (Join-Path $Pack "VERSION.txt"))) { $Version = (Get-Content -Encoding UTF8 (Join-Path $Pack "VERSION.txt") -TotalCount 1).Trim() }
     if (Test-Path (Join-Path $Pack "fingerprint.json")) { $Fingerprint = Join-Path $Pack "fingerprint.json" }
     if (-not $Code -and -not $GitHub -and (Test-Path (Join-Path $Pack "code"))) { $Code = Join-Path $Pack "code" }
 }
@@ -69,7 +71,7 @@ if ($GitHub) { $Code = "" }
 if ($Code) {
     $Code = [IO.Path]::GetFullPath($Code).TrimEnd('\', '/')
     $toml = Join-Path $Code "services\api\version.toml"
-    if (-not $Version -and (Test-Path $toml)) { $Version = (Select-String -Path $toml -Pattern '^version\s*=\s*"([^"]+)"').Matches[0].Groups[1].Value }
+    if (-not $Version -and (Test-Path $toml)) { $Version = (Select-String -Encoding UTF8 -Path $toml -Pattern '^version\s*=\s*"([^"]+)"').Matches[0].Groups[1].Value }
 }
 if (-not $Backup -or -not $Version -or -not $EnvFile) {
     Write-Host "Give -Pack <DR pack>, or -Backup, -Env and -Code (or -Version, from GitHub)." -ForegroundColor Red; exit 2 }
@@ -94,7 +96,7 @@ try {
             $sums = Join-Path $Pack "PACK.sha256"
             if (-not (Test-Path $sums)) { throw "$Pack has no PACK.sha256: make the pack with eax dr-pack" }
             $n = 0
-            foreach ($line in Get-Content $sums) {
+            foreach ($line in Get-Content -Encoding UTF8 $sums) {
                 if ($line -notmatch '^([0-9a-f]{64})  (.+)$') { continue }
                 if ($EnvGiven -and $Matches[2] -eq "eaexplorer.env") { continue }
                 $p = Join-Path $Pack ($Matches[2] -replace '/', '\')
@@ -106,19 +108,19 @@ try {
     }
     Step "checks (nothing touched yet)" {
         if (-not (Test-Path -LiteralPath (Join-Path $Backup "manifest.json"))) { throw "$Backup is not an infrastructure backup (no manifest.json)" }
-        $script:manifest = Get-Content -Raw (Join-Path $Backup "manifest.json") | ConvertFrom-Json
+        $script:manifest = Get-Content -Encoding UTF8 -Raw (Join-Path $Backup "manifest.json") | ConvertFrom-Json
         if ($manifest.status -and $manifest.status -ne "ok") { throw "the backup's manifest says $($manifest.status): $($manifest.error)" }
         $n = Test-BackupWhole $Backup
         if ($manifest.version -and [version]($manifest.version -replace '-.*$', '') -gt [version]($Version -replace '-.*$', '')) {
             throw "the backup is of version $($manifest.version), newer than ${Version}: restore it with $($manifest.version) or newer"
         }
         if (-not (Test-Path -LiteralPath $EnvFile)) { throw "the env file $EnvFile is not there" }
-        foreach ($l in Get-Content $EnvFile) { if ($l -match '^\s*([A-Z0-9_]+)\s*=\s*(.*)$') { $script:vals[$Matches[1]] = $Matches[2].Trim("'`"") } }
+        foreach ($l in Get-Content -Encoding UTF8 $EnvFile) { if ($l -match '^\s*([A-Z0-9_]+)\s*=\s*(.*)$') { $script:vals[$Matches[1]] = $Matches[2].Trim("'`"") } }
         if (-not $vals["EAX_DEPLOYMENT"] -and -not $vals["EAX_HOSTNAME"]) { throw "$EnvFile does not read as EA Explorer's env file (no EAX_DEPLOYMENT, no EAX_HOSTNAME)" }
         if ((Test-Path $Install) -and (Get-ChildItem -Force $Install | Select-Object -First 1)) { throw "$Install is not empty: give a new or empty folder" }
         if ($Backup.StartsWith($Install + "\", [StringComparison]::OrdinalIgnoreCase)) { throw "the backup may not be inside the install folder" }
         Invoke-Native { & docker info --format "{{.ServerVersion}}" } | Out-Null
-        if ($LASTEXITCODE -ne 0) { throw "Docker does not answer: start Docker Desktop" }
+        if ($global:NativeExit -ne 0) { throw "Docker does not answer: start Docker Desktop" }
         if ($Project -notmatch '^[a-z0-9][a-z0-9_-]*$') { throw "-Project is lower-case letters, digits, - and _" }
         $mine = @(Invoke-Native { & docker ps -aq --filter "label=com.docker.compose.project=$Project" } | Where-Object { $_ -match '^[0-9a-f]{12,}$' })
         if ($mine.Count -gt 0) { throw "Docker already has $($mine.Count) container(s) named $Project (another installation): give another -Project" }
@@ -131,7 +133,7 @@ try {
         $script:gh = Get-Release $Repo $Version
         "backup $(Split-Path $Backup -Leaf) whole ($n files, version $($manifest.version)); v$Version published on $Repo"
     }
-    $name = Split-Path $Backup -Leaf
+    $BackupName = Split-Path $Backup -Leaf
     Step "the code of v$Version $(if ($Code) { "from $Code (no GitHub)" } else { "from GitHub" })" {
         New-Item -ItemType Directory -Force (Split-Path $Install) | Out-Null
         if ($Code) {
@@ -140,7 +142,7 @@ try {
             Remove-Item -Force (Join-Path $Install "CODE.sha256")
         } elseif (Get-Command git -ErrorAction SilentlyContinue) {
             Invoke-Native { & git -c advice.detachedHead=false clone --quiet --depth 1 --branch "v$Version" $Repo $Install } | ForEach-Object { Say "    $_" }
-            if ($LASTEXITCODE -ne 0) { throw "git clone of v$Version failed" }
+            if ($global:NativeExit -ne 0) { throw "git clone of v$Version failed" }
         } else {
             $zip = Join-Path ([IO.Path]::GetTempPath()) "eax-v$Version.zip"
             Invoke-WebRequest -UseBasicParsing "https://github.com/$($gh.owner)/$($gh.repo)/archive/refs/tags/v$Version.zip" -OutFile $zip
@@ -152,7 +154,7 @@ try {
             Get-ChildItem -Force $top.FullName | Move-Item -Destination $Install
             Remove-Item -Recurse -Force $tmp, $zip
         }
-        $have = (Select-String -Path (Join-Path $Install "services\api\version.toml") -Pattern '^version\s*=\s*"([^"]+)"').Matches[0].Groups[1].Value
+        $have = (Select-String -Encoding UTF8 -Path (Join-Path $Install "services\api\version.toml") -Pattern '^version\s*=\s*"([^"]+)"').Matches[0].Groups[1].Value
         if ($have -ne $Version) { throw "the code says version $have, not $Version" }
         "version $have"
     }
@@ -162,16 +164,19 @@ try {
         }
         Copy-Item -LiteralPath $EnvFile (Join-Path $Install "work\eaexplorer.env") -Force
         if ($Project -ne "eaexplorer") { Set-Content -Encoding ASCII (Join-Path $Install "work\compose-project") $Project }
-        $dest = Join-Path $Install "work\backups\infrastructure\$name"
+        $dest = Join-Path $Install "work\backups\infrastructure\$BackupName"
         Copy-Item -LiteralPath $Backup $dest -Recurse -Force
         $n = Test-BackupWhole $dest
         "the env file as work\eaexplorer.env; the backup copied whole ($n files)"
     }
-    Step "EA Explorer built and started" { Eax @("up", "--wait-all") | Out-Null; "every container up" }
+    # the core only: the restore replaces every database, so waiting for a new installation's sample data and packs to
+    # load (up to 30 minutes, the owner's drill of 17 Nov 2026, 13:22) was time lost; everything is waited for after it
+    Step "EA Explorer built and its core started" { Eax @("up") | Out-Null; "the core up" }
     $t1 = Get-Date
     Step "the maintenance page on and the background paused" { Eax @("drill", "quiet", "on") | Out-Null }
-    Step "the full restore of $name" { $r = Eax @("drill", "restore", $name); "took $($r.seconds) s; EA Explorer answers" }
-    Step "EA Explorer started again" { Eax @("up", "--wait-all") | Out-Null; "every container up" }
+    Step "the full restore of $BackupName" { $r = Eax @("drill", "restore", $BackupName); "took $($r.seconds) s; EA Explorer answers" }
+    # the core only (13:25: "The DR should let us in as soon as the web is up"); the rest is waited for after the door opens
+    Step "EA Explorer's core started again (sign-in, the API, the screens)" { Eax @("up") | Out-Null; "the core up" }
     if ($Fingerprint) {
         Step "every table and file compared with the pack's fingerprint" {
             $after = Join-Path $Install "work\dr\fingerprint-after.json"
@@ -181,8 +186,10 @@ try {
             "$($c.tables) tables and $($c.files) files the same as when the pack was made$(if (@($c.not_compared).Count) { "; $(@($c.not_compared).Count) the installation writes by itself not compared" })$(if (@($c.allowed).Count) { "; $(@($c.allowed).Count) rewritten by the installation itself (allowed, in the log)" })" }
     }
     $script:Recovery = [int]((Get-Date) - $t1).TotalMinutes
-    if (-not $KeepQuiet) { Step "the background back and the maintenance page off" { Eax @("drill", "quiet", "off") | Out-Null } }
-    if (-not $NoSmoke) { Step "the smoke test" { Eax @("test", "smoke") | Out-Null; "passed" } }
+    if (-not $KeepQuiet) { Step "the background back and the maintenance page off: everyone can sign in" { Eax @("drill", "quiet", "off") | Out-Null } }
+    if (-not $NoSmoke) {
+        Step "the rest up (Reports, Documents, Diagrams), while people work" { Eax @("up", "--wait-all") | Out-Null; "every container up" }
+        Step "the smoke test" { Eax @("test", "smoke") | Out-Null; "passed" } }
     $exit = 0
 } catch {
     $exit = 1
@@ -194,7 +201,7 @@ try {
     New-Item -ItemType Directory -Force $folder | Out-Null
     $md = @("# EA Explorer DR, $($Started.ToString('yyyy-MM-dd HH:mm'))", "",
             "**$(if ($ok) { 'Done' } else { 'Failed' })** in $mins minutes. Backup ``$Backup``, install ``$Install``, version $Version.", "")
-    if ($script:Recovery) { $md += "Recovery time (from the restore's start to EA Explorer up again): $($script:Recovery) minutes.", "" }
+    if ($script:Recovery) { $md += "Recovery time (from the restore's start to sign-in working again): $($script:Recovery) minutes.", "" }
     $md += "| | Step | Seconds | Detail |", "| --- | --- | --- | --- |"
     foreach ($r in $Results) { $md += "| $(if ($r.ok) { 'ok' } else { 'FAILED' }) | $($r.step) | $($r.seconds) | $(($r.detail -replace '\|', '/'))  |" }
     Set-Content -Encoding UTF8 (Join-Path $folder "report.md") $md

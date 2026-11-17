@@ -70,11 +70,17 @@ Like clean-restart, it fetches the current base images first and rebuilds our im
 $ {eax} clean-run
 $ {eax} clean-run server
 
-### maintenance on|off
-> Shows (or stops showing) the maintenance page to everyone.
-Served by the proxy. Restores and up (an upgrade) switch it on and off themselves.
+### maintenance on|off|status|clear [--force]
+> Shows or hides the maintenance page; status and clear: what a cut-off backup or DR run left.
+Served by the proxy. Restores and up (an upgrade) switch it on and off themselves. When a backup, a restore, the
+backup and restore test, the drill or a DR pack was cut off (a crash, a closed window), status shows what it left: the
+maintenance page, a restore's record that it is under way, the background paused. clear removes all three, so EA
+Explorer opens again and its recurring jobs run; it refuses while the backup container is still running a backup or a
+restore (--force clears anyway; nothing is stopped either way).
 $ {eax} maintenance on
 $ {eax} maintenance off
+$ {eax} maintenance status
+$ {eax} maintenance clear
 
 ## Status and logs
 

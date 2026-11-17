@@ -11,12 +11,10 @@ const CMD = {
   pack: [".\\eax dr-pack D:\\ea-dr-pack-2026-11-17", "./eax dr-pack /safe/ea-dr-pack-2026-11-17"],
   copy: ["robocopy D:\\ea-dr-pack-2026-11-17 \\\\newserver\\c$\\ea-dr-pack-2026-11-17 /E",
     "scp -r /safe/ea-dr-pack-2026-11-17 admin@newserver:/safe/"],
-  rebuild: ["cd C:\\ea-dr-pack-2026-11-17\\dr\n.\\eax-dr.ps1 -Pack .. -Install C:\\EA-Explorer",
+  rebuild: ["cd C:\\ea-dr-pack-2026-11-17\\dr\n.\\eax-dr -Pack .. -Install C:\\EA-Explorer",
     "cd /safe/ea-dr-pack-2026-11-17/dr\n./eax-dr.sh --pack .. --install /opt/ea-explorer"],
-  drill: [".\\dr\\eax-drill.ps1 -Install <this EA Explorer folder> -Dr C:\\EA-DR\\drill1 -Temp C:\\EA-DR\\temp",
+  drill: [".\\dr\\eax-drill -Install <this EA Explorer folder> -Dr C:\\EA-DR\\drill1 -Temp C:\\EA-DR\\temp",
     "./dr/eax-drill.sh --install <this EA Explorer folder> --dr /ea-dr/drill1 --temp /ea-dr/temp"],
-  back: ["cd C:\\EA-DR\\drill1; .\\eax down\ncd <this EA Explorer folder>; .\\eax up",
-    "cd /ea-dr/drill1 && ./eax down\ncd <this EA Explorer folder> && ./eax up"],
   test: [".\\eax test backup-restore", "./eax test backup-restore"],
 };
 
@@ -97,15 +95,18 @@ export default function DisasterRecovery() {
 
       <h2>Rehearse it: the restore drill</h2>
       <ol className="dr-steps">
-        <li>On this installation (its folder and data are not touched; the DR copy goes into a new folder under its own Docker name),
-          give the installation, a new DR folder and a temp folder.
+        <li>On this installation (its folder and data are not touched; the DR copy goes into its own folder under its own Docker name),
+          give the installation, a DR folder and a temp folder. The drill makes both and deletes both at the end.
           <Cmd k="drill" os={os} />
           <span className="small">Check: it ends with <code>EA Explorer restore drill PASSED</code>.</span></li>
-        <li>Go back to the installation (the DR copy is left running at the same address).
-          <Cmd k="back" os={os} /></li>
+        <li>Nothing to tidy: passed or failed, the drill removes the DR copy from Docker, deletes both folders and starts this
+          installation again. The report is in this installation's <code>work/tests/drill-&lt;time&gt;/</code>.</li>
         <li>Test the backups themselves too: the backup and restore test (about half an hour, the maintenance page on meanwhile).
           <Cmd k="test" os={os} /></li>
       </ol>
+      <p className="small">If a run is cut off half way (the machine slept, the window closed) and the maintenance page stays on: in this
+        installation's folder, <code>eax maintenance status</code> shows what was left and <code>eax maintenance clear</code> removes it (it
+        refuses while a backup or restore is still running).</p>
       <p className="quiet small">Not run from this page or by the Self-test: a pack, a rebuild or a drill stops EA Explorer or runs where it
         is not. Monthly: <a href="#/documentation/backup-drill-monthly">Restore drill: once a month</a>.</p>
     </div>

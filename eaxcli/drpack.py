@@ -32,7 +32,7 @@ from pathlib import Path
 from . import drill as DRL
 from .core import ROOT, WORK, Failure, log_only, say, version
 
-DR_FILES = ("eax-dr.ps1", "eax-dr.sh", "dr-common.ps1", "dr-common.sh", "eax-drill.ps1", "eax-drill.sh", "README.md")
+DR_FILES = ("eax-dr.cmd", "eax-drill.cmd", "eax-dr.ps1", "eax-dr.sh", "dr-common.ps1", "dr-common.sh", "eax-drill.ps1", "eax-drill.sh", "README.md")
 
 
 def sha256(path: Path) -> str:
@@ -71,7 +71,7 @@ def restore_text(pack: Path, name: str, ver: str) -> str:
     """RESTORE.txt: how to rebuild from this pack (pure)."""
     return (f"EA Explorer DR pack: version {ver}, backup {name}.\n"
             "Copy this whole folder to the new machine (Docker running), then from its dr folder:\n\n"
-            "  Windows:          .\\eax-dr.ps1 -Pack .. -Install C:\\EA-Explorer\n"
+            "  Windows:          .\\eax-dr -Pack .. -Install C:\\EA-Explorer    (Command Prompt or PowerShell)\n"
             "  Linux and macOS:  ./eax-dr.sh --pack .. --install /opt/ea-explorer\n\n"
             "eax-dr checks every file of the pack (PACK.sha256), builds v" + ver + " from the pack's code (code/, no GitHub), restores\n"
             "the backup and compares every table and file with fingerprint.json. Building still downloads the images' parts\n"
