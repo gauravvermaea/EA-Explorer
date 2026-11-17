@@ -29,8 +29,8 @@ documentation**, refreshed at every start (D550 to D552). On the command line, `
 **All the documentation, listed with what each covers: [docs/index.md](docs/index.md).** Backup and restore
 commands: [below](#backup-and-restore-from-the-command-line) and in [docs/operations.md](docs/operations.md#backup-and-restore-from-the-command-line-d227).
 
-**Status: version 5.6.0, Release 5.6 (backup and restore tested), accepted 17 Nov 2026** (tag `v5.6.0` on the `release` branch,
-published on the repository's GitHub Releases; release notes: [releases/5.6.0.md](releases/5.6.0.md); Release 5.5:
+**Status: version 5.7.0, Release 5.7 (branding, customer journeys, the deck tools), accepted 17 Nov 2026** (tag `v5.7.0` on the `release` branch,
+published on the repository's GitHub Releases; release notes: [releases/5.7.0.md](releases/5.7.0.md); Release 5.6: [releases/5.6.0.md](releases/5.6.0.md); Release 5.5:
 [releases/5.5.0.md](releases/5.5.0.md); Release 5.1: [releases/5.1.0.md](releases/5.1.0.md); Release 5: [releases/5.0.0.md](releases/5.0.0.md); Release 4: [releases/4.0.0.md](releases/4.0.0.md); Release 3.5: [releases/3.5.0.md](releases/3.5.0.md); Release 3: [releases/3.0.0.md](releases/3.0.0.md); Release 2: [releases/2.0.0.md](releases/2.0.0.md);
 Release 1: [releases/1.0.0.md](releases/1.0.0.md)). Release 5.7 is built as 5.7.0, to accept ([releases/5.7.0.md](releases/5.7.0.md);
 the Release 5.7 rows in [docs/build-phases.md](docs/build-phases.md)). The releases in short are
@@ -57,7 +57,7 @@ area by area: [docs/capabilities.md](docs/capabilities.md).
 | 5.1 | [5.1.0](releases/5.1.0.md) | Stabilisation: the job queue on screen and safe to look after (a connection ended every five minutes, jobs left by a stopped runner, Kill and Cancel), the full self-test's findings fixed, a Jobs suite and each area's passed and failed | released 16 Nov 2026 |
 | 5.5 | [5.5.0](releases/5.5.0.md) | Enterprise discovery run by your own AI through MCP (discovery projects, sources of every kind, Found in, runs tagged before and after, NOT FOR AI respected); architecture decision records and dispensations in the Governance Log with an Architecture Board; the Live browser full screen | released 16 Nov 2026 |
 | 5.6 | [5.6.0](releases/5.6.0.md) | The backup and restore test (`eax test backup-restore`: B1, content of every kind, B2, restore B1 and B2, every table and file compared), the restore drills as documents with a PDF, job priorities, updates and deployments from the published GitHub Releases only; the DR pack, the DR tool and the restore drill | accepted 17 Nov 2026 |
-| 5.7 | [5.7.0](releases/5.7.0.md) | The views' ArchiMate icons; logo and branding (four themes, your own as CSS); customer journey maps beside the canvas; a presentation deck with your own AI through MCP (content with sources, an outline, views as PNG, SVG or data); the backup and restore test on all of it | built 17 Nov 2026, to accept |
+| 5.7 | [5.7.0](releases/5.7.0.md) | The views' ArchiMate icons; logo and branding (four themes, your own as CSS); customer journey maps beside the canvas; a presentation deck with your own AI through MCP (content with sources, an outline, views as PNG, SVG or data); the backup and restore test on all of it | accepted 17 Nov 2026 |
 | 6 | | The key vault (OpenBao), once its details are agreed | planned |
 | 6.5 | | Server sync (migrations), DR sync, content promotion from dev to prod, a developer and author mode with its menus | planned |
 | 7 | | Help and videos | planned |

@@ -4,8 +4,8 @@ The state of the work, for whoever picks it up next: a person or another AI with
 13 Nov 2026: "what happens if I need another ai to work on this"). **Updated at the end of every working session.**
 Read [AGENTS.md](../AGENTS.md) first, run `eax dev check`, then read this.
 
-Last updated: 17 Nov 2026, Release 5.6 accepted as 5.6.0 (owner, 13:37: "Lets accept this release"; D727).
-Now: Release 5.7 built (17 Nov 2026) as 5.7.0, waiting for the owner's clean rebuild, `eax test full`, the backup and restore test and the DR drill, then acceptance.
+Last updated: 17 Nov 2026, Release 5.7 accepted as 5.7.0 (owner, 18:09: "This release is accepted"; D739).
+Now: no release in build. Next: Release 6 (the key vault), discussed with the owner before it is built.
 
 ## How the owner works
 
@@ -76,7 +76,7 @@ Nothing.
 Release 5.7 is built (17 Nov 2026): R5.7-V1 (the views' ArchiMate icons, D728), R5.7-B1 (branding, D729, migration
 0100), R5.7-J1 (customer journeys, D730, migration 0101), R5.7-P1 (the deck tools, D731; the API gains Pillow) and
 R5.7-T1 (the backup test covers them); version 5.7.0 (migration 0102, releases/5.7.0.md). The owner runs a clean
-rebuild, `eax test full`, `eax test backup-restore` and `dr\eax-drill`, then accepts 5.7. Then Release 6.
+rebuild, `eax test full`, `eax test backup-restore` and `dr\eax-drill`; **accepted 17 Nov 2026** (D739). Then Release 6.
 
 ## Open questions
 
