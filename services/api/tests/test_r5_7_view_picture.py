@@ -121,3 +121,15 @@ def test_sources_and_outline_on_a_project():
                 deck.sources(c, pid, nobody)
         finally:
             tx.rollback()
+
+
+def test_pillow_is_13_or_later():
+    """The owner's full test, 17 Nov 2026 (D737): pip-audit failed on Pillow 12.3.0 (PYSEC-2026-4326, 4327, 4328, 4339,
+    4340 and 4343, fixed in 13.0.0). The API (Python 3.12) asks for Pillow 13, so the audit resolves a fixed version."""
+    line = next(x for x in (API / "requirements.txt").read_text(encoding="utf-8").splitlines() if x.lower().startswith("pillow"))
+    floor = re.search(r">=\s*(\d+)", line)
+    assert floor and int(floor.group(1)) >= 13, line
+    assert "<13" not in line.replace(" ", ""), line
+    docker = (API / "Dockerfile").read_text(encoding="utf-8")
+    py = re.search(r"FROM python:3\.(\d+)", docker)
+    assert py and int(py.group(1)) >= 11, "Pillow 13 needs Python 3.11 or later"
