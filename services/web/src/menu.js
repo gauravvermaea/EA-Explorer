@@ -209,6 +209,8 @@ export function menuTree() {
         { label: "Hosts", href: "#/admin/hosts" },          // the Docker engine (R2.16)
         { label: "Mounts", href: "#/admin/mounts" },        // volumes and bind mounts (R2.17)
         { label: "Databases", href: "#/admin/databases" },
+        { label: "Secrets: passwords, keys and certificates", href: "#/admin/secrets" },
+        { label: "Site pairings: sync and DR sync", href: "#/admin/pairings" },   // Release 6.5 (D749)
         { label: "Database maintenance", href: "#/admin/db-maintenance" },   // R5.12
         { label: "Optimisation", href: "#/admin/optimisation" },             // R5.1
         { label: "Sizing", href: "#/admin/sizing" },                         // R5.19

@@ -45,6 +45,8 @@ const Updates = lazy(() => import("./Updates"));
 const CommandCentre = lazy(() => import("./CommandCentre"));
 const BannerAdmin = lazy(() => import("./AdminBanner").then((m) => ({ default: m.BannerAdmin })));
 const DatabasesPage = lazy(() => import("./Databases"));
+const SecretsPage = lazy(() => import("./Secrets"));
+const PairingsPage = lazy(() => import("./Pairings"));
 const PersistPage = lazy(() => import("./Persist"));
 const FootprintPage = lazy(() => import("./Footprint"));
 const EstatePage = lazy(() => import("./Estate"));
@@ -74,6 +76,8 @@ const TABS = [
   ["hosts", "Hosts", () => can("system.operate"), ["it-admin", "super-admin"]],           // the Docker engine (R2.16)
   ["mounts", "Mounts", () => can("system.operate"), ["it-admin", "super-admin"]],         // volumes and bind mounts (R2.17)
   ["databases", "Databases", () => can("system.operate"), ["it-admin", "super-admin"]],   // where each lives (R2.50)
+  ["secrets", "Secrets", () => can("system.operate"), ["it-admin", "super-admin"]],   // passwords, keys, certificates (R6-S1)
+  ["pairings", "Site pairings", () => can("system.operate"), ["it-admin", "super-admin"]],   // sync and DR sync (Release 6.5)
   ["db-maintenance", "Database maintenance", () => can("system.operate"), ["it-admin", "super-admin", "auditor"]],   // R5.12
   ["optimisation", "Optimisation", () => true, null],
   ["jobs", "Jobs", () => can("system.operate"), ["it-admin", "super-admin"]],   // the job queue, stuck jobs (R5.30)
@@ -129,6 +133,8 @@ export default function Admin({ route }) {
                 : t[0] === "hosts" ? <HostsPage />
                 : t[0] === "mounts" ? <MountsPage />
                 : t[0] === "databases" ? <DatabasesPage />
+                : t[0] === "secrets" ? <SecretsPage />
+                : t[0] === "pairings" ? <PairingsPage />
                 : t[0] === "db-maintenance" ? <DbMaintenancePage />
                 : t[0] === "optimisation" ? <OptimisationPage />
                 : t[0] === "sizing" ? <SizingPage />

@@ -2,8 +2,9 @@
 
 Used by POST /api/v1/sql/query and the web screen #/admin/sql. Rules:
   * Turned on with EAX_SQL_CONSOLE_ENABLED (default: on for laptops, off for servers).
-  * The caller must be signed in with the Super Admin or IT Admin role AND give a PostgreSQL user and password;
-    the database's own permissions then decide what that login may see and do.
+  * The caller must be signed in with the Super Admin or IT Admin role; nobody types a database password (D742): the
+    window signs in with its own login for that role (a Super Admin's reads and writes, an IT Admin's only reads),
+    with its certificate in certificate mode (R6-C1).
   * Only the installation's database server (EAX_DB_HOST) is used; any of its databases may be named.
   * Read-only for everyone (D52, phase 3): the run is one transaction that is always rolled back at
     the end (not READ ONLY, because eax.get_entity creates temporary tables), so nothing is kept.
@@ -65,11 +66,84 @@ def to_json_value(value: Any) -> Any:
     return text if len(text) <= MAX_CELL_CHARS else text[:MAX_CELL_CHARS] + "..."
 
 
+# ---------------------------------------------------------------- the window's own logins (D742)
+CONSOLE_LOGINS = {"super": ("eax_console_super", "EAX_CONSOLE_SUPER_PASSWORD", "console-super"),
+                  "it": ("eax_console_it", "EAX_CONSOLE_IT_PASSWORD", "console-it")}
+
+
+DEFAULT_USER = "eax_app"     # the user the window starts with when one is typed (as before Release 6)
+
+
+def typed_login() -> bool:
+    """Password mode: a database user and password are typed in the window, as before Release 6 (owner, 17 Nov 2026,
+    20:45; D752). Certificate mode: nobody types one, the window's own login for the person's role (D742)."""
+    return os.environ.get("EAX_AUTH_MODE", "password").strip().lower() != "certificate"
+
+
+def console_login(super_admin: bool) -> tuple[str, str]:
+    """The SQL window's login for this person (owner, 17 Nov 2026, 18:33: "I like the option B no password option"): their
+    EA Explorer sign-in decides; nobody types a database password. A Super Admin's reads and writes (every run still
+    rolled back unless Keep is ticked), an IT Admin's only reads. Two separate logins, never one that switches role (a
+    RESET ROLE would give the other's rights back)."""
+    user, key, _ = CONSOLE_LOGINS["super" if super_admin else "it"]
+    return user, os.environ.get(key, "")
+
+
+def _connect_args(username: str, password: str) -> dict:
+    """In certificate mode the window's logins sign in with their own certificates (R6-C1), not their passwords."""
+    for user, _key, cert in CONSOLE_LOGINS.values():
+        if username == user and os.environ.get("EAX_AUTH_MODE") == "certificate" and os.path.exists(f"/eax-certs/{cert}.crt"):
+            return {"user": user, "sslmode": "verify-full", "sslrootcert": "/eax-certs/ca.crt",
+                    "sslcert": f"/eax-certs/{cert}.crt", "sslkey": f"/eax-certs/{cert}.key"}
+    return {"user": username, "password": password}
+
+
+def ensure_logins(conn) -> list[str]:
+    """The window's two logins made (or their passwords set again from the config file, after a rotation), with their
+    rights: reading every table (pg_read_all_data) and the monitoring views; writing too for the Super Admins'. Run as
+    the database superuser at the API's start. Never superuser, never able to make roles or databases."""
+    from psycopg import sql as S
+    done = []
+    for kind, (user, key, _cert) in CONSOLE_LOGINS.items():
+        pw = os.environ.get(key, "")
+        if not pw:
+            continue
+        cur = conn.execute("SELECT 1 FROM pg_roles WHERE rolname = %s", (user,)).fetchone()
+        verb = S.SQL("ALTER" if cur else "CREATE")
+        conn.execute(S.SQL("{} ROLE {} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION PASSWORD {}")
+                     .format(verb, S.Identifier(user), S.Literal(pw)))
+        conn.execute(S.SQL("GRANT pg_read_all_data, pg_monitor TO {}").format(S.Identifier(user)))
+        conn.execute(S.SQL("{} pg_write_all_data {} {}").format(
+            S.SQL("GRANT" if kind == "super" else "REVOKE"), S.SQL("TO" if kind == "super" else "FROM"), S.Identifier(user)))
+        done.append(user)
+    return done
+
+
+def main(argv: list[str]) -> int:
+    """python -m eax.sqlconsole ensure-logins: at the API's start, as the database superuser (never fatal)."""
+    if argv[:1] != ["ensure-logins"]:
+        print("python -m eax.sqlconsole ensure-logins")
+        return 2
+    try:
+        from . import dbmaint
+        with dbmaint.connect(get_settings().db_name) as conn:
+            print(f"EA Explorer: the SQL window's logins: {', '.join(ensure_logins(conn)) or 'none (no passwords set)'}")
+    except Exception as exc:  # noqa: BLE001 - the window then says its login is not set up; the API still starts
+        print(f"EA Explorer: the SQL window's logins could not be set up ({str(exc)[:200]})")
+    return 0
+
+
+if __name__ == "__main__":
+    import sys
+    sys.exit(main(sys.argv[1:]))
+
+
 def run(database: str, username: str, password: str, sql: str, keep: bool = False) -> dict:
     """Runs the text (one or more statements) and returns every result set. keep: commit at the end (writing, owner
     6 Nov 2026, replacing D52); otherwise everything is rolled back."""
     if not username or not password:
-        raise SqlConsoleError("Give a database user name and password.")
+        raise SqlConsoleError("The SQL window's login is not set up yet (EAX_CONSOLE_IT_PASSWORD and EAX_CONSOLE_SUPER_PASSWORD; "
+                              "eax up sets them).", 503)
     if not (sql or "").strip():
         raise SqlConsoleError("Nothing to run.")
     import psycopg  # imported here so the helpers above load without the driver (tests)
@@ -78,8 +152,7 @@ def run(database: str, username: str, password: str, sql: str, keep: bool = Fals
     started = time.perf_counter()
     try:
         conn = psycopg.connect(host=settings.db_host, port=settings.db_port, dbname=database or settings.db_name,
-                               user=username, password=password, connect_timeout=5,
-                               application_name="eaexplorer-sql-window")
+                               connect_timeout=5, application_name="eaexplorer-sql-window", **_connect_args(username, password))
     except psycopg.OperationalError as exc:
         lines = str(exc).strip().splitlines()
         raise SqlConsoleError(f"Could not sign in to the database: {lines[-1] if lines else 'connection failed'}", 401) from exc
@@ -180,13 +253,13 @@ PAGE_ROWS = 200
 
 def _connect(database: str, username: str, password: str):
     if not username or not password:
-        raise SqlConsoleError("Give a database user name and password.")
+        raise SqlConsoleError("The SQL window's login is not set up yet (EAX_CONSOLE_IT_PASSWORD and EAX_CONSOLE_SUPER_PASSWORD; "
+                              "eax up sets them).", 503)
     import psycopg
     settings = get_settings()
     try:
         conn = psycopg.connect(host=settings.db_host, port=settings.db_port, dbname=database or settings.db_name,
-                               user=username, password=password, connect_timeout=5,
-                               application_name="eaexplorer-sql-window")
+                               connect_timeout=5, application_name="eaexplorer-sql-window", **_connect_args(username, password))
     except psycopg.OperationalError as exc:
         lines = str(exc).strip().splitlines()
         raise SqlConsoleError(f"Could not sign in to the database: {lines[-1] if lines else 'connection failed'}", 401) from exc

@@ -60,10 +60,6 @@ def check_config() -> list[str]:
     if not re.fullmatch(r"[a-z][a-z0-9-]{1,39}", realm) or realm == "master":
         problems.append("EAX_KEYCLOAK_REALM must be 2 to 40 lower-case letters, digits or hyphens, start with a letter, "
                         "and not be master")
-    unread = sorted(k for k, v in os.environ.items() if k.startswith("EAX_") and v.startswith("openbao:"))
-    if unread:                                       # R4.19: a reference reached a container, not the vault's value
-        problems.append("the key vault's values were not read (" + ", ".join(unread) + "): start EA Explorer with eax up, "
-                        "which reads them from OpenBao, not with docker compose directly")
     weak = [k for k, v in os.environ.items() if k.startswith("EAX_") and v.startswith("change-me")]
     if weak:
         message = "still set to the example value: " + ", ".join(sorted(weak))
@@ -225,6 +221,12 @@ def main() -> int:
     host = values["EAX_HOSTNAME"]
     created = ensure_certificate(TLS_DIR, host)
     print(f"EA Explorer setup: TLS certificate {'created (self-signed)' if created else 'present'}")
+
+    if env("EAX_AUTH_MODE", "password") == "certificate":     # R6-C1: EA Explorer's own authority and certificates
+        from .. import certs
+        renewed = certs.ensure(name=values.get("EAX_ORG_NAME") or "EA Explorer")
+        print(f"EA Explorer setup: certificates {'made or renewed: ' + ', '.join(renewed) if renewed else 'current'} "
+              "(certificate mode)")
 
     ensure_web_log_folder(Path(env("EAX_LOGS_MOUNT", "/eax-logs")) / "web")
     made = ensure_allow_files(Path(env("EAX_PROXY_DIR", "/eax-proxy")) / "allow")

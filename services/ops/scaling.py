@@ -137,7 +137,7 @@ def cpu_of_servers() -> float | None:
 def active_people() -> int | None:
     """How many people the API has seen in the last 15 minutes (it answers the helper with the ops token)."""
     url = os.environ.get("EAX_SCALE_API_URL", "http://api:8000") + "/api/v1/admin/scaling/load"
-    req = urllib.request.Request(url, headers={"X-Ops-Token": os.environ.get("EAX_OPS_TOKEN", "")})
+    req = urllib.request.Request(url, headers={"X-Ops-Token": H["TOKEN"]})   # from its file (R6-F1)
     try:
         with urllib.request.urlopen(req, timeout=10) as r:
             return int(json.load(r).get("people", 0))

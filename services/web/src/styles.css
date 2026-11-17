@@ -2948,3 +2948,15 @@ th.sortable { cursor: pointer; }
 .theme-designer input[type="color"] { width: 44px; height: 32px; padding: 0 2px; border: 1px solid var(--line); background: var(--card); cursor: pointer; }
 .theme-designer .td-sample { padding: 10px; border: 1px dashed var(--line); border-radius: 6px; background: var(--bg); display: flex;
   flex-wrap: wrap; gap: 10px; align-items: center; }
+/* the site's purpose, top left beside the release (Release 6.5, D749): a label only; PROD quiet, the others easy to see */
+.site-purpose { order: 0; align-self: center; margin-left: 8px; padding: 1px 7px; border-radius: 9px; font-size: 11px; font-weight: 600;
+  letter-spacing: .04em; white-space: nowrap; border: 1px solid var(--border, #ccd); color: var(--muted, #556); }
+.site-purpose-dr, .site-purpose-uat, .site-purpose-pre-prod { background: #fff4d6; border-color: #e3b341; color: #6b4e00; }
+.site-purpose-test, .site-purpose-dev, .site-purpose-training { background: #e6f0ff; border-color: #7aa7e8; color: #1d4a8f; }
+/* System Admin › Site pairings (Release 6.5) */
+.pairing-scope { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px; max-height: 260px; overflow: auto; margin: 6px 0; }
+.pairing-scope .check { display: block; }
+.pairing-actions { white-space: nowrap; }
+.pairing-actions button, .pairing-actions select { margin: 0 4px 4px 0; }
+.pairing-key { word-break: break-all; user-select: all; font-size: 13px; }
+.pairing-batches { margin: 4px 0 10px 16px; }

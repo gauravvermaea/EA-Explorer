@@ -1,6 +1,6 @@
 """eax deploy (phase 36, D498, D500 to D506): the questions, the config a server gets, where releases come from, every
-kind's plan (nothing run), failing steps (retry, back), the key vault, directory groups, the installer and the web
-wizard."""
+kind's plan (nothing run), failing steps (retry, back), directory groups, the installer and the web wizard. No
+platform-specific code (D746): a laptop, or a server here or over SSH, wherever it runs."""
 import json
 import os
 import re
@@ -44,18 +44,15 @@ KEY = str(REPO / "README.md")         # any existing file stands in for an SSH k
 def test_questions_follow_the_answers():
     keys = [q.key for q in D.visible({"kind": "laptop"})]
     assert keys[:1] == ["kind"] and "ssh_target" not in keys and "hostname" not in keys
-    aws = [q.key for q in D.visible({"kind": "aws", "cloud_mode": "create"})]
-    assert {"aws_region", "aws_instance_type", "disk_gb", "admin_cidr", "hostname", "vault"} <= set(aws)
-    assert "ssh_target" not in aws                          # a machine made here: its address is found out
-    existing = [q.key for q in D.visible({"kind": "aws", "cloud_mode": "existing"})]
-    assert "ssh_target" in existing and "aws_region" not in existing
+    ssh = [q.key for q in D.visible({"kind": "server", "where": "ssh"})]
+    assert {"ssh_target", "ssh_key", "hostname", "repo", "ref", "auth"} <= set(ssh)
     here = [q.key for q in D.visible({"kind": "server", "where": "here"})]
     assert "ssh_target" not in here and "repo" not in here and "hostname" in here
 
 
 def test_complete_fills_defaults_and_refuses_bad_choices():
-    a = D.complete({"kind": "digitalocean", "ssh_key": KEY, "hostname": "ea.example.org", "repo": "https://github.com/a/b"})
-    assert a["cloud_mode"] == "create" and a["do_size"] == "s-8vcpu-16gb" and a["install_dir"] == "/opt/eaexplorer"
+    a = D.complete({"kind": "server", "where": "here", "hostname": "ea.example.org"})
+    assert a["install_dir"] == "/opt/eaexplorer" and a["auth"] == "certificate"
     with pytest.raises(Failure, match="kind"):
         D.complete({"kind": "mainframe"})
     with pytest.raises(Failure, match="ssh_target"):
@@ -65,14 +62,14 @@ def test_complete_fills_defaults_and_refuses_bad_choices():
 # ---------------------------------------------------------------- the config a server gets
 def test_server_config_generates_every_password():
     text, made = D.server_config({"hostname": "ea.acme.test", "org_name": "Acme Mutual", "data_dir": "/data/eax/",
-                                  "admin_email": "it@acme.test", "vault": "aws", "vault_name": "acme/eax"})
+                                  "admin_email": "it@acme.test", "auth": "password"})
     assert not re.search(r"^[A-Z0-9_]+=change-me", text, re.M) and "EAX_HOSTNAME=ea.acme.test" in text and "EAX_ORG_NAME='Acme Mutual'" in text
     assert "EAX_DATA_ROOT=/data/eax" in text and re.search(r"^EAX_DATA_DIR=$", text, re.M)       # one base folder (R5.4)
-    assert "EAX_SECRETS_FROM=aws:acme/eax" in text and "EAX_FIRST_ADMIN_EMAIL=it@acme.test" in text
+    assert "EAX_AUTH_MODE=password" in text and "EAX_FIRST_ADMIN_EMAIL=it@acme.test" in text and "EAX_SECRETS_FROM" not in text
     assert made["EAX_DMS_BROKER_PASSWORD_URLENC"] == made["EAX_DMS_BROKER_PASSWORD"]
     assert all(len(v) >= 28 and v.isalnum() for v in made.values())
     assert len(set(made.values())) == len({k.removesuffix("_URLENC") for k in made})    # each password its own
-    assert set(D.secret_values(text)) == set(made)
+    assert set(made) <= set(D.secret_values(text))
     again, _ = D.server_config({"hostname": "ea.acme.test"})
     assert again != text                                      # new passwords every time
 
@@ -110,56 +107,12 @@ def test_server_here_uses_this_copy(nothing_runs):
     assert "ssh " not in text and "this copy of EA Explorer" in text and "get.docker.com" in text
 
 
-def test_aws_plan(nothing_runs):
-    text = "\n".join(plan({"kind": "aws", "ssh_key": KEY, "hostname": "ea.acme.test", "aws_zone_id": "Z123",
-                           "aws_access_key_id": "AKIAEXAMPLE", "aws_secret_access_key": "very-secret-value",
-                           "repo": "https://github.com/acme/ea-explorer", "ref": "v0.19.0", "admin_cidr": "196.25.1.10/32"}))
-    for part in ("ec2 import-key-pair", "create-security-group", "--port 443", "196.25.1.10/32", "ec2 run-instances",
-                 "ubuntu/server/24.04", "allocate-address", "s3api create-bucket", "LocationConstraint=af-south-1",
-                 "iam create-role", "route53 change-resource-record-sets", "reports.ea.acme.test", "mkfs.ext4",
-                 "/dev/nvme1n1", "eaexplorer-offsite"):
-        assert part in text, part
-    assert "very-secret-value" not in text                   # never shown or logged
-
-
-def test_azure_plan(nothing_runs):
-    text = "\n".join(plan({"kind": "azure", "ssh_key": KEY, "hostname": "ea.acme.test", "az_dns_zone": "acme.test/dns-rg",
-                           "repo": "https://github.com/acme/ea-explorer", "ref": "v0.19.0"}))
-    for part in ("az account show", "group create", "vm create", "Ubuntu2404", "--data-disk-sizes-gb 100", "vm open-port",
-                 "storage account create", "Storage Blob Data Contributor", "dns record-set a add-record", "--record-set-name reports.ea",
-                 "/dev/disk/azure/scsi1/lun0", "azcopy"):
-        assert part in text, part
-
-
-def test_digitalocean_plan(nothing_runs):
-    text = "\n".join(plan({"kind": "digitalocean", "ssh_key": KEY, "hostname": "ea.acme.test", "do_domain": "acme.test",
-                           "do_load_balancer": "yes", "spaces_key": "SPACESKEY", "spaces_secret": "spaces-secret-xyz",
-                           "do_token": "dop_v1_token_value", "repo": "https://github.com/acme/ea-explorer", "ref": "v0.19.0"}))
-    for part in ("doctl account get", "ssh-key import", "droplet create", "ubuntu-24-04-x64", "volume create", "volume-action attach",
-                 "firewall create", "digitaloceanspaces.com", "domain records create", "load-balancer create", "root@",
-                 "scsi-0DO_Volume_eaexplorer-data", "Spaces key on the Droplet"):
-        assert part in text, part
-    assert "spaces-secret-xyz" not in text and "dop_v1_token_value" not in text
-
-
-def test_existing_cloud_machine_is_the_server_over_ssh(nothing_runs):
-    text = "\n".join(plan({"kind": "azure", "cloud_mode": "existing", "ssh_target": "eaxadmin@198.51.100.7", "ssh_key": KEY,
-                           "hostname": "ea.acme.test", "repo": "https://github.com/acme/ea-explorer", "ref": "v0.19.0"}))
-    assert "az " not in text and "eaxadmin@198.51.100.7" in text and "get.docker.com" in text
-
-
 def test_moving_an_installation_restores_databases_then_files(nothing_runs):
     text = "\n".join(plan({"kind": "server", "where": "ssh", "ssh_target": "u@h", "ssh_key": KEY, "hostname": "ea.acme.test",
                            "repo": "https://github.com/acme/ea-explorer", "ref": "v0.19.0", "move_from": "backup",
                            "backup_dir": "/backups/20261110T020000Z-nightly"}))
     assert text.index("--what db") < text.index("--what files") and "--what full" not in text
     assert "20261110T020000Z-nightly" in text
-
-
-def test_vault_in_the_plan(nothing_runs):
-    text = "\n".join(plan({"kind": "server", "where": "ssh", "ssh_target": "u@h", "ssh_key": KEY, "hostname": "ea.acme.test",
-                           "repo": "https://github.com/acme/ea-explorer", "ref": "v0.19.0", "vault": "file"}))
-    assert "/etc/eaexplorer/secrets.env" in text and "install -m 600" in text
 
 
 # ---------------------------------------------------------------- a failing step: retry, back, quit
@@ -179,18 +132,18 @@ def test_a_failing_step_asks(monkeypatch):
     assert D.run({"kind": "laptop"}, False, lambda s, w: "quit", out=lambda t: None) == "quit"
 
 
-# ---------------------------------------------------------------- the key vault
-def test_vault_commands():
-    values = {"EAX_DB_PASSWORD": "abc123", "EAX_OPS_TOKEN": "tok"}
-    f = V.push_commands("file", "/etc/eaexplorer/secrets.env", values)
-    assert f[0][0] == "remote" and "install -m 600" in f[0][1] and "EAX_DB_PASSWORD=abc123" in f[0][3]
-    a = V.push_commands("aws", "acme/eax", values, {"aws_region": "af-south-1"})
-    assert [c[0] for c in a] == ["file", "local", "local", "delete"] and "create-secret" in a[1][1]
-    assert json.loads(a[0][2]) == values and "abc123" not in " ".join(a[1][1])     # the value goes by file, not the command line
-    z = V.push_commands("azure", "acme-kv", values)
-    assert any("eax-db-password" in c[1] for c in z if c[0] == "local")
-    assert V.where("X=1\nEAX_SECRETS_FROM=azure:acme-kv\n") == ("azure", "acme-kv")
-    text, changed = V.replace_values("EAX_DB_PASSWORD=old\nEAX_OPS_TOKEN=tok\n", values)
+# ---------------------------------------------------------------- no platform-specific code (D746)
+def test_no_cloud_kind_or_key_vault_is_offered():
+    """The owner, 17 Nov 2026, 18:56: "No we wont make any platform specific code ever": a server anywhere is reached
+    over SSH; no cloud is created from credentials and no cloud key vault is used."""
+    assert set(D.KINDS) == {"laptop", "server"}
+    keys = {q.key for q in D.QUESTIONS}
+    assert not {k for k in keys if k.startswith(("aws_", "az_", "do_", "spaces_"))} and "vault" not in keys
+    src = (REPO / "eaxcli" / "deploy.py").read_text(encoding="utf-8") + (REPO / "eaxcli" / "secrets.py").read_text(encoding="utf-8")
+    for word in ("ec2 ", "az vm", "doctl", "secretsmanager", "keyvault", "openbao:"):
+        assert word not in src.lower(), word
+    assert "aws" not in (REPO / "deploy" / "deployer" / "Dockerfile").read_text(encoding="utf-8").lower()
+    text, changed = V.replace_values("EAX_DB_PASSWORD=old\nEAX_OPS_TOKEN=tok\n", {"EAX_DB_PASSWORD": "abc123", "EAX_OPS_TOKEN": "tok"})
     assert changed == ["EAX_DB_PASSWORD"] and "EAX_DB_PASSWORD=abc123" in text
 
 
@@ -300,10 +253,12 @@ def test_deploy_offers_the_published_releases_newest_first(monkeypatch):
     monkeypatch.setattr(D.R, "_get_json", lambda url, timeout=20: rel if "page=1" in url else [])
     ch = D.release_choices("https://github.com/gauravvermaea/EA-Explorer")
     assert list(ch) == ["v5.6.0", "v5.5.0"] and ch["v5.6.0"] == "5.6.0 · EA Explorer 5.6.0 (2026-11-20)"
-    a = D.complete({"kind": "digitalocean", "ssh_key": KEY, "hostname": "ea.example.org", "repo": "https://github.com/a/b"})
+    a = D.complete({"kind": "server", "where": "ssh", "ssh_target": "u@h", "ssh_key": KEY, "hostname": "ea.example.org",
+                    "repo": "https://github.com/a/b"})
     assert a["ref"] == "v5.6.0"                                                   # the newest, when not chosen
     with pytest.raises(Failure, match="never a branch"):
-        D.complete({"kind": "digitalocean", "ssh_key": KEY, "hostname": "ea.example.org", "repo": "https://github.com/a/b", "ref": "main"})
+        D.complete({"kind": "server", "where": "ssh", "ssh_target": "u@h", "ssh_key": KEY, "hostname": "ea.example.org",
+                    "repo": "https://github.com/a/b", "ref": "main"})
     assert D.BY_KEY["ref"].as_dict({})["kind"] == "select"
 
     def down(url, timeout=20):
@@ -348,8 +303,8 @@ def test_web_wizard_needs_its_key_and_plans(monkeypatch):
         with pytest.raises(urllib.error.HTTPError) as e:
             call("/api/state", key="wrong")
         assert e.value.code == 403
-        qs = call("/api/questions", {"answers": {"kind": "aws"}})["questions"]
-        assert any(q["key"] == "aws_region" for q in qs)
+        qs = call("/api/questions", {"answers": {"kind": "server", "where": "ssh"}})["questions"]
+        assert any(q["key"] == "ssh_target" for q in qs) and not any(q["key"].startswith("aws") for q in qs)
         monkeypatch.setattr(D.subprocess, "run", lambda *a, **k: (_ for _ in ()).throw(AssertionError("ran")))
         assert call("/api/plan", {"answers": {"kind": "server", "where": "here", "hostname": "ea.acme.test"}})["ok"]
         for _ in range(50):

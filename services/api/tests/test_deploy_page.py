@@ -50,26 +50,23 @@ def test_questions_never_offer_the_laptop(ops):
     kind = next(x for x in q["questions"] if x["key"] == "kind")
     assert "laptop" not in kind["choices"] and q["answers"]["kind"] == "server" and q["answers"]["where"] == "ssh"
     assert "where" not in keys and "ssh_target" in keys and "aws_profile" not in keys
-    aws = ops.questions({"kind": "aws"})
-    assert "aws_access_key_id" in [x["key"] for x in aws["questions"]]
-    with_id = {x["key"]: x for x in ops.questions({"kind": "aws", "aws_access_key_id": "AKIA"})["questions"]}
-    assert with_id["aws_secret_access_key"]["secret"] is True
-    assert next(x for x in aws["questions"] if x["key"] == "ssh_key")["kind"] == "key"
-    assert next(x for x in aws["questions"] if x["key"] == "repo")["default"] == "https://github.com/acme/ea-explorer"
+    assert set(kind["choices"]) == {"server"}                        # no cloud kinds (D746)
+    assert next(x for x in q["questions"] if x["key"] == "ssh_key")["kind"] == "key"
+    assert next(x for x in q["questions"] if x["key"] == "repo")["default"] == "https://github.com/acme/ea-explorer"
 
 
 def test_a_plan_runs_end_to_end_and_keeps_no_secret(ops):
-    about = ops.start({"answers": {"kind": "digitalocean", "hostname": "ea.fynbos.example", "do_domain": "fynbos.example"},
-                       "secrets": {"do_token": "dop_v1_secret_token", "spaces_key": "SPK", "spaces_secret": "spaces-secret-xyz"},
+    about = ops.start({"answers": {"kind": "server", "hostname": "ea.fynbos.example", "ssh_target": "eaxadmin@198.51.100.7"},
+                       "secrets": {"do_token": "dop_v1_secret_token"},
                        "ssh_key": KEY, "plan": True, "keep": True, "by": "user_it_admin"})
-    assert about["plan"] and about["kind"] == "digitalocean" and about["target"] == "ea.fynbos.example" and not ops.started
+    assert about["plan"] and about["kind"] == "server" and about["target"] == "ea.fynbos.example" and not ops.started
     r = wait_for(ops, about["id"])
     text = "\n".join(r["lines"])
-    assert r["status"] == "planned" and "doctl compute droplet create" in text and "get.docker.com" in text
+    assert r["status"] == "planned" and "eaxadmin@198.51.100.7" in text and "get.docker.com" in text
     assert all(s["status"] == "done" for s in r["steps"])
     folder = Path(ops.RUNS) / about["id"]
     everything = "".join(p.read_text(errors="replace") for p in folder.rglob("*") if p.is_file())
-    for secret in ("dop_v1_secret_token", "spaces-secret-xyz", "not-a-real-key"):
+    for secret in ("dop_v1_secret_token", "not-a-real-key"):
         assert secret not in text and secret not in everything, secret     # never logged, deleted at the end
     assert not (folder / "secrets.json").exists() and not (folder / "ssh_key").exists()
     assert ops.kept() == []                                                   # a plan never keeps credentials
@@ -160,16 +157,15 @@ def test_every_deploy_route_needs_it_or_super_admin():
 
 def test_the_api_passes_secrets_apart_and_never_keeps_them():
     from eax import deploys as dp
-    body = dp.clean_body({"answers": {"kind": "aws", "hostname": "ea.acme.test", "aws_secret_access_key": "typed-in-answers",
-                                      "ssh_key": "should-not-be-an-answer"},
-                          "secrets": {"aws_access_key_id": "AKIA", "unknown": "x"}, "ssh_key": KEY, "plan": True, "keep": True},
+    body = dp.clean_body({"answers": {"kind": "server", "hostname": "ea.acme.test", "ssh_key": "should-not-be-an-answer"},
+                          "secrets": {"unknown": "x"}, "ssh_key": KEY, "plan": True, "keep": True},
                          "user_it_admin")
-    assert body["answers"] == {"kind": "aws", "hostname": "ea.acme.test"}
-    assert body["secrets"] == {"aws_access_key_id": "AKIA", "aws_secret_access_key": "typed-in-answers"}
+    assert body["answers"] == {"kind": "server", "hostname": "ea.acme.test"}
+    assert body["secrets"] == {}                          # no cloud credentials any more (D746): only the SSH key
     assert body["ssh_key"] == KEY and body["by"] == "user_it_admin" and body["plan"] and body["keep"]
-    row = dp._row({"id": "20261110T220000Z-abcdef", "target": "ea.acme.test", "kind": "aws", "version": "v0.19.0",
-                   "status": "done", "by": "u", "result": {"public_ip": "203.0.113.7"}, "keep": True})
-    assert row["address"] == "203.0.113.7" and row["kept"] and "secret" not in json.dumps(row)
+    row = dp._row({"id": "20261110T220000Z-abcdef", "target": "ea.acme.test", "kind": "server", "version": "v0.19.0",
+                   "status": "done", "by": "u", "result": {"ssh_target": "u@203.0.113.7"}, "keep": True})
+    assert row["address"] == "u@203.0.113.7" and row["kept"] and "secret" not in json.dumps(row)
     hist = [{"target": "a", "plan": False, "status": "done"}, {"target": "a", "plan": False, "status": "quit"},
             {"target": "b", "plan": True, "status": "planned"}]
     t = dp.targets(hist)
@@ -199,7 +195,7 @@ def test_the_page_and_its_help():
     assert "Retry this step" in page and "Back to the answers" in page and "Quit" in page
     cat = json.loads((REPO / "services/web/src/help/catalogue.json").read_text())
     assert "tab:Deploy" in cat and "button:Retry this step" in cat
-    assert (REPO / "deploy/deployer/Dockerfile").read_text().count("doctl") >= 1
+    assert (REPO / "deploy/deployer/Dockerfile").read_text().count("doctl") == 0       # no cloud tools (D746)
     assert os.path.exists(REPO / "services/ops/deploys.py")
 
 

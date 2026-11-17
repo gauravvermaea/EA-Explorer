@@ -520,3 +520,34 @@ def seed_persist(deployment: str) -> int:
              "starts": "2026-11-05T08:00", "ends": "2026-11-07T10:00", "by": "user_it_admin", "at": "2026-11-05T07:55:00",
              "source": "admin", "what": "set", "sample": True}]})
     return len(items)
+
+
+# the schedules Release 6 keeps on every installation (R6-R1, D743): rotation and renewal at a quiet hour, by themselves
+SYSTEM_SCHEDULES = [
+    {"id": "r6rotate", "name": "Rotate the passwords and keys that are due (R6-R1)", "argv": ["secrets", "rotate", "--due"],
+     "cron": "17 3 * * *"},
+    {"id": "r6certs", "name": "Renew the certificates that are due (R6-R1; nothing in password mode)", "argv": ["certs", "renew"],
+     "cron": "41 2 * * *"},
+]
+
+
+def ensure_system_schedules(now: str | None = None) -> int:
+    """Release 6's own schedules, made once on every installation (an admin may switch them off or change their time on
+    the Schedules tab; they are never made again once there)."""
+    if S is None:
+        return 0
+    items = S.load()[0] if S.path().exists() else []
+    have = {x.get("id") for x in items}
+    made = 0
+    at = now or time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime())
+    for x in SYSTEM_SCHEDULES:
+        if x["id"] in have:
+            continue
+        items.append({**x, "enabled": True, "created_by": "EA Explorer (Release 6)", "created_at": at, "checked": at,
+                      "wipe": False, "backup_first": False, "keep": 3, "banner": False, "confirmed": None, "last": {},
+                      "system": True})
+        made += 1
+    if made:
+        S.save(items)
+    return made
+

@@ -10,6 +10,15 @@
 #   any other command:      run it as given (the setup service uses: python -m eax.setup).
 set -eu
 cd /app
+# the passwords and keys as files of their own (Docker secrets under /run/secrets, R6-F1, D745): read into this
+# process's environment only, never the container's settings (docker inspect shows none)
+for _f in /run/secrets/EAX_*; do
+  [ -f "$_f" ] || continue
+  _n=$(basename "$_f")
+  _v=$(cat "$_f")
+  [ -n "$_v" ] && export "$_n=$_v"
+done
+unset _f _n _v
 
 if [ "$#" -gt 0 ]; then
   exec "$@"
@@ -46,6 +55,7 @@ API_PID=$!
 # how many of each: System Admin > Scaling (the settings jobs_slots_tasks and jobs_slots_scheduled), read at each start
 # (R5.33); else the config file's EAX_JOB_CONCURRENCY and EAX_SCHEDULED_CONCURRENCY; else 4 and 2
 # jobs the last job runner left "being worked on" when it stopped: marked stopped, so their next runs can start (R5.45)
+python -m eax.sqlconsole ensure-logins || true   # the SQL window's own logins, no typed password (D742)
 python -m eax.jobqueue recover || echo "EA Explorer: could not look for jobs left by the last job runner (System Admin > Jobs)"
 SLOTS=$(python -m eax.jobqueue slots 2>/dev/null || echo "${EAX_JOB_CONCURRENCY:-4} ${EAX_SCHEDULED_CONCURRENCY:-2}")
 TASK_SLOTS=$(echo "$SLOTS" | awk '{print $1}')

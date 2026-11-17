@@ -31,7 +31,8 @@ LOW = {"eax.quality_scheduler", "eax.quality_watch", "eax.quality_entities", "ea
        "eax.industry_packs", "eax.sites_health", "eax.optimise_report", "eax.discovery_scheduler"}
 # what people ask for, and the checks that must run whatever happens
 HIGH = {"eax.run_task", "eax.copy_model", "eax.record_heartbeat", "eax.admin_sign_in_check", "eax.project_repository",
-        "eax.template_library_load", "eax.alerts_run", "eax.queue_keeper"}
+        "eax.template_library_load", "eax.alerts_run", "eax.queue_keeper",
+        "eax.sync_tick", "eax.sync_enqueue", "eax.sync_commit"}
 DEFAULTS = {"jobs_full_waiting": 20, "jobs_full_minutes": 10, "jobs_skip_max": 5}
 SKIP_NOTE = "Skipped: the job queue was too full; its next run does the work (System Admin › Jobs, priorities)."
 

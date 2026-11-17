@@ -203,6 +203,62 @@ def sites_health(timestamp: int) -> None:
     log.info("sites: %s checked, %s added from deployments", n, added)
 
 
+# ---------------------------------------------------------------- site pairings and sync (Release 6.5, D749)
+@app.periodic(cron="* * * * *")
+@app.task(name="eax.sync_tick", queue="default", queueing_lock="sync_tick", lock="sync_tick")
+def sync_tick(timestamp: int) -> None:
+    """Every minute, on both sides of every pairing: Site 1 asks Site 2 whether a waiting pairing was accepted and what
+    became of its batches, queues what changed for the pairings sending by themselves, and sends what is queued, in
+    order; Site 2 commits the batches its pairings commit by themselves, one at a time and in order."""
+    from . import pairing as sp
+    with get_engine().begin() as core:
+        if not core.execute(text("SELECT 1 FROM core.site_pairings WHERE status IN ('waiting', 'accepted') LIMIT 1")).first():
+            return
+        said = sp.check_peers(core)
+        due = sp.due_for_auto(core)
+    for ident in due:
+        try:
+            with get_engine().begin() as core, get_projects_engine().begin() as pc:
+                said.append(sp.enqueue(core, pc, ident, "sync", only_changed=True)["say"])
+        except Exception as exc:  # noqa: BLE001 - one pairing does not stop the others
+            log.warning("sync: queueing %s failed: %s", ident, exc)
+    with get_engine().begin() as core:
+        said += sp.send_queued(core)
+    with get_engine().connect() as core:
+        waiting = sp.next_to_commit(core)
+    for ident in waiting[:5]:
+        _commit(ident, "sync")
+    if said:
+        log.info("sync: %s", "; ".join(said)[:2000])
+
+
+def _commit(batch: str, by: str) -> None:
+    from . import pairing as sp
+    try:
+        with get_engine().begin() as core, get_projects_engine().begin() as pc:
+            out = sp.commit(core, pc, batch, by)
+        log.info("sync: batch %s %s (%s done, %s not)", batch, out["status"], len(out["done"]), len(out["failed"]))
+    except Exception as exc:  # noqa: BLE001 - the batch is marked failed, its error kept
+        log.warning("sync: committing %s failed: %s", batch, exc)
+        with get_engine().begin() as core:
+            core.execute(text("UPDATE core.sync_batches SET status = 'failed', error = :e WHERE guid = CAST(:g AS uuid)"),
+                         {"e": str(exc)[:2000], "g": batch})
+
+
+@app.task(name="eax.sync_enqueue", queue="default")
+def sync_enqueue(pairing: str, by: str, scope: dict | None = None) -> None:
+    """Sync now (a Super Admin on the sending site): the pairing's batches made and queued; the minute job sends them."""
+    from . import pairing as sp
+    with get_engine().begin() as core, get_projects_engine().begin() as pc:
+        log.info("sync: %s", sp.enqueue(core, pc, pairing, by, scope=scope)["say"])
+
+
+@app.task(name="eax.sync_commit", queue="default")
+def sync_commit(batch: str, by: str) -> None:
+    """A batch received here committed by a Super Admin (the pairing commits by hand)."""
+    _commit(batch, by)
+
+
 # ---------------------------------------------------------------- backups (phase 8.4, D216, D222)
 @app.periodic(cron="* * * * *")
 @app.task(name="eax.announce_restores", queue="default", queueing_lock="announce_restores", lock="announce_restores")

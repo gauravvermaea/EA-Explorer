@@ -88,7 +88,10 @@ def test_every_service_with_a_database_is_in_the_backup():
     assert elsewhere == {"LIBRARY", "VIEWS", "SUPERSET"}
     # the backup container reads every database's setting (env_file, R2.50) and servers.sh finds those on their own
     # servers: the services' by host, EA Explorer's own by connection string
-    assert services["backup"].get("env_file") == "work/eaexplorer.env"
+    # (its settings from work/config.env; the connection strings, which hold passwords, as files of their own, R6-F1)
+    assert services["backup"].get("env_file", "").startswith("work/config.env")
+    for kind in ("CHANGELOG", "PROJECTS", "TESTS", "OPERATIONS", "PERSONAL", "LIBRARY_MODELS", "ARCHIVE", "FILES", "FARM"):
+        assert f"EAX_{kind}_DB_URL" in services["backup"]["secrets"], kind
     servers = (REPO / "services" / "backup" / "servers.sh").read_text()
     for kind in elsewhere | {"KEYCLOAK", "MAYAN"}:
         assert re.search(rf'"{kind} [^"]*"', servers), kind

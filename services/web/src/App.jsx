@@ -61,6 +61,7 @@ export default function App() {
   const [build, setBuild] = useState(null);      // its build: commit or CI number, when, channel (R2.47)
   const [, setFormatsReady] = useState(0);        // re-render once the installation's formats are in
   const [maintenance, setMaintenance] = useState(null);   // a restore is running: read only (D216)
+  const [site, setSite] = useState({ purpose: null, dr: null });   // the site's purpose label and a DR copy (Release 6.5, D749)
   // a self-test in progress (R2.51, D609): who signs in meanwhile waits (testAtSignIn); those already in see a banner
   const [testRun, setTestRun] = useState(null);
   const [testAtSignIn, setTestAtSignIn] = useState(null);   // null: not known yet; true: it was running when they came
@@ -70,6 +71,7 @@ export default function App() {
     if (!signedIn) return undefined;
     const beat = () => apiFetch("/api/v1/heartbeat").then((b) => {
       setVersion(b.version); setBuild({ build: b.build, built_at: b.built_at, commit: b.commit, channel: b.channel }); setMaintenance(b.maintenance || null); setTestRun(b.test_in_progress || null);
+      setSite({ purpose: b.site_purpose || null, dr: b.dr_copy || null });
       setTestAtSignIn((was) => (was === null ? !!b.test_in_progress : was && !!b.test_in_progress));
     }).catch(() => {});
     beat();
@@ -130,6 +132,7 @@ export default function App() {
         <MenuBar route={route} place="left" label="Sites" />
         <BrandMark />
         {version && <VersionTag version={version} build={build} />}
+        {site.purpose && <span className={`site-purpose site-purpose-${site.purpose.toLowerCase()}`} title="This site's purpose (System Admin › System settings): a label only">{site.purpose}</span>}
         <span className="tm-break" aria-hidden="true" /><TopMenu route={route} />
         <TopSearch find />
         <div className="switchers">
@@ -161,6 +164,8 @@ export default function App() {
         {testExempt ? " Meanwhile only the Self-test page is open, so the test is not disturbed." : " You can keep reading; changes wait until it ends."}</div>}
       {maintenance && <div className="break-glass-banner">EA Explorer is read only: {maintenance.what || "a restore is running"} (started by {maintenance.by}).
         Nothing can be changed until it is done; you will be asked to sign in again.</div>}
+      {site.dr && <div className="break-glass-banner">This site is a DR copy of {site.dr.from}: read only, kept up to date by DR sync
+        {site.dr.last ? ` (last batch ${String(site.dr.last).slice(0, 16).replace("T", " ")})` : ""}. To work here, a Super Admin stops the pairing on System Admin › Site pairings.</div>}
       {signedIn && !isBreakGlass() && <UpdateNotice />}
       {signedIn && <AdminBanner />}
       {signedIn && <ContainerAlertBanner />}

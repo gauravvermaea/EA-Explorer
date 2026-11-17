@@ -60,7 +60,7 @@ _RULES: list[tuple[str, str]] = [
     (r"^/mcp(/|$)", "mcp"),
     (r"^/api/v1/change-log(/|$)", "change_log"),
     (r"^/api/v1/(admin|audit|sql|jobs|keycloak-roles|role-mappings|roles|settings|startup|internal|machine-access|"
-     r"operations|break-glass)(/|$)", "administration"),
+     r"operations|break-glass|pairings|sync-batches)(/|$)", "administration"),
     (r"^/api/metrics$", "administration"),
     (r"^/api/v1/(reference-library|models/library|projects/library|projects/reference-sources)(/|$)", "library"),
     (r"^/api/v1/projects/[^/]+/(library|reference)(/|$)", "library"),

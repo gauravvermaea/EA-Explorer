@@ -1,5 +1,5 @@
 """Deployments started from System admin > Deploy (phase 36, D555 to D557): EA Explorer deploys itself to another place
-(a server over SSH, or AWS, Azure or DigitalOcean) with the eax deploy steps (eaxcli/deploy.py). The laptop kind and
+(a server over SSH, anywhere: no platform-specific code, D746) with the eax deploy steps (eaxcli/deploy.py). The laptop kind and
 "this machine is the server" are not offered here: this installation is already running.
 
   GET  /deploys                       the runs (newest first), the deployer image, the kept credentials (names only)
@@ -10,9 +10,9 @@
   POST /deploys/kept/<target>/forget  forget kept credentials
 
 A plan runs here (it runs nothing); a deployment runs in a short-lived **deployer** container (deploy/deployer: ssh,
-curl, git, aws, az, doctl), built from the release the first time, with only its run folder (work/deploys/<id>) and
+curl, git), built from the release the first time, with only its run folder (work/deploys/<id>) and
 the release's eaxcli and templates mounted. The run folder holds the state, so a page reload (or this helper
-restarting) loses nothing. Secrets (the SSH private key, cloud credentials) are files readable by root only, deleted
+restarting) loses nothing. Secrets (the SSH private key) are files readable by root only, deleted
 when the run ends, or, when the person asked, moved to work/deploy-keep/<target> (root only) to be used again;
 nothing ever sends them back. Bound to ops.py's helpers with bind(globals())."""
 
@@ -33,8 +33,7 @@ REPO = "/eax-repo"
 WORK = "/eax-work"
 RUNS = f"{WORK}/deploys"
 KEEP = f"{WORK}/deploy-keep"
-SECRET_FIELDS = ("aws_access_key_id", "aws_secret_access_key", "do_token", "spaces_key", "spaces_secret",
-                 "az_client_id", "az_client_secret", "az_tenant")
+SECRET_FIELDS: tuple[str, ...] = ()       # the SSH key is handled on its own; no cloud credentials (D746)
 _lock = threading.Lock()
 
 
@@ -73,7 +72,7 @@ def _owner_only(path: str, text: str) -> None:
 
 
 def target_of(answers: dict) -> str:
-    """The target's name: the address people open, else the SSH address, else the cloud and its name."""
+    """The target's name: the address people open, else the SSH address."""
     t = answers.get("hostname") or answers.get("ssh_target") or f"{answers.get('kind', '')}:{answers.get('name', '')}"
     return re.sub(r"[^A-Za-z0-9@._:-]", "-", str(t))[:120]
 
@@ -118,7 +117,7 @@ def offered(answers: dict) -> dict:
 def questions(answers: dict) -> dict:
     """The deployment questions for the answers so far."""
     D = _D()
-    a = {**_defaults(), **offered(answers), "aws_profile": ""}     # no AWS profiles here: an access key
+    a = {**_defaults(), **offered(answers)}
     merged = {**{q.key: q.default_for(a) for q in D.visible(a) if q.key not in a}, **a}
     qs = []
     for q in D.visible(merged):
@@ -132,8 +131,6 @@ def questions(answers: dict) -> dict:
         if q.key == "ssh_key":
             d.update(text="SSH private key (paste it or choose the file; used for this deployment only unless kept)",
                      kind="key", default="", help="An OpenSSH private key without a passphrase. Never shown again.")
-        if q.key == "aws_profile":
-            continue                                      # no AWS profiles here: an access key
         if q.key == "tls_dir":
             continue                                      # an own certificate is put in place after (deployment.md)
         if q.key == "move_from":
@@ -159,7 +156,6 @@ def _split(answers: dict, given_secrets: dict) -> tuple[dict, dict]:
         if k in SECRET_FIELDS and v:
             s[k] = str(v)
     a.pop("ssh_key", None)
-    a["aws_profile"] = ""
     if a.get("tls") == "own":
         a["tls"] = "self-signed"
     a["move_from"] = "empty"
@@ -261,8 +257,8 @@ def _start_deployer(run_id: str, folder: str) -> None:
         try:
             if not image_present(image):
                 with open(f"{folder}/log.txt", "a", encoding="utf-8") as f:
-                    f.write("Building the deployer image the first time (ssh and the cloud command-line tools; "
-                            "5 to 10 minutes)...\n")
+                    f.write("Building the deployer image the first time (ssh, curl and git; "
+                            "a minute or two)...\n")
                 subprocess.run(["docker", "build", "-t", image, f"{REPO}/deploy/deployer"], check=True,
                                capture_output=True, text=True, timeout=3600)
             install = _host_install()

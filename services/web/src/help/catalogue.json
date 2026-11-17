@@ -4049,5 +4049,18 @@
   "field:Font family name": "The name a theme uses for the font, e.g. Meridian Sans; the same name for its bold and italic files.",
   "field:Font style": "Upright or italic: which file of the family this is.",
   "field:Font weight": "Regular or bold: which file of the family this is.",
-  "button:Upload the font": "Keeps the font file; then choose it in the theme designer."
+  "button:Upload the font": "Keeps the font file; then choose it in the theme designer.",
+  "tab:Secrets": {
+    "title": "Secrets",
+    "what": "Every password, key and certificate EA Explorer uses, by name: their values are never shown. How each changes (by itself, or by a person), when it last changed, when it is next due, and what needs a person and by when (R6-S1).",
+    "how": [
+      "Read the yellow box first: what needs a person, and why (for example the mail server's password, changed on the mail server first).",
+      "Rotate now changes one at once: a database login in the database too, a sign-in client's secret in Keycloak too; the services that use it start again in a few seconds.",
+      "Certificates (certificate mode) renew by themselves; the authority itself is changed only with eax certs on the machine."
+    ],
+    "example": "Rotate every one that is due now, then watch the run on System Admin › Commands."
+  },
+  "button:Rotate now": "A new value for this password or key, now: changed where it is also kept (the database, Keycloak) and in the config file; the services that use it start again in a few seconds (R6-R1).",
+  "button:Rotate every one that is due now": "Every password and key that rotates by itself and is due, now, instead of waiting for tonight's schedule (03:17); what needs a person is listed, not rotated.",
+  "button:Renew now": "A new certificate for this service now, from EA Explorer's own authority (R6-C1); to refuse an old one at once, eax certs revoke on the machine."
 }

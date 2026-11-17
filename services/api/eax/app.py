@@ -103,6 +103,10 @@ def create_app(testing: bool = False) -> Flask:
     from .api.machine_access import blp as machine_access_blp
     from .api.operations import blp as operations_blp
     api.register_blueprint(machine_access_blp)
+    from .api.pairing import (
+        blp as pairing_blp,  # site pairings and sync, git for packages (Release 6.5, D749)
+    )
+    api.register_blueprint(pairing_blp)
     api.register_blueprint(operations_blp)
     api.register_blueprint(archive_blp)               # archived and deleted models (R2.41)
     from .api.decisions import blp as decisions_blp  # decision records and dispensations (R5.5.1)
@@ -243,6 +247,16 @@ def create_app(testing: bool = False) -> Flask:
         if m:
             return {"message": f"EA Explorer is read only while {m.get('what') or 'a restore runs'} (started by {m.get('by') or '?'} "
                                f"at {m.get('since') or '?'}): nothing can be changed until it is done.", "maintenance": m}, 503
+        return None
+
+    @app.before_request
+    def _dr_copy():
+        """A DR copy (Release 6.5, D749) is read only while its DR pairing holds: every change is refused with why;
+        the sync itself and the pairings page stay open (a Super Admin stops the pairing to take over)."""
+        from . import pairing
+        why = pairing.refused_on_dr(request.method, request.path)
+        if why:
+            return {"message": why, "dr_copy": pairing.dr_copy()}, 503
         return None
 
     @app.after_request

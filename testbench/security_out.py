@@ -1,7 +1,7 @@
 """The security suite from outside (D581): the self-test's own checks (eax/testing/security.py), run from this machine:
 
   * the front door's headers and the sign-in page's cookies, at the public address (security.front_door);
-  * the key vault (security.key_vault): skipped here, the operations helper answers inside only;
+  * the secrets check (security.secret_files): skipped here, the operations helper answers inside only;
   * pip-audit of the API's requirements, from this checkout (security.python_dependencies; needs pip-audit and internet);
   * an OWASP ZAP baseline scan of the target, when Docker is here (read by security.read_zap);
   * Trivy scans of EA Explorer's images, when trivy and the images are here (read by security.read_trivy).
@@ -24,8 +24,8 @@ def run(run, target: str, version: str, zap: bool = True, trivy: bool = True) ->
     rec = run.recorder("security")
     run.log("security: headers and cookies at the front door")
     security.front_door(rec)
-    # the key vault (security.key_vault, R4.19) is asked of the operations helper, on the inside network only
-    rec("key vault", "skipped", "inside only: the operations helper answers on the installation's own network", 0)
+    # the secrets check (security.secret_files, R6-F1) is asked of the operations helper, on the inside network only
+    rec("secrets: none in a container's environment", "skipped", "inside only: the operations helper answers on the installation's own network", 0)
     req = shared.API_SRC / "requirements.txt"
     real_path = security.Path
     try:                                       # the shared check reads /app/requirements.txt (inside the runner)

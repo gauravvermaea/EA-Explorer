@@ -67,7 +67,7 @@ def test_anything_else_is_refused(line):
 def test_the_guided_form_builds_and_checks_the_command():
     assert C.build_argv("restore", {"arg0": "latest", "--what": "db", "--yes": True}) == ["restore", "latest", "--what", "db", "--yes"]
     assert C.build_argv("up", {"arg0": "api proxy", "--wait-all": True}) == ["up", "api", "proxy", "--wait-all"]
-    assert C.build_argv("secrets", {"arg0": "push", "--to": "aws:eax", "--to:flag": "--to"}) == ["secrets", "push", "--to", "aws:eax"]
+    assert C.build_argv("secrets", {"arg0": "push", "--to": "file:/etc/eax.env", "--to:flag": "--to"}) == ["secrets", "push", "--to", "file:/etc/eax.env"]
     with pytest.raises(C.Refused):
         C.build_argv("service", {"arg0": "reports"})                 # on|off is needed
     with pytest.raises(C.Refused):

@@ -98,7 +98,7 @@ function QueryTab({ tab, update, login, names, keep, setKeep }) {
   }
   async function call(kind, extra = {}) {
     const sql = picked();
-    if (kind === "run" && keep && !window.confirm(`Keep the changes? The statements are committed to ${login.database} as ${login.username}; ` // eslint-disable-line no-alert
+    if (kind === "run" && keep && !window.confirm(`Keep the changes? The statements are committed to ${login.database}${login.username ? ` as ${login.username}` : ""}; ` // eslint-disable-line no-alert
       + "this cannot be undone here. The run is recorded in the audit trail.")) return;
     setBusy(kind); update({ error: null });
     try {
@@ -302,7 +302,10 @@ function Properties({ pick, database, about }) {
 }
 
 export default function Sql() {
+  // password mode: a database user and password are typed, the user filled in as before Release 6 (D752);
+  // certificate mode: none, the window signs in with its own login for the person's role (D742)
   const [login, setLogin] = useState({ database: "eaexplorer", username: "eax_app", password: "" });
+  const [typed, setTyped] = useState(true);
   const [dbAbout, setDbAbout] = useState({});    // what each database is for (owner, 13 Nov 2026)
   const [dbs, setDbs] = useState([]);
   const [tree, setTree] = useState(null);
@@ -317,6 +320,9 @@ export default function Sql() {
     apiFetch("/api/v1/sql/databases").then((d) => {
       setDbs(d.databases || []);
       setDbAbout(d.about || {});
+      setTyped(d.typed !== false);
+      if (d.typed === false) setLogin((l) => ({ database: l.database }));
+      else if (d.username) setLogin((l) => ({ ...l, username: l.username || d.username }));
       if (d.databases?.length && !d.databases.includes(login.database)) setLogin((l) => ({ ...l, database: d.databases[0] }));
     }).catch(() => setDbs([]));
   }, []);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -374,12 +380,20 @@ export default function Sql() {
   return (
     <section className="sql">
       <h1>SQL</h1>
-      <p className="quiet">
-        Works on this installation's PostgreSQL with a database login
-        {config.deployment === "laptop" && <> (laptop: user <code>eax_app</code> or <code>postgres</code>, password <code>P^55w0rd1234&amp;</code>)</>}:
-        what that login may see and do decides the rest. A run is rolled back unless you tick <b>Keep the changes</b>; browsing,
-        a table's rows, plans and exports never change anything. Every run is in the audit trail.
-      </p>
+      {typed ? (
+        <p className="quiet">
+          Works on this installation's PostgreSQL with a database login
+          {config.deployment === "laptop" && <> (laptop: user <code>eax_app</code> or <code>postgres</code>, password <code>P^55w0rd1234&amp;</code>)</>}:
+          what that login may see and do decides the rest. A run is rolled back unless you tick <b>Keep the changes</b>; browsing,
+          a table's rows, plans and exports never change anything. Every run is in the audit trail.
+        </p>
+      ) : (
+        <p className="quiet">
+          Works on this installation's PostgreSQL, signed in by your EA Explorer role: no database password is typed. As a
+          Super Admin you read and may write; as an IT Admin you read. A run is rolled back unless you tick <b>Keep the changes</b>; browsing,
+          a table's rows, plans and exports never change anything. Every run is in the audit trail.
+        </p>
+      )}
       <div className="sql-login">
         {dbs.length ? (
           <label>Database
@@ -388,9 +402,9 @@ export default function Sql() {
             </select>
           </label>
         ) : field("database", "Database")}
-        {field("username", "User")}
-        {field("password", "Password", "password")}
-        <button onClick={connect} disabled={!login.password}>Connect</button>
+        {typed && field("username", "User")}
+        {typed && field("password", "Password", "password")}
+        <button onClick={connect} disabled={typed && !login.password}>Connect</button>
       </div>
       {treeErr && <p className="status bad">{treeErr}</p>}
       <div className="sql-workspace">

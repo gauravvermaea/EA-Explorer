@@ -17,6 +17,7 @@ import { fmtDateTime } from "./fmt";
 import { runTask, startDownload, trackTask, useTask } from "./tasks";
 import { IconPicker, saveIcon } from "./ModelIcon";
 import { isRetiredModel, liveModels } from "./ModelMarks";
+import { GitFields, GitPicker, gitPush, gitReady, useGitPlace } from "./GitPlace";
 
 const go = (path) => { window.location.hash = path; };
 const post = (path, body, method = "POST") => apiFetch(path, { method, body: body === undefined ? undefined : JSON.stringify(body) });
@@ -260,11 +261,20 @@ const CONTENT_LEVELS = [
 
 export function DownloadDialog({ m, onClose }) {
   const [format, setFormat] = useState("xlsx");
+  const [where, setWhere] = useState("here");          // this computer, or a git repository (Release 6.5, D753)
+  const [git, setGit] = useGitPlace();
+  const [pushed, setPushed] = useState("");
   const [content, setContent] = useState(m.kind === "template" ? "metamodel" : "content");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   async function get() {
     setBusy(true); setError("");
+    if (where === "git") {
+      try { const r = await gitPush(git, { source: "model", model: m.id, format, content }); setPushed(`Put on ${r.repository} (${r.branch}): ${r.pushed}`); }
+      catch (e) { setError(e.message); }
+      setBusy(false);
+      return;
+    }
     try {
       // D273: made in the background; downloaded when ready (also from the Tasks tab on the right for 24 hours)
       await startDownload(`/api/v1/models/${m.id}/package?format=${format}&content=${content}`, undefined, `#/metamodel/${m.id}`);
@@ -273,7 +283,7 @@ export function DownloadDialog({ m, onClose }) {
   }
   return (
     <Modal title={`Download ${m.name}`} onClose={onClose}
-      actions={<><button onClick={onClose}>Cancel</button><button className="primary" disabled={busy} onClick={get}>{busy ? "Starting..." : "Download"}</button></>}>
+      actions={<><button onClick={onClose}>Cancel</button><button className="primary" disabled={busy || (where === "git" && !gitReady(git))} onClick={get}>{busy ? "Starting..." : where === "git" ? "Put it on git" : "Download"}</button></>}>
       <div className="ed-form">
         <Field label="Format" tip="Both upload again, here or in another EA Explorer. Excel is easiest to read and change; the zip holds JSON and CSV files.">
           <div className="seg small">
@@ -296,6 +306,14 @@ export function DownloadDialog({ m, onClose }) {
         </Field>
         {content === "history" && format === "xlsx" && <p className="quiet small-note">Sheets Metamodel versions, Metamodel changes and Change history are
           for reading; History data is what an upload loads again (leave it as it is).</p>}
+        <Field label="Where" tip="To this computer, or to a git repository on any git server (another site takes it from there with Upload).">
+          <div className="seg small">
+            <button type="button" className={where === "here" ? "on" : ""} onClick={() => setWhere("here")}>This computer</button>
+            <button type="button" className={where === "git" ? "on" : ""} onClick={() => setWhere("git")}>A git repository</button>
+          </div>
+        </Field>
+        {where === "git" && <GitFields g={git} set={setGit} />}
+        {pushed && <p className="status ok">{pushed}</p>}
         {error && <p className="status bad">{error}</p>}
       </div>
     </Modal>
@@ -391,6 +409,11 @@ export function UploadWizard({ onClose }) {
           tip="The package is read and checked first; nothing is uploaded until you press Upload.">
           <input type="file" accept=".zip,.xlsx" onChange={(e) => analyse(e.target.files?.[0] || null)} />
         </Field>
+        {!info && (
+          <details className="git-from">
+            <summary>Or take it from a git repository</summary>
+            <GitPicker onFile={(f) => analyse(f)} />
+          </details>)}
         {busy && !info && <p>Reading the package...</p>}
         {info && (
           <>

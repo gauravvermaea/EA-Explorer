@@ -115,6 +115,10 @@ REGISTRY: dict[str, tuple] = {
                  "off: nobody is asked (anyone may still add an authenticator app to their own account). admins: the "
                  "Super, IT, User and Keycloak Admins and the Auditors set up a code at their next sign-in. everyone: "
                  "every person does. Codes come from an authenticator app (TOTP)."),
+    # the site's purpose (Release 6.5, D749; owner, 17 Nov 2026: "site purpose: a label only, PROD by default")
+    "site_purpose": ("system", "Site purpose", "choice", "PROD", ["PROD", "PRE-PROD", "UAT", "TEST", "DEV", "DR", "TRAINING"],
+                     "A label shown at the top of every screen, so people know which site they are on. Nothing behaves "
+                     "differently."),
     # the parts of EA Explorer an organisation uses (owner, 8 Nov 2026, phase 13.3, D329): off hides a part's screens, menus,
     # API, MCP tools and background work; its data is kept and comes back when it is switched on again
     "part_projects": ("system", "Projects", "bool", True, None,

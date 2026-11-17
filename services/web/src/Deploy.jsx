@@ -1,9 +1,9 @@
 // System admin › Deploy (phase 36, D555 to D557): for Super Admins and IT Admins. EA Explorer deploys itself from
-// this installation to another place: a server over SSH (Docker installed if missing), or AWS, Azure or DigitalOcean
-// (the machine created, or one that exists). The same steps as eax deploy, run by the operations helper, so a reload
+// this installation to another server, reached over SSH wherever it runs (Docker installed if missing; no
+// platform-specific code, D746). The same steps as eax deploy, run by the operations helper, so a reload
 // loses nothing.
-//   choose the target: the same questions as eax deploy (without the laptop), the SSH key pasted or chosen as a file,
-//     the cloud credentials (for this run only unless kept; never shown again)
+//   choose the target: the same questions as eax deploy (without the laptop), the SSH key pasted or chosen as a file
+//     (for this run only unless kept; never shown again)
 //   Show the plan (runs nothing) first, then Deploy
 //   the run: its steps, Retry / Back / Quit on a failed step, the log
 //   the history of targets and of every deployment; kept credentials (names only) can be forgotten
@@ -174,8 +174,8 @@ export default function Deploy() {
   const data = ov.data || {};
   return (
     <div className="deploy-page">
-      <p className="quiet">Deploy EA Explorer from here to <strong>another place</strong>: a server reached over SSH (Docker is installed if
-        it is missing), or a machine in AWS, Azure or DigitalOcean, created from your credentials or one you already have. The same
+      <p className="quiet">Deploy EA Explorer from here to <strong>another server</strong>, reached over SSH (Docker is installed if
+        it is missing), wherever it runs: your own machine or one you have in any cloud. The same
         steps as <code>eax deploy</code>; see the plan first. This installation is not changed. (Managing many installations
         together comes in release 2.)</p>
       <p className="small">How big should the server be? <a href="#/admin/sizing">Estimate its RAM, CPU and disk</a> first (System Admin › Sizing,
@@ -187,7 +187,7 @@ export default function Deploy() {
           {qs.map((q) => <Question key={q.key} q={q} value={answers[q.key] ?? q.default} onChange={(v) => set(q.key, v)} />)}
           <div className="deploy-q">
             <label htmlFor="dq-ssh-key"><strong>SSH private key</strong></label>
-            <p className="quiet small">The target is reached over SSH with this key (for a machine created here, its public key is put on it).
+            <p className="quiet small">The target is reached over SSH with this key (the server must already have its public half).
               Paste it or choose the file. It goes to the operations helper for this deployment only and is never shown again.</p>
             <textarea id="dq-ssh-key" rows={4} value={key} onChange={(e) => setKey(e.target.value)} spellCheck={false}
               placeholder="-----BEGIN OPENSSH PRIVATE KEY-----" autoComplete="off" className="deploy-key" />
@@ -202,8 +202,7 @@ export default function Deploy() {
               </select>
             </div>
           )}
-          <label className="deploy-choice"><input type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} /> Keep the SSH key and
-            the cloud credentials for this target, for the next deployment (kept by the operations helper, readable by it only, never shown again)</label>
+          <label className="deploy-choice"><input type="checkbox" checked={keep} onChange={(e) => setKeep(e.target.checked)} /> Keep the SSH key for this target, for the next deployment (kept by the operations helper, readable by it only, never shown again)</label>
           {error && <p className="status bad" role="alert">{error}</p>}
           <div className="toolbar">
             <button disabled={busy} onClick={() => start(true)}>Show the plan (runs nothing)</button>

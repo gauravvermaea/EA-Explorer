@@ -21,7 +21,6 @@ import string
 import subprocess
 import sys
 import time
-from pathlib import Path
 
 import ops
 
@@ -157,45 +156,22 @@ def interactive(cid: str, *cmd: str, env: dict | None = None) -> int:
     return subprocess.run([*args, cid, *cmd], check=False).returncode
 
 
-def _vault():
-    """The key vault (R4.19, D684) from here: eaxcli/vault.py as mounted (/eax-repo/eaxcli), the keys in persist/
-    (/eax-persist), OpenBao on the backend network."""
-    if "/eax-repo" not in sys.path:
-        sys.path.insert(0, "/eax-repo")
-    from eaxcli import vault
-    return vault
-
-
-def _vault_client(text: str):
-    vault = _vault()
-    where_ = vault.where(text)
-    keys = vault.keys_path(Path("/"), os.environ.get("EAX_PERSIST_DIR", "/eax-persist"))
-    return vault, where_, vault.ready(keys, vault.url_for(inside=True), where_, None, wait=10)
-
-
 def config() -> dict[str, str]:
-    """The config file's values; those it holds as references to the key vault (R4.19), the vault's values."""
-    lines = ops._read_config()
-    values = ops._values(lines)
-    if _vault().ALLOWED and any(str(v).startswith("openbao:") for v in values.values()):
-        try:
-            vault, where_, c = _vault_client("\n".join(lines))
-            values.update(vault.resolve("\n".join(lines), c, where_))
-        except Exception as exc:  # noqa: BLE001 - shown; the rest of the console still works
-            say(f"  The key vault could not be read ({exc}): its values are not shown.")
-    return values
+    """The config file's values."""
+    return ops._values(ops._read_config())
 
 
 def set_secret(key: str, value: str, why: str) -> str:
-    """A password: into the key vault when the config file holds it as a reference (R4.19), else into the config file."""
-    lines = ops._read_config()
-    if _vault().ALLOWED and str(ops._values(lines).get(key, "")).startswith("openbao:"):
-        vault, where_, c = _vault_client("\n".join(lines))
-        held = c.read(where_)
-        held[vault.references("\n".join(lines))[key]] = value
-        c.write(where_, held)
-        return "the key vault"
-    return set_config(key, value, why)
+    """A password into the config file (its age noted for the Secrets tab, R6-S1)."""
+    where = set_config(key, value, why)
+    try:
+        if "/eax-repo" not in sys.path:
+            sys.path.insert(0, "/eax-repo")
+        from eaxcli import secretsrot
+        secretsrot.note_changed(key, "the console", why)
+    except Exception:  # noqa: BLE001 - the age is a convenience; the password is changed
+        pass
+    return where
 
 
 def set_config(key: str, value: str, why: str) -> str:

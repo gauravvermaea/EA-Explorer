@@ -26,7 +26,9 @@ restarts the system from the administration console. It talks to the Docker engi
                                 eax commands from a web page: the Command centre and the Console (D554; commandcentre.py)
   GET  /terminal/<ticket>       on port 8091 only, no token (the ticket is the key): the WebSocket of the terminal
   GET  /backups                 the infrastructure backups, the one running (progress), maintenance
-  GET  /vault                   the key vault's state (R4.19): unsealed, audit log, references, passwords left in clear
+  GET  /secrets-check           which containers hold a password or key in their environment (R6-F1): none should
+  GET  /secrets                 every password, key and certificate by name: ages, next due, what needs a person (R6-S1)
+  POST /secrets/rotate          {key | "--due", by}: rotate now, in the Command centre's runner (R6-R1)
   GET  /allow, /allow/refused   the IP allow lists and the refusals nginx logged;  POST /allow {lists, trusted, by}: save,
                                 write nginx's files, test them and reload the proxy (R5.2, D686; allowlist.py)
   POST /backups/backup          {tag, by, kind, version, pinned, keep}: an infrastructure backup now, in the background
@@ -92,7 +94,20 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-TOKEN = os.environ.get("EAX_OPS_TOKEN", "")
+
+def _secret(name: str) -> str:
+    """A password or key from its file (Docker secrets, R6-F1, D745), else the environment."""
+    try:
+        with open(f"/run/secrets/{name}", encoding="utf-8") as f:
+            v = f.read().strip("\r\n")
+        if v:
+            return v
+    except OSError:
+        pass
+    return os.environ.get(name, "")
+
+
+TOKEN = _secret("EAX_OPS_TOKEN")
 WORK = os.environ.get("EAX_WORK_MOUNT", "/eax-work")
 CONFIG = os.path.join(WORK, "eaexplorer.env")
 HISTORY = os.path.join(WORK, "config-history")
@@ -1349,7 +1364,7 @@ FILE_SETS = {   # file set: (named volume, what it is)
     "reports": ("eax-superset-home", "the reports' home (Superset's secret key and uploads; its dashboards are in its database)"),
     "imports": ("eax-imports", "the API's import folder (files uploaded to be imported)"),
     "exports": ("eax-exports", "the API's export folder (files made to be downloaded)"),
-    "persist": ("./persist", "the settings that survive resets: schedules, the banner and the key vault's keys "
+    "persist": ("./persist", "the settings that survive resets: schedules, the banner and the secrets' ages "
                              "(persist/, D558, R4.19; its safety-backups/ are left out, being backups themselves)"),
 }
 NOT_NEEDED = {  # named volume: why it is not in a backup
@@ -1357,6 +1372,8 @@ NOT_NEEDED = {  # named volume: why it is not in a backup
     "eax-rendered": "made again from the config file by the setup service at every start",
     "eax-kc-import": "the Keycloak realm, made again from the config file by the setup service at every start "
                      "(the people and roles are in Keycloak's database)",
+    "eax-certs": "certificate mode's authority and certificates (R6-C1): never in a backup or a DR pack, so a stolen "
+                 "backup holds no way in; a restored or DR copy makes its own at its first start (R6-D1)",
 }
 RESTORE_WHAT = {   # what a restore puts back: config file, databases (None: every one), file sets
     "full": {"config": True, "dbs": None, "files": ["documents", "tls", "reports", "imports", "exports", "persist"],
@@ -2074,6 +2091,8 @@ def _restore_steps(name: str, what: str, by: str, version: str, force: bool, rec
                     last = line
             if proc.wait() != 0:
                 raise RuntimeError(last or "restore.sh failed")
+            if dbs is None or dbs:
+                reset_db_passwords(lambda m: rlog(rec, m))
         if "tls" in files:
             px = _container("proxy")
             if px and px["state"] == "running":
@@ -2090,7 +2109,6 @@ def _restore_steps(name: str, what: str, by: str, version: str, force: bool, rec
                 docker("start", c["id"], timeout=180)
             except Exception as exc:  # noqa: BLE001
                 rlog(rec, f"{c['service']} did not start: {exc}")
-        unseal_vault(lambda m: rlog(rec, m))        # the key vault starts sealed: unsealed as eax up would (R4.19)
         if "keycloak" not in {c["service"] for c in stopped}:   # everyone signs in again after a restore
             k = _container("keycloak")
             if k and k["state"] == "running":
@@ -2105,67 +2123,111 @@ def _restore_steps(name: str, what: str, by: str, version: str, force: bool, rec
     return result
 
 
-def unseal_vault(say=lambda _m: None) -> bool:
-    """The key vault (OpenBao, R4.19) unsealed with the key in persist/ when it runs sealed (after a restore or a
-    restart): the containers have their values already, but eax secrets and the console read it. False when there is
-    no vault or it could not be unsealed (said)."""
-    c = _container("openbao")
-    if not c or c["state"] != "running":       # none: OpenBao is switched off (D684) and not in docker-compose.yml
-        return False
-    try:
-        if "/eax-repo" not in sys.path:
-            sys.path.insert(0, "/eax-repo")
-        from eaxcli import vault
-        text = "\n".join(_read_config())
-        where_ = vault.where(text) or vault.DEFAULT_WHERE
-        from pathlib import Path
-        keys = vault.keys_path(Path("/"), os.environ.get("EAX_PERSIST_DIR", "/eax-persist"))
-        vault.ready(keys, vault.url_for(inside=True), where_, None, wait=60)
-        say("the key vault is unsealed")
-        return True
-    except Exception as exc:  # noqa: BLE001 - said; eax up unseals it too
-        say(f"the key vault could not be unsealed ({exc}): eax up does it")
-        return False
+DB_LOGINS = {"EAX_DB_SUPERUSER_PASSWORD": "postgres", "EAX_DB_PASSWORD": "eax_app", "EAX_DB_REPORT_PASSWORD": "eax_report",
+             "EAX_DB_MIGRATOR_PASSWORD": "eax_migrator", "EAX_KEYCLOAK_DB_PASSWORD": "keycloak",
+             "EAX_SUPERSET_DB_PASSWORD": "superset", "EAX_MAYAN_DB_PASSWORD": "mayan", "EAX_LIBRARY_DB_PASSWORD": "eax_library",
+             "EAX_VIEWS_DB_PASSWORD": "eax_views", "EAX_REPLICATION_PASSWORD": "eax_replicator",
+             "EAX_CONSOLE_IT_PASSWORD": "eax_console_it", "EAX_CONSOLE_SUPER_PASSWORD": "eax_console_super"}   # eaxcli/secrets.py's
 
 
-def vault_report() -> dict:
-    """The key vault's state for the self-test (R4.19): used or not, unsealed, its audit log on, every reference with a
-    value, the passwords still in the config file in clear, and the containers that hold one in their environment."""
-    lines = _read_config()
-    text = "\n".join(lines)
+def reset_db_passwords(say=lambda _m: None) -> list[str]:
+    """After every restore of the databases and every DR (R6-D1; owner, 17 Nov 2026, 18:47: "I like every DR resets
+    password"): each database login's password set to the config file in use, so a backup from before a rotation
+    restores and every service still signs in. Inside the db container as postgres (its own socket, no password);
+    each statement on psql's input, never a command line. Logins the database does not have are passed over."""
+    values = _values(_read_config())
+    db = _container("db")
+    if not db or db["state"] != "running":
+        say("the database passwords were not reset: the database is not running")
+        return []
+    done = []
+    for key, login in DB_LOGINS.items():
+        v = values.get(key, "")
+        if not v:
+            continue
+        q = v.replace("'", "''")
+        sql = (f"DO $$BEGIN IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '{login}') THEN "
+               f"EXECUTE format('ALTER ROLE %I PASSWORD %L', '{login}', '{q}'); END IF; END$$;\n")
+        p = subprocess.run(["docker", "exec", "-i", db["id"], "psql", "-q", "-v", "ON_ERROR_STOP=1", "-U", "postgres", "-d", "postgres"],
+                           input=sql, capture_output=True, text=True, timeout=60)
+        if p.returncode == 0:
+            done.append(login)
+        else:
+            say(f"the password of {login} could not be reset: {(p.stderr or p.stdout).strip()[-200:]}")
+    say(f"database passwords set to the config file in use (R6-D1): {', '.join(done) or 'none'}")
+    return done
+
+
+def secret_keys() -> list[str]:
+    """The passwords and keys (eaxcli/core.py secret_keys: the server template's change-me values and the few more)."""
     if "/eax-repo" not in sys.path:
         sys.path.insert(0, "/eax-repo")
-    from eaxcli import vault
-    where_ = vault.where(text)
-    if not where_:
-        return {"used": False}
     from pathlib import Path
     template = Path("/eax-repo/deploy/templates/eaexplorer.server.env").read_text(encoding="utf-8")
-    keys = re.findall(r"^([A-Z0-9_]+)=change-me", template, re.MULTILINE)
-    values = _values(lines)
-    out = {"used": True, "where": where_, "clear": sorted(k for k in keys if values.get(k) and not vault.is_reference(values[k])),
-           "references": len(vault.references(text))}
+    keys = set(re.findall(r"^([A-Z0-9_]+)=change-me", template, re.MULTILINE))
     try:
-        c = vault.ready(vault.keys_path(Path("/"), os.environ.get("EAX_PERSIST_DIR", "/eax-persist")),
-                        vault.url_for(inside=True), where_, None, wait=10)
-        held = c.read(where_)
-        out.update(unsealed=True, audit=c.audited,
-                   missing=sorted(k for k, n in vault.references(text).items() if n not in held))
-        secret = {v for v in held.values() if len(v) >= 8}
-        found = []
-        for ctr in containers():
-            if ctr["state"] != "running":
-                continue
-            try:
-                env = json.loads(docker("inspect", "--format", "{{json .Config.Env}}", ctr["id"], timeout=30)) or []
-            except Exception:  # noqa: BLE001 - gone since listed
-                continue
-            if any(e.partition("=")[2] in secret for e in env):
-                found.append(ctr["service"])
-        out["in_environment"] = sorted(set(found))
-    except Exception as exc:  # noqa: BLE001 - said in the answer
-        out.update(unsealed=False, error=str(exc)[:300])
+        from eaxcli.core import EXTRA_SECRET_KEYS
+        keys |= set(EXTRA_SECRET_KEYS)
+    except Exception:  # noqa: BLE001 - the repository's eaxcli not mounted: the template's own
+        pass
+    return sorted(keys)
+
+
+def secrets_report() -> dict:
+    """For the self-test (R6-F1, D745): which running containers hold a password or key in their environment, by its
+    setting's name or by its value (docker inspect's Config.Env). None should: they reach the containers as files."""
+    keys = secret_keys()
+    values = _values(_read_config())
+    secret = {values[k] for k in keys if len(values.get(k) or "") >= 8}
+    found: dict[str, list[str]] = {}
+    for ctr in containers():
+        if ctr["state"] != "running":
+            continue
+        try:
+            env = json.loads(docker("inspect", "--format", "{{json .Config.Env}}", ctr["id"], timeout=30)) or []
+        except Exception:  # noqa: BLE001 - gone since listed
+            continue
+        for e in env:
+            name, _, value = e.partition("=")
+            if name in keys or value in secret or any(v in value for v in secret):
+                found.setdefault(ctr["service"], []).append(name)
+    return {"checked": len(keys), "in_environment": {k: sorted(set(v)) for k, v in sorted(found.items())}}
+
+
+def secrets_list() -> dict:
+    """The Secrets tab (R6-S1, D743): every password and key by name (never a value), how it is rotated, when it last
+    changed, when it is next due, and what needs a person; certificates too in certificate mode (R6-C1)."""
+    if "/eax-repo" not in sys.path:
+        sys.path.insert(0, "/eax-repo")
+    from pathlib import Path
+
+    from eaxcli import persist as P
+    from eaxcli import secretsrot as SR
+    values = _values(_read_config())
+    keys = secret_keys()
+    secrets_ = {k: values.get(k, "") for k in keys if k in values}
+    state = P.read_json(Path(os.environ.get("EAX_PERSIST_DIR", "/eax-persist")) / "secrets" / "state.json", {})[0]
+    days = int(values.get("EAX_ROTATE_PASSWORD_DAYS") or SR.DEFAULT_DAYS)
+    out = {"mode": values.get("EAX_AUTH_MODE", "password"), "days": days, "laptop": values.get("EAX_DEPLOYMENT", "laptop") == "laptop",
+           "rotate_on_laptop": values.get("EAX_ROTATE_ON_LAPTOP", "") == "on", "secrets": SR.rows(secrets_, state, days)}
+    try:
+        from eaxcli import certs as CE
+        out["certificates"] = CE.listing_from(state, values)
+    except Exception:  # noqa: BLE001 - certificate mode's part, when there is one
+        out["certificates"] = []
     return out
+
+
+def secrets_rotate(body: dict) -> dict:
+    """Rotate one secret, or every one that is due, now (the Secrets tab's button): `eax secrets rotate` in the Command
+    centre's runner, which changes the database or Keycloak too and makes the services that use it again."""
+    import commandcentre
+    key = str(body.get("key") or "")
+    by = str(body.get("by") or "console")
+    if key != "--due" and key not in secret_keys():
+        raise ValueError("No such password or key.")
+    run = commandcentre._launch(["secrets", "rotate", key, "--by", by], by, commandcentre._new_id("rotate"))
+    return {"run": run}
 
 
 def start_backup_job(action: str, **kw) -> dict:
@@ -2332,9 +2394,14 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, allowlist.refused(project()))
             except Exception as exc:  # noqa: BLE001
                 return self._send(500, {"message": str(exc)[:300]})
-        if self.path == "/vault":                       # the key vault's state, for the self-test (R4.19)
+        if self.path == "/secrets":                     # the Secrets tab (R6-S1): names, ages and what is due
             try:
-                return self._send(200, vault_report())
+                return self._send(200, secrets_list())
+            except Exception as exc:  # noqa: BLE001
+                return self._send(500, {"message": str(exc)[:300]})
+        if self.path == "/secrets-check":               # passwords left in a container's environment (R6-F1)
+            try:
+                return self._send(200, secrets_report())
             except Exception as exc:  # noqa: BLE001
                 return self._send(500, {"message": str(exc)[:300]})
         if self.path == "/servers":
@@ -2574,6 +2641,11 @@ class Handler(BaseHTTPRequestHandler):
             b = self._body()
             try:
                 return self._send(200, allowlist.apply(b, project(), str(b.get("by") or "console")))
+            except ValueError as exc:
+                return self._send(400, {"message": str(exc)})
+        if self.path == "/secrets/rotate":                                # the Secrets tab's Rotate now (R6-S1)
+            try:
+                return self._send(202, secrets_rotate(self._body()))
             except ValueError as exc:
                 return self._send(400, {"message": str(exc)})
         if self.path == "/alerts/test":                                   # the self-test's pretend stop (R2.19)
@@ -3096,6 +3168,7 @@ if __name__ == "__main__":
         print(f"ops: could not write the sample command runs ({exc})", flush=True)
     try:                                  # laptop sample data: schedules and a past banner in persist/ (D558, D559)
         commandcentre.seed_persist(_values(_read_config()).get("EAX_DEPLOYMENT", ""))
+        commandcentre.ensure_system_schedules()
     except OSError as exc:
         print(f"ops: could not write the sample schedules ({exc})", flush=True)
     threading.Thread(target=updates.scheduler, daemon=True).start()   # scheduled updates (D417)

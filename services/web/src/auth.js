@@ -182,6 +182,17 @@ async function authHeaders(extra = {}) {
 }
 
 // Upload a form (multipart, for example a package file) and read the JSON answer (phase 4)
+// A POST whose answer is a file, as a Blob (a package fetched from a git repository, Release 6.5)
+export async function apiBlob(path, body) {
+  const response = await fetch(path, { method: "POST", body: JSON.stringify(body || {}),
+    headers: await authHeaders({ "Content-Type": "application/json" }) });
+  if (!response.ok) {
+    const b = await response.json().catch(() => ({}));
+    throw new Error(b.message || `${response.status} ${response.statusText}`);
+  }
+  return response.blob();
+}
+
 export async function apiUpload(path, form) {
   const response = await fetch(path, { method: "POST", body: form, headers: await authHeaders() });
   const body = await response.json().catch(() => ({}));

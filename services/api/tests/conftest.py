@@ -39,3 +39,20 @@ def _no_github(monkeypatch):
     real = getattr(R, "_real_get_json", None) or R._get_json
     monkeypatch.setattr(R, "_real_get_json", real, raising=False)       # for the test of the reading itself
     monkeypatch.setattr(R, "_get_json", lambda url, timeout=20: list(FAKE_RELEASES) if "page=1" in url else [])
+
+
+# Certificate mode and password mode (R6-C1; owner, 17 Nov 2026, 21:07): a test marked certificate_mode runs only when
+# the installation uses certificates (EAX_AUTH_MODE=certificate), one marked password_mode only when it uses passwords;
+# otherwise it is skipped, saying why.
+def pytest_configure(config):
+    config.addinivalue_line("markers", "certificate_mode: runs only when EAX_AUTH_MODE=certificate, skipped otherwise")
+    config.addinivalue_line("markers", "password_mode: runs only when EAX_AUTH_MODE=password (the default), skipped otherwise")
+
+
+def pytest_collection_modifyitems(config, items):
+    mode = "certificate" if (os.environ.get("EAX_AUTH_MODE") or "").strip().lower() == "certificate" else "password"
+    for item in items:
+        if "certificate_mode" in item.keywords and mode != "certificate":
+            item.add_marker(pytest.mark.skip(reason="the installation uses passwords (EAX_AUTH_MODE): a certificate mode test"))
+        if "password_mode" in item.keywords and mode != "password":
+            item.add_marker(pytest.mark.skip(reason="the installation uses certificates (EAX_AUTH_MODE): a password mode test"))

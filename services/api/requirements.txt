@@ -24,3 +24,5 @@ pypdf>=6.21.4,<7     # the advisories pip-audit found in 5.9.0 (R2.24)
 defusedxml>=0.7,<0.8
 # code coverage of the API while the self-test runs (R2 coverage, D642): only when EAX_COVERAGE=on
 coverage>=7.6,<8
+# a git repository as one more place for packages (Release 6.5, D749): pure Python git, no git program in the image
+dulwich>=0.22,<1

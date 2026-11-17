@@ -112,10 +112,10 @@ def test_compose_gives_the_containers_the_folders_and_reports_its_own():
 def test_every_form_resolves_the_folders_before_containers_are_made():
     sh = (REPO / "eax.sh").read_text()
     ps = (REPO / "eax.ps1").read_text()
-    assert "up|run|create) vault_env || return 1; folders_env || return 1" in sh and '"$ROOT/eaxpy.sh" folders env' in sh
-    assert "Use-VaultEnv; Use-DataFolders" in ps and '"eaxpy.ps1") folders env' in ps
+    assert "up|run|create) folders_env || return 1" in sh and '"$ROOT/eaxpy.sh" folders env' in sh
+    assert '@("up", "run", "create") -contains $Arguments[0]) { Use-DataFolders }' in ps and '"eaxpy.ps1") folders env' in ps
     assert "folders_env()" in (REPO / "eaxcli/core.py").read_text().split("def compose_args")[1].split("def _compose_base")[0]
-    assert 'deploy|secrets|packs|schedule|persist|folders|' in sh and '"persist", "folders"' in ps
+    assert 'certs|deploy|secrets|packs|schedule|persist|folders|' in sh and '"persist", "folders"' in ps
     assert "### folders" in (REPO / "eaxcli/help.txt").read_text()
 
 
@@ -151,9 +151,10 @@ def test_init_server_asks_for_the_base_folder_in_every_form():
     assert "\nEAX_DATA_ROOT=/srv/eax\n" in tpl and "\nEAX_DATA_DIR=\n" in tpl
     assert "\nEAX_DATA_ROOT=\n" in (REPO / "deploy/templates/eaexplorer.laptop.env").read_text()
     assert "_ask_base_folder()" in (REPO / "eaxcli/main.py").read_text()
-    assert "Base folder for all the data" in (REPO / "eax.sh").read_text()
-    ps = (REPO / "eax.ps1").read_text()
-    assert ps.count("Set-BaseFolder") == 3 and "Folder for backups" not in ps
+    # every form's init is the Python one since Release 6 (R6-C1: it also asks certificate or password), so the
+    # question is asked in one place for all of them
+    assert '"init", "certs", "deploy"' in (REPO / "eax.ps1").read_text() and "Set-BaseFolder" not in (REPO / "eax.ps1").read_text()
+    assert 'init)\n    # R6-C1' in (REPO / "eax.sh").read_text() and 'exec "$BASH" ./eaxpy.sh "$@" ;;' in (REPO / "eax.sh").read_text()
 
 
 def test_init_server_writes_the_base_folder(tmp_path, monkeypatch):

@@ -48,7 +48,8 @@ WORDS = {
     "eax.record_terminal_ends": "Record closed terminals", "eax.reports_refresh": "Refresh the report views",
     "eax.resource_sample": "Measure memory, CPU and disk", "eax.security_weekly": "Weekly security test",
     "eax.servicedesk_overdue": "Remind about overdue requests", "eax.sites_health": "Check the other sites",
-    "eax.surveys": "Send survey reminders", "eax.task_files_cleanup": "Delete old task files",
+    "eax.surveys": "Send survey reminders", "eax.sync_tick": "Sync with the paired sites",
+    "eax.sync_enqueue": "Make the sync batches", "eax.sync_commit": "Commit a sync batch", "eax.task_files_cleanup": "Delete old task files",
     "eax.template_library_load": "Load the template library", "eax.test_results_cleanup": "Delete old test results",
     "eax.update_watch": "Look for updates",
 }

@@ -640,13 +640,16 @@ def _live(r: Run) -> dict:
 
 
 def _security_suite(r: Run, spec: dict, tokens: dict[str, str], ids: dict[str, str]) -> None:
-    """The security suite in the runner (R3.9, R5.17): the front door's headers and cookies, the key vault, the Python
+    """The security suite in the runner (R3.9, R5.17): the front door's headers and cookies, the passwords as files (R6-F1), certificate or password mode (R6-C1), the Python
     dependencies, the code and secrets scans, the attacks of Release 3 as tests, and the signed-in ZAP scan's scope
     (the operations helper runs ZAP and Trivy next; the gate is judged when it collects)."""
     rec = r.recorder("security")
     r.log("security: headers and cookies at the front door, Python dependencies")
     security.front_door(rec)
-    security.key_vault(rec)
+    security.secret_files(rec)
+    from . import auth_mode
+    r.log(f"security: how the services sign in to the database ({auth_mode.mode()} mode; the other mode's checks skipped)")
+    auth_mode.run(rec)
     security.python_dependencies(rec, security_gate.accepted())
     r.log("security: the code (static analysis), secrets committed by mistake, the dependencies' licences")
     codescan.run(Path("/app"), r.dir, rec)

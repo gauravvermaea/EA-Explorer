@@ -28,7 +28,7 @@ COVERED = {
     "smoke",                                                   # the whole smoke, with every check it holds
     "api_matrix.fetch_spec", "api_matrix.run", "api_writes.run",
     "db_checks.run", "db_checks.run_outside",
-    "security.front_door", "security.key_vault", "security.python_dependencies", "security.read_zap", "security.read_trivy",
+    "security.front_door", "security.secret_files", "security.python_dependencies", "security.read_zap", "security.read_trivy",
     "ui_journeys.run_all", "ui_flows.journeys", "ui_flows.run", "ui_pages.sweep", "ui_flows.skipped_in_browser",
 }
 # what the inside run calls that is the platform's own bookkeeping, not a test (made by the target for the bench)
