@@ -4,8 +4,9 @@ The state of the work, for whoever picks it up next: a person or another AI with
 13 Nov 2026: "what happens if I need another ai to work on this"). **Updated at the end of every working session.**
 Read [AGENTS.md](../AGENTS.md) first, run `eax dev check`, then read this.
 
-Last updated: 18 Nov 2026, 22:xx. Release 7 closed as 7.0.0 (D786). Release 7.9 (error codes and the error guide,
-D782, D787) is built and waiting for the owner to test and accept. The evening's working notes: docs/session-log.md.
+Last updated: 19 Nov 2026, 00:xx. Release 7.9 accepted and closed as 7.9.0 (owner, 00:01: "ok lets release 7.9";
+D791; migration 0109; releases/7.9.0.md). Now: no release in build. Next: Release 8, discussed one question at a
+time before it is built. The evening's working notes: docs/session-log.md.
 
 ## How the owner works
 
@@ -34,9 +35,9 @@ dialog first, D781), and the 24 printed guides (docs/manuals/manuals.json, tools
 in documents/, on the website under Printed guides and in EA Explorer under Documentation › Printed guides, D783 to D785).
 Release 7.9 (error codes) was added as the next release (D782).
 
-## In progress
+## Done in Release 7.9 (closed as 7.9.0, D791)
 
-Release 7.9, built, waiting for the owner to test (D787). One list, services/api/eax/errors.json (60 codes,
+Error codes (D787). One list, services/api/eax/errors.json (60 codes,
 EAX-AREA-NNN, each with meaning, cause and what to do; eax/errors.py reads it):
 - **The API**: every error answer has `error_code` and `to_do` beside `message`, and the header X-EAX-Error-Code (an
   after-request step in eax/app.py; the guards and handlers that know the problem set their own code).
@@ -53,13 +54,16 @@ EAX-AREA-NNN, each with meaning, cause and what to do; eax/errors.py reads it):
   status, the problems and a code's meaning (D789). On-screen help, two How do I pages, guide 21 and the Jenkins guide
   describe them.
 - Test: services/api/tests/test_r7_9_error_codes.py. A new code goes in errors.json, then `python tools/error_guide.py`.
-- To close it when the owner accepts: version 7.9.0, migration 0109 (row in core.schema_versions), releases/7.9.0.md.
+
+## In progress
+
+Nothing.
 
 ## Next
 
-Release 7.9 accepted and closed (above). Then Release 8 (SonarQube, code coverage, Jenkins tested
-end to end), Release 9 (videos) and Release 10 (scenario planning and game theory, D788: the futures, the other
-players, options tested across both; to discuss one question at a time, starting with screens or MCP only). Small items from Release 7 are in docs/todo.md › Later: carried out of Release 7.
+Release 8 (every SonarQube issue fixed, 80% code coverage, automated attack testing, Jenkins tested end to end),
+one question at a time before it is built; then Release 9 (videos) and Release 10 (scenario planning and game
+theory, D788). Small items: docs/todo.md › Later: carried out of Release 7.
 
 ## Open questions
 

@@ -182,3 +182,10 @@ source, and the pictures themselves read one by one and measured).
   the two How do I pages, `eax status`/`eax errors` help, the Jenkins section and the Error codes page. The covers say
   "Guide N of 25" from the list (tools/build_manuals.py), the README, website and app say the count from the list.
 - The owner runs: `.\eax site pdfs` (makes all 25 into documents/ and the website), then `.\eax up`.
+
+### 23:56 to 00:05 Guide 25 printed; Release 7.9 closed as 7.9.0 (D791)
+- The owner ran `eax site pdfs`: 25 PDFs in documents/ (guide 25, 17 pages, every code; guide 21 with the codes).
+- Owner, 00:01: "ok lets release 7.9". Version 7.9.0, migration 0109 (+ wrapper), releases/7.9.0.md, build-phases
+  (Release 7.9 row; R7.9, E1, E2 accepted), D791, handover.
+- The owner runs: `.\eax up` (migration 0109), `.\eax site pdfs` (covers say 7.9.0), `.\eax up` again, then git.
+- Next: Release 8, one question at a time.
