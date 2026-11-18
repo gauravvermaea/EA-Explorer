@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EA Explorer 1.0.0: Release 1 · EA Explorer</title>
+<meta name="description" content="EA Explorer 1.0.0: Release 1">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html" class="here">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>EA Explorer 1.0.0: Release 1</h1>
+    <p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#what-it-does">What it does</a></li><li><a href="#known-limits-for-release-2">Known limits, for Release 2</a></li><li><a href="#before-updating">Before updating</a></li></ul></nav>
+    <p>The first release of EA Explorer: an open-source enterprise architecture repository (AGPL-3.0), installed and run on your own laptop, server or cloud. Release 1 is 0.19.0 with the last fixes; the full detail of each part is in <a href="../releases/0.19.0.html">0.19.0</a> and in the Documentation menu.</p>
+<h2 id="what-it-does">What it does</h2>
+<ul><li><strong>A repository with a metamodel you control</strong>: ArchiMate 4 and TOGAF 10 built in, your own entity types, attributes (including links), relationship rules with multiplicity and relationship attributes; models, child models, tags, history and compare.</li><li><strong>Drawn views in draw.io</strong>, inside EA Explorer: two-way sync with the model, the ArchiMate notation, relationship tabs, name : type labels, undo; every picture of a model opens read only in our own draw.io (save it as a drawn view or download it), and draw.io's Export as menu has a .drawio file (D585).</li><li><strong>Keeping it clean</strong>: quality checks, duplicates found and merged, merging a child model into its parent, KPIs with trends, an OData feed and a report designer.</li><li><strong>Projects on the TOGAF ADM</strong>: purpose, scope, phases and ADM iteration types, deliverables, key questions, governance log, sign-off, scenarios, surveys and EA capability maturity.</li><li><strong>Industry reference models and packs</strong>: ten industries, with the books, workbooks and metamodel Excels to download.</li><li><strong>Importing</strong>: published Excel and CSV formats, deliveries reviewed before loading, and a model from a metamodel workbook.</li><li><strong>AI through MCP</strong>: about 120 tools for reading, analysing and changing models, each change previewed and confirmed, with an AI activity log.</li><li><strong>Running it</strong>: <code>eax deploy</code> (laptop, server, AWS, Azure, DigitalOcean), updates and rollback from the repository, backups and restore, machine access, operations insight, the Command centre and web console, schedules, a banner, settings that survive resets, on-screen help for every screen and the Documentation menu.</li></ul>
+<h2 id="known-limits-for-release-2">Known limits, for Release 2</h2>
+<ul><li><strong>The self-test</strong> (System admin › Self-test, <code>eax test</code>) and the outside test bench are on hold: they become one separate test container, the first thing in Release 2.</li><li><strong>Start-up</strong>: on some installs the last sample-data steps and the industry-pack load into Documents do not finish; everything else works. Fixed in Release 2.</li><li><strong>On-screen help</strong> does not show on the pages, <strong>changing the navigation layout</strong> does not change the screen, and a <strong>standard view opened in draw.io</strong> shows no stencil or object explorer. All three are fixed in Release 2.</li><li><strong>In-place upgrade from System admin › Updates</strong> does not start (the operations helper does not know the installation folder); upgrade by pulling the new tag and running clean-restart until it is fixed in Release 2.</li><li>See docs/build-phases.md (R2) for everything planned next.</li></ul>
+<h2 id="before-updating">Before updating</h2>
+<p>A fresh install: <code>.\eax clean-restart</code> (Windows) or <code>./eax.sh clean-restart</code>. From 0.19.0: update through System admin › Updates or <code>eax update</code>; a full backup is taken first.</p>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: releases/1.0.0.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

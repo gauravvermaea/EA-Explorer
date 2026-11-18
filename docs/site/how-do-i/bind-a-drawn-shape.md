@@ -3,7 +3,8 @@ title: Say what a drawn shape is
 summary: Bind a shape on a drawn view to an entity, or make a new one.
 group: Views and reports
 roles: user
-screen: #/metamodel/{m}/views
+screen: #/metamodel/{m}/views/custom
+do: follow "Claims application landscape"
 ---
 
 ## Why do this

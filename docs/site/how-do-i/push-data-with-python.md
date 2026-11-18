@@ -3,7 +3,7 @@ title: Push data with Python
 summary: A push source and the Python kit: your records sent in one call, proposed as a delivery.
 group: Bringing data in
 roles: developer
-screen: #/metamodel/{m}/import
+screen: #/metamodel/{m}/import/deliveries
 ---
 
 ## Why do this

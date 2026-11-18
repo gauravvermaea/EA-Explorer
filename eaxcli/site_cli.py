@@ -5,9 +5,12 @@
     eax site shots [--only P,P] [--missing]
                                          the How do I pages' pictures taken from this installation's own screens,
                                          then the website made again
+    eax site pdfs [--only ID,ID]         the 24 printed guides (docs/manuals/manuals.json) as PDFs in documents/,
+                                         with the pictures shots took (D783); then the website made again, with them
 
-The pictures are taken in the test runner (Chromium is there), signed in as the first Super Admin; it only opens pages and
-never clicks or changes anything. It is not part of eax test.
+The pictures are taken in the test runner (Chromium is there), signed in as the first Super Admin; it opens pages, and the
+tabs, links, cards and dialogs a page's do: line names, and never saves anything (D781). The PDFs are printed in the same
+runner from the repository (tools/build_manuals.py). Neither is part of eax test.
 """
 
 from __future__ import annotations
@@ -18,7 +21,7 @@ from pathlib import Path
 
 from .core import EAX, ROOT, Failure, compose, say
 
-USAGE = f"Usage: {EAX} site build|check|shots [--only PAGE,PAGE] [--missing]"
+USAGE = f"Usage: {EAX} site build|check|shots|pdfs [--only PAGE,PAGE] [--missing]"
 
 
 def _builder():
@@ -50,11 +53,31 @@ def shots_command(rest: list[str]) -> list[str]:
             "testrunner", "-m", "eax.testing.site_shots", *rest]
 
 
+def pdfs_command(rest: list[str]) -> list[str]:
+    """The compose arguments that print the guides: the test runner with the repository mounted at /repo, the PDFs
+    written to documents/ (D783, D785)."""
+    repo = Path(ROOT).resolve().as_posix()
+    return ["--profile", "test", "run", "--rm", "--no-deps", "-v", f"{repo}:/repo", "--entrypoint", "python",
+            "testrunner", "/repo/tools/build_manuals.py", "--out", "/repo/documents", *rest]
+
+
 def main(rest: list[str]) -> int:
-    """eax site build|check|shots."""
+    """eax site build|check|shots|pdfs."""
     what = rest[0] if rest else ""
-    if what not in ("build", "check", "shots"):
+    if what not in ("build", "check", "shots", "pdfs"):
         raise Failure(USAGE)
+    if what == "pdfs":
+        bad = [a for a in rest[1:] if a.startswith("--") and a != "--only"]
+        if bad:
+            raise Failure(USAGE)
+        compose(["--profile", "test", "build", "testrunner"])
+        say("Printing the guides in the test runner (Chromium): a few minutes...")
+        compose(pdfs_command(rest[1:]))
+        say("The guides are in documents/ (EA-Explorer-<nn>-<name>.pdf). Making the website again, with them...")
+        problems = _builder().build(write=True)
+        for p in problems:
+            say(f"  {p}", "red")
+        return 1 if problems else 0
     if what != "check":
         gone = remove_old_copies(ROOT)
         if gone:

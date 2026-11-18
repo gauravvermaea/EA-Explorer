@@ -3,7 +3,8 @@ title: Make a DR pack
 summary: Everything needed to rebuild EA Explorer on another machine, in one folder.
 group: Backups and recovery
 roles: system-admin
-screen: #/admin/disaster-recovery
+screen: #/admin/setup
+do: pick "Building an environment from a backup"
 ---
 
 ## Why do this

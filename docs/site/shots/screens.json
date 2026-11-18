@@ -2,7 +2,7 @@
  {
   "page": "accept-a-delivery",
   "title": "Accept a delivery",
-  "screen": "#/metamodel/{m}/import",
+  "screen": "#/metamodel/{m}/import/deliveries",
   "file": "accept-a-delivery.png"
  },
  {
@@ -56,8 +56,9 @@
  {
   "page": "add-a-link-to-a-document",
   "title": "Add a link to a document",
-  "screen": "#/metamodel/{m}/entry",
-  "file": "add-a-link-to-a-document.png"
+  "screen": "#/search?q=Claims%20Platform",
+  "file": "add-a-link-to-a-document.png",
+  "do": "follow \"Claims Platform\""
  },
  {
   "page": "add-a-person-in-keycloak",
@@ -80,8 +81,9 @@
  {
   "page": "add-a-relationship",
   "title": "Add a relationship between two entities",
-  "screen": "#/metamodel/{m}/entry",
-  "file": "add-a-relationship.png"
+  "screen": "#/search?q=Claims%20Platform",
+  "file": "add-a-relationship.png",
+  "do": "follow \"Claims Platform\"; tab \"Relations\""
  },
  {
   "page": "add-a-stakeholder",
@@ -224,8 +226,9 @@
  {
   "page": "bind-a-drawn-shape",
   "title": "Say what a drawn shape is",
-  "screen": "#/metamodel/{m}/views",
-  "file": "bind-a-drawn-shape.png"
+  "screen": "#/metamodel/{m}/views/custom",
+  "file": "bind-a-drawn-shape.png",
+  "do": "follow \"Claims application landscape\""
  },
  {
   "page": "bring-a-model-back-from-the-archive",
@@ -237,7 +240,8 @@
   "page": "bring-data-in-with-the-guide",
   "title": "Bring data in with the guide",
   "screen": "#/metamodel/{m}/import",
-  "file": "bring-data-in-with-the-guide.png"
+  "file": "bring-data-in-with-the-guide.png",
+  "do": "open \"Bring data in\""
  },
  {
   "page": "build-a-metamodel-in-excel",
@@ -284,8 +288,9 @@
  {
   "page": "check-a-backup-restores",
   "title": "Check a backup restores",
-  "screen": "#/admin/backups",
-  "file": "check-a-backup-restores.png"
+  "screen": "#/admin/setup",
+  "file": "check-a-backup-restores.png",
+  "do": "pick \"Backups\""
  },
  {
   "page": "check-a-document-in",
@@ -320,8 +325,9 @@
  {
   "page": "choose-the-stencil",
   "title": "Choose the shapes on the stencil",
-  "screen": "#/metamodel/{m}/views",
-  "file": "choose-the-stencil.png"
+  "screen": "#/metamodel/{m}/views/custom",
+  "file": "choose-the-stencil.png",
+  "do": "follow \"Claims application landscape\""
  },
  {
   "page": "choose-update-channels",
@@ -344,14 +350,15 @@
  {
   "page": "colour-a-view-as-a-heat-map",
   "title": "Colour a view as a heat map",
-  "screen": "#/metamodel/{m}/views",
+  "screen": "#/metamodel/{m}/views/VP-01/heat",
   "file": "colour-a-view-as-a-heat-map.png"
  },
  {
   "page": "comment-on-an-entity",
   "title": "Comment on an entity",
-  "screen": "#/metamodel/{m}/entry",
-  "file": "comment-on-an-entity.png"
+  "screen": "#/search?q=Claims%20Platform",
+  "file": "comment-on-an-entity.png",
+  "do": "follow \"Claims Platform\""
  },
  {
   "page": "commit-your-changes",
@@ -392,19 +399,20 @@
  {
   "page": "copy-a-view-into-your-model",
   "title": "Copy a view into your model",
-  "screen": "#/metamodel/{m}/views",
-  "file": "copy-a-view-into-your-model.png"
+  "screen": "#/metamodel/{m}/views/VP-01",
+  "file": "copy-a-view-into-your-model.png",
+  "do": "open \"Copy as my model's view\""
  },
  {
   "page": "correct-a-row-that-failed-to-load",
   "title": "Correct a row that failed to load",
-  "screen": "#/metamodel/{m}/import",
+  "screen": "#/metamodel/{m}/import/loads",
   "file": "correct-a-row-that-failed-to-load.png"
  },
  {
   "page": "decline-a-delivery",
   "title": "Decline a delivery",
-  "screen": "#/metamodel/{m}/import",
+  "screen": "#/metamodel/{m}/import/deliveries",
   "file": "decline-a-delivery.png"
  },
  {
@@ -416,8 +424,9 @@
  {
   "page": "delete-an-entity",
   "title": "Delete an entity",
-  "screen": "#/metamodel/{m}/grid",
-  "file": "delete-an-entity.png"
+  "screen": "#/search?q=Claims%20Platform",
+  "file": "delete-an-entity.png",
+  "do": "follow \"Claims Platform\""
  },
  {
   "page": "delete-old-change-log-entries",
@@ -470,13 +479,14 @@
  {
   "page": "draw-a-view",
   "title": "Draw a view",
-  "screen": "#/metamodel/{m}/views",
-  "file": "draw-a-view.png"
+  "screen": "#/metamodel/{m}/views/custom",
+  "file": "draw-a-view.png",
+  "do": "follow \"Claims application landscape\""
  },
  {
   "page": "drop-a-file-in-the-import-folder",
   "title": "Drop a file in the import folder",
-  "screen": "#/metamodel/{m}/import",
+  "screen": "#/metamodel/{m}/import/deliveries",
   "file": "drop-a-file-in-the-import-folder.png"
  },
  {
@@ -500,8 +510,9 @@
  {
   "page": "export-a-drawn-view",
   "title": "Export a drawn view",
-  "screen": "#/metamodel/{m}/views",
-  "file": "export-a-drawn-view.png"
+  "screen": "#/metamodel/{m}/views/custom",
+  "file": "export-a-drawn-view.png",
+  "do": "follow \"Claims application landscape\""
  },
  {
   "page": "export-settings",
@@ -633,7 +644,8 @@
   "page": "list-the-administrators",
   "title": "List the administrators",
   "screen": "#/admin/setup",
-  "file": "list-the-administrators.png"
+  "file": "list-the-administrators.png",
+  "do": "pick \"A forgotten password or certificate\""
  },
  {
   "page": "load-data-from-excel",
@@ -674,8 +686,9 @@
  {
   "page": "make-a-dr-pack",
   "title": "Make a DR pack",
-  "screen": "#/admin/disaster-recovery",
-  "file": "make-a-dr-pack.png"
+  "screen": "#/admin/setup",
+  "file": "make-a-dr-pack.png",
+  "do": "pick \"Building an environment from a backup\""
  },
  {
   "page": "make-a-gap-analysis",
@@ -711,7 +724,8 @@
   "page": "make-a-pairing-key",
   "title": "Make a pairing key",
   "screen": "#/admin/pairings",
-  "file": "make-a-pairing-key.png"
+  "file": "make-a-pairing-key.png",
+  "do": "open \"Make a key...\""
  },
  {
   "page": "make-a-separate-copy",
@@ -734,7 +748,7 @@
  {
   "page": "make-a-view",
   "title": "Make your own view",
-  "screen": "#/metamodel/{m}/views",
+  "screen": "#/metamodel/{m}/views/custom",
   "file": "make-a-view.png"
  },
  {
@@ -794,7 +808,7 @@
  {
   "page": "open-a-standard-view",
   "title": "Open a standard view",
-  "screen": "#/metamodel/{m}/views",
+  "screen": "#/metamodel/{m}/views/standard",
   "file": "open-a-standard-view.png"
  },
  {
@@ -807,7 +821,8 @@
   "page": "pair-two-sites",
   "title": "Pair two sites",
   "screen": "#/admin/pairings",
-  "file": "pair-two-sites.png"
+  "file": "pair-two-sites.png",
+  "do": "open \"Pair with a site...\""
  },
  {
   "page": "pin-a-backup",
@@ -854,7 +869,7 @@
  {
   "page": "push-data-with-python",
   "title": "Push data with Python",
-  "screen": "#/metamodel/{m}/import",
+  "screen": "#/metamodel/{m}/import/deliveries",
   "file": "push-data-with-python.png"
  },
  {
@@ -902,7 +917,7 @@
  {
   "page": "read-an-odata-feed-from-another-system",
   "title": "Read an OData feed from another system",
-  "screen": "#/metamodel/{m}/import",
+  "screen": "#/metamodel/{m}/import/discovery",
   "file": "read-an-odata-feed-from-another-system.png"
  },
  {
@@ -950,14 +965,16 @@
  {
   "page": "relate-an-entity-to-many",
   "title": "Relate an entity to several others at once",
-  "screen": "#/metamodel/{m}/entry",
-  "file": "relate-an-entity-to-many.png"
+  "screen": "#/search?q=Claims%20Platform",
+  "file": "relate-an-entity-to-many.png",
+  "do": "follow \"Claims Platform\"; tab \"Relations\""
  },
  {
   "page": "remove-a-lost-authenticator",
   "title": "Remove a lost authenticator",
   "screen": "#/admin/setup",
-  "file": "remove-a-lost-authenticator.png"
+  "file": "remove-a-lost-authenticator.png",
+  "do": "pick \"A forgotten password or certificate\""
  },
  {
   "page": "repeat-a-step",
@@ -975,7 +992,8 @@
   "page": "reset-an-administrators-password",
   "title": "Reset an administrator's password",
   "screen": "#/admin/setup",
-  "file": "reset-an-administrators-password.png"
+  "file": "reset-an-administrators-password.png",
+  "do": "pick \"A forgotten password or certificate\""
  },
  {
   "page": "resolve-a-clash-when-committing",
@@ -987,7 +1005,8 @@
   "page": "restart-everything",
   "title": "Restart every service",
   "screen": "#/admin/system",
-  "file": "restart-everything.png"
+  "file": "restart-everything.png",
+  "do": "open \"Restart the system...\""
  },
  {
   "page": "restore-a-project-from-a-file",
@@ -1046,13 +1065,14 @@
  {
   "page": "roll-an-entity-back",
   "title": "Roll an entity back to an earlier version",
-  "screen": "#/metamodel/{m}/changes",
-  "file": "roll-an-entity-back.png"
+  "screen": "#/search?q=Claims%20Platform",
+  "file": "roll-an-entity-back.png",
+  "do": "follow \"Claims Platform\"; tab \"History\""
  },
  {
   "page": "roll-back-a-commit",
   "title": "Roll back a commit",
-  "screen": "#/metamodel/{m}/changes",
+  "screen": "#/metamodel/{m}/changes/history",
   "file": "roll-back-a-commit.png"
  },
  {
@@ -1124,7 +1144,7 @@
  {
   "page": "schedule-a-command",
   "title": "Schedule a command",
-  "screen": "#/admin/commands",
+  "screen": "#/admin/commands/schedules",
   "file": "schedule-a-command.png"
  },
  {
@@ -1148,14 +1168,16 @@
  {
   "page": "see-an-entitys-history",
   "title": "See everything that happened to an entity",
-  "screen": "#/metamodel/{m}/changes",
-  "file": "see-an-entitys-history.png"
+  "screen": "#/search?q=Claims%20Platform",
+  "file": "see-an-entitys-history.png",
+  "do": "follow \"Claims Platform\"; tab \"History\""
  },
  {
   "page": "see-an-entitys-network",
   "title": "See an entity's network",
-  "screen": "#/metamodel/{m}/graph",
-  "file": "see-an-entitys-network.png"
+  "screen": "#/search?q=Claims%20Platform",
+  "file": "see-an-entitys-network.png",
+  "do": "follow \"Claims Platform\"; tab \"Graph\""
  },
  {
   "page": "see-background-tasks",
@@ -1388,8 +1410,9 @@
  {
   "page": "set-relationship-attributes",
   "title": "Set a relationship's attributes",
-  "screen": "#/metamodel/{m}/entry",
-  "file": "set-relationship-attributes.png"
+  "screen": "#/search?q=Claims%20Platform",
+  "file": "set-relationship-attributes.png",
+  "do": "follow \"Claims Platform\"; tab \"Relations\""
  },
  {
   "page": "set-task-statuses",
@@ -1418,8 +1441,9 @@
  {
   "page": "set-up-a-delivery-source",
   "title": "Set up a delivery source",
-  "screen": "#/metamodel/{m}/import",
-  "file": "set-up-a-delivery-source.png"
+  "screen": "#/metamodel/{m}/import/deliveries",
+  "file": "set-up-a-delivery-source.png",
+  "do": "open \"+ Add a source\""
  },
  {
   "page": "set-up-a-discovery-project",
@@ -1533,7 +1557,8 @@
   "page": "take-data-out-with-the-guide",
   "title": "Take data out with the guide",
   "screen": "#/metamodel/{m}/import",
-  "file": "take-data-out-with-the-guide.png"
+  "file": "take-data-out-with-the-guide.png",
+  "do": "open \"Take data out\""
  },
  {
   "page": "track-performance-measures",
@@ -1562,7 +1587,7 @@
  {
   "page": "undo-a-load",
   "title": "Undo a load",
-  "screen": "#/metamodel/{m}/import",
+  "screen": "#/metamodel/{m}/import/loads",
   "file": "undo-a-load.png"
  },
  {
@@ -1581,7 +1606,8 @@
   "page": "unlock-an-administrator",
   "title": "Unlock an administrator",
   "screen": "#/admin/setup",
-  "file": "unlock-an-administrator.png"
+  "file": "unlock-an-administrator.png",
+  "do": "pick \"A forgotten password or certificate\""
  },
  {
   "page": "update-to-a-new-release",
@@ -1622,7 +1648,7 @@
  {
   "page": "use-a-view-as-project-evidence",
   "title": "Use a view as project evidence",
-  "screen": "#/metamodel/{m}/views",
+  "screen": "#/metamodel/{m}/views/VP-01",
   "file": "use-a-view-as-project-evidence.png"
  },
  {
@@ -1658,7 +1684,7 @@
  {
   "page": "watch-a-self-test",
   "title": "Watch a self-test as it runs",
-  "screen": "#/admin/self-test",
+  "screen": "#/admin/self-test/watch",
   "file": "watch-a-self-test.png"
  },
  {

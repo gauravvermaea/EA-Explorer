@@ -21,5 +21,5 @@ A project carries one pass of the ADM from vision to sign-off. Each task here is
 ## Steps
 
 1. Open the project, **Principles**.
-2. **A principle that refines another**: pick the broader principle.
+2. On the broader principle, **Refine it**.
 3. Write the statement; **Save**.

@@ -3,7 +3,8 @@ title: Relate an entity to several others at once
 summary: Many relationships of one type in one go.
 group: Working with content
 roles: user
-screen: #/metamodel/{m}/entry
+screen: #/search?q=Claims%20Platform
+do: follow "Claims Platform"; tab "Relations"
 ---
 
 ## Why do this

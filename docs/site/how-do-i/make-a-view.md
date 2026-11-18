@@ -3,7 +3,7 @@ title: Make your own view
 summary: A view of the model: name it and what it shows.
 group: Views and reports
 roles: user
-screen: #/metamodel/{m}/views
+screen: #/metamodel/{m}/views/custom
 ---
 
 ## Why do this

@@ -3,7 +3,7 @@ title: Watch a self-test as it runs
 summary: The step running now, the counts and each result as it comes.
 group: Running it
 roles: system-admin, platform-developer
-screen: #/admin/self-test
+screen: #/admin/self-test/watch
 ---
 
 ## Why do this

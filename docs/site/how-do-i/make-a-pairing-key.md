@@ -4,6 +4,7 @@ summary: A key another site uses to pair with this one; shown once.
 group: Running it
 roles: system-admin
 screen: #/admin/pairings
+do: open "Make a key..."
 ---
 
 ## Why do this

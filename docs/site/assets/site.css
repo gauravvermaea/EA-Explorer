@@ -104,3 +104,8 @@ blockquote p { margin: 4px 0; }
   .shot { break-inside: avoid; }
   .shot.missing { display: none; }
 }
+/* Printed guides (D785): one card per guide, with its PDF to download */
+.cards-list.printed { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.cards-list.printed li { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+.cards-list.printed .who { color: var(--quiet); font-size: 14px; }
+.cards-list.printed a.download { align-self: flex-start; padding: 5px 12px; border-radius: 6px; background: var(--accent); color: #fff; text-decoration: none; font-size: 14px; }

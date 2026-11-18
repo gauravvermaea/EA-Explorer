@@ -3,7 +3,8 @@ title: Comment on an entity
 summary: A comment others are told about; resolve it when done.
 group: Working with content
 roles: user
-screen: #/metamodel/{m}/entry
+screen: #/search?q=Claims%20Platform
+do: follow "Claims Platform"
 ---
 
 ## Why do this

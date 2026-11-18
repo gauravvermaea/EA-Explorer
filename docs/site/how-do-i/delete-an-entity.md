@@ -3,7 +3,8 @@ title: Delete an entity
 summary: Remove an entity from the model; its relationships go with it, and it stays in history.
 group: Working with content
 roles: user
-screen: #/metamodel/{m}/grid
+screen: #/search?q=Claims%20Platform
+do: follow "Claims Platform"
 ---
 
 ## Why do this

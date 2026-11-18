@@ -4,6 +4,7 @@ summary: A lost phone: the next sign-in sets a new one up.
 group: Security
 roles: system-admin
 screen: #/admin/setup
+do: pick "A forgotten password or certificate"
 ---
 
 ## Why do this

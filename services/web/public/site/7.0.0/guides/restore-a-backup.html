@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Restore a backup · EA Explorer</title>
+<meta name="description" content="Put back a model, a project, part of the installation or all of it, from a backup.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../guides/index.html" class="here">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Restore a backup</h1>
+    <p class="who">For: System Admin, Model Admin, Project Admin</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">Put back a model, a project, part of the installation or all of it, from a backup.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-do-this">Why do this</a></li><li><a href="#the-ways-to-do-it">The ways to do it</a></li><li><a href="#check-it-worked">Check it worked</a></li><li><a href="#if-something-goes-wrong">If something goes wrong</a></li><li><a href="#each-task-one-page">Each task, one page</a></li><li><a href="#related">Related</a></li></ul></nav>
+    <h2 id="why-do-this">Why do this</h2>
+<p>Restores range from one entity to the whole installation. Choosing the smallest scope that fixes the problem keeps everything else as it is. See <a href="../concepts/backups-and-recovery.html">Backups, restores and disaster recovery</a>.</p>
+<p>Recovery is planned before it is needed: what to protect, how often, how to check it, and how far back each kind of restore reaches. EA Explorer takes a backup of now before any restore, so a restore can itself be undone.</p>
+<p><strong>In TOGAF terms:</strong> Outside the method: this protects the Architecture Repository itself, the record every ADM phase relies on. See <a href="../concepts/ea-explorer-and-togaf.html">EA Explorer and the TOGAF Standard</a>.</p>
+<p><strong>The goal:</strong> What was lost or damaged is back, at the right scope.</p>
+<blockquote class="before"><p><strong>Before you start</strong> Restoring the installation needs the Super Admin or IT Admin role; a model needs its Model Admin; a project its Project Admin. Take a backup first, so you can go back.</p></blockquote>
+<blockquote class="careful"><p><strong>Careful</strong> Restoring the whole installation puts back everything as it was at the backup: work done since is lost. EA Explorer is read only while it runs.</p></blockquote>
+<h2 id="the-ways-to-do-it">The ways to do it</h2>
+<ol><li><strong>A model</strong>: Model Admin › Wizards on the model, <strong>Restore a tag</strong>, or its backups to restore it over itself or as a new model.</li><li><strong>A project</strong>: the project's About tab, <strong>Back up and restore</strong>.</li><li><strong>Part of the installation</strong> (the databases, the files or the config): System Admin › Backups and restores › Backups, the backup, <strong>Restore</strong>, and choose the part. On the machine: <code>eax restore &lt;backup&gt; --what db</code>.</li><li><strong>Everything</strong>: the same, choosing everything. On the machine: <code>eax restore &lt;backup&gt; --what full</code>.</li></ol>
+<h2 id="check-it-worked">Check it worked</h2>
+<p>System Admin › Backups and restores › Restores shows each restore and its log. After a restore the database integrity check runs by itself (System Admin › Running › Database maintenance).</p>
+<h2 id="if-something-goes-wrong">If something goes wrong</h2>
+<ul><li>Read the restore's log on the Restores page; it says which step stopped and why.</li><li><code>eax status</code> on the machine shows every container; <code>eax restart</code> brings them up again.</li></ul>
+<h2 id="each-task-one-page">Each task, one page</h2>
+<ol><li><a href="../how-do-i/go-back-to-a-tag.html">Put a model back to a tag</a></li><li><a href="../how-do-i/restore-one-model.html">Restore one model from a backup</a></li><li><a href="../how-do-i/restore-a-project.html">Restore a project</a></li><li><a href="../how-do-i/restore-a-project-from-a-file.html">Restore a project from a backup file</a></li><li><a href="../how-do-i/restore-part-of-the-installation.html">Restore part of the installation</a></li><li><a href="../how-do-i/restore-everything.html">Restore everything from a backup</a></li><li><a href="../how-do-i/run-a-restore-drill.html">Run a restore drill</a></li></ol>
+<h2 id="related">Related</h2>
+<ul><li><a href="../guides/take-and-check-a-backup.html">Take a backup and check it</a></li><li><a href="../install/restores.html">Install and run: Restores</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: guides/restore-a-backup.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

@@ -171,6 +171,7 @@ export function menuTree() {
       { label: "Help for this page (F1)", action: "help" },
       { label: "Website: role guides and How do I ↗", href: "/site/index.html" },   // R7.1 (D776): the website, served here
       { label: "Documentation: every document", href: "#/documentation" },
+      { label: "Printed guides (PDF)", href: "#/documentation?guides=1" },   // the 24 printed guides (D785)
       { label: "Getting started", href: "#/documentation/readme" },
       { label: "What EA Explorer does", href: "#/documentation/capabilities" },
       { label: "Release notes", href: "#/documentation?group=Release%20notes" },
@@ -244,6 +245,7 @@ export function menuTree() {
     { key: "docs", label: "Documentation", title: "The website and every document", items: [
       { label: "Website: role guides, How do I, concepts and reports ↗", href: "/site/index.html" },
       { label: "Every document", href: "#/documentation" },
+      { label: "Printed guides (PDF)", href: "#/documentation?guides=1" },   // the 24 printed guides (D785)
       { label: "Getting started", href: "#/documentation/readme" },
       { label: "What EA Explorer does", href: "#/documentation/capabilities" },
       { label: "Release notes", href: "#/documentation?group=Release%20notes" },

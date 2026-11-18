@@ -3,7 +3,8 @@ title: Set up a delivery source
 summary: Another system sends its data to a model as deliveries, each previewed and accepted by a Committer.
 group: Bringing data in
 roles: model-admin, developer
-screen: #/metamodel/{m}/import
+screen: #/metamodel/{m}/import/deliveries
+do: open "+ Add a source"
 ---
 
 ## Why do this

@@ -20,4 +20,4 @@ A project carries one pass of the ADM from vision to sign-off. Each task here is
 
 1. Open the document, **Versions**.
 2. Download any version; the newest is current.
-3. **Make it the latest version** to go back to an earlier one.
+3. **Make this the latest** to go back to an earlier one.

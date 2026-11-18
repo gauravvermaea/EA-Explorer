@@ -139,11 +139,15 @@ def test_a_page_shows_its_picture_or_where_it_will_go():
 
 
 def test_the_pictures_are_taken_by_opening_pages_only():
-    """The owner's rule for anything run against an installation: it only opens screens. Signing in (the Sign in button,
-    the sign-in form) is all it clicks or fills; it is a command of its own (eax site shots), never part of eax test."""
+    """The owner's rule for anything run against an installation: it only opens screens (D777). D781 widened it to what a
+    page's do: line names: a tab, a link followed, a card picked, or a dialog opened by a button that only opens one (a
+    label ending in ..., or one in OPENERS); the dialog is closed with Escape and nothing is ever saved. Signing in is the
+    only form it fills; it is a command of its own (eax site shots), never part of eax test."""
     src = (REPO / "services/api/eax/testing/site_shots.py").read_text(encoding="utf-8")
-    assert src.count(".click(") == 2 and 'page.click("#kc-login")' in src and 'name="Sign in", exact=True).first.click()' in src
-    assert src.count(".fill(") == 2 and ".type(" not in src and ".press(" not in src and "request.post" not in src
+    assert src.count(".click(") == 3 and 'page.click("#kc-login")' in src and 'name="Sign in", exact=True).first.click()' in src
+    assert "el.click()" in src   # the one other click: what actions() allowed
+    assert src.count(".fill(") == 2 and ".type(" not in src and "request.post" not in src
+    assert src.count(".press(") == 1 and 'keyboard.press("Escape")' in src
     assert "site_shots" not in (REPO / "services/api/eax/testing/run.py").read_text(encoding="utf-8")
     sys.path.insert(0, str(REPO))
     from eaxcli import site_cli
@@ -152,7 +156,31 @@ def test_the_pictures_are_taken_by_opening_pages_only():
     assert any(a.endswith(":/site-src") for a in cmd)
     for launcher, words in (("eax.ps1", '"settings", "site")'), ("eax.sh", "settings|site)")):
         assert words in (REPO / launcher).read_text(encoding="utf-8"), launcher
-    assert "### site [build|check|shots]" in (REPO / "eaxcli/help.txt").read_text(encoding="utf-8")
+    assert "### site [build|check|shots|pdfs]" in (REPO / "eaxcli/help.txt").read_text(encoding="utf-8")
+
+
+def test_a_pages_do_line_only_opens_things():
+    """D781: tab, open, follow and pick, nothing else; open takes a label ending in ... or one read and listed in
+    OPENERS; every How do I page's do: line is one the picture taker understands."""
+    sys.path.insert(0, str(REPO / "services/api"))
+    from eax.testing import site_shots as S
+    assert S.actions('tab "Deliveries"; open "Make a key..."') == [("tab", "Deliveries"), ("open", "Make a key...")]
+    assert S.actions('follow "Claims Platform"; pick "Backups"') == [("follow", "Claims Platform"), ("pick", "Backups")]
+    assert S.actions('open "Bring data in"') == [("open", "Bring data in")]
+    for bad in ('open "Delete"', 'open "Save"', 'click "Restore"', 'tab Deliveries'):
+        try:
+            S.actions(bad)
+        except ValueError:
+            continue
+        raise AssertionError(f"{bad} was allowed")
+    assert S.same_words("tab", "Relations (8)", "Relations") and not S.same_words("tab", "Relationsx", "Relations")
+    assert S.same_words("open", "⬇ Bring data in", "Bring data in") and not S.same_words("open", "Bring data in now", "Bring data in")
+    assert S.same_words("pick", "Backups What is backed up, when", "Backups")
+    for p in sorted((REPO / "docs/site/how-do-i").glob("*.md")):
+        meta, _md = W.front_matter(p.read_text(encoding="utf-8"))
+        for key in ("do", "do2"):
+            if meta.get(key):
+                S.actions(meta[key])   # raises on a line it would not follow
 
 
 def test_the_picture_taker_fills_the_demo_ids_and_skips_what_it_cannot():

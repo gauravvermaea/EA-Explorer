@@ -3,7 +3,7 @@ title: Open a standard view
 summary: One of the 49 standard views, as a diagram, catalogue, heat map, matrix or relationship list.
 group: Views and reports
 roles: user
-screen: #/metamodel/{m}/views
+screen: #/metamodel/{m}/views/standard
 ---
 
 ## Why do this

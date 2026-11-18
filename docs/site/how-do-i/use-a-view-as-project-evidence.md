@@ -3,7 +3,7 @@ title: Use a view as project evidence
 summary: Link a view to a project's deliverable as its evidence.
 group: Views and reports
 roles: user, project-admin
-screen: #/metamodel/{m}/views
+screen: #/metamodel/{m}/views/VP-01
 ---
 
 ## Why do this

@@ -1,0 +1,305 @@
+{
+  "_about": "The 24 printed guides (Release 7, D783): each made by tools/build_manuals.py from content already in the repository. A source is one of: page:<file> (a whole page; its title becomes a section), page:<file>#<Heading>|<Heading> (only those ## sections), howdoi:pages=<a>,<b> (those How do I pages, in that order), howdoi:group=<Group>[;role=<role>] (every How do I page of that group, for that role), help:sections=<Section>|<Section> or help:commands=<name>,<name> (the eax command's own help), new:<file> (content written for the guides, docs/manuals/new). Every guide gets a cover, About this guide (its purpose, who it is for, how to use it) and a table of contents.",
+  "manuals": [
+    {
+      "id": "01-overview",
+      "title": "Overview: capabilities and roles",
+      "audience": "Everyone: sponsors, architects, administrators and developers",
+      "purpose": "What EA Explorer is, what it does, how it follows the TOGAF Standard, and who does what in it: the kinds of people who use it, the roles they hold and what each role may do. Read it first; every other guide builds on it.",
+      "chapters": [
+        {"title": "What EA Explorer is", "sources": ["page:docs/site/concepts/enterprise-architecture.md", "page:docs/site/concepts/architecture-repository.md", "page:docs/site/concepts/models.md", "page:docs/site/concepts/metamodels.md"]},
+        {"title": "EA Explorer and the TOGAF Standard", "sources": ["page:docs/site/concepts/ea-explorer-and-togaf.md", "page:docs/site/concepts/the-adm.md", "page:docs/site/concepts/projects-and-deliverables.md"]},
+        {"title": "What it can do", "sources": ["page:docs/functional-description.md", "page:docs/site/concepts/views-and-reports.md", "page:docs/site/concepts/bringing-data-in-and-out.md", "page:docs/site/concepts/data-quality.md", "page:docs/site/concepts/ai-in-ea-explorer.md"]},
+        {"title": "Roles: who does what", "sources": ["page:docs/site/concepts/roles-and-access.md", "page:docs/site/roles/executive.md#Who this is for|What you have", "page:docs/site/roles/user.md#Who this is for|What you have", "page:docs/site/roles/project-admin.md#Who this is for|What you have", "page:docs/site/roles/model-admin.md#Who this is for|What you have", "page:docs/site/roles/industry-modeller.md#Who this is for|What you have", "page:docs/site/roles/system-admin.md#Who this is for|What you have", "page:docs/site/roles/developer.md#Who this is for|What you have", "page:docs/site/roles/platform-developer.md#Who this is for|What you have"]},
+        {"title": "Finding your way", "sources": ["howdoi:pages=find-anything,search-everything,get-help-on-any-screen,read-the-documentation,see-whats-new,pin-a-model-or-project"]}
+      ]
+    },
+    {
+      "id": "02-architecture-and-platform-developer",
+      "title": "System architecture and platform developer guide",
+      "audience": "Platform developers who change EA Explorer itself, and architects who review how it is built",
+      "purpose": "How EA Explorer is built (its containers, services, databases and code layout) and how a developer gets the code, runs it, changes it, tests it and releases it.",
+      "chapters": [
+        {"title": "Your role", "sources": ["page:docs/site/roles/platform-developer.md"]},
+        {"title": "How EA Explorer is built", "sources": ["page:docs/architecture.md", "page:docs/databases.md"]},
+        {"title": "The repository database", "sources": ["page:docs/database.md"]},
+        {"title": "Working on the platform", "sources": ["page:docs/site/platform/start-here.md", "page:docs/site/platform/get-the-code.md", "page:docs/site/platform/run-it-on-your-machine.md", "page:docs/site/platform/find-your-way-round-the-code.md", "page:docs/site/platform/make-a-change.md", "page:docs/site/platform/database-changes-and-versions.md", "page:docs/site/platform/test-it.md", "page:docs/site/platform/debug-it.md", "page:docs/site/platform/release-it.md"]},
+        {"title": "Contributing and releasing", "sources": ["page:CONTRIBUTING.md", "page:docs/release-process.md"]}
+      ]
+    },
+    {
+      "id": "03-install",
+      "title": "Install guide",
+      "audience": "System administrators installing EA Explorer on a laptop or a server",
+      "purpose": "Everything needed to put EA Explorer on a machine and have it running: the choices (laptop, server, your own database), the machine to prepare, the installation itself, your certificate on the front door, and the first-run setup.",
+      "chapters": [
+        {"title": "Choosing where it runs", "sources": ["page:docs/setting-up.md"]},
+        {"title": "Preparing the machine", "sources": ["page:docs/guides/new-machine.md", "howdoi:pages=size-the-installation"]},
+        {"title": "Installing", "sources": ["page:docs/guides/laptop.md", "page:docs/guides/server.md", "page:docs/guides/remote.md", "page:docs/deployment.md#1. Get EA Explorer (no repository needed)|2. The wizard: `eax deploy`|Check your installation|On a container platform (R2.44, D635)"]},
+        {"title": "Your own database server", "sources": ["page:docs/guides/external-db.md"]},
+        {"title": "Certificates", "sources": ["page:docs/guides/certificates.md", "howdoi:pages=put-in-your-certificate"]},
+        {"title": "After installing", "sources": ["howdoi:pages=finish-the-first-run-setup,follow-a-setup-guide,run-the-self-test"]}
+      ]
+    },
+    {
+      "id": "04-system-admin",
+      "title": "System administrator guide",
+      "audience": "Super Admins, IT Admins and User Admins",
+      "purpose": "Running the installation: people and their roles, security, settings, branding, machine access and the system's own configuration, with a step-by-step How do I for every task.",
+      "chapters": [
+        {"title": "Your role", "sources": ["page:docs/site/roles/system-admin.md", "page:docs/site/concepts/running-the-installation.md", "page:docs/site/concepts/roles-and-access.md"]},
+        {"title": "People and access", "sources": ["page:docs/site/guides/add-a-person-and-give-roles.md", "howdoi:group=People and access;role=system-admin"]},
+        {"title": "Security", "sources": ["howdoi:group=Security;role=system-admin"]},
+        {"title": "Access for systems", "sources": ["howdoi:group=Access for systems;role=system-admin"]},
+        {"title": "Settings and configuration", "sources": ["page:docs/site/guides/move-settings-between-sites.md", "howdoi:pages=set-application-settings,switch-a-service-on-or-off,set-the-branding,use-the-standard-look,put-up-a-banner,see-the-licences,set-what-survives-a-reset,export-settings,import-settings,receive-webhooks"]}
+      ]
+    },
+    {
+      "id": "05-day-to-day-operations",
+      "title": "Day-to-day operations guide",
+      "audience": "IT Admins and Super Admins who keep EA Explorer running",
+      "purpose": "The everyday work of keeping EA Explorer healthy: starting and stopping, health and alerts, logs, backups, the job queue, the command centre and schedules, with a step-by-step How do I for each task.",
+      "chapters": [
+        {"title": "Everyday commands", "sources": ["page:docs/operations.md#Everyday commands|How EA Explorer starts (phase 12.1, D255)|The work folder and logs|Services on and off (D191)|The operations helper"]},
+        {"title": "Health and alerts", "sources": ["page:docs/site/guides/check-health-and-alerts.md", "howdoi:pages=see-the-health-of-every-part,see-the-containers,see-the-estate,acknowledge-an-alert,set-up-alerts,silence-a-check,see-failing-checks"]},
+        {"title": "Backups", "sources": ["page:docs/site/guides/take-and-check-a-backup.md", "howdoi:pages=back-up-now,set-a-backup-schedule,pin-a-backup,back-up-a-project"]},
+        {"title": "Jobs, commands and schedules", "sources": ["howdoi:pages=see-the-job-queue,see-background-tasks,use-the-command-centre,schedule-a-command,restart-everything,read-the-logs,work-the-service-desk-queue"]}
+      ]
+    },
+    {
+      "id": "06-tuning-and-optimisation",
+      "title": "Tuning and optimisation guide",
+      "audience": "IT Admins and Super Admins sizing and tuning an installation",
+      "purpose": "Sizing a new installation, measuring how it runs, the optimisation report and its suggestions, more API and job servers, scaling out, and keeping the databases in good order.",
+      "chapters": [
+        {"title": "Sizing", "sources": ["howdoi:pages=size-the-installation", "help:commands=estimate,measure,footprint"]},
+        {"title": "Measuring and the optimisation report", "sources": ["howdoi:pages=tune-the-installation", "help:commands=optimise"]},
+        {"title": "More servers and scaling out", "sources": ["page:docs/operations.md#API and job servers (D249)|Scaling out (phase 36.3, D520, D521, D526 to D528)", "help:commands=servers,jobs"]},
+        {"title": "Keeping the databases healthy", "sources": ["howdoi:pages=see-the-databases,check-database-integrity,see-the-job-queue", "help:commands=db,databases"]}
+      ]
+    },
+    {
+      "id": "07-model-admin",
+      "title": "Administrator guide for models",
+      "audience": "Model Admins",
+      "purpose": "Looking after models: creating them, their metamodels, who may work on them, versions, tags and merging, data quality, and the model wizards, with a step-by-step How do I for each task.",
+      "chapters": [
+        {"title": "Your role", "sources": ["page:docs/site/roles/model-admin.md", "page:docs/site/concepts/models.md", "page:docs/site/concepts/metamodels.md"]},
+        {"title": "Creating models", "sources": ["page:docs/site/guides/create-a-model.md", "howdoi:group=Models;role=model-admin"]},
+        {"title": "Metamodels", "sources": ["page:docs/site/guides/change-a-metamodel.md", "howdoi:group=Metamodels;role=model-admin"]},
+        {"title": "Versions, tags and merging", "sources": ["page:docs/site/concepts/versions-tags-and-merging.md", "page:docs/site/guides/tag-and-compare.md", "page:docs/site/guides/merge-a-child-model-back.md", "howdoi:group=Versions and merging;role=model-admin"]},
+        {"title": "Data quality", "sources": ["page:docs/site/concepts/data-quality.md", "page:docs/site/guides/improve-data-quality.md", "howdoi:group=Data quality;role=model-admin"]}
+      ]
+    },
+    {
+      "id": "08-project-admin",
+      "title": "Administrator guide for projects",
+      "audience": "Project Admins",
+      "purpose": "Setting up and running architecture projects: kinds of projects, templates and bases, the ADM cycle, charters, people, governance, deliverables and sign-off, surveys and maturity, with a step-by-step How do I for each task.",
+      "chapters": [
+        {"title": "Your role", "sources": ["page:docs/site/roles/project-admin.md", "page:docs/site/concepts/kinds-of-projects.md", "page:docs/site/concepts/projects-and-deliverables.md"]},
+        {"title": "Starting a project", "sources": ["page:docs/site/guides/start-an-architecture-project.md", "howdoi:pages=start-a-project-from-a-template,start-a-blank-project,derive-a-new-project,choose-a-projects-base,edit-a-project,give-people-roles-on-a-project,add-models-to-a-project"]},
+        {"title": "The ADM and its steps", "sources": ["page:docs/site/concepts/the-adm.md", "howdoi:pages=choose-the-adm-cycle,follow-the-adm-phases,tailor-the-adm-steps,repeat-a-step"]},
+        {"title": "Governance and sign-off", "sources": ["page:docs/site/concepts/governance-and-sign-off.md", "page:docs/site/guides/track-deliverables-and-sign-off.md", "howdoi:group=Projects;role=project-admin"]},
+        {"title": "Surveys and maturity", "sources": ["page:docs/site/guides/run-a-survey.md", "howdoi:group=Surveys and maturity"]}
+      ]
+    },
+    {
+      "id": "09-architects",
+      "title": "Architects' guide",
+      "audience": "Practising architects",
+      "purpose": "The everyday work of an architect in EA Explorer: finding and changing content, committing it, views and reports, bringing data in and taking it out, stakeholders and key questions, and working in projects, with a step-by-step How do I for each task.",
+      "chapters": [
+        {"title": "Your role", "sources": ["page:docs/site/roles/user.md"]},
+        {"title": "Working with content", "sources": ["page:docs/site/guides/change-content-and-commit.md", "howdoi:group=Working with content;role=user"]},
+        {"title": "Views and reports", "sources": ["page:docs/site/concepts/views-and-reports.md", "page:docs/site/guides/open-a-report-or-view.md", "howdoi:group=Views and reports;role=user"]},
+        {"title": "Bringing data in and taking it out", "sources": ["page:docs/site/concepts/bringing-data-in-and-out.md", "page:docs/site/guides/read-a-model-in-power-bi-or-excel.md", "howdoi:group=Bringing data in;role=user", "howdoi:group=Taking data out;role=user"]},
+        {"title": "Stakeholders and key questions", "sources": ["page:docs/site/concepts/stakeholders-and-key-questions.md", "page:docs/site/guides/answer-key-questions.md"]},
+        {"title": "Working in projects", "sources": ["howdoi:group=Projects;role=user"]}
+      ]
+    },
+    {
+      "id": "10-industry-expert",
+      "title": "Industry expert guide: making an industry model",
+      "audience": "Industry modellers who build reference models for an industry",
+      "purpose": "How to make an industry model: the metamodel, building it in Excel, the industry packs, and publishing it as a reference model in the library, with a step-by-step How do I for each task.",
+      "chapters": [
+        {"title": "Your role", "sources": ["page:docs/site/roles/industry-modeller.md", "page:docs/site/concepts/industry-models.md"]},
+        {"title": "The industry packs", "sources": ["page:docs/industry-packs.md"]},
+        {"title": "Building the metamodel", "sources": ["page:docs/site/concepts/metamodels.md", "howdoi:pages=build-a-metamodel-in-excel,make-a-model-from-a-metamodel-workbook,make-a-blank-model"]},
+        {"title": "Making and publishing the model", "sources": ["page:docs/site/guides/publish-a-reference-model.md", "howdoi:group=Industry models"]}
+      ]
+    },
+    {
+      "id": "11-developer",
+      "title": "Developer guide: connectors and integrations",
+      "audience": "Developers who write ETLs, scripts, connectors and reports against EA Explorer",
+      "purpose": "Everything a developer can build against EA Explorer, with examples: authentication, the REST API, push sources and the Python kit, deliveries, OData feeds and sources, webhooks, import formats and MCP.",
+      "chapters": [
+        {"title": "Your role", "sources": ["page:docs/site/roles/developer.md", "page:docs/site/integrate/overview.md"]},
+        {"title": "Signing in from a program", "sources": ["page:docs/site/integrate/authentication-for-integrations.md", "howdoi:pages=get-a-token-or-api-key,make-a-service-account,revoke-a-token"]},
+        {"title": "The REST API", "sources": ["page:docs/site/integrate/rest-api.md", "howdoi:pages=call-the-rest-api,try-the-api-in-the-browser"]},
+        {"title": "Building a connector", "sources": ["page:docs/site/integrate/build-a-connector.md", "page:docs/site/integrate/push-sources.md", "howdoi:pages=push-data-with-python", "page:docs/site/integrate/deliveries.md", "howdoi:pages=set-up-a-delivery-source,fill-in-a-delivery-template,drop-a-file-in-the-import-folder", "page:docs/site/integrate/import-formats.md"]},
+        {"title": "OData", "sources": ["page:docs/site/integrate/odata-feeds.md", "page:docs/site/integrate/build-reports-on-odata.md", "page:docs/site/integrate/odata-sources.md", "howdoi:pages=read-an-odata-feed-from-another-system"]},
+        {"title": "Webhooks and MCP", "sources": ["page:docs/site/integrate/webhooks.md", "howdoi:pages=receive-webhooks", "page:docs/site/integrate/mcp-for-developers.md"]}
+      ]
+    },
+    {
+      "id": "12-disaster-recovery",
+      "title": "Disaster recovery guide",
+      "audience": "Super Admins and IT Admins responsible for recovery",
+      "purpose": "Getting EA Explorer back after a failure: backups or DR and which to use, the DR pack, rebuilding on another machine, the restores from one model to everything, and what to do first in a catastrophe.",
+      "chapters": [
+        {"title": "Backups and recovery", "sources": ["page:docs/site/concepts/backups-and-recovery.md"]},
+        {"title": "A catastrophic failure", "sources": ["page:docs/guides/catastrophe.md"]},
+        {"title": "The DR pack and the DR tool", "sources": ["page:docs/backup-disaster-recovery.md", "howdoi:pages=make-a-dr-pack"]},
+        {"title": "Rebuilding from a backup", "sources": ["page:docs/guides/rebuild.md", "page:docs/guides/move.md"]},
+        {"title": "Restores", "sources": ["page:docs/site/guides/restore-a-backup.md", "page:docs/guides/restores.md", "howdoi:pages=restore-everything,restore-part-of-the-installation,restore-one-model,restore-a-project,restore-a-project-from-a-file"]}
+      ]
+    },
+    {
+      "id": "13-site-pairing",
+      "title": "Site pairing for hot-standby DR",
+      "audience": "Super Admins setting up a second site",
+      "purpose": "Pairing two EA Explorer sites so that a DR site is kept read only and up to date with the primary (hot standby), ready to take over; and content sync between sites. Pairing is one way: the DR site takes over with Stop and take over, it does not take changes at the same time as the primary.",
+      "chapters": [
+        {"title": "Pairings and DR sites", "sources": ["page:docs/guides/pairings.md", "page:docs/guides/dr-site.md", "page:docs/site/guides/set-up-a-dr-site.md"]},
+        {"title": "Pairing two sites", "sources": ["howdoi:pages=make-a-pairing-key,pair-two-sites,accept-a-pairing,connect-to-another-site"]},
+        {"title": "Switching to the DR site and back", "sources": ["page:docs/guides/switch-to-dr.md", "howdoi:pages=switch-to-the-dr-site"]}
+      ]
+    },
+    {
+      "id": "14-emergency",
+      "title": "Emergency guide",
+      "audience": "Super Admins and IT Admins, when something urgent has gone wrong",
+      "purpose": "What to do when you cannot get in or a secret must change now: resetting an administrator's password, unlocking, removing a lost authenticator, break-glass sign-in, and rotating passwords, keys and certificates.",
+      "chapters": [
+        {"title": "I cannot get in", "sources": ["page:docs/guides/forgotten.md", "page:docs/site/guides/get-an-administrator-back-in.md", "howdoi:pages=reset-an-administrators-password,unlock-an-administrator,remove-a-lost-authenticator,sign-in-with-break-glass,list-the-administrators"]},
+        {"title": "Rotating passwords, keys and certificates", "sources": ["page:docs/secrets.md", "page:docs/site/guides/rotate-passwords-and-keys.md", "howdoi:pages=rotate-one-secret,rotate-everything,schedule-rotation,upload-your-certificate"]},
+        {"title": "Restarting", "sources": ["howdoi:pages=restart-everything"]}
+      ]
+    },
+    {
+      "id": "15-eax-commands",
+      "title": "EAX command guide",
+      "audience": "Anyone who runs EA Explorer from the machine",
+      "purpose": "The eax command, in full: how it is used, what each group of commands does, and every command with its options and examples, as `eax help` gives them.",
+      "chapters": [
+        {"title": "The command line and the console", "sources": ["page:docs/command-line-and-console.md"]},
+        {"title": "Every command", "sources": ["help:all"]}
+      ]
+    },
+    {
+      "id": "16-jenkins",
+      "title": "Jenkins guide",
+      "audience": "Super Admins and IT Admins who run eax commands from Jenkins",
+      "purpose": "Jenkins beside EA Explorer: a pipeline for every eax command and DR tool, run with a click; how to start it, sign in, run a pipeline and look after it.",
+      "chapters": [
+        {"title": "Setting up Jenkins", "sources": ["page:docs/guides/jenkins.md"]},
+        {"title": "The jenkins command", "sources": ["help:commands=jenkins"]},
+        {"title": "Opening Jenkins from EA Explorer", "sources": ["new:docs/manuals/new/jenkins-in-ea-explorer.md"]}
+      ]
+    },
+    {
+      "id": "17-example-project",
+      "title": "An example project, end to end",
+      "audience": "Architects and Project Admins learning EA Explorer",
+      "purpose": "One architecture project followed from start to finish in EA Explorer, using the sample project Protea Claims Transformation 2028 that comes with the demo data: setting it up, the charter, stakeholders and key questions, the ADM phases, gaps and the migration plan, deliverables and sign-off, and finishing.",
+      "chapters": [
+        {"title": "The sample data", "sources": ["page:docs/demo.md"]},
+        {"title": "Start the project", "sources": ["page:docs/site/guides/start-an-architecture-project.md", "howdoi:pages=start-a-project-from-a-template,give-people-roles-on-a-project,add-models-to-a-project"]},
+        {"title": "Set its scope", "sources": ["howdoi:pages=write-the-project-charter,set-the-projects-scope,approve-a-project-charter"]},
+        {"title": "Know its stakeholders", "sources": ["howdoi:pages=add-a-stakeholder,map-stakeholders,add-key-questions"]},
+        {"title": "Work through the ADM", "sources": ["howdoi:pages=choose-the-adm-cycle,follow-the-adm-phases,add-a-principle-to-a-project,see-the-content-framework,open-a-deliverable"]},
+        {"title": "Gaps and the migration plan", "sources": ["howdoi:pages=make-a-gap-analysis,make-a-work-package-from-a-gap,make-a-migration-plan"]},
+        {"title": "Answer, sign off and report", "sources": ["howdoi:pages=answer-a-key-question,accept-an-answer,approve-a-deliverable,record-a-sign-off,see-the-project-report"]},
+        {"title": "Finish the project", "sources": ["howdoi:pages=finish-a-project,save-a-project-as-a-template"]}
+      ]
+    },
+    {
+      "id": "18-testing-the-installation",
+      "title": "Guide to testing the installation",
+      "audience": "IT Admins and Super Admins checking an installation works",
+      "purpose": "Testing an installation from the inside and from outside: the self-test and its suites, watching a test, reading the results, cleaning up, and the test bench.",
+      "chapters": [
+        {"title": "Testing EA Explorer", "sources": ["page:docs/testing.md"]},
+        {"title": "Running and reading a test", "sources": ["howdoi:pages=run-the-self-test,watch-a-self-test,see-failing-checks,clear-test-data"]},
+        {"title": "The test bench", "sources": ["page:docs/testbench.md"]}
+      ]
+    },
+    {
+      "id": "19-testing-backup-and-dr",
+      "title": "Guide to testing backup and DR",
+      "audience": "Super Admins and IT Admins proving that backups and DR work",
+      "purpose": "Proving that backups restore and that DR works, both by hand and with the commands: checking a backup, the restore drill, the monthly drill, the new-machine drill and eax-drill.",
+      "chapters": [
+        {"title": "Checking backups", "sources": ["page:docs/site/guides/take-and-check-a-backup.md", "howdoi:pages=check-a-backup-restores,run-a-restore-drill"]},
+        {"title": "The monthly drill, by hand", "sources": ["page:docs/backup-drill-monthly.md"]},
+        {"title": "The new-machine drill, by hand", "sources": ["page:docs/backup-drill-new-machine.md"]},
+        {"title": "The drills with the commands", "sources": ["help:commands=verify,drill,dr-pack"]}
+      ]
+    },
+    {
+      "id": "20-upgrade",
+      "title": "Upgrade guide",
+      "audience": "Super Admins and IT Admins upgrading EA Explorer",
+      "purpose": "Upgrading EA Explorer, either directly from a release on git (Updates, or eax update) or by getting the latest code by hand and upgrading; choosing channels, and rolling an update back.",
+      "chapters": [
+        {"title": "Upgrades and rollbacks", "sources": ["page:docs/guides/upgrades.md"]},
+        {"title": "From a git release", "sources": ["howdoi:pages=choose-update-channels,update-to-a-new-release,roll-back-an-update", "help:commands=update,rollback"]},
+        {"title": "By hand, from the latest code", "sources": ["page:docs/command-line-and-console.md#Updating to a new release", "page:docs/starting.md"]},
+        {"title": "Signed releases", "sources": ["help:commands=sign,verify"]}
+      ]
+    },
+    {
+      "id": "21-troubleshooting",
+      "title": "Troubleshooting guide for administrators",
+      "audience": "IT Admins and Super Admins finding out what is wrong",
+      "purpose": "Finding out what is wrong and putting it right: status, logs and diagnostics, health and alerts, failing checks, containers, jobs and the database. Error codes, each with what to do, come in Release 7.9 with their own guide.",
+      "chapters": [
+        {"title": "Finding problems from the machine", "sources": ["page:docs/command-line-and-console.md#Finding problems", "help:commands=status,logs,diag"]},
+        {"title": "The work folder and the logs", "sources": ["page:docs/operations.md#The work folder and logs", "howdoi:pages=read-the-logs"]},
+        {"title": "Health, alerts and failing checks", "sources": ["page:docs/site/guides/check-health-and-alerts.md", "howdoi:pages=see-the-health-of-every-part,see-failing-checks,acknowledge-an-alert,silence-a-check"]},
+        {"title": "Containers, jobs and the database", "sources": ["howdoi:pages=see-the-containers,see-the-job-queue,see-background-tasks,check-database-integrity,restart-everything"]},
+        {"title": "When it is the platform", "sources": ["page:docs/site/platform/debug-it.md"]}
+      ]
+    },
+    {
+      "id": "22-ai-and-mcp",
+      "title": "AI and MCP user guide",
+      "audience": "Everyone who works with EA Explorer through an AI assistant",
+      "purpose": "Working with EA Explorer through your AI assistant: connecting it, what it can do for each kind of user, and the MCP server and its tools.",
+      "chapters": [
+        {"title": "AI in EA Explorer", "sources": ["page:docs/site/concepts/ai-in-ea-explorer.md"]},
+        {"title": "Connecting your AI assistant", "sources": ["howdoi:pages=connect-your-ai-assistant,see-your-ai-activity", "page:docs/mcp.md#Connect"]},
+        {"title": "What it can do", "sources": ["howdoi:group=AI"]},
+        {"title": "The MCP server and its tools", "sources": ["page:docs/mcp.md#Tools", "page:docs/mcp-capabilities.md"]}
+      ]
+    },
+    {
+      "id": "23-keycloak-identity",
+      "title": "Setting up Keycloak with your directory or identity provider",
+      "audience": "Super Admins and User Admins connecting sign-in to the organisation's directory",
+      "purpose": "Signing people in with the organisation's own accounts: Keycloak with Active Directory or LDAP, Microsoft Entra ID, Google, or any other OpenID Connect or SAML provider; and mapping directory groups to EA Explorer's roles.",
+      "chapters": [
+        {"title": "Roles and access", "sources": ["page:docs/site/concepts/roles-and-access.md"]},
+        {"title": "Active Directory or LDAP", "sources": ["page:docs/deployment.md#5. Active Directory groups mapped to roles (D503)"]},
+        {"title": "Entra ID, Google and other providers", "sources": ["new:docs/manuals/new/keycloak-identity-providers.md"]},
+        {"title": "Mapping groups to roles", "sources": ["howdoi:pages=map-directory-groups-to-roles,map-a-keycloak-role,add-a-person-in-keycloak,give-someone-an-installation-role,see-who-has-a-role,turn-on-multi-factor-sign-in"]}
+      ]
+    },
+    {
+      "id": "24-security",
+      "title": "Security best practice guide",
+      "audience": "Super Admins, IT Admins and security reviewers",
+      "purpose": "Keeping an EA Explorer installation secure: the hardening checklist, secrets and certificates, who may reach it, multi-factor sign-in, machine access, and reporting a security issue.",
+      "chapters": [
+        {"title": "The hardening checklist", "sources": ["page:docs/guides/security.md"]},
+        {"title": "How EA Explorer is secured", "sources": ["page:docs/security-r3.md", "page:docs/secrets.md"]},
+        {"title": "Certificates", "sources": ["page:docs/guides/certificates.md"]},
+        {"title": "Who may reach it and how", "sources": ["howdoi:group=Security"]},
+        {"title": "Reporting a security issue", "sources": ["page:SECURITY.md"]}
+      ]
+    }
+  ]
+}

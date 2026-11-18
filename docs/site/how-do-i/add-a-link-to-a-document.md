@@ -3,7 +3,8 @@ title: Add a link to a document
 summary: Point an entity at a web page, a shared file or an EA Explorer page, with a note.
 group: Working with content
 roles: user
-screen: #/metamodel/{m}/entry
+screen: #/search?q=Claims%20Platform
+do: follow "Claims Platform"
 ---
 
 ## Why do this

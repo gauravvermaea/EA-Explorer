@@ -3,7 +3,7 @@ title: Accept a delivery
 summary: Take in what another system sent; it is committed as your load.
 group: Bringing data in
 roles: model-admin, user
-screen: #/metamodel/{m}/import
+screen: #/metamodel/{m}/import/deliveries
 ---
 
 ## Why do this

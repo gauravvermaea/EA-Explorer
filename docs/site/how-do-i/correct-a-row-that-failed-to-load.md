@@ -3,7 +3,7 @@ title: Correct a row that failed to load
 summary: Fix one problem row of a load or delivery and check it again.
 group: Bringing data in
 roles: user, developer
-screen: #/metamodel/{m}/import
+screen: #/metamodel/{m}/import/loads
 ---
 
 ## Why do this

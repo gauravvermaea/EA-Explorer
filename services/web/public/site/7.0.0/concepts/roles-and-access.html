@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roles and access · EA Explorer</title>
+<meta name="description" content="Who may do what: roles on the installation, on each model and on each project, and where each is given.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html" class="here">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Roles and access</h1>
+    <p class="who">For: System Admin, Model Admin, Project Admin, Practising architects, Executives</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">Who may do what: roles on the installation, on each model and on each project, and where each is given.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#three-layers-of-roles">Three layers of roles</a></li><li><a href="#why-it-is-done-this-way">Why it is done this way</a></li><li><a href="#read-next">Read next</a></li></ul></nav>
+    <h2 id="three-layers-of-roles">Three layers of roles</h2>
+<ul><li><strong>On the installation</strong> (given in Keycloak, or from your directory's groups): Super Admin, IT Admin, User Admin, Keycloak Admin, Auditor, Architecture Board, Discovery Admin, Model Creator, Library Admin, and User for everyone who signs in. See <a href="../how-do-i/give-someone-an-installation-role.html">Give someone a role on the installation</a> and <a href="../how-do-i/map-directory-groups-to-roles.html">Map directory groups to roles</a>.</li><li><strong>On a model</strong> (its People tab): Model Admin, Model Sub Admin, Committer, Architect, History Viewer, Report Viewer. See <a href="../how-do-i/give-people-roles-on-a-model.html">Give people roles on a model</a>.</li><li><strong>On a project</strong> (its set-up): Project Admin, Lead Architect, Architect, Model Admin, Model Sub Admin, Stakeholder. See <a href="../how-do-i/give-people-roles-on-a-project.html">Give people roles on a project</a>.</li></ul>
+<h2 id="why-it-is-done-this-way">Why it is done this way</h2>
+<p>Most people work on a few models and projects, and should see and change only those. Roles per model and per project let each owner decide who joins their work, without asking a System Admin each time. What you may not use is simply not shown, so screens stay simple. Machines get <strong>service accounts</strong> with tokens scoped to what they need (<a href="../how-do-i/make-a-service-account.html">Make a service account</a>).</p>
+<h2 id="read-next">Read next</h2>
+<ul><li><a href="../guides/add-a-person-and-give-roles.html">Add a person and give them roles</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: concepts/roles-and-access.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

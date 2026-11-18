@@ -3,7 +3,8 @@ title: Check a backup restores
 summary: Restore the newest backup into scratch copies and compare; nothing live changes.
 group: Backups and recovery
 roles: system-admin
-screen: #/admin/backups
+screen: #/admin/setup
+do: pick "Backups"
 ---
 
 ## Why do this

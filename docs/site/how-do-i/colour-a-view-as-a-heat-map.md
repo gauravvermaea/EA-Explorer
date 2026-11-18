@@ -3,7 +3,7 @@ title: Colour a view as a heat map
 summary: Shapes coloured by a value of their entities, such as cost or maturity.
 group: Views and reports
 roles: user, executive
-screen: #/metamodel/{m}/views
+screen: #/metamodel/{m}/views/VP-01/heat
 ---
 
 ## Why do this

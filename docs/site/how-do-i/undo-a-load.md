@@ -3,7 +3,7 @@ title: Undo a load
 summary: Take back everything one load brought in.
 group: Bringing data in
 roles: user, model-admin
-screen: #/metamodel/{m}/import
+screen: #/metamodel/{m}/import/loads
 ---
 
 ## Why do this

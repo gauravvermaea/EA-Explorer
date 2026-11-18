@@ -3,7 +3,7 @@ title: Schedule a command
 summary: An eax command that runs by itself: a nightly backup, a weekly check, or once at a time.
 group: Running it
 roles: system-admin
-screen: #/admin/commands
+screen: #/admin/commands/schedules
 ---
 
 ## Why do this

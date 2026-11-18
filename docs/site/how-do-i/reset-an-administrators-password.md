@@ -4,6 +4,7 @@ summary: A temporary password, shown once, changed at the next sign-in.
 group: People and access
 roles: system-admin
 screen: #/admin/setup
+do: pick "A forgotten password or certificate"
 ---
 
 ## Why do this

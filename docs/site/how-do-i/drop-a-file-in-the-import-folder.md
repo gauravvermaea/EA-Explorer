@@ -3,7 +3,7 @@ title: Drop a file in the import folder
 summary: A system delivers by writing a file into its source's folder.
 group: Bringing data in
 roles: developer
-screen: #/metamodel/{m}/import
+screen: #/metamodel/{m}/import/deliveries
 ---
 
 ## Why do this

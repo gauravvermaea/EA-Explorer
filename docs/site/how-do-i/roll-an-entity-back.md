@@ -3,7 +3,8 @@ title: Roll an entity back to an earlier version
 summary: Undo changes to one entity.
 group: Working with content
 roles: user
-screen: #/metamodel/{m}/changes
+screen: #/search?q=Claims%20Platform
+do: follow "Claims Platform"; tab "History"
 ---
 
 ## Why do this

@@ -8,7 +8,8 @@ and I should be just able to copy it seperately and publish it. The help guides 
     python tools/build_website.py --check    builds it in memory and says what is wrong (a test runs this)
 
 Sources (Markdown, a small front matter between --- lines: title, summary, roles; a How do I page also group and
-screen, the screen its picture shows, and screen2 for a second one):
+screen, the screen its picture shows, screen2 for a second one, and do (do2) where the picture is of a tab or a dialog
+on that screen rather than the screen as it opens: tab "Deliveries"; open "Make a key..." - D781):
   docs/site/index.md                 the home page
   docs/site/roles/*.md               what EA Explorer has for each kind of person
   docs/site/how-do-i/*.md            one simple task each, printable (roles: who it is for)
@@ -65,6 +66,8 @@ OUT = SITE / version()
 WIKI = re.compile(r"\[\[([a-z0-9-]+)(?:\|([^\]]+))?\]\]")
 WIKI_MISSES: list[str] = []
 SHOTS = SRC / "shots"
+DOCUMENTS = ROOT / "documents"          # the 24 printed guides, made by eax site pdfs (D783, D785)
+MANUALS = ROOT / "docs" / "manuals" / "manuals.json"
 YOUTUBE = "https://www.youtube.com/@ea-explorer-os"
 GITHUB = "https://github.com/gauravvermaea/EA-Explorer"
 
@@ -97,7 +100,8 @@ GROUP_ORDER = ["Start here", "The practice", "Getting around", "Working with con
                "Access for systems", "People and access", "Security", "Backups and recovery", "Running it",
                "Surveys and maturity", "AI", "Connectors", "Reading and reporting", "Running locally", "The code"]
 SECTIONS = [("index.html", "Home"), ("roles/index.html", "Your role"), ("concepts/index.html", "Concepts"),
-            ("how-do-i/index.html", "How do I"), ("guides/index.html", "Guides"), ("reports/index.html", "Reports"),
+            ("how-do-i/index.html", "How do I"), ("guides/index.html", "Guides"),
+            ("printed-guides/index.html", "Printed guides"), ("reports/index.html", "Reports"),
             ("integrate/index.html", "Integrate"),
             ("platform/index.html", "Platform"),
             ("install/index.html", "Install and run"), ("releases/index.html", "Releases"), ("videos.html", "Videos"),
@@ -275,6 +279,7 @@ class Page:
     printable: bool = True
     extra_html: str = ""          # lists made by the builder (the role's tasks, a section's index)
     screens: list[str] = field(default_factory=list)   # a How do I page's screens: its pictures, in order
+    does: list[str] = field(default_factory=list)      # what to open on each screen first (D781), "" for nothing
 
 
 def _title_of(md: str, fallback: str) -> tuple[str, str]:
@@ -331,7 +336,8 @@ def collect() -> list[Page]:
         title, md = _title_of(md, p.stem)
         pages.append(Page(f"how-do-i/{p.stem}.html", meta.get("title", title), md, "how-do-i/index.html",
                           meta.get("summary", ""), meta.get("roles", []), meta.get("group", "Other"), str(p.relative_to(ROOT)),
-                          screens=[meta[k] for k in ("screen", "screen2") if meta.get(k)]))
+                          screens=[meta[k] for k in ("screen", "screen2") if meta.get(k)],
+                          does=[meta.get(d, "") for k, d in (("screen", "do"), ("screen2", "do2")) if meta.get(k)]))
     pages.append(Page("how-do-i/index.html", "How do I", "One task on each page, step by step, ready to print or save as "
                       "PDF. Choose your role, or type to find a task.", "how-do-i/index.html", printable=False))
     # Concepts, Integrate, Platform: the ideas behind the work and the developers' sections (the owner, 16:36: "pages
@@ -367,12 +373,43 @@ def collect() -> list[Page]:
         md = p.read_text(encoding="utf-8")
         title, md = _title_of(md, p.stem)
         pages.append(Page(f"releases/{p.stem}.html", title, md, "releases/index.html", source=str(p.relative_to(ROOT))))
+    pages.append(printed_guides_page())
     pages.append(Page("releases/index.html", "Releases", "What came in each release, newest first. EA Explorer tells "
                       "every installation about a new release on System Admin › Updates.", "releases/index.html",
                       printable=False, extra_html="<ul class=\"cards-list\">" + "".join(
                           f'<li><a href="{p.stem}.html">{html.escape(_title_of(p.read_text(encoding="utf-8"), p.stem)[0])}</a></li>'
                           for p in notes) + "</ul>"))
     return pages
+
+
+def printed_guides() -> list[dict]:
+    """The 24 printed guides (docs/manuals/manuals.json) with their PDF in documents/ where it has been made: id, title,
+    audience, purpose, file, bytes (0 when not made yet)."""
+    if not MANUALS.is_file():
+        return []
+    out = []
+    for g in json.loads(MANUALS.read_text(encoding="utf-8"))["manuals"]:
+        f = DOCUMENTS / f"EA-Explorer-{g['id']}.pdf"
+        out.append({"id": g["id"], "title": g["title"], "audience": g["audience"], "purpose": g["purpose"],
+                    "file": f.name, "bytes": f.stat().st_size if f.is_file() else 0})
+    return out
+
+
+def printed_guides_page() -> Page:
+    """Printed guides (the owner, 18 Nov 2026, 21:00: "I want them to be in documentation of website as links to
+    download", D785): each guide, who it is for and what it is for, and its PDF to download."""
+    rows = []
+    for g in printed_guides():
+        size = f"{g['bytes'] / 1048576:.1f} MB" if g["bytes"] else ""
+        link = (f'<a class="download" href="../manuals/{html.escape(g["file"])}" download>Download the PDF</a> '
+                f'<span class="quiet small">{size}</span>' if g["bytes"] else
+                '<span class="quiet small">Not printed yet: <code>eax site pdfs</code></span>')
+        rows.append(f'<li><strong>{html.escape(g["id"].split("-")[0])}. {html.escape(g["title"])}</strong>'
+                    f'<span class="who">For {html.escape(g["audience"])}</span><span>{html.escape(g["purpose"])}</span>{link}</li>')
+    return Page("printed-guides/index.html", "Printed guides",
+                "The 24 guides to print and keep, each with a cover, what it is for and a table of contents, made from "
+                "the same pages as this website, with a picture of every screen.", "printed-guides/index.html",
+                printable=False, extra_html='<ul class="cards-list printed">' + "".join(rows) + "</ul>")
 
 
 # ---------------------------------------------------------------- links, layout, the index pages
@@ -487,7 +524,10 @@ def screens_list(pages: list[Page]) -> str:
     for p in pages:
         slug = p.out.rsplit("/", 1)[-1].removesuffix(".html")
         for n, screen in enumerate(p.screens):
-            rows.append({"page": slug, "title": p.title, "screen": screen, "file": shot_name(slug, n)})
+            row = {"page": slug, "title": p.title, "screen": screen, "file": shot_name(slug, n)}
+            if n < len(p.does) and p.does[n]:
+                row["do"] = p.does[n]
+            rows.append(row)
     return json.dumps(rows, indent=1, ensure_ascii=False) + "\n"
 
 
@@ -611,7 +651,7 @@ def build(write: bool = True, made: dict | None = None) -> list[str]:
         if p.source:
             sources[str((ROOT / p.source).resolve())] = p.out
     problems = []
-    outs = {p.out for p in pages} | {"search.html"}
+    outs = {p.out for p in pages} | {"search.html"} | {f"manuals/{g['file']}" for g in printed_guides() if g["bytes"]}
     files: dict[str, str] = {}
     for p in pages:
         if not p.title.strip():
@@ -641,6 +681,8 @@ def build(write: bool = True, made: dict | None = None) -> list[str]:
                 if not re.fullmatch(r"(#/|/)[A-Za-z0-9_\-/{}?=&%.]*", s):
                     problems.append(f"{p.source}: a screen is an address in EA Explorer (#/... or /...): {s}")
     pictures: dict[str, bytes] = {f"shots/{s.name}": s.read_bytes() for s in sorted(SHOTS.glob("*.png"))} if SHOTS.is_dir() else {}
+    guides = printed_guides()
+    files["manuals/manuals.json"] = json.dumps({"version": version(), "guides": [g for g in guides if g["bytes"]]}, indent=1)
     files["search.html"] = search_page()
     files["assets/search-index.js"] = search_index(pages)
     for name in ("site.css", "site.js"):
@@ -665,6 +707,9 @@ def build(write: bool = True, made: dict | None = None) -> list[str]:
         for name, data in pictures.items():
             (OUT / name).parent.mkdir(parents=True, exist_ok=True)
             (OUT / name).write_bytes(data)
+        for g in guides:   # the printed guides, from documents/ (D785)
+            if g["bytes"]:
+                shutil.copyfile(DOCUMENTS / g["file"], OUT / "manuals" / g["file"])
         SHOTS.mkdir(parents=True, exist_ok=True)
         (SHOTS / "screens.json").write_text(screens_list(pages), encoding="utf-8")
         (OUT / "README.txt").write_text(

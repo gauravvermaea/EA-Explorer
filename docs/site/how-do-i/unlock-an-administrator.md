@@ -4,6 +4,7 @@ summary: After too many wrong passwords.
 group: People and access
 roles: system-admin
 screen: #/admin/setup
+do: pick "A forgotten password or certificate"
 ---
 
 ## Why do this

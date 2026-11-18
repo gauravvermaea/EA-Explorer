@@ -3,7 +3,8 @@ title: Copy a view into your model
 summary: Make your own copy of a standard view to change it.
 group: Views and reports
 roles: user, model-admin
-screen: #/metamodel/{m}/views
+screen: #/metamodel/{m}/views/VP-01
+do: open "Copy as my model's view"
 ---
 
 ## Why do this

@@ -3,6 +3,14 @@
 Open items that are not part of a build phase yet, or are waiting on a test or a decision.
 Tick an item (`[x]`) when it is done; remove it at the next tidy-up.
 
+## Later: carried out of Release 7 when it closed (D786, 18 Nov 2026)
+
+- [ ] **R7.7: the website on GitHub Pages**, published with each release (the folder services/web/public/site/<version> as it is).
+- [ ] **R7.7: the deep technical dives** (architecture, the database, the API, MCP, the metamodel, security, testing), each with its video (R9).
+- [ ] **The printed guides: four labels to check on screen**: Relate to, Do again, What is this?, Send for review (D781).
+- [ ] **The drawn-view pictures**: the four drawn-view How do I pages show the Custom views list; point them at a drawn view the demo model has (D781).
+- [ ] **Stale lines in the documentation**: command-line-and-console.md (deploys to AWS, Azure and DigitalOcean; a key vault in phase 36: both dropped, D744, D746); release-process.md names decisions in its text; security-r3.md labels table rows by story.
+
 ## Later: carried out of Release 6 when it closed (D774, 18 Nov 2026)
 
 - [ ] **R6-E1: the config file encrypted** (optional, off by default): the operations helper reads the file for the

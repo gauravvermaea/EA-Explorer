@@ -3,7 +3,7 @@ title: Decline a delivery
 summary: Send a delivery back so nothing of it loads.
 group: Bringing data in
 roles: model-admin, user
-screen: #/metamodel/{m}/import
+screen: #/metamodel/{m}/import/deliveries
 ---
 
 ## Why do this

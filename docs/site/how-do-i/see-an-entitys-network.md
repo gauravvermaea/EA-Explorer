@@ -3,7 +3,8 @@ title: See an entity's network
 summary: Everything around an entity, one to three steps out.
 group: Views and reports
 roles: user
-screen: #/metamodel/{m}/graph
+screen: #/search?q=Claims%20Platform
+do: follow "Claims Platform"; tab "Graph"
 ---
 
 ## Why do this

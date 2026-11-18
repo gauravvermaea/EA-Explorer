@@ -20,7 +20,7 @@ Access in EA Explorer is layered so each owner decides for their own part: Syste
 
 ## Steps
 
-1. Open **System Admin › Users and roles**, **Open Keycloak**.
+1. Open **System Admin › Users and roles**, **Change in Keycloak**.
 2. **Users › Add user**: user name, email, name; **Create**.
 3. **Credentials**: set a temporary password.
 

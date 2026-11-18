@@ -1,0 +1,140 @@
+# Session log (running notes)
+
+The working notes of the current session, written **as we go** so that any AI picking up the work can carry on
+(owner, 18 Nov 2026, 19:22: "keep a file moving forward so that the session context and discussion is kept in the
+folder so that if the AI agent gets lost it gets picked from there"). Read this after CLAUDE.md, AGENTS.md and
+docs/handover.md. docs/handover.md stays the end-of-session summary; this file is the live log.
+
+## Session of 18 Nov 2026 (evening), Release 7: documentation
+
+### Where we were (recovered at 19:00)
+- The earlier session (Claude Code) was lost. Last commit 16:15 "Started with documentation". Work done after it
+  (site pages ~17:00, screenshots 18:05 to 18:13, D776 to D780 at 18:33) was on disk; the owner has checked it in.
+- Release 7 state: the website is built (R7.1, D776 to D779): role guides, 281 How do I pages, 22 Guides, Concepts,
+  Integrate, Platform, a page for each of the 145 reports. Videos moved to Release 9, Jenkins testing to R8.3 (D780).
+- R7.7 still to do: GitHub Pages publishing, docs per version, deep technical dives.
+- docs/handover.md is stale (says 17 Nov, Release 5.7): to be updated at the end of this session.
+
+### The owner's asks, in order (19:11 and 19:23: "check documentation fix it and then work on pdfs")
+1. **Check the How do I screenshots against what each page asks; fix wrong pictures.**
+   Found: `eax site shots` (services/api/eax/testing/site_shots.py) only opens each page's address (D777: it only
+   opens pages). 281 pages, only 159 distinct screens; 180 pages share a picture with another page (13 on
+   #/metamodel/{m}/import, 9 on views, 7 on #/mcp/tools...). The picture does not show the tab, dialog or wizard step
+   the task is about. Fix: per-task actions in the shot list (open the tab, the dialog), which changes D777's
+   "only opens pages" rule: to confirm with the owner.
+2. **Build 24 professional PDF guides** (cover, purpose, table of contents; people print and keep them), from the
+   content already made; **ask the owner before writing any new content**. Whether they go on the site: decided later.
+   The list:
+   1. Overview: capabilities, roles, who does what
+   2. System architecture and platform developer guide
+   3. Install guide
+   4. System admin guide, with How do I
+   5. Day-to-day operations, with How do I
+   6. Tuning and optimisation guide
+   7. Administrator guide for models, with How do I
+   8. Administrator guide for projects, with How do I
+   9. Architects' guide, with How do I
+   10. Industry expert guide: how do I make an industry model
+   11. Developer guide: examples making connectors and other things they can do
+   12. DR guide
+   13. Setting up site pairing for hot-hot DR
+   14. Emergency guides: reset passwords, I can't get in, rotating keys
+   15. EAX command guide
+   16. Jenkins guide
+   17. Example project end to end with EA Explorer
+   18. Guide to test the installation
+   19. Guide to test backup and DR, by hand and with the commands
+   20. Upgrade guide: from a git release, or getting the latest code by hand and upgrading
+   21. Troubleshooting guide for admins: logs, error codes
+   22. AI and MCP user guide
+   23. Setting up Keycloak with AD, Entra, OAuth (Google) or your own provider
+   24. Security best practice guide
+
+### Progress
+- 19:20 owner zipped docs/ (docs.zip, 46 MB) and services/web/src (src.zip) for the AI to read.
+- 19:22 this file started (docs/session-log.md).
+
+### 1. The How do I pictures: what is wrong (checked 18 Nov, evening)
+
+Checked all 281 pages against their 281 pictures (front matter `screen:`, the steps' bold labels against the web
+source, and the pictures themselves read one by one and measured).
+
+**Three faults:**
+
+1. **Four pictures were taken while the page was still loading** (`see-the-project-report`, `upload-project-files`,
+   `read-the-documentation`, `see-whats-new`: "Loading..." and nothing else), and a dozen more show a page only part
+   drawn. `site_shots.py` waits for `networkidle` and then 1.5s; a screen that keeps polling (the heartbeat every 20s)
+   never goes idle, so the wait ends early. **Fix:** wait until the page has drawn (no "Loading" text left in the main
+   panel), then a settling pause, and say so in the log.
+2. **180 of the 281 pages share a picture with another page** (159 distinct screens): the picture shows the screen the
+   task starts on, not the tab, sub-page or dialog the task is about. 13 pages all show `#/metamodel/{m}/import`.
+   **Fix, in two parts:** (a) most sub-pages *are* addressable - the import tabs are `/import/loads`, `/deliveries`,
+   `/discovery`, `/git`; views are `/views/{code}`; changes, quality, grid and entry all take a sub-path - so the page's
+   `screen:` becomes the precise address and nothing is clicked (D777 holds); (b) where a task is about a dialog or a
+   wizard step there is no address, so the page gets a new `do:` line (open a tab by its name, open a dialog by its
+   button) which `eax site shots` follows before taking the picture. It still never saves, deletes or runs anything:
+   the labels it may click are checked against a deny-list first.
+3. **14 of the 409 bold labels in the steps are not in the product** (`Make it the latest version`, `Send for review`,
+   `Mark answered`, `Do again`, `Relate to`, `Type attributes`, `What is this?`, `From Other Sources`,
+   `Wizards, Model from a metamodel workbook`, `A principle that refines another`, `Open Keycloak`; and `Add user`,
+   `Assign role`, `Allowed addresses`, which are Keycloak's own labels and right as they are). **Fix:** correct each to
+   the label the screen shows.
+
+### 19:43 to now: the cloud chat took over again (owner: "no you override"), the folder connected to it
+- Kept Claude Code's findings above and its site_shots.py (waits for the screen; `do:` with tab and open).
+- Added to site_shots.py: `follow "words"` (go to a link's address), `pick "words"` (a card such as a setup guide),
+  and OPENERS (buttons read in the web code that only open a dialog: Bring data in, Take data out, + Add a source,
+  Copy as my model's view). test_r7_1_website.py updated for D781 (the old "two clicks only" test would have failed).
+- 47 How do I pages given their exact screen and `do:` line (entity tasks via `#/search?q=Claims%20Platform` and
+  `follow "Claims Platform"`; drawn views via `follow "Claims application landscape"`; machine-only tasks show their
+  setup guide). Labels fixed: Make this the latest, Refine it, Change in Keycloak. D781 written in decisions.md.
+- **Still to check with the owner:** `Relate to`, `Do again`, `What is this?`, `Send for review` (the right label
+  depends on how those screens behave). Pages that still share a picture but show the right screen were left alone
+  (Secrets, Alerts, Backups, Restores, Security, the AI tiles...).
+- **The owner runs:** `.\eax site build` then `.\eax site shots` (all pictures again, not --missing), then
+  `.\eax site build`; then reads work/tests/site-shots.log for "nothing called ...".
+- **Next: the 24 PDF guides** (task 2 above).
+
+### 19:57 Release 7.9 added (error codes and the error guide, D782)
+- R7.9-E1 (error codes, one list; `eax status` gives each problem's code and what to do) and R7.9-E2 (the error guide).
+  Guide 21 has no messages table because of it.
+
+### 20:30 The 24 printed guides built (D783)
+- docs/manuals/manuals.json (the 24 guides, their chapters and sources), tools/build_manuals.py (the builder),
+  docs/manuals/new/ (new content: Keycloak with Entra ID / Google / OIDC / SAML; Jenkins from inside EA Explorer).
+- `eax site pdfs [--only ID]` (eaxcli/site_cli.py, help.txt) prints them in the test runner into work/manuals.
+- Owner's answers (19:5x): new Keycloak sections yes; hot standby (not hot-hot); Jenkins built normally, no "untested"
+  note; messages table replaced by Release 7.9.
+- Preview PDFs (659 pages, no pictures yet: a box marks each) copied to work/manuals/preview.
+- **The owner runs:** `.\eax site build`, `.\eax site shots`, `.\eax site build`, then `.\eax site pdfs`.
+- **Known in the source docs (not changed):** command-line-and-console.md still says deploys go to AWS, Azure and
+  DigitalOcean and that "phase 36 ... brings a key vault" (both dropped, D746/D744); release-process.md names D373/D417
+  in its text; testing.md has two bold phrases with * inside; security-r3.md table rows are labelled by story (R2.24, R4.7).
+- **Still open:** the four labels to confirm (Relate to, Do again, What is this?, Send for review); PDFs on the site or not.
+
+### 20:34 Pictures off the website, kept in the PDFs (D784)
+- tools/build_website.py: no pictures on the pages, none copied into the site. The PDFs keep them.
+- The pictures could not be copied over the file bridge fast enough (7 of 10 per call). GitHub's latest commit is 14:51,
+  before the pictures were taken: waiting for the owner to push, then the AI takes docs/site/shots from GitHub.
+- 20:39 changed: **pictures on both** the website and the PDFs (owner confirmed). build_website.py put back as it was.
+  The owner is running `eax site shots`; then `eax site build` and `eax site pdfs`.
+
+### 20:58 The 24 PDFs printed with pictures, on the owner's laptop: "ok they look good"
+- In work/manuals (work/manuals/preview, the earlier ones without pictures, can go).
+- site_shots.py: each do: step waits up to 15 s for its link (search results and drawn views arrive late).
+- **Still open:** the four drawn-view pages show the Custom views list (the link "Claims application landscape" was
+  not found: check which drawn views the demo model has); see-the-containers may be half drawn (26 s to load); the four
+  labels to confirm (Relate to, Do again, What is this?, Send for review); the stale lines in the source docs (above).
+- Next: the owner commits and pushes; update docs/handover.md at the end of the session.
+
+### 21:00 to 21:30 The printed guides in the documentation; Release 7 closed as 7.0.0 (D785, D786)
+- `eax site pdfs` now writes the PDFs to **documents/** (repo root, in git, with README.md) and then rebuilds the website.
+- Website: **Printed guides** in the top bar (printed-guides/index.html), the PDFs copied into site/<version>/manuals with
+  manuals.json; home page (docs/site/index.md) has a Printed guides section.
+- App: Documentation › Printed guides (PDF) (#/documentation?guides=1, in the top Documentation menu and the ? menu),
+  and a Printed guides card at the top of the Documentation page; reads /site/<version>/manuals/manuals.json.
+- Release 7 closed: version 7.0.0, migration 0108 (+ wrapper), releases/7.0.0.md, build-phases rows, todo Later items,
+  handover updated.
+- **The owner runs to test:** `.\eax site pdfs` (PDFs into documents/, website rebuilt with them), then `.\eax up`
+  (migration 0108, the new web image), then check: Documentation › Printed guides (PDF), and /site/ › Printed guides.
+- Next: Release 7.9 (error codes), one question at a time.

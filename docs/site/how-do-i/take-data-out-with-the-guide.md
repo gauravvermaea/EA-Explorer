@@ -4,6 +4,7 @@ summary: A step-by-step guide to getting data out, for what you need it for.
 group: Taking data out
 roles: user, developer
 screen: #/metamodel/{m}/import
+do: open "Take data out"
 ---
 
 ## Why do this

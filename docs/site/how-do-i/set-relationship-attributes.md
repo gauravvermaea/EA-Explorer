@@ -3,7 +3,8 @@ title: Set a relationship's attributes
 summary: Values on the relationship itself, such as a protocol or a port.
 group: Working with content
 roles: user
-screen: #/metamodel/{m}/entry
+screen: #/search?q=Claims%20Platform
+do: follow "Claims Platform"; tab "Relations"
 ---
 
 ## Why do this

@@ -4,6 +4,7 @@ summary: A step-by-step guide whichever way the data comes.
 group: Bringing data in
 roles: user, developer
 screen: #/metamodel/{m}/import
+do: open "Bring data in"
 ---
 
 ## Why do this

@@ -3,7 +3,8 @@ title: Add a relationship between two entities
 summary: Relate two entities, only in the ways the metamodel allows.
 group: Working with content
 roles: user
-screen: #/metamodel/{m}/entry
+screen: #/search?q=Claims%20Platform
+do: follow "Claims Platform"; tab "Relations"
 ---
 
 ## Why do this

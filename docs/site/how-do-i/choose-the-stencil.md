@@ -3,7 +3,8 @@ title: Choose the shapes on the stencil
 summary: Show or hide groups of shapes and their size.
 group: Views and reports
 roles: user
-screen: #/metamodel/{m}/views
+screen: #/metamodel/{m}/views/custom
+do: follow "Claims application landscape"
 ---
 
 ## Why do this

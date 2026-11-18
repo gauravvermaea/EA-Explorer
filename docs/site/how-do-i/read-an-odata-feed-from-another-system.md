@@ -3,7 +3,7 @@ title: Read an OData feed from another system
 summary: EA Explorer reads a feed your organisation already has and proposes it for a model.
 group: Bringing data in
 roles: developer, model-admin
-screen: #/metamodel/{m}/import
+screen: #/metamodel/{m}/import/discovery
 ---
 
 ## Why do this

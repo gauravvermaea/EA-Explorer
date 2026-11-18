@@ -4,6 +4,7 @@ summary: One site sends content, or everything for DR, to another.
 group: Running it
 roles: system-admin
 screen: #/admin/pairings
+do: open "Pair with a site..."
 ---
 
 ## Why do this

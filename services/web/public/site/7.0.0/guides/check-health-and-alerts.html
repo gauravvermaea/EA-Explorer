@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Check the health and alerts · EA Explorer</title>
+<meta name="description" content="See whether every part of EA Explorer is up, what is wrong, and who is told.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../guides/index.html" class="here">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Check the health and alerts</h1>
+    <p class="who">For: System Admin</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">See whether every part of EA Explorer is up, what is wrong, and who is told.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-do-this">Why do this</a></li><li><a href="#the-ways-to-do-it">The ways to do it</a></li><li><a href="#if-something-goes-wrong">If something goes wrong</a></li><li><a href="#each-task-one-page">Each task, one page</a></li><li><a href="#related">Related</a></li></ul></nav>
+    <h2 id="why-do-this">Why do this</h2>
+<p>A repository people rely on must be available. Health, alerts and logs together tell you what is wrong and where; this guide shows how they fit. See <a href="../concepts/running-the-installation.html">Running the installation</a>.</p>
+<p>The installation is built to look after itself as far as it can, and to ask before anything risky. These tasks are the decisions it leaves to you: what to run, when, and how far to trust a change.</p>
+<p><strong>In TOGAF terms:</strong> Outside the method: this keeps the tool that holds the Architecture Repository running. See <a href="../concepts/ea-explorer-and-togaf.html">EA Explorer and the TOGAF Standard</a>.</p>
+<p><strong>The goal:</strong> You know EA Explorer is healthy and hear quickly when it is not.</p>
+<blockquote class="before"><p><strong>Before you start</strong> You need the Super Admin, IT Admin or Auditor role.</p></blockquote>
+<h2 id="the-ways-to-do-it">The ways to do it</h2>
+<ol><li>The dot in the top bar shows the overall health at a glance: green, amber or red.</li><li><strong>System Admin › Running › Health</strong>: every part (the API, the databases, sign-in, reports, documents and the rest); open a red one to see why.</li><li><strong>System Admin › Running › Alerts</strong>: the checks that run every minute (each service, the disks, memory, the certificate, the database, errors in the web log, the self-test) and the open alerts. Alerts go to the IT Admins and Super Admins, the webhooks and by email.</li><li>Acknowledge an alert to stop it repeating, or silence a check during planned work.</li></ol>
+<p>On the machine: <code>eax status</code> shows every container, the disks and what is running.</p>
+<h2 id="if-something-goes-wrong">If something goes wrong</h2>
+<ul><li><strong>A service keeps restarting</strong>: System Admin › Running › Containers, the service, its log.</li><li><strong>Everything is down</strong>: on the machine, <code>eax status</code>, then <code>eax restart</code>.</li></ul>
+<h2 id="each-task-one-page">Each task, one page</h2>
+<ol><li><a href="../how-do-i/see-the-health-of-every-part.html">See the health of every part</a></li><li><a href="../how-do-i/set-up-alerts.html">Set up alerts</a></li><li><a href="../how-do-i/acknowledge-an-alert.html">Acknowledge an alert</a></li><li><a href="../how-do-i/silence-a-check.html">Silence a check during planned work</a></li><li><a href="../how-do-i/see-the-containers.html">See the containers</a></li><li><a href="../how-do-i/read-the-logs.html">Read the logs</a></li></ol>
+<h2 id="related">Related</h2>
+<ul><li><a href="../how-do-i/run-the-self-test.html">Run the self-test</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: guides/check-health-and-alerts.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

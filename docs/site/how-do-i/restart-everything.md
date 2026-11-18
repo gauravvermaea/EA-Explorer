@@ -4,6 +4,7 @@ summary: Everyone is signed out for a minute or two.
 group: Running it
 roles: system-admin
 screen: #/admin/system
+do: open "Restart the system..."
 ---
 
 ## Why do this

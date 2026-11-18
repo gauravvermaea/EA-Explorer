@@ -3,7 +3,8 @@ title: Export a drawn view
 summary: Download a drawn view as a picture or a draw.io file.
 group: Views and reports
 roles: user
-screen: #/metamodel/{m}/views
+screen: #/metamodel/{m}/views/custom
+do: follow "Claims application landscape"
 ---
 
 ## Why do this

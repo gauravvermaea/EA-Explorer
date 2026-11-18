@@ -2991,3 +2991,10 @@ th.sortable { cursor: pointer; }
 .setup-command pre { flex: 1 1 360px; margin: 4px 0; padding: 6px 8px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
 .setup-missing { color: #8a4b00; background: #fff4d6; border-radius: 3px; padding: 0 3px; }
 label.check.inline { display: inline-flex; margin-right: 8px; }
+/* Documentation as tiles (owner, 18 Nov 2026, 21:24: "can docs be in tiles"): each group a heading and its tiles;
+   the printed guides first, as tiles that download their PDF (D785) */
+.docs-group-tiles { margin: 18px 0 8px; }
+.docs-group-tiles h2 { font-size: 17px; margin: 0 0 8px; }
+.docs-group-tiles .tile h3 { font-size: 14px; }
+.docs-group-tiles .tile:hover { border-color: var(--accent); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.printed-guides > .quiet { margin: 0 0 10px; }

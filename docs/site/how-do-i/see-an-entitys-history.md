@@ -3,7 +3,8 @@ title: See everything that happened to an entity
 summary: Every change to one entity, who and when, before and after.
 group: Working with content
 roles: user
-screen: #/metamodel/{m}/changes
+screen: #/search?q=Claims%20Platform
+do: follow "Claims Platform"; tab "History"
 ---
 
 ## Why do this

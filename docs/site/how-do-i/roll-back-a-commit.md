@@ -3,7 +3,7 @@ title: Roll back a commit
 summary: Undo a whole commit, as a new commit that puts things back.
 group: Working with content
 roles: model-admin, user
-screen: #/metamodel/{m}/changes
+screen: #/metamodel/{m}/changes/history
 ---
 
 ## Why do this

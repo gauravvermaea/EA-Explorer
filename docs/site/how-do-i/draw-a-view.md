@@ -3,7 +3,8 @@ title: Draw a view
 summary: A view drawn in the built-in draw.io with the model's own entities, kept in step with the model.
 group: Views and reports
 roles: user
-screen: #/metamodel/{m}/views
+screen: #/metamodel/{m}/views/custom
+do: follow "Claims application landscape"
 ---
 
 ## Why do this
