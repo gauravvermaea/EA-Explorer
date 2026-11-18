@@ -90,7 +90,16 @@ ADMIN_TASKS: list[dict] = [
      "argv": ["stop"], "confirm": True},
     {"name": "restart", "group": "Start and stop", "summary": "EA Explorer stopped and started again, everything waited for",
      "argv": ["restart", "--wait-all"], "confirm": True},
-    {"name": "status", "group": "Start and stop", "summary": "Every container, the disks and what is running", "argv": ["status"]},
+    # the environment's status and its error codes (Release 7.9, D787; owner, 18 Nov 2026, 23:29: "error code can be
+    # queried from jenkins", "they give enviornment status")
+    {"name": "status", "group": "Status and error codes",
+     "summary": "The environment's status: every container, the disks, then every problem with its error code and what to do",
+     "argv": ["status"]},
+    {"name": "problems", "group": "Status and error codes",
+     "summary": "Only the problems now, each with its error code (EAX-AREA-NNN) and what to do", "argv": ["status", "problems"]},
+    {"name": "error-code", "group": "Status and error codes",
+     "summary": "What an error code means, its usual cause and what to do (empty: every code)",
+     "argv": ["errors", _w("CODE", "a code (EAX-AUTH-001), an area (BAK) or a word (backup); empty for every code", required=False)]},
     {"name": "maintenance-page-on", "group": "Get back in", "summary": "The maintenance page shown to everyone",
      "argv": ["maintenance", "on"]},
     {"name": "maintenance-page-off", "group": "Get back in", "summary": "The maintenance page taken down (and the background let run again: eax maintenance clear does both)",

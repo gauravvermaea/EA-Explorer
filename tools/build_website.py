@@ -66,7 +66,7 @@ OUT = SITE / version()
 WIKI = re.compile(r"\[\[([a-z0-9-]+)(?:\|([^\]]+))?\]\]")
 WIKI_MISSES: list[str] = []
 SHOTS = SRC / "shots"
-DOCUMENTS = ROOT / "documents"          # the 24 printed guides, made by eax site pdfs (D783, D785)
+DOCUMENTS = ROOT / "documents"          # the printed guides, made by eax site pdfs (D783, D785, D790)
 MANUALS = ROOT / "docs" / "manuals" / "manuals.json"
 YOUTUBE = "https://www.youtube.com/@ea-explorer-os"
 GITHUB = "https://github.com/gauravvermaea/EA-Explorer"
@@ -383,7 +383,7 @@ def collect() -> list[Page]:
 
 
 def printed_guides() -> list[dict]:
-    """The 24 printed guides (docs/manuals/manuals.json) with their PDF in documents/ where it has been made: id, title,
+    """The printed guides (docs/manuals/manuals.json) with their PDF in documents/ where it has been made: id, title,
     audience, purpose, file, bytes (0 when not made yet)."""
     if not MANUALS.is_file():
         return []
@@ -407,7 +407,7 @@ def printed_guides_page() -> Page:
         rows.append(f'<li><strong>{html.escape(g["id"].split("-")[0])}. {html.escape(g["title"])}</strong>'
                     f'<span class="who">For {html.escape(g["audience"])}</span><span>{html.escape(g["purpose"])}</span>{link}</li>')
     return Page("printed-guides/index.html", "Printed guides",
-                "The 24 guides to print and keep, each with a cover, what it is for and a table of contents, made from "
+                f"The {len(printed_guides())} guides to print and keep, each with a cover, what it is for and a table of contents, made from "
                 "the same pages as this website, with a picture of every screen.", "printed-guides/index.html",
                 printable=False, extra_html='<ul class="cards-list printed">' + "".join(rows) + "</ul>")
 
@@ -645,6 +645,12 @@ def front_page(releases: list[str]) -> str:
 def build(write: bool = True, made: dict | None = None) -> list[str]:
     """Builds the site; returns what is wrong (a link to nowhere, a page with no title, a role with no page). `made`, when
     given, receives every file's text by its path in the site (a test compares them with the folder)."""
+    if write:       # the error guide, from the one list of error codes (Release 7.9, D787)
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("error_guide", Path(__file__).with_name("error_guide.py"))
+        guide = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(guide)
+        guide.PAGE.write_text(guide.page(), encoding="utf-8", newline="\n")
     pages = collect()
     sources: dict[str, str] = {}
     for p in pages:

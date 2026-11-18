@@ -458,11 +458,16 @@ def dispatch(command: str, rest: list[str], wait_all: bool) -> None:
         info.watch_containers(rest)
     elif command == "diag":
         diagnostics()
+    elif command == "status" and rest[:1] == ["problems"]:    # the problems only, with their codes (R7.9, D787)
+        from . import problems
+        problems.show(set(stack.off_containers()))
     elif command == "status":
         from . import core as _core
         _core.heading(f"EA Explorer {_core.release()}, build {_core.build_id()}")
         _core.say_status_lines(_core.compose_out(["ps", "-a"]))    # each container in its state's colour (R2.10)
         stack.show_filesystems()
+        from . import problems                                    # every problem with its code and what to do (R7.9)
+        problems.show(set(stack.off_containers()))
     elif command == "logs" and rest[:1] in (["backup"], ["clean"]):   # back up and clean the logs (R2.30)
         from . import logs_cli
         return logs_cli.main(rest)
@@ -701,6 +706,9 @@ def main(argv: list[str]) -> int:
         if command == "settings":               # the settings exported and imported (Release 6.7, D755)
             from . import settings_cli
             return settings_cli.main(rest)
+        if command == "errors":                 # what an error code means and what to do (Release 7.9, D787)
+            from . import problems
+            return problems.errors_main(rest)
         if command == "site":                   # the website: made, checked, its pictures taken (Release 7.1, D776, D777)
             from . import site_cli
             return site_cli.main(rest)

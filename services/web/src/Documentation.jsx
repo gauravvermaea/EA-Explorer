@@ -81,7 +81,7 @@ function DocumentList() {
   );
 }
 
-// The 24 printed guides as PDFs to download (D785), as tiles like every document here (owner, 18 Nov 2026, 21:24: "can
+// The printed guides (24, then 25 with the error code guide, D790) as PDFs to download (D785), as tiles like every document here (owner, 18 Nov 2026, 21:24: "can
 // docs be in tiles"), from the website's own copy: /site/<version>/manuals/manuals.json.
 // The website is plain files everyone may open, so this needs no API.
 export function PrintedGuides({ version }) {
@@ -99,7 +99,7 @@ export function PrintedGuides({ version }) {
   return (
     <section className="docs-group-tiles printed-guides">
       <h2>Printed guides</h2>
-      <p className="quiet">The 24 guides to print and keep, as PDF: each with a cover, what it is for, who it is for, a table of
+      <p className="quiet">The {guides && guides.length ? `${guides.length} ` : ""}guides to print and keep, as PDF: each with a cover, what it is for, who it is for, a table of
         contents and a picture of every screen. The same are on the <a href={`/site/${encodeURIComponent(version)}/printed-guides/index.html`}
         target="_blank" rel="noopener noreferrer">website ↗</a> and in the repository's <code>documents</code> folder.</p>
       {failed || (guides && !guides.length) ? (

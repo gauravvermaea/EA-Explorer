@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import uuid
 
@@ -236,7 +237,8 @@ def create_app(testing: bool = False) -> Flask:
             return None
         if part:
             return {"message": f"{part.title()} is switched off in this installation (System admin > System settings). "
-                               "Its data is kept and comes back when a Super Admin switches it on.", "part_off": part}, 404
+                               "Its data is kept and comes back when a Super Admin switches it on.", "part_off": part,
+                    "error_code": "EAX-PART-001"}, 404
         return None
 
     @app.before_request
@@ -248,7 +250,8 @@ def create_app(testing: bool = False) -> Flask:
         m = maintenance.state()
         if m:
             return {"message": f"EA Explorer is read only while {m.get('what') or 'a restore runs'} (started by {m.get('by') or '?'} "
-                               f"at {m.get('since') or '?'}): nothing can be changed until it is done.", "maintenance": m}, 503
+                               f"at {m.get('since') or '?'}): nothing can be changed until it is done.", "maintenance": m,
+                    "error_code": "EAX-MNT-001"}, 503
         return None
 
     @app.before_request
@@ -258,7 +261,7 @@ def create_app(testing: bool = False) -> Flask:
         from . import pairing
         why = pairing.refused_on_dr(request.method, request.path)
         if why:
-            return {"message": why, "dr_copy": pairing.dr_copy()}, 503
+            return {"message": why, "dr_copy": pairing.dr_copy(), "error_code": "EAX-DR-001"}, 503
         return None
 
     @app.after_request
@@ -312,6 +315,29 @@ def create_app(testing: bool = False) -> Flask:
             log.debug("web log debug line skipped", exc_info=True)
         return response
 
+    @app.after_request
+    def _error_code(response):
+        """Release 7.9 (D787): every error answer carries its code (EAX-AREA-NNN) and what to do, in the body when it is
+        JSON and always in the X-EAX-Error-Code header; one log line names it. A guard or handler that knows the
+        problem sets its own code; any other answer gets the code of its HTTP status (eax/errors.json)."""
+        if response.status_code < 400:
+            return response
+        try:
+            from . import errors
+            body = response.get_json(silent=True) if response.is_json else None
+            code = (body or {}).get("error_code") if isinstance(body, dict) else None
+            code = code or getattr(g, "error_code", None) or errors.for_status(response.status_code)
+            response.headers["X-EAX-Error-Code"] = code
+            if isinstance(body, dict) and ("error_code" not in body or "to_do" not in body):
+                errors.stamp(body, code)
+                response.set_data(json.dumps(body))
+            if not getattr(g, "error_logged", False):
+                (log.warning if response.status_code >= 500 else log.info)(
+                    "%s %s %s answered %s", code, request.method, request.path, response.status_code, extra={"error_code": code})
+        except Exception:  # noqa: BLE001 - the code never fails the answer
+            log.debug("error code not added", exc_info=True)
+        return response
+
     @app.get("/api/health")
     def health():
         """Liveness check for Docker: the process is up (does not touch the database)."""
@@ -352,7 +378,7 @@ def create_app(testing: bool = False) -> Flask:
     @app.errorhandler(_PersonalAway)
     def _personal_away(exc):
         """The personal data service's schema cannot be reached (R2.53): the screens show "not available right now"."""
-        return {"code": 503, "status": "Service Unavailable", "unavailable": "personal",
+        return {"code": 503, "status": "Service Unavailable", "unavailable": "personal", "error_code": "EAX-PDATA-001",
                 "message": f"Your personal data is not available right now: {exc}"}, 503
 
     from .repository import NotFound as _NotFound
@@ -372,7 +398,8 @@ def create_app(testing: bool = False) -> Flask:
         """A change or a request that cannot be made answers with its own status (400 unless it says otherwise) wherever
         it is raised: never a server error (R5.40: a package asked for with a content it does not know answered 500)."""
         status = getattr(exc, "status", 400) or 400
-        return {"code": status, "status": "Bad Request" if status == 400 else "Refused", "message": str(exc)}, status
+        return {"code": status, "status": "Bad Request" if status == 400 else "Refused", "message": str(exc),
+                "error_code": "EAX-API-102"}, status
 
     @app.errorhandler(_DataError)
     def _bad_value(exc):
@@ -380,7 +407,8 @@ def create_app(testing: bool = False) -> Flask:
         caller's mistake: 400 saying which value, never a server error (R5.40, the security scan of 16 Nov 2026: the
         change log with model=model answered 500 DataError)."""
         first = (str(getattr(exc, "orig", exc)).splitlines() or [""])[0][:200]
-        return {"code": 400, "status": "Bad Request", "message": f"A value given is not valid: {first}"}, 400
+        return {"code": 400, "status": "Bad Request", "message": f"A value given is not valid: {first}",
+                "error_code": "EAX-API-101"}, 400
 
     @app.errorhandler(Exception)
     def _server_error(exc):
@@ -391,8 +419,10 @@ def create_app(testing: bool = False) -> Flask:
         if isinstance(exc, HTTPException):
             return exc
         rid = getattr(g, "request_id", "") or ""
-        log.exception("server error %s on %s %s (request %s)", type(exc).__name__, request.method, request.path, rid)
-        return {"code": 500, "status": "Internal Server Error", "error": type(exc).__name__, "request_id": rid,
+        log.exception("EAX-API-500 server error %s on %s %s (request %s)", type(exc).__name__, request.method, request.path, rid,
+                      extra={"error_code": "EAX-API-500"})
+        g.error_logged = True
+        return {"code": 500, "status": "Internal Server Error", "error": type(exc).__name__, "request_id": rid, "error_code": "EAX-API-500",
                 "message": f"A server error ({type(exc).__name__}). The API's log has the details under request {rid}."}, 500
 
     return app

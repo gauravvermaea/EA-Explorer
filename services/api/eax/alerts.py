@@ -397,17 +397,20 @@ def send_email(to: list[str], subject: str, body: str, smtp=None) -> str:
 def tell(conn, kind: str, key: str, row: dict, seen: dict, escalated: bool = False) -> None:
     """Tells people of an alert raised, still open, escalated or recovered: a notification, an email when a mail server
     is set, and an audit line."""
-    from . import audit, notify
+    from . import audit, errors, notify
     words = {"raised": "Alert", "reminder": "Still", "escalated": "Not acknowledged", "recovered": "Recovered"}[kind]
-    title = f"{words}: {seen.get('what') or key} is {row['state']}" + (f" ({seen.get('message')})" if seen.get("message") else "")
+    code = errors.for_alert(key, str(seen.get("message") or ""), row["state"]) if kind != "recovered" else ""
+    title = (f"{code} " if code else "") + f"{words}: {seen.get('what') or key} is {row['state']}"
+    title += f" ({seen.get('message')})" if seen.get("message") else ""
     notify.create(conn, kind=f"alert.{kind}", category="system", title=title[:300], body=str(seen.get("message") or ""),
                   link=LINK, actor="system", recipients=people(conn, super_only=escalated), needs_action=kind != "recovered")
     host = os.environ.get("EAX_HOSTNAME", "EA Explorer")
     why = send_email(recipients_of(conn, escalated), f"[EA Explorer {host}] {title}",
-                     f"{title}\n\nCheck: {key}\nState: {row['state']}\nSince: {row.get('since')}\n\n"
+                     f"{title}\n\nCheck: {key}\nState: {row['state']}\nSince: {row.get('since')}\n"
+                     + (f"Code: {code}\nWhat to do: {errors.to_do(code)}\n" if code else "") + "\n"
                      f"See System Admin > Alerts: https://{host}/{LINK}\n")
     audit.record(conn, actor="system", action=f"alert.{kind}", object_type="alert", object_id=key,
-                 details={"state": row["state"], "message": seen.get("message"), "email": why or "sent"})
+                 details={"state": row["state"], "message": seen.get("message"), "email": why or "sent", "error_code": code})
 
 
 # ---------------------------------------------------------------- one run
@@ -474,6 +477,10 @@ def overview(conn) -> dict:
     and the email settings without the password."""
     rows = [dict(r) for r in conn.execute(text("SELECT * FROM core.alert_checks ORDER BY check_key")).mappings()]
     rows.sort(key=lambda r: (-RANK.get(r["state"], 0), r["check_key"]))
+    from . import errors            # Release 7.9 (D787): each open alert with its code and what to do
+    for r in rows:
+        if r["state"] in (WARNING, CRITICAL):
+            errors.stamp(r, errors.for_alert(r["check_key"], r.get("message") or "", r["state"]))
     silences = [dict(r) for r in conn.execute(text("SELECT * FROM core.alert_silences WHERE until > now() ORDER BY until")).mappings()]
     open_ = [r for r in rows if r["state"] in (WARNING, CRITICAL)]
     return {"checks": rows, "open": len(open_), "critical": sum(1 for r in open_ if r["state"] == CRITICAL),

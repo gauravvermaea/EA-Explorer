@@ -525,7 +525,8 @@
   "tab:Health": {
     "what": "Whether every service is up.",
     "how": [
-      "Recalculate to check again; open a red one to see why."
+      "Recalculate to check again; open a red one to see why.",
+      "A part that is not up shows its error code and what to do."
     ]
   },
   "tab:Hierarchy": {
@@ -3280,7 +3281,8 @@
     "what": "Whether every part of EA Explorer is up: the API, databases, sign-in, reports, documents and the rest.",
     "how": [
       "Green is up, amber is slow or partly up, red is down.",
-      "Recalculate checks again now."
+      "Recalculate checks again now.",
+      "A part that is not up shows its error code (EAX-AREA-NNN) and what to do; the website's error guide, or eax errors <code> on the machine, says more."
     ],
     "example": "Reports shows red: open Containers to restart it."
   },
@@ -3715,7 +3717,8 @@
     "how": [
       "A state counts once it holds for two checks; an alert goes to the IT Admins and Super Admins, the webhooks and by email.",
       "Acknowledge an alert to stop it repeating; silence a check, or plan a downtime for all of them.",
-      "Change a check's warning and critical levels (Super Admin)."
+      "Change a check's warning and critical levels (Super Admin).",
+      "Each open alert shows its error code (EAX-AREA-NNN) and what to do; the alert's notification and email name the code too."
     ],
     "example": "Plan a downtime of 60 minutes before moving the server."
   },

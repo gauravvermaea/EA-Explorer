@@ -1,0 +1,578 @@
+{
+ "about": "Every error code EA Explorer gives (Release 7.9, D787). One list: the API, the logs, System Admin health and alerts, eax status and the error guide all read it. Codes are EAX-AREA-NNN; a code never changes meaning.",
+ "errors": [
+  {
+   "code": "EAX-API-400",
+   "area": "API",
+   "title": "Request not valid",
+   "meaning": "The API could not take the request as sent.",
+   "cause": "A value is missing, of the wrong kind or not allowed.",
+   "to_do": "Read the message: it names the value. Correct it and send again.",
+   "http": 400
+  },
+  {
+   "code": "EAX-API-401",
+   "area": "API",
+   "title": "Not signed in",
+   "meaning": "The request carried no valid sign-in.",
+   "cause": "The session ended, or the token or API key is wrong or expired.",
+   "to_do": "Sign in again. For a machine, check its API key under System Admin > Machine access.",
+   "http": 401
+  },
+  {
+   "code": "EAX-API-403",
+   "area": "API",
+   "title": "Not allowed",
+   "meaning": "The person or machine is signed in but its roles do not allow this.",
+   "cause": "A role is missing, or the account is view only.",
+   "to_do": "Ask a Super Admin to give the role needed (System Admin > Users and roles), or use an account that has it.",
+   "http": 403
+  },
+  {
+   "code": "EAX-API-404",
+   "area": "API",
+   "title": "Not found",
+   "meaning": "What was asked for is not there, or the person may not see it.",
+   "cause": "A wrong address or id, something deleted, or no right to read it.",
+   "to_do": "Check the address and id. If it should be there, check the person's access to its model or project.",
+   "http": 404
+  },
+  {
+   "code": "EAX-API-405",
+   "area": "API",
+   "title": "Method not allowed",
+   "meaning": "The address does not take this kind of request.",
+   "cause": "A GET sent where a POST is needed, or the other way round.",
+   "to_do": "Check the method in the API reference (Documentation > API (Swagger)).",
+   "http": 405
+  },
+  {
+   "code": "EAX-API-409",
+   "area": "API",
+   "title": "Conflict",
+   "meaning": "The change clashes with what is there now.",
+   "cause": "Someone changed it first, or the name is already taken.",
+   "to_do": "Load it again, look at what changed and make the change again.",
+   "http": 409
+  },
+  {
+   "code": "EAX-API-413",
+   "area": "API",
+   "title": "Upload too large",
+   "meaning": "The upload is bigger than the largest allowed.",
+   "cause": "The file is over the limit set in System settings.",
+   "to_do": "Make the file smaller, or raise the largest upload under System Admin > System settings.",
+   "http": 413
+  },
+  {
+   "code": "EAX-API-422",
+   "area": "API",
+   "title": "Values not valid",
+   "meaning": "The request's values did not pass the checks.",
+   "cause": "A field is missing or has a value it cannot take.",
+   "to_do": "Read the message and the errors it lists; correct each field and send again.",
+   "http": 422
+  },
+  {
+   "code": "EAX-API-428",
+   "area": "API",
+   "title": "Needs your yes first",
+   "meaning": "This would put the maintenance page up, so it asks first.",
+   "cause": "A restore, update or similar step.",
+   "to_do": "Accept the warning on the screen, or send the request again with accept_maintenance set to true.",
+   "http": 428
+  },
+  {
+   "code": "EAX-API-429",
+   "area": "API",
+   "title": "Too many requests",
+   "meaning": "Too many requests came in a short time.",
+   "cause": "A script or tool calling in a tight loop.",
+   "to_do": "Wait a minute and slow the caller down.",
+   "http": 429
+  },
+  {
+   "code": "EAX-API-500",
+   "area": "API",
+   "title": "Server error",
+   "meaning": "Something went wrong inside the API.",
+   "cause": "A fault in EA Explorer, or a service it needs is not answering.",
+   "to_do": "Run eax status. Then eax logs api and look for the request id the message gives; report it with that id.",
+   "http": 500
+  },
+  {
+   "code": "EAX-API-502",
+   "area": "API",
+   "title": "Service behind the front door not answering",
+   "meaning": "The front door could not reach the service behind it.",
+   "cause": "That container stopped or is starting.",
+   "to_do": "Run eax status. If a container is not running, run eax up.",
+   "http": 502
+  },
+  {
+   "code": "EAX-API-503",
+   "area": "API",
+   "title": "Not available right now",
+   "meaning": "The service cannot answer now.",
+   "cause": "It is starting, stopping or a part it needs is down.",
+   "to_do": "Wait a minute and try again. If it stays, run eax status.",
+   "http": 503
+  },
+  {
+   "code": "EAX-API-504",
+   "area": "API",
+   "title": "The answer took too long",
+   "meaning": "The front door gave up waiting.",
+   "cause": "A slow query or a busy service.",
+   "to_do": "Try again. If it keeps happening, see System Admin > Health and the tuning guide.",
+   "http": 504
+  },
+  {
+   "code": "EAX-API-101",
+   "area": "API",
+   "title": "A value is not valid",
+   "meaning": "The database could not take a value as given.",
+   "cause": "Not an id, not a date, or the wrong kind of value.",
+   "to_do": "Read the message: it names the value. Correct it and send again.",
+   "http": 400
+  },
+  {
+   "code": "EAX-API-102",
+   "area": "API",
+   "title": "Change refused",
+   "meaning": "The change cannot be made as asked.",
+   "cause": "It breaks a rule of the model, the metamodel or the request.",
+   "to_do": "Read the message: it says which rule. Change the request to keep it."
+  },
+  {
+   "code": "EAX-API-001",
+   "area": "API",
+   "title": "API not answering",
+   "meaning": "The API container does not answer.",
+   "cause": "It stopped, is starting, or failed to start.",
+   "to_do": "Run eax status, then eax logs api. Start it again with eax up.",
+   "stack": "api"
+  },
+  {
+   "code": "EAX-PART-001",
+   "area": "PART",
+   "title": "Part switched off",
+   "meaning": "This part of EA Explorer is switched off in this installation.",
+   "cause": "A Super Admin switched it off.",
+   "to_do": "A Super Admin switches it on under System Admin > System settings. Its data is kept."
+  },
+  {
+   "code": "EAX-MNT-001",
+   "area": "MNT",
+   "title": "Read only during maintenance",
+   "meaning": "Nothing can be changed while a restore or an update runs.",
+   "cause": "A restore or update was started.",
+   "to_do": "Wait for it to finish (System Admin > Backups shows progress). Reading still works."
+  },
+  {
+   "code": "EAX-DR-001",
+   "area": "DR",
+   "title": "Read only: DR copy",
+   "meaning": "This installation is the DR copy of another and takes no changes.",
+   "cause": "A DR pairing holds.",
+   "to_do": "Make changes on the main site. To take over, a Super Admin stops the pairing (System Admin > Site pairings)."
+  },
+  {
+   "code": "EAX-DB-001",
+   "area": "DB",
+   "title": "Database down",
+   "meaning": "The database does not answer.",
+   "cause": "The db container stopped, is full or is starting.",
+   "to_do": "Run eax status. If db is not running, run eax up; then eax logs db. Check the disk is not full.",
+   "health": "Database",
+   "health_status": "down",
+   "stack": "db"
+  },
+  {
+   "code": "EAX-DB-002",
+   "area": "DB",
+   "title": "Database and API versions differ",
+   "meaning": "The database's version is not the API's.",
+   "cause": "An update did not finish, or a backup from another version was restored.",
+   "to_do": "Run eax up again so the migrations run. See the upgrade guide if it stays.",
+   "health": "Database",
+   "health_status": "warning"
+  },
+  {
+   "code": "EAX-JOB-001",
+   "area": "JOB",
+   "title": "Job runner not working",
+   "meaning": "Background jobs cannot run.",
+   "cause": "The job tables are missing or the database is down.",
+   "to_do": "Run eax status and eax logs api. Run eax up to start it again.",
+   "health": "Job runner",
+   "health_status": "down"
+  },
+  {
+   "code": "EAX-JOB-002",
+   "area": "JOB",
+   "title": "Jobs waiting too long or failed",
+   "meaning": "Jobs wait too long, or some failed.",
+   "cause": "The job runner stopped, or a job hit an error.",
+   "to_do": "Open System Admin > Jobs: look at the failed or waiting jobs, run again or cancel them.",
+   "health": "Job runner",
+   "health_status": "warning"
+  },
+  {
+   "code": "EAX-AUTH-001",
+   "area": "AUTH",
+   "title": "Sign-in down",
+   "meaning": "Keycloak does not answer, so nobody can sign in.",
+   "cause": "The keycloak container stopped or is starting.",
+   "to_do": "Run eax status and eax logs keycloak; run eax up. To get in meanwhile, use the break-glass account.",
+   "health": "Sign-in",
+   "health_status": "down",
+   "stack": "keycloak"
+  },
+  {
+   "code": "EAX-RPT-001",
+   "area": "RPT",
+   "title": "Reports down",
+   "meaning": "Apache Superset does not answer.",
+   "cause": "The reports container stopped or is starting.",
+   "to_do": "Run eax status and eax logs reports; run eax up.",
+   "health": "Reports",
+   "health_status": "down",
+   "stack": "reports"
+  },
+  {
+   "code": "EAX-DOC-001",
+   "area": "DOC",
+   "title": "Documents down",
+   "meaning": "Mayan EDMS does not answer.",
+   "cause": "The dms container stopped or is starting.",
+   "to_do": "Run eax status and eax logs dms; run eax up.",
+   "health": "Documents",
+   "health_status": "down",
+   "stack": "dms"
+  },
+  {
+   "code": "EAX-DOC-002",
+   "area": "DOC",
+   "title": "Document queue down",
+   "meaning": "Valkey, the documents' queue, does not answer or refuses the password.",
+   "cause": "The dms-broker container stopped, or its password changed.",
+   "to_do": "Run eax status and eax logs dms-broker; run eax up.",
+   "health": "Document queue",
+   "health_status": "down",
+   "stack": "dms-broker"
+  },
+  {
+   "code": "EAX-DRAW-001",
+   "area": "DRAW",
+   "title": "Diagrams down",
+   "meaning": "draw.io does not answer.",
+   "cause": "The drawio container stopped or is starting.",
+   "to_do": "Run eax status and eax logs drawio; run eax up.",
+   "health": "Diagrams",
+   "health_status": "down",
+   "stack": "drawio"
+  },
+  {
+   "code": "EAX-LIB-001",
+   "area": "LIB",
+   "title": "Library down",
+   "meaning": "The library service does not answer.",
+   "cause": "The library container stopped or is starting.",
+   "to_do": "Run eax status and eax logs library; run eax up.",
+   "health": "Library",
+   "health_status": "down",
+   "stack": "library"
+  },
+  {
+   "code": "EAX-VIEW-001",
+   "area": "VIEW",
+   "title": "Drawn views down",
+   "meaning": "The views service does not answer.",
+   "cause": "The views container stopped or is starting.",
+   "to_do": "Run eax status and eax logs views; run eax up.",
+   "health": "Drawn views",
+   "health_status": "down",
+   "stack": "views"
+  },
+  {
+   "code": "EAX-OPS-001",
+   "area": "OPS",
+   "title": "Operations down",
+   "meaning": "The operations part does not answer or cannot reach its schema.",
+   "cause": "Its container or the database is down.",
+   "to_do": "Run eax status and eax logs api; run eax up.",
+   "health": "Operations",
+   "health_status": "down"
+  },
+  {
+   "code": "EAX-PDATA-001",
+   "area": "PDATA",
+   "title": "Personal data not available",
+   "meaning": "People's personal data (pins, settings) cannot be read now.",
+   "cause": "Its service or schema cannot be reached.",
+   "to_do": "Run eax status and eax logs api; run eax up. The rest of EA Explorer still works.",
+   "health": "Personal data",
+   "health_status": "down"
+  },
+  {
+   "code": "EAX-WEB-001",
+   "area": "WEB",
+   "title": "Web screens down",
+   "meaning": "The web container does not answer.",
+   "cause": "It stopped or is starting.",
+   "to_do": "Run eax status and eax logs web; run eax up.",
+   "health": "Web screens",
+   "health_status": "down",
+   "stack": "web"
+  },
+  {
+   "code": "EAX-PROXY-001",
+   "area": "PROXY",
+   "title": "Front door down",
+   "meaning": "The proxy that every browser goes through does not answer.",
+   "cause": "The proxy container stopped, or its certificate or settings are wrong.",
+   "to_do": "Run eax status and eax logs proxy; run eax up. Check the certificate files if it will not start.",
+   "health": "Entry point",
+   "health_status": "down",
+   "stack": "proxy"
+  },
+  {
+   "code": "EAX-MCP-001",
+   "area": "MCP",
+   "title": "MCP server down",
+   "meaning": "AI tools cannot reach EA Explorer.",
+   "cause": "The MCP server inside the api container is not answering.",
+   "to_do": "Run eax logs api; run eax up. Check EAX_MCP_ENABLED in the config file.",
+   "health": "MCP server",
+   "health_status": "down"
+  },
+  {
+   "code": "EAX-BAK-001",
+   "area": "BAK",
+   "title": "Nightly backup switched off",
+   "meaning": "No backup is made each night.",
+   "cause": "Someone switched the schedule off.",
+   "to_do": "Switch it on under System Admin > Backups.",
+   "health": "Backup",
+   "health_status": "warning",
+   "health_detail": "switched off"
+  },
+  {
+   "code": "EAX-BAK-002",
+   "area": "BAK",
+   "title": "Backups folder not mounted",
+   "meaning": "The API cannot see the backups folder.",
+   "cause": "The folder in the config file is missing or not shared with Docker.",
+   "to_do": "Check the backups folder setting in the config file exists, then run eax up.",
+   "health": "Backup",
+   "health_status": "warning",
+   "health_detail": "not mounted"
+  },
+  {
+   "code": "EAX-BAK-003",
+   "area": "BAK",
+   "title": "No backup yet",
+   "meaning": "There is no finished backup to restore from.",
+   "cause": "None has run yet, or every one failed.",
+   "to_do": "Run eax backup now, then check eax backups lists it.",
+   "health": "Backup",
+   "health_status": "warning",
+   "health_detail": "no backup yet"
+  },
+  {
+   "code": "EAX-BAK-004",
+   "area": "BAK",
+   "title": "Newest backup too old",
+   "meaning": "The newest backup is older than the limit.",
+   "cause": "The nightly backup failed or did not run.",
+   "to_do": "Run eax backup now; then look at why the nightly one failed (System Admin > Backups shows each run and why it failed).",
+   "health": "Backup",
+   "health_status": "warning",
+   "health_detail": "newest"
+  },
+  {
+   "code": "EAX-BRK-001",
+   "area": "BRK",
+   "title": "Break-glass account used",
+   "meaning": "The emergency account was used and is no longer sealed.",
+   "cause": "Someone signed in with it.",
+   "to_do": "Check the audit log for what was done, change EAX_BREAK_GLASS_PASSWORD in the config file and run eax up.",
+   "health": "Break-glass account",
+   "health_status": "warning",
+   "health_detail": "used on"
+  },
+  {
+   "code": "EAX-BRK-002",
+   "area": "BRK",
+   "title": "Break-glass state unreadable",
+   "meaning": "The break-glass account's state could not be read.",
+   "cause": "The database is down or not migrated.",
+   "to_do": "Run eax status; fix the database first.",
+   "health": "Break-glass account",
+   "health_status": "warning",
+   "health_detail": "could not read"
+  },
+  {
+   "code": "EAX-DISK-001",
+   "area": "DISK",
+   "title": "Disk filling up",
+   "meaning": "A disk the installation uses is nearly full.",
+   "cause": "Backups, logs or documents growing.",
+   "to_do": "Run eax footprint; remove old backups (eax backups) and back up and clean the logs (eax logs backup).",
+   "alert": "disk"
+  },
+  {
+   "code": "EAX-MEM-001",
+   "area": "MEM",
+   "title": "Container near its memory limit",
+   "meaning": "A container is near its memory limit and may be stopped.",
+   "cause": "Load, or a limit set too low.",
+   "to_do": "See System Admin > Footprint; raise the container's limit (see the tuning guide) and run eax up.",
+   "alert": "memory"
+  },
+  {
+   "code": "EAX-CERT-001",
+   "area": "CERT",
+   "title": "Certificate ending",
+   "meaning": "The front door's certificate ends soon.",
+   "cause": "It was not renewed.",
+   "to_do": "Renew it (System Admin > Secrets: passwords, keys and certificates) or replace the files, then run eax up.",
+   "alert": "certificate"
+  },
+  {
+   "code": "EAX-SEC-001",
+   "area": "SEC",
+   "title": "Secret needs a person",
+   "meaning": "A password, key or certificate is due or overdue.",
+   "cause": "It does not rotate by itself, or its rotation failed.",
+   "to_do": "Open System Admin > Secrets and rotate the ones listed.",
+   "alert": "secrets"
+  },
+  {
+   "code": "EAX-SEC-002",
+   "area": "SEC",
+   "title": "Security findings",
+   "meaning": "The last security gate found high or critical findings.",
+   "cause": "A dependency or setting with a known weakness.",
+   "to_do": "Open the last security test run (System Admin > Self-test) and fix or accept each finding.",
+   "alert": "security"
+  },
+  {
+   "code": "EAX-DB-003",
+   "area": "DB",
+   "title": "Database connections nearly used up",
+   "meaning": "The database is near its connection limit.",
+   "cause": "Too many API servers, or connections left open.",
+   "to_do": "See System Admin > Databases; lower EAX_API_SERVERS or raise the limit (tuning guide).",
+   "alert": "db_connections"
+  },
+  {
+   "code": "EAX-DB-004",
+   "area": "DB",
+   "title": "Long open transaction",
+   "meaning": "A transaction has been open a long time and can block others.",
+   "cause": "A stuck job or a session left open.",
+   "to_do": "See System Admin > Databases; end the session or job holding it.",
+   "alert": "db_long_tx"
+  },
+  {
+   "code": "EAX-DB-005",
+   "area": "DB",
+   "title": "Database maintenance findings",
+   "meaning": "The last database check found things to fix.",
+   "cause": "Bloat, missing statistics or similar.",
+   "to_do": "Open System Admin > Database maintenance and follow each finding.",
+   "alert": "db_maintenance"
+  },
+  {
+   "code": "EAX-DB-006",
+   "area": "DB",
+   "title": "Database integrity findings",
+   "meaning": "The integrity check found data that is not right.",
+   "cause": "An interrupted change or a restore.",
+   "to_do": "Open System Admin > Database maintenance, its integrity check, and repair each finding.",
+   "alert": "db_integrity"
+  },
+  {
+   "code": "EAX-WEB-002",
+   "area": "WEB",
+   "title": "Many server errors",
+   "meaning": "Many calls ended in a server error in the last hour.",
+   "cause": "A fault or a service down.",
+   "to_do": "Run eax status; then System Admin > Logs, web log filtered to 5xx, for the calls and their request ids.",
+   "alert": "web_errors"
+  },
+  {
+   "code": "EAX-TEST-001",
+   "area": "TEST",
+   "title": "Self-test failed",
+   "meaning": "The last self-test had failed checks.",
+   "cause": "Something is broken, or the test hit a change.",
+   "to_do": "Open System Admin > Self-test, look at the failed checks and fix them.",
+   "alert": "self_test"
+  },
+  {
+   "code": "EAX-JOB-003",
+   "area": "JOB",
+   "title": "Jobs stuck",
+   "meaning": "Background jobs are waiting or running too long.",
+   "cause": "The job runner stopped or a job hangs.",
+   "to_do": "Open System Admin > Jobs; cancel the stuck ones and check eax logs api.",
+   "alert": "jobs_stuck"
+  },
+  {
+   "code": "EAX-JOB-004",
+   "area": "JOB",
+   "title": "Discovery overdue",
+   "meaning": "Discovery projects whose run is overdue.",
+   "cause": "Their AI has not run them.",
+   "to_do": "Open AI (MCP) > Enterprise discovery and run them, or change their schedule.",
+   "alert": "discovery_overdue"
+  },
+  {
+   "code": "EAX-ALRT-001",
+   "area": "ALRT",
+   "title": "A custom check is over its level",
+   "meaning": "A check an admin added is over its warning or critical level.",
+   "cause": "Whatever that check measures.",
+   "to_do": "Open System Admin > Alerts to see the check and its message.",
+   "alert": "custom:*"
+  },
+  {
+   "code": "EAX-ALRT-002",
+   "area": "ALRT",
+   "title": "Health could not be checked",
+   "meaning": "The service health could not be read at all.",
+   "cause": "The API is failing.",
+   "to_do": "Run eax status and eax logs api.",
+   "alert": "service:health"
+  },
+  {
+   "code": "EAX-STACK-001",
+   "area": "STACK",
+   "title": "Container not running",
+   "meaning": "A container EA Explorer needs has stopped.",
+   "cause": "It failed, was stopped, or ran out of memory.",
+   "to_do": "Run eax logs <container> to see why; then eax up.",
+   "stack": "*"
+  },
+  {
+   "code": "EAX-STACK-002",
+   "area": "STACK",
+   "title": "Container unhealthy",
+   "meaning": "A container is running but its own health check fails.",
+   "cause": "It is starting slowly or cannot reach what it needs.",
+   "to_do": "Wait a minute; if it stays, run eax logs <container>.",
+   "stack": "unhealthy"
+  },
+  {
+   "code": "EAX-STACK-003",
+   "area": "STACK",
+   "title": "Docker not answering",
+   "meaning": "Docker's engine does not answer.",
+   "cause": "Docker Desktop is not running.",
+   "to_do": "Start Docker Desktop, wait until it says it is running, then run eax up."
+  }
+ ]
+}

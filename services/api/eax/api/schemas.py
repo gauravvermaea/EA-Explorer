@@ -958,6 +958,8 @@ class ServiceHealth(Schema):
     detail = fields.String()
     target = fields.String(metadata={"description": "What was checked, inside the Docker network"})
     response_ms = fields.Integer()
+    error_code = fields.String(metadata={"description": "When not up: its code, EAX-AREA-NNN (Release 7.9, D787)"})
+    to_do = fields.String(metadata={"description": "When not up: what to do about it"})
 
 
 class ServicesHealth(Schema):

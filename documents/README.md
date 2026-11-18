@@ -1,6 +1,6 @@
 # EA Explorer: the printed guides
 
-The 24 guides of EA Explorer 7.0.0 as PDF, to print and keep. Each has a cover, what it is for, who it is
+The 25 guides of EA Explorer 7.0.0 as PDF, to print and keep. Each has a cover, what it is for, who it is
 for, and a table of contents. They are made from the documentation in this repository by `eax site pdfs`
 (tools/build_manuals.py); do not edit them here. The same guides are on the website under Printed guides, and in
 EA Explorer under Documentation › Printed guides.
@@ -31,3 +31,4 @@ EA Explorer under Documentation › Printed guides.
 | 22 | [AI and MCP user guide](EA-Explorer-22-ai-and-mcp.pdf) | Everyone who works with EA Explorer through an AI assistant |
 | 23 | [Setting up Keycloak with your directory or identity provider](EA-Explorer-23-keycloak-identity.pdf) | Super Admins and User Admins connecting sign-in to the organisation's directory |
 | 24 | [Security best practice guide](EA-Explorer-24-security.pdf) | Super Admins, IT Admins and security reviewers |
+| 25 | [Error code guide](EA-Explorer-25-error-codes.pdf) | IT Admins, Super Admins and anyone who is shown an error code |

@@ -1,4 +1,4 @@
-"""The printed guides (Release 7, D783): 24 PDF guides made from the content already in the repository, each with a
+"""The printed guides (Release 7, D783; 25 with the error code guide, D790): PDF guides made from the content already in the repository, each with a
 cover, a page saying what it is for (About this guide) and a table of contents with page numbers; people print them and
 keep them (the owner, 18 Nov 2026, 19:11: "Please make pdf's professional with cover, purpose, TOC ... as seperate pdf
 documents from the content we have created. We expect people to print and keep them").
@@ -218,6 +218,11 @@ def help_markdown(sections: list[str] | None = None, commands: list[str] | None 
 
 
 # ---------------------------------------------------------------- a guide, put together
+def specs_listed() -> list[dict]:
+    """Every guide manuals.json lists, in order."""
+    return json.loads((ROOT / "docs" / "manuals" / "manuals.json").read_text(encoding="utf-8"))["manuals"]
+
+
 class Guide:
     """One printed guide: its chapters, each made of sections (title, Markdown, its picture)."""
 
@@ -331,8 +336,9 @@ application under Documentation, where it is kept current.</p></section>''',
     def cover_html(self) -> str:
         s = self.spec
         num = s["id"].split("-")[0]
+        total = len(specs_listed())            # as many as manuals.json lists (24 at Release 7, 25 from 7.9, D790)
         return self._doc(f'''<section class="cover">
-<div class="band"><div class="brand">EA Explorer</div><div class="series">Guide {num} of 24</div></div>
+<div class="band"><div class="brand">EA Explorer</div><div class="series">Guide {num} of {total}</div></div>
 <div class="titles"><h1>{html.escape(s["title"])}</h1><p class="for">For {html.escape(s["audience"])}</p>
 <p class="purpose">{html.escape(s["purpose"])}</p></div>
 <div class="foot"><div>EA Explorer {html.escape(W.version())}</div><div>An open-source enterprise architecture repository</div></div>
@@ -510,7 +516,7 @@ def readme(specs: list[dict]) -> str:
     """documents/README.md: the guides, what each is for and who it is for."""
     rows = "\n".join(f"| {s['id'].split('-')[0]} | [{s['title']}](EA-Explorer-{s['id']}.pdf) | {s['audience']} |" for s in specs)
     return ("# EA Explorer: the printed guides\n\n"
-            f"The 24 guides of EA Explorer {W.version()} as PDF, to print and keep. Each has a cover, what it is for, who it is\n"
+            f"The {len(specs)} guides of EA Explorer {W.version()} as PDF, to print and keep. Each has a cover, what it is for, who it is\n"
             "for, and a table of contents. They are made from the documentation in this repository by `eax site pdfs`\n"
             "(tools/build_manuals.py); do not edit them here. The same guides are on the website under Printed guides, and in\n"
             "EA Explorer under Documentation › Printed guides.\n\n| No. | Guide | For |\n|---|---|---|\n" + rows + "\n")

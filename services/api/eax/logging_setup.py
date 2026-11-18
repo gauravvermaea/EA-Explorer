@@ -11,7 +11,8 @@ from flask import g, has_request_context
 
 
 class JsonFormatter(logging.Formatter):
-    """Writes each log record as one line of JSON: time, level, logger, message, the container and any error."""
+    """Writes each log record as one line of JSON: time, level, logger, message, the container, any error code and any
+    error."""
     def format(self, record: logging.LogRecord) -> str:
         """One log record as a line of JSON."""
         entry = {
@@ -24,6 +25,8 @@ class JsonFormatter(logging.Formatter):
         if has_request_context():
             entry["request_id"] = getattr(g, "request_id", None)
             entry["user"] = getattr(g, "username", None)
+        if getattr(record, "error_code", None):    # Release 7.9 (D787): the problem's code, to search the logs by
+            entry["error_code"] = record.error_code
         if record.exc_info:
             entry["error"] = self.formatException(record.exc_info)
         return json.dumps(entry)

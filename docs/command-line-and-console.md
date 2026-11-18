@@ -167,7 +167,8 @@ deletes the test data (D593).
 
 | Command | What it does |
 |---|---|
-| `eax status` | Every container with its state and health (stopped ones too), then the disks: Docker's, the work and backups folders, this computer's drive (size, used, free). |
+| `eax status` | Every container with its state and health (stopped ones too), then the disks: Docker's, the work and backups folders, this computer's drive (size, used, free), then every problem with its error code (`EAX-AREA-NNN`) and what to do. `eax status problems` lists the problems only. |
+| `eax errors [code\|area\|words]` | What an error code means, its usual cause and what to do (`eax errors EAX-AUTH-001`); an area (`eax errors BAK`) or words list the codes that match; nothing lists every code. The same list makes the Error codes guide. Also in Jenkins under eax-admin › Status and error codes. |
 | `eax logs [service]` | Follows the logs of every container, or of one (`eax logs api`). Ctrl+C stops following. |
 | `eax diag` | Saves a diagnostics report into this run's log: Docker versions, memory and disk, every container's state and last 300 log lines, and the compose configuration with the passwords masked. Send that log when asking for help. |
 | `eax debug [service...]` | Like `up`, but it does not stop on a failure. It saves a diagnostics report, then records every container's output to `work/logs/containers-<date-time>.log` until Ctrl+C. The containers keep running. |

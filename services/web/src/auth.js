@@ -290,8 +290,13 @@ export async function apiFetch(path, options = {}) {
     throw err;
   }
   if (!response.ok) {
-    const err = new Error(body.message || `${response.status} ${response.statusText}`);
+    // Release 7.9 (D787): the error's code (EAX-AREA-NNN) shown with the message; what to do kept for the screens
+    const code = body.error_code || response.headers.get("X-EAX-Error-Code") || "";
+    const text = body.message || `${response.status} ${response.statusText}`;
+    const err = new Error(code && !text.includes(code) ? `${text} (${code})` : text);
     err.status = response.status;
+    err.code = code;
+    err.toDo = body.to_do || "";
     err.body = body;   // for example the conflicts of a commit (phase 8): body.errors.conflicts
     throw err;
   }

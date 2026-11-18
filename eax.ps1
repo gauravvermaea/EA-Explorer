@@ -1025,7 +1025,7 @@ if ($Command -eq "menu") {   # the numbered menu (R2.29): one Python program for
     & (Join-Path $PSScriptRoot "eaxpy.ps1") menu
     exit $LASTEXITCODE
 }
-if (($Command -in @("init", "certs", "deploy", "secrets", "packs", "schedule", "persist", "folders", "allow", "drill", "dr-pack", "sign", "verify", "db", "ticket", "jobs", "optimise", "estimate", "dev", "jenkins", "setup", "access", "hostname", "settings", "site")) -or ($Command -eq "logs" -and $RestArgs.Count -gt 0 -and $RestArgs[0] -in @("backup", "clean")) -or ($Command -eq "test" -and ($RestArgs -contains "--reset-survival" -or $RestArgs -contains "backup-restore" -or $RestArgs -contains "restore" -or $RestArgs -contains "full"))) {   # packs (D546); schedule (D559); test --reset-survival (D561); test backup-restore, restore, full (R5.6-B1)
+if (($Command -in @("init", "certs", "deploy", "secrets", "packs", "schedule", "persist", "folders", "allow", "drill", "dr-pack", "sign", "verify", "db", "ticket", "jobs", "optimise", "estimate", "dev", "jenkins", "setup", "access", "hostname", "settings", "site", "errors")) -or ($Command -eq "logs" -and $RestArgs.Count -gt 0 -and $RestArgs[0] -in @("backup", "clean")) -or ($Command -eq "test" -and ($RestArgs -contains "--reset-survival" -or $RestArgs -contains "backup-restore" -or $RestArgs -contains "restore" -or $RestArgs -contains "full"))) {   # packs (D546); schedule (D559); test --reset-survival (D561); test backup-restore, restore, full (R5.6-B1)
     # phase 36 (D498, D504): one Python program for every form (D500); eaxpy.ps1 fetches uv and Python into work\tools
     & (Join-Path $PSScriptRoot "eaxpy.ps1") $Command @RestArgs
     exit $LASTEXITCODE
@@ -1083,6 +1083,9 @@ try {
             $script:StatusColours = $true      # each container line in its state's colour (R2.10)
             try { Invoke-Compose @("ps", "-a") | Out-Null } finally { $script:StatusColours = $false }
             Show-FileSystems
+            # every problem with its error code and what to do (R7.9, D787): one Python program for every form (D331)
+            try { & (Join-Path $PSScriptRoot "eaxpy.ps1") status problems } catch { Write-Log "The problems could not be listed: $($_.Exception.Message)" "Yellow" }
+            $global:LASTEXITCODE = 0
         }
         "logs"    { Invoke-Compose (@("logs", "-f", "--tail=100") + $RestArgs) -NoThrow | Out-Null }
         "down"    { Invoke-Compose @("down") | Out-Null }

@@ -551,6 +551,12 @@
   "file": "find-anything.png"
  },
  {
+  "page": "find-what-an-error-code-means",
+  "title": "Find what an error code means",
+  "screen": "#/admin/health",
+  "file": "find-what-an-error-code-means.png"
+ },
+ {
   "page": "finish-a-project",
   "title": "Finish a project",
   "screen": "#/project-admin?wizard=finish",
@@ -1196,6 +1202,12 @@
   "title": "See every model and its state",
   "screen": "#/model-admin/list",
   "file": "see-every-model.png"
+ },
+ {
+  "page": "see-every-problem-from-the-machine",
+  "title": "See every problem from the machine",
+  "screen": "#/admin/health",
+  "file": "see-every-problem-from-the-machine.png"
  },
  {
   "page": "see-failing-checks",

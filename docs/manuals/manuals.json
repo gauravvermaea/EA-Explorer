@@ -1,5 +1,5 @@
 {
-  "_about": "The 24 printed guides (Release 7, D783): each made by tools/build_manuals.py from content already in the repository. A source is one of: page:<file> (a whole page; its title becomes a section), page:<file>#<Heading>|<Heading> (only those ## sections), howdoi:pages=<a>,<b> (those How do I pages, in that order), howdoi:group=<Group>[;role=<role>] (every How do I page of that group, for that role), help:sections=<Section>|<Section> or help:commands=<name>,<name> (the eax command's own help), new:<file> (content written for the guides, docs/manuals/new). Every guide gets a cover, About this guide (its purpose, who it is for, how to use it) and a table of contents.",
+  "_about": "The printed guides (Release 7, D783; the 25th, the error code guide, Release 7.9, D790): each made by tools/build_manuals.py from content already in the repository. A source is one of: page:<file> (a whole page; its title becomes a section), page:<file>#<Heading>|<Heading> (only those ## sections), howdoi:pages=<a>,<b> (those How do I pages, in that order), howdoi:group=<Group>[;role=<role>] (every How do I page of that group, for that role), help:sections=<Section>|<Section> or help:commands=<name>,<name> (the eax command's own help), new:<file> (content written for the guides, docs/manuals/new). Every guide gets a cover, About this guide (its purpose, who it is for, how to use it) and a table of contents.",
   "manuals": [
     {
       "id": "01-overview",
@@ -255,13 +255,14 @@
       "id": "21-troubleshooting",
       "title": "Troubleshooting guide for administrators",
       "audience": "IT Admins and Super Admins finding out what is wrong",
-      "purpose": "Finding out what is wrong and putting it right: status, logs and diagnostics, health and alerts, failing checks, containers, jobs and the database. Error codes, each with what to do, come in Release 7.9 with their own guide.",
+      "purpose": "Finding out what is wrong and putting it right: status, logs and diagnostics, health and alerts, failing checks, containers, jobs and the database, and every error code with what to do.",
       "chapters": [
-        {"title": "Finding problems from the machine", "sources": ["page:docs/command-line-and-console.md#Finding problems", "help:commands=status,logs,diag"]},
+        {"title": "Finding problems from the machine", "sources": ["page:docs/command-line-and-console.md#Finding problems", "help:commands=status,errors,logs,diag"]},
         {"title": "The work folder and the logs", "sources": ["page:docs/operations.md#The work folder and logs", "howdoi:pages=read-the-logs"]},
         {"title": "Health, alerts and failing checks", "sources": ["page:docs/site/guides/check-health-and-alerts.md", "howdoi:pages=see-the-health-of-every-part,see-failing-checks,acknowledge-an-alert,silence-a-check"]},
         {"title": "Containers, jobs and the database", "sources": ["howdoi:pages=see-the-containers,see-the-job-queue,see-background-tasks,check-database-integrity,restart-everything"]},
-        {"title": "When it is the platform", "sources": ["page:docs/site/platform/debug-it.md"]}
+        {"title": "When it is the platform", "sources": ["page:docs/site/platform/debug-it.md"]},
+        {"title": "Error codes", "sources": ["howdoi:pages=find-what-an-error-code-means,see-every-problem-from-the-machine", "page:docs/site/guides/error-codes.md"]}
       ]
     },
     {
@@ -299,6 +300,17 @@
         {"title": "Certificates", "sources": ["page:docs/guides/certificates.md"]},
         {"title": "Who may reach it and how", "sources": ["howdoi:group=Security"]},
         {"title": "Reporting a security issue", "sources": ["page:SECURITY.md"]}
+      ]
+    },
+    {
+      "id": "25-error-codes",
+      "title": "Error code guide",
+      "audience": "IT Admins, Super Admins and anyone who is shown an error code",
+      "purpose": "Every error code EA Explorer gives (EAX-AREA-NNN): where the codes show, how to look one up from the screens, the machine and Jenkins, and for each code what it means, its usual cause and what to do.",
+      "chapters": [
+        {"title": "Finding a code and what it means", "sources": ["howdoi:pages=find-what-an-error-code-means,see-every-problem-from-the-machine", "help:commands=status,errors"]},
+        {"title": "From Jenkins", "sources": ["new:docs/manuals/new/jenkins-in-ea-explorer.md#The environment's status and error codes"]},
+        {"title": "Every code", "sources": ["page:docs/site/guides/error-codes.md"]}
       ]
     }
   ]

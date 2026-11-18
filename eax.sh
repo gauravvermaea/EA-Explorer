@@ -800,7 +800,7 @@ case "$CMD" in
   menu) EAX_FORM=sh exec "$BASH" ./eaxpy.sh menu ;;   # the numbered menu (R2.29), one Python program for every form
   screen) EAX_FORM=sh exec "$BASH" ./eaxpy.sh screen ;;   # the full screen (R3.1), Python with Textual
   measure) EAX_FORM=sh exec "$BASH" ./eaxpy.sh "$@" ;;   # memory measured in one go (R3.5-M1); eax commands run back here
-  certs|deploy|secrets|packs|schedule|persist|folders|allow|drill|dr-pack|sign|verify|db|ticket|jobs|optimise|estimate|dev|jenkins|setup|access|hostname|settings|site)   # packs (D546); schedule (D559); persist (R2.26); folders (R5.4); allow (R5.2); drill (R5.6-B2)
+  certs|deploy|secrets|packs|schedule|persist|folders|allow|drill|dr-pack|sign|verify|db|ticket|jobs|optimise|estimate|dev|jenkins|setup|access|hostname|settings|site|errors)   # packs (D546); schedule (D559); persist (R2.26); folders (R5.4); allow (R5.2); drill (R5.6-B2)
     # phase 36 (D498, D504): one Python program for every form (D500): eaxpy.sh fetches uv and Python into work/tools
     exec "$BASH" ./eaxpy.sh "$@" ;;
   restart)
@@ -888,7 +888,8 @@ case "$CMD" in
   diag)    diagnostics ;;
   status)  heading "EA Explorer $(release), build $(build_id)"
            _ps=$(compose ps -a) || { echo "docker compose failed. Collecting diagnostics..."; diagnostics; err "docker compose failed. Full log with diagnostics: $LOG"; exit 1; }
-           printf '%s\n' "$_ps" | colour_status; show_filesystems ;;
+           printf '%s\n' "$_ps" | colour_status; show_filesystems
+           "$BASH" ./eaxpy.sh status problems || true ;;   # every problem with its error code and what to do (R7.9, D787)
   logs)    shift; compose logs -f --tail=100 "$@" || true ;;
   down)    run_compose down ;;
   backup)  service_on backups || { err "backups are switched off: ./eax.sh service backups on"; exit 1; }

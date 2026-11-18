@@ -44,7 +44,7 @@ function Services() {
             checked in {data.duration_ms} ms at {fmtTime(data.time)}
           </p>
           <table className="grid-table">
-            <thead><tr><th>Service</th><th>Product</th><th>Status</th><th>Detail</th><th>ms</th></tr></thead>
+            <thead><tr><th>Service</th><th>Product</th><th>Status</th><th>Detail</th><th>Code and what to do</th><th>ms</th></tr></thead>
             <tbody>
               {data.services.map((s) => (
                 <tr key={s.name} title={s.target}>
@@ -52,6 +52,7 @@ function Services() {
                   <td className="quiet">{s.kind}</td>
                   <td><span className={STATUS_CLASS[s.status]}>{s.status}</span></td>
                   <td>{s.detail}</td>
+                  <td>{s.error_code && <><code>{s.error_code}</code> <span className="small">{s.to_do}</span></>}</td>
                   <td className="quiet">{s.response_ms}</td>
                 </tr>
               ))}

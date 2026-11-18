@@ -19,9 +19,21 @@ kept for when Keycloak is down.
 
 Open **eax**, the command you want, **Build with parameters**. The pipelines are written from the eax command's own
 help, so every command has one, and a new command gets its pipeline by itself (`eax jenkins pipelines` writes them
-again after an update). Admin tasks are grouped: starting and stopping, getting back in, certificates, backup and DR,
-settings and upkeep. A pipeline that changes everything (a restore, an update, a wipe, a DR tool) asks for the
+again after an update). Admin tasks are grouped: starting and stopping, the environment's status and error codes, getting
+back in, certificates, backup and DR, settings and upkeep. A pipeline that changes everything (a restore, an update, a wipe, a DR tool) asks for the
 installation's name before it runs, and no job is ever stopped without a person.
+
+## The environment's status and error codes
+
+The admin tasks under **Status and error codes** tell you how the environment is from Jenkins, without a command line:
+
+- **status**: every container, the disks, then every problem with its error code (`EAX-AREA-NNN`) and what to do.
+- **problems**: only the problems, each with its code and what to do.
+- **error-code**: what one code means, its usual cause and what to do. Put the code in **CODE** (for example
+  `EAX-AUTH-001`), an area (`BAK`) or a word (`backup`); leave it empty for every code.
+
+The run's console output is the same as `eax status` and `eax errors` on the machine. The Error codes guide lists every
+code.
 
 ## How it runs
 

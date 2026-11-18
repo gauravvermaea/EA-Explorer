@@ -63,7 +63,8 @@ export default function AlertsPage() {
           <tr key={c.check_key} className={c.state === "CRITICAL" ? "bad" : c.state === "WARNING" ? "warn" : ""}>
             <td><span aria-hidden="true">{MARK[c.state]}</span> {c.state}{c.flapping ? " (flapping)" : ""}</td>
             <td>{c.what}<div className="small quiet">{c.check_key}</div></td>
-            <td>{c.message}</td><td>{fmtDateTime(c.since)}</td>
+            <td>{c.message}{c.error_code && <div className="small"><code>{c.error_code}</code> {c.to_do}</div>}</td>
+            <td>{fmtDateTime(c.since)}</td>
             <td>{c.acked_by ? `${c.acked_by}${c.ack_note ? `: ${c.ack_note}` : ""}` : ""}</td>
             <td>{["WARNING", "CRITICAL"].includes(c.state) && !c.acked_by && <button className="small" onClick={() => ack(c.check_key)}>Acknowledge</button>}
               {" "}<button className="small" onClick={() => silence(c.check_key)}>Silence</button></td>

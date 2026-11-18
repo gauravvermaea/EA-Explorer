@@ -4,9 +4,8 @@ The state of the work, for whoever picks it up next: a person or another AI with
 13 Nov 2026: "what happens if I need another ai to work on this"). **Updated at the end of every working session.**
 Read [AGENTS.md](../AGENTS.md) first, run `eax dev check`, then read this.
 
-Last updated: 18 Nov 2026, 21:xx, Release 7 accepted and closed as 7.0.0 (owner, 21:00: "Then lets accept this release
-and we can move on"; D786). Now: no release in build. Next: Release 7.9 (error codes and the error guide, D782),
-discussed with the owner one question at a time before it is built. The evening's working notes: docs/session-log.md.
+Last updated: 18 Nov 2026, 22:xx. Release 7 closed as 7.0.0 (D786). Release 7.9 (error codes and the error guide,
+D782, D787) is built and waiting for the owner to test and accept. The evening's working notes: docs/session-log.md.
 
 ## How the owner works
 
@@ -37,13 +36,30 @@ Release 7.9 (error codes) was added as the next release (D782).
 
 ## In progress
 
-Nothing.
+Release 7.9, built, waiting for the owner to test (D787). One list, services/api/eax/errors.json (60 codes,
+EAX-AREA-NNN, each with meaning, cause and what to do; eax/errors.py reads it):
+- **The API**: every error answer has `error_code` and `to_do` beside `message`, and the header X-EAX-Error-Code (an
+  after-request step in eax/app.py; the guards and handlers that know the problem set their own code).
+- **The logs**: the line about an error answer, and the server-error line, carry `error_code` (eax/logging_setup.py).
+- **System Admin › Health and › Alerts**: each check not up and each open alert shows its code and what to do
+  (health.check_all, alerts.overview; the alert's notification and email name the code).
+- **The screens**: an error message ends with its code in brackets (auth.js apiFetch).
+- **`eax status`**: after the containers and disks, every problem with its code and what to do (eaxcli/problems.py;
+  inside the api container `python -m eax.errors`); `eax status problems` the problems only. eax.ps1 and eax.sh call
+  eaxpy for it (D331).
+- **The error guide**: tools/error_guide.py writes docs/site/guides/error-codes.md from the list (`eax site build` does
+  it each time); it is a Guide on the website and the last chapter of printed guide 21 (Troubleshooting).
+- **`eax errors <code>`** explains a code; **Jenkins** › eax-admin › Status and error codes gives the environment's
+  status, the problems and a code's meaning (D789). On-screen help, two How do I pages, guide 21 and the Jenkins guide
+  describe them.
+- Test: services/api/tests/test_r7_9_error_codes.py. A new code goes in errors.json, then `python tools/error_guide.py`.
+- To close it when the owner accepts: version 7.9.0, migration 0109 (row in core.schema_versions), releases/7.9.0.md.
 
 ## Next
 
-Release 7.9: R7.9-E1 (error codes, one list; `eax status` gives each problem's code and what to do) and R7.9-E2 (the error
-guide, made from the same list). Not built until the owner says. Then Release 8 (SonarQube, code coverage, Jenkins tested
-end to end) and Release 9 (videos). Small items from Release 7 are in docs/todo.md › Later: carried out of Release 7.
+Release 7.9 accepted and closed (above). Then Release 8 (SonarQube, code coverage, Jenkins tested
+end to end), Release 9 (videos) and Release 10 (scenario planning and game theory, D788: the futures, the other
+players, options tested across both; to discuss one question at a time, starting with screens or MCP only). Small items from Release 7 are in docs/todo.md › Later: carried out of Release 7.
 
 ## Open questions
 

@@ -43,12 +43,12 @@ site): how its tasks fit together, each task linked to its own How do I page.
 
 ## Printed guides
 
-[Printed guides](printed-guides/index.html) has the same content as 24 guides to print and keep, each a PDF with a
+[Printed guides](printed-guides/index.html) has the same content as 25 guides to print and keep, each a PDF with a
 cover, what it is for, who it is for, a table of contents and a picture of every screen: an overview of EA Explorer
 and its roles; a guide for each role (System Admins, Model Admins, Project Admins, architects, industry model makers,
 developers and platform developers); installing, day-to-day operations, tuning, upgrades, troubleshooting and
 security; backups, disaster recovery, site pairing and emergencies; the eax command, Jenkins, AI and MCP, and
-Keycloak with your own directory; and an example project from start to finish. They are also in the repository, in
+Keycloak with your own directory; an example project from start to finish; and every error code with what to do. They are also in the repository, in
 the documents folder, and in EA Explorer under Documentation › Printed guides.
 
 ## For developers

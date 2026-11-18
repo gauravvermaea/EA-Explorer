@@ -138,3 +138,47 @@ source, and the pictures themselves read one by one and measured).
 - **The owner runs to test:** `.\eax site pdfs` (PDFs into documents/, website rebuilt with them), then `.\eax up`
   (migration 0108, the new web image), then check: Documentation › Printed guides (PDF), and /site/ › Printed guides.
 - Next: Release 7.9 (error codes), one question at a time.
+
+### 21:40 to 22:30 Release 7.9 built: error codes and the error guide (D787)
+- Owner's answers: codes **EAX-AREA-NNN**; **every** problem gets one; shown in **System Admin health and alerts, the logs,
+  the API** and `eax status`.
+- One list: services/api/eax/errors.json (60 codes; meaning, cause, what to do; match keys http / health / alert /
+  stack). eax/errors.py reads it: for_status, for_health, for_alert, for_container, problems(); `python -m eax.errors`.
+- API: guards and handlers set their own code (PART-001, MNT-001, DR-001, PDATA-001, API-101, API-102, API-500); an
+  after-request step stamps every other error answer by its status, adds `to_do`, the header X-EAX-Error-Code, and one
+  log line with `error_code`.
+- Health and Alerts pages show the code and what to do; apiFetch puts the code after the message.
+- `eax status` lists the problems (eaxcli/problems.py); `eax status problems` only them; eax.ps1/eax.sh call eaxpy.
+- Error guide: tools/error_guide.py -> docs/site/guides/error-codes.md; built with the site; chapter in printed guide 21.
+- Test: tests/test_r7_9_error_codes.py (11 tests; 9 run here, the API one and the alerts one need the image).
+- **The owner runs to test:** `.\eax up` (new api and web images), `.\eax status`, `.\eax test`,
+  `.\eax site build`, `.\eax site pdfs`.
+
+### 23:13 Release 10 added: scenario planning and game theory (D788)
+- Owner: "add a new release on scenario planning and game theory". Placed as **Release 10**, after the videos (Release 9).
+- Builds on phase 27.1 (scenario models, what-ifs, assessments through MCP; D364, D490 to D495). Stories in
+  build-phases.md: R10 (epic), R10.1 the futures (driving forces, critical uncertainties, scenarios, signposts), R10.2
+  game theory (players, options, payoffs; best replies, dominant options, stable outcomes; games in turn), R10.3 options
+  tested across futures and players (robust, least regret; recorded with the scenario assessment), R10.4 sample, help,
+  guide.
+- To discuss before building, one question at a time: screens or MCP only (D364 said no scenario screens); where they
+  are kept; which methods; how numbers are given; the release number. Not built until the owner says.
+
+### 23:25 to 23:50 Release 7.9: help, website, printed guides, eax errors and Jenkins (D789)
+- `eax errors [<code-or-words>...]` (eaxcli/problems.py find, errors_main; main.py, eax.ps1 and eax.sh hand it to eaxpy; help.txt).
+- Jenkins: eax-admin › Status and error codes: status, problems, error-code (CODE field) (eaxcli/jenkins.py ADMIN_TASKS;
+  the admin status task moved there from Start and stop).
+- On-screen help: Health and Alerts entries in services/web/src/help/catalogue.json.
+- Website: How do I pages find-what-an-error-code-means and see-every-problem-from-the-machine; the Error codes guide now
+  has the usual shape (Why do this, goal, TOGAF, Each task, one page; the codes under The codes); Check the health and
+  alerts links them. docs/command-line-and-console.md has eax errors; the Jenkins printed-guide page has the folder.
+- Printed guide 21: the two pages and `help:commands=status,errors,logs,diag`.
+- Tests: tests/test_r7_9_error_codes.py now 16 (14 run here; the API answer and the alert keys need the image).
+- **The owner runs:** `.\eax up`, `.\eax test`, `.\eax site build`, `.\eax site shots --missing` (the two new pages),
+  `.\eax site pdfs`, `.\eax jenkins pipelines` (the new Jenkins folder), then `.\eax errors EAX-AUTH-001`.
+
+### 23:45 The error code guide as printed guide 25 (D790)
+- The owner saw 24 PDFs in documents/ and no error code guide. Added guide 25, Error code guide (manuals.json), made from
+  the two How do I pages, `eax status`/`eax errors` help, the Jenkins section and the Error codes page. The covers say
+  "Guide N of 25" from the list (tools/build_manuals.py), the README, website and app say the count from the list.
+- The owner runs: `.\eax site pdfs` (makes all 25 into documents/ and the website), then `.\eax up`.

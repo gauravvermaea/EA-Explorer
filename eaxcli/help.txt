@@ -85,12 +85,25 @@ $ {eax} maintenance clear
 
 ## Status and logs
 
-### status
-> Lists every container with its state and health, then the disks. Changes nothing.
+### status [problems]
+> Lists every container, the disks, then every problem with its error code and what to do.
 First the release and its build ("EA Explorer 1.0.0, build 4f2a9c1", as at the top left of the screens). Stopped
 containers are listed too. Then the file systems: Docker's disk, the work and backups folders, and this
-computer's drive (size, used, free).
+computer's drive (size, used, free). Then the problems: each container not running well, each service whose
+health check fails and each open alert, with its error code (EAX-AREA-NNN, for example EAX-AUTH-001) and what
+to do. The error guide lists every code. "problems" lists the problems only. Changes nothing.
 $ {eax} status
+$ {eax} status problems
+
+### errors [<code-or-words>...]
+> What an error code means, its usual cause and what to do; no words: every code.
+Every problem EA Explorer finds has a code EAX-AREA-NNN: in eax status, System Admin health and alerts, the
+screens' error messages, the API's answers and the logs. Give a code for what it means and what to do, an area
+(AUTH, BAK, DB...) for its codes, or words to search for. The same list makes the error guide on the website and
+in the printed troubleshooting guide. Changes nothing; needs no containers.
+$ {eax} errors EAX-AUTH-001
+$ {eax} errors BAK
+$ {eax} errors backup
 
 ### url
 > Prints the addresses to open (and the logins on a laptop).
