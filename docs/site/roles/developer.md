@@ -9,6 +9,23 @@ People who connect EA Explorer to other systems: they write the scripts and ETL 
 for reports, receive EA Explorer's events, or build on its API. EA Explorer is not an ETL tool itself: it publishes its
 formats and feeds, and your jobs read and write them.
 
+## A day in your life
+
+You connect EA Explorer to the rest of the organisation. A day might be writing the nightly job that sends the
+application inventory as a delivery, mapping an OData feed from the configuration database, fixing a row the last load
+rejected, adding a webhook so the service desk hears about retired applications, or building a Power BI report on the
+model's live feed.
+
+## Where EA Explorer fits
+
+EA Explorer is designed to be fed and read by other systems, not to be an island. It publishes its import formats,
+an OData feed, a REST API with every call described, webhooks, and an MCP server for AI. Everything you send is
+reviewed before it counts, so a bad file cannot quietly damage a model. See [[bringing-data-in-and-out]].
+
+## Where you sit in TOGAF
+
+Your integrations keep the Architecture Repository current from the systems that already know the facts, which makes the baselines in phases B to D trustworthy without retyping. The API and feeds take the architecture back out to where decisions are made. See [[ea-explorer-and-togaf]].
+
 ## What you have
 
 | Way in or out | Where | What it gives you |
@@ -40,6 +57,7 @@ formats and feeds, and your jobs read and write them.
 
 ## Where to go next
 
+- Your section: [[overview|Integrate]], starting with [[build-a-connector]].
 - The tasks below, one page each.
 - The API's own pages in your installation: `/api/docs`.
 - The standards: [OData, OpenAPI and MCP](../further-reading.md).

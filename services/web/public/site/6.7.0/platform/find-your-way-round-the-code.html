@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Find your way round the code · EA Explorer</title>
+<meta name="description" content="Where each kind of change goes: API reads and writes, permissions, MCP tools, screens, help, the command line.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../guides/index.html">Guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html" class="here">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Find your way round the code</h1>
+    <p class="who">For: Platform developers</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">Where each kind of change goes: API reads and writes, permissions, MCP tools, screens, help, the command line.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#the-api-services-api-eax">The API (services/api/eax)</a></li><li><a href="#the-screens-services-web-src">The screens (services/web/src)</a></li><li><a href="#the-command-line-eaxcli">The command line (eaxcli)</a></li><li><a href="#read-next">Read next</a></li></ul></nav>
+    <h2 id="the-api-services-api-eax">The API (<code>services/api/eax</code>)</h2>
+<p>Flask with flask-smorest; gunicorn serves it, Procrastinate runs background jobs, uvicorn serves MCP. The main files:</p>
+<div class="table"><table><thead><tr><th>File</th><th>What it is for</th></tr></thead><tbody><tr><td><code>app.py</code></td><td>The app: blueprints, request ids, logging</td></tr><tr><td><code>config.py</code></td><td>Settings from the environment; secrets read from <code>/run/secrets</code></td></tr><tr><td><code>auth.py</code>, <code>permissions.py</code></td><td>Sign-in tokens and the one permission check, shared by REST and MCP</td></tr><tr><td><code>repository.py</code></td><td>All reads of models and content: one function per question</td></tr><tr><td><code>metamodel_edit.py</code> and similar</td><td>Writes, each in one transaction, audited</td></tr><tr><td><code>api/</code></td><td>REST blueprints with marshmallow schemas (they appear at <code>/api/docs</code>)</td></tr><tr><td><code>mcp_server.py</code></td><td>MCP tools: thin wrappers over the same functions</td></tr><tr><td><code>jobs.py</code></td><td>Background jobs</td></tr><tr><td><code>migrations/</code></td><td>Alembic versions; big SQL in <code>migrations/sql</code></td></tr><tr><td><code>testing/</code></td><td>The self-test</td></tr></tbody></table></div>
+<h2 id="the-screens-services-web-src">The screens (<code>services/web/src</code>)</h2>
+<p>React 18 and Vite, no router library: the hash is the route (<code>#/metamodel/&lt;model&gt;/&lt;tab&gt;</code>), parsed in <code>App.jsx</code>. <code>auth.js</code> signs in with keycloak-js; <code>apiFetch</code> adds the token. <code>menu.js</code> is the menu; <code>help/catalogue.json</code> is the F1 help for every page, tab, pop-up and button; one <code>styles.css</code>.</p>
+<h2 id="the-command-line-eaxcli">The command line (<code>eaxcli</code>)</h2>
+<p><code>main.py</code> dispatches every <code>eax</code> command; <code>help.txt</code> is the one source of the help (eax.ps1, eax.sh and eaxpy print it). New commands go in all three launchers' lists.</p>
+<h2 id="read-next">Read next</h2>
+<ul><li><a href="../platform/make-a-change.html">Make a change</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: platform/find-your-way-round-the-code.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

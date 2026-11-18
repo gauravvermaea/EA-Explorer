@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build a metamodel in Excel · EA Explorer</title>
+<meta name="description" content="A whole metamodel as one workbook: types, attributes, allowed relationships and rules, made into a model.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html" class="here">How do I</a><a href="../guides/index.html">Guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Build a metamodel in Excel</h1>
+    <p class="who">For: Industry model makers, Model Admin</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">A whole metamodel as one workbook: types, attributes, allowed relationships and rules, made into a model.</p>
+    <figure class="shot"><img src="../shots/build-a-metamodel-in-excel.png" alt="The screen: Build a metamodel in Excel" loading="lazy"><figcaption>The screen: <code>#/model-admin/wizards?wizard=new</code></figcaption></figure>
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-do-this">Why do this</a></li><li><a href="#steps">Steps</a></li><li><a href="#related">Related</a></li></ul></nav>
+    <h2 id="why-do-this">Why do this</h2>
+<p>Designing a metamodel is easier in a spreadsheet: types, attributes, pick lists and allowed relationships side by side, reviewed with colleagues. EA Explorer reads the workbook, checks it, and builds the metamodel from it. See <a href="../concepts/metamodels.html">Metamodels: the shape of a model</a>.</p>
+<p>A metamodel change ripples: into what people may record, what reports read, what rules check and what integrations send. That is why it goes through drafts and review, and why each version is kept and can be compared.</p>
+<p><strong>In TOGAF terms:</strong> The content framework and content metamodel: what building blocks and relationships the architecture may hold. See <a href="../concepts/ea-explorer-and-togaf.html">EA Explorer and the TOGAF Standard</a>.</p>
+<p><strong>The goal:</strong> A whole metamodel designed in a workbook, then made into a model.</p>
+<blockquote class="before"><p><strong>Before you start</strong> You need the Model Creator role.</p></blockquote>
+<h2 id="steps">Steps</h2>
+<ol><li><strong>Model Admin › Wizards, Model from a metamodel workbook</strong>: download the empty template, or any model's metamodel in the same layout.</li><li>Fill in the sheets: <strong>Model</strong>, <strong>Domains</strong> (code, name, colour), <strong>Pick lists</strong>, <strong>Attributes</strong>, <strong>Types</strong> (code, name, domain, ID prefix, notation, colour), <strong>Type attributes</strong> (which type has which attribute, required or not), <strong>Relationship types</strong>, <strong>Allowed relationships</strong> (with multiplicity: 1, 0..1, 1..<em>, 0..</em>, 2..5) and <strong>Rules</strong>.</li><li>Upload it and check what it would make.</li><li>Make a new model from it, blank (the workbook is the whole metamodel), or add it to an existing model (it adds and updates, never takes away).</li></ol>
+<h2 id="related">Related</h2>
+<ul><li><a href="../guides/change-a-metamodel.html">Change a model's metamodel</a></li><li><a href="../guides/publish-a-reference-model.html">Publish a reference model to the library</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: how-do-i/build-a-metamodel-in-excel.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

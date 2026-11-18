@@ -21,14 +21,31 @@ for each.
 | **System Admin**: you run the installation | [What EA Explorer has for System Admins](roles/system-admin.md) |
 | **Model Admin**: you look after models and their metamodels | [What EA Explorer has for Model Admins](roles/model-admin.md) |
 | **Project Admin**: you run architecture projects | [What EA Explorer has for Project Admins](roles/project-admin.md) |
-| **A user**: you find, change, draw and report on the architecture | [What EA Explorer has for users](roles/user.md) |
+| **A practising architect**: you find, change, draw and report on the architecture | [What EA Explorer has for practising architects](roles/user.md) |
 | **An industry model maker**: you build reference models for an industry | [What EA Explorer has for industry model makers](roles/industry-modeller.md) |
 | **A developer**: you bring data in and take it out | [What EA Explorer has for developers](roles/developer.md) |
+| **An executive**: you sponsor and decide on architecture work | [What EA Explorer has for executives](roles/executive.md) |
+| **A platform developer**: you change EA Explorer itself | [What EA Explorer has for platform developers](roles/platform-developer.md) |
+
+## Understand the ideas
+
+[Concepts](concepts/index.html) explain the thinking behind the work: what enterprise architecture is for, the
+TOGAF ADM, metamodels and models, the kinds of project and their goals, governance, data quality, and how each part of
+EA Explorer maps to the TOGAF Standard ([[ea-explorer-and-togaf]]). Every page links to the others, as in a wiki.
 
 ## Find a task
 
 [How do I](how-do-i/index.html) lists every task, one page each, step by step. Each page prints cleanly or saves as a
 PDF: press **Print or save as PDF** at the top of the page.
+
+[Guides](guides/index.html) take a topic from start to end (making a model, restoring, merging a child model, a DR
+site): how its tasks fit together, each task linked to its own How do I page.
+
+## For developers
+
+[Integrate](integrate/index.html) is for developers connecting other systems: connectors, formats, deliveries, push
+sources, OData in and out, reports, webhooks, the API and MCP. [Platform](platform/index.html) is for developers working
+on EA Explorer itself: running it locally, debugging, testing and releasing.
 
 ## Install it
 

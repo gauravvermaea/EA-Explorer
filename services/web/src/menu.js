@@ -234,8 +234,21 @@ export function menuTree() {
         { label: "Setup", href: "#/admin/setup" },
         { label: "SQL", href: "#/admin/sql" },
         { label: "Self-test", href: "#/admin/self-test" },
+        // owner, 18 Nov 2026, 18:26: "make it a menu item to open in admin. It will just open the jenkins URL"
+        { label: "Jenkins ↗", href: myInfo()?.jenkins || `http://${window.location.hostname}:8088` },
       ] },
       { label: "Machine access", href: "#/admin/machine-access" },
+    ] },
+    // Documentation across the top (owner, 18 Nov 2026, 18:24: "Please make site or documentation as top level menu
+    // item"): the website first (role guides, How do I, concepts, reports), then the documents; everyone may use it
+    { key: "docs", label: "Documentation", title: "The website and every document", items: [
+      { label: "Website: role guides, How do I, concepts and reports ↗", href: "/site/index.html" },
+      { label: "Every document", href: "#/documentation" },
+      { label: "Getting started", href: "#/documentation/readme" },
+      { label: "What EA Explorer does", href: "#/documentation/capabilities" },
+      { label: "Release notes", href: "#/documentation?group=Release%20notes" },
+      { label: "Command line (eax)", href: "#/documentation/command-line-help" },
+      { label: "API (Swagger) ↗", href: "/api/docs" },
     ] },
     // the site picker (R2.0, R2.2): this site, my remote instances (each opens in a new tab, signed in there), my list
     { key: "farm", label: "Local", title: "The EA Explorer sites: this one is Local; yours open in a new tab", place: "left", items: [
@@ -287,7 +300,7 @@ export function menuAreaOf(route) {
   if (r.startsWith("#/project-admin") || /^#\/projects\/(new|[^/]+\/edit)/.test(r)) return "project";
   if (/^#\/(repository|reference-library|enterprise-library|maturity|principles)/.test(r)) return "repository";
   if (r.startsWith("#/mcp")) return "ai";                     // R4.20
-  if (r.startsWith("#/documentation")) return "help";
+  if (r.startsWith("#/documentation")) return "docs";   // the Documentation area (R7.1)
   if (r.startsWith("#/my-profile")) return "me";
   if (r.startsWith("#/farm")) return "farm";
   if (/^#\/(work|metamodel|projects|project-library|library|compare|change-log|merge-requests|change-documents)/.test(r)) return "work";

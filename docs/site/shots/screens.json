@@ -1,0 +1,1688 @@
+[
+ {
+  "page": "accept-a-delivery",
+  "title": "Accept a delivery",
+  "screen": "#/metamodel/{m}/import",
+  "file": "accept-a-delivery.png"
+ },
+ {
+  "page": "accept-a-pairing",
+  "title": "Accept a pairing on the receiving site",
+  "screen": "#/admin/pairings",
+  "file": "accept-a-pairing.png"
+ },
+ {
+  "page": "accept-a-record-as-the-board",
+  "title": "Accept a record as the architecture board",
+  "screen": "#/repository/board",
+  "file": "accept-a-record-as-the-board.png"
+ },
+ {
+  "page": "accept-an-answer",
+  "title": "Accept an answer to your question",
+  "screen": "#/projects/{p}/questions",
+  "file": "accept-an-answer.png"
+ },
+ {
+  "page": "acknowledge-an-alert",
+  "title": "Acknowledge an alert",
+  "screen": "#/admin/alerts",
+  "file": "acknowledge-an-alert.png"
+ },
+ {
+  "page": "add-a-calendar-event",
+  "title": "Add an event to the project calendar",
+  "screen": "#/projects/{p}/calendar",
+  "file": "add-a-calendar-event.png"
+ },
+ {
+  "page": "add-a-discovery-source",
+  "title": "Add a source to a discovery project",
+  "screen": "#/discovery-projects",
+  "file": "add-a-discovery-source.png"
+ },
+ {
+  "page": "add-a-document-from-a-template",
+  "title": "Add a document from a template",
+  "screen": "#/projects/{p}/library",
+  "file": "add-a-document-from-a-template.png"
+ },
+ {
+  "page": "add-a-kind-of-governance-record",
+  "title": "Add your own kind of governance record",
+  "screen": "#/projects/{p}/governance",
+  "file": "add-a-kind-of-governance-record.png"
+ },
+ {
+  "page": "add-a-link-to-a-document",
+  "title": "Add a link to a document",
+  "screen": "#/metamodel/{m}/entry",
+  "file": "add-a-link-to-a-document.png"
+ },
+ {
+  "page": "add-a-person-in-keycloak",
+  "title": "Add a person in Keycloak",
+  "screen": "#/admin/users",
+  "file": "add-a-person-in-keycloak.png"
+ },
+ {
+  "page": "add-a-principle-to-a-project",
+  "title": "Add a principle to a project",
+  "screen": "#/projects/{p}/principles",
+  "file": "add-a-principle-to-a-project.png"
+ },
+ {
+  "page": "add-a-quality-rule",
+  "title": "Add a data quality rule",
+  "screen": "#/metamodel/{m}/quality",
+  "file": "add-a-quality-rule.png"
+ },
+ {
+  "page": "add-a-relationship",
+  "title": "Add a relationship between two entities",
+  "screen": "#/metamodel/{m}/entry",
+  "file": "add-a-relationship.png"
+ },
+ {
+  "page": "add-a-stakeholder",
+  "title": "Add a stakeholder",
+  "screen": "#/projects/{p}/stakeholders",
+  "file": "add-a-stakeholder.png"
+ },
+ {
+  "page": "add-a-standard",
+  "title": "Add a standard a project follows",
+  "screen": "#/projects/{p}/standards",
+  "file": "add-a-standard.png"
+ },
+ {
+  "page": "add-a-task",
+  "title": "Add a project task",
+  "screen": "#/projects/{p}/tasks",
+  "file": "add-a-task.png"
+ },
+ {
+  "page": "add-an-attribute",
+  "title": "Add an attribute to a type",
+  "screen": "#/metamodel/{m}/types",
+  "file": "add-an-attribute.png"
+ },
+ {
+  "page": "add-an-entity-type",
+  "title": "Add an entity type",
+  "screen": "#/metamodel/{m}/types",
+  "file": "add-an-entity-type.png"
+ },
+ {
+  "page": "add-an-entity",
+  "title": "Add an entity",
+  "screen": "#/metamodel/{m}/entry",
+  "file": "add-an-entity.png"
+ },
+ {
+  "page": "add-documents-to-a-model",
+  "title": "Add documents to a model",
+  "screen": "#/metamodel/{m}/documents",
+  "file": "add-documents-to-a-model.png"
+ },
+ {
+  "page": "add-key-questions",
+  "title": "Add a project's key questions",
+  "screen": "#/projects/{p}/questions",
+  "file": "add-key-questions.png"
+ },
+ {
+  "page": "add-models-to-a-project",
+  "title": "Add models to a project",
+  "screen": "#/projects/{p}/models",
+  "file": "add-models-to-a-project.png"
+ },
+ {
+  "page": "add-to-the-reference-library",
+  "title": "Add to the enterprise reference library",
+  "screen": "#/reference-library",
+  "file": "add-to-the-reference-library.png"
+ },
+ {
+  "page": "add-your-own-kpi",
+  "title": "Add your own KPI",
+  "screen": "#/metamodel/{m}/kpis",
+  "file": "add-your-own-kpi.png"
+ },
+ {
+  "page": "allow-a-relationship",
+  "title": "Allow a relationship between two types",
+  "screen": "#/metamodel/{m}/rels",
+  "file": "allow-a-relationship.png"
+ },
+ {
+  "page": "analyse-with-ai",
+  "title": "Analyse with AI",
+  "screen": "#/mcp/tools",
+  "file": "analyse-with-ai.png"
+ },
+ {
+  "page": "answer-a-key-question",
+  "title": "Answer a key question",
+  "screen": "#/projects/{p}/questions",
+  "file": "answer-a-key-question.png"
+ },
+ {
+  "page": "answer-a-survey",
+  "title": "Answer a survey",
+  "screen": "#/surveys",
+  "file": "answer-a-survey.png"
+ },
+ {
+  "page": "approve-a-deliverable",
+  "title": "Approve or reject a deliverable",
+  "screen": "#/projects/{p}/signoff",
+  "file": "approve-a-deliverable.png"
+ },
+ {
+  "page": "approve-a-project-charter",
+  "title": "Approve a project charter",
+  "screen": "#/projects/{p}/charter",
+  "file": "approve-a-project-charter.png"
+ },
+ {
+  "page": "approve-and-publish",
+  "title": "Approve and publish a library model",
+  "screen": "#/model-admin/wizards?wizard=publish",
+  "file": "approve-and-publish.png"
+ },
+ {
+  "page": "archive-a-model",
+  "title": "Archive a model",
+  "screen": "#/model-admin/wizards?wizard=archive",
+  "file": "archive-a-model.png"
+ },
+ {
+  "page": "ask-the-service-desk",
+  "title": "Ask the service desk for something",
+  "screen": "#/service-desk/ask",
+  "file": "ask-the-service-desk.png"
+ },
+ {
+  "page": "assess-ea-capability-maturity",
+  "title": "Assess EA capability maturity",
+  "screen": "#/maturity",
+  "file": "assess-ea-capability-maturity.png"
+ },
+ {
+  "page": "back-up-a-project",
+  "title": "Back up a project",
+  "screen": "#/projects/{p}/home",
+  "file": "back-up-a-project.png"
+ },
+ {
+  "page": "back-up-now",
+  "title": "Take a backup now",
+  "screen": "#/admin/backups",
+  "file": "back-up-now.png"
+ },
+ {
+  "page": "bind-a-drawn-shape",
+  "title": "Say what a drawn shape is",
+  "screen": "#/metamodel/{m}/views",
+  "file": "bind-a-drawn-shape.png"
+ },
+ {
+  "page": "bring-a-model-back-from-the-archive",
+  "title": "Bring a model back from the archive",
+  "screen": "#/archive",
+  "file": "bring-a-model-back-from-the-archive.png"
+ },
+ {
+  "page": "bring-data-in-with-the-guide",
+  "title": "Bring data in with the guide",
+  "screen": "#/metamodel/{m}/import",
+  "file": "bring-data-in-with-the-guide.png"
+ },
+ {
+  "page": "build-a-metamodel-in-excel",
+  "title": "Build a metamodel in Excel",
+  "screen": "#/model-admin/wizards?wizard=new",
+  "file": "build-a-metamodel-in-excel.png"
+ },
+ {
+  "page": "build-a-projects-repository",
+  "title": "Build a project's repository now",
+  "screen": "#/project-admin?wizard=repo",
+  "file": "build-a-projects-repository.png"
+ },
+ {
+  "page": "build-your-own-report",
+  "title": "Build your own report",
+  "screen": "#/metamodel/{m}/designer",
+  "file": "build-your-own-report.png"
+ },
+ {
+  "page": "call-the-rest-api",
+  "title": "Call the REST API",
+  "screen": "/api/docs",
+  "file": "call-the-rest-api.png"
+ },
+ {
+  "page": "change-a-project-template",
+  "title": "Change a project template",
+  "screen": "#/project-admin/templates",
+  "file": "change-a-project-template.png"
+ },
+ {
+  "page": "change-content-with-ai",
+  "title": "Change content with AI",
+  "screen": "#/mcp/tools",
+  "file": "change-content-with-ai.png"
+ },
+ {
+  "page": "change-your-profile-and-skills",
+  "title": "Change your profile and skills",
+  "screen": "#/my-profile",
+  "file": "change-your-profile-and-skills.png"
+ },
+ {
+  "page": "check-a-backup-restores",
+  "title": "Check a backup restores",
+  "screen": "#/admin/backups",
+  "file": "check-a-backup-restores.png"
+ },
+ {
+  "page": "check-a-document-in",
+  "title": "Check a document in",
+  "screen": "#/projects/{p}/otherdocs",
+  "file": "check-a-document-in.png"
+ },
+ {
+  "page": "check-a-document-out",
+  "title": "Check a document out",
+  "screen": "#/projects/{p}/otherdocs",
+  "file": "check-a-document-out.png"
+ },
+ {
+  "page": "check-database-integrity",
+  "title": "Check the database's integrity",
+  "screen": "#/admin/db-maintenance",
+  "file": "check-database-integrity.png"
+ },
+ {
+  "page": "choose-a-projects-base",
+  "title": "Choose a project's base",
+  "screen": "#/projects/{p}/base",
+  "file": "choose-a-projects-base.png"
+ },
+ {
+  "page": "choose-the-adm-cycle",
+  "title": "Choose the project's ADM cycle",
+  "screen": "#/projects/{p}/phases",
+  "file": "choose-the-adm-cycle.png"
+ },
+ {
+  "page": "choose-the-stencil",
+  "title": "Choose the shapes on the stencil",
+  "screen": "#/metamodel/{m}/views",
+  "file": "choose-the-stencil.png"
+ },
+ {
+  "page": "choose-update-channels",
+  "title": "Choose where releases come from",
+  "screen": "#/admin/updates",
+  "file": "choose-update-channels.png"
+ },
+ {
+  "page": "clear-test-data",
+  "title": "Clear the self-test's data",
+  "screen": "#/admin/self-test",
+  "file": "clear-test-data.png"
+ },
+ {
+  "page": "collect-data-from-people",
+  "title": "Collect data from people",
+  "screen": "#/model-admin/wizards?wizard=collect",
+  "file": "collect-data-from-people.png"
+ },
+ {
+  "page": "colour-a-view-as-a-heat-map",
+  "title": "Colour a view as a heat map",
+  "screen": "#/metamodel/{m}/views",
+  "file": "colour-a-view-as-a-heat-map.png"
+ },
+ {
+  "page": "comment-on-an-entity",
+  "title": "Comment on an entity",
+  "screen": "#/metamodel/{m}/entry",
+  "file": "comment-on-an-entity.png"
+ },
+ {
+  "page": "commit-your-changes",
+  "title": "Commit your changes",
+  "screen": "#/metamodel/{m}/changes",
+  "file": "commit-your-changes.png"
+ },
+ {
+  "page": "compare-business-scenarios",
+  "title": "Compare business scenarios",
+  "screen": "#/projects/{p}/scenarios",
+  "file": "compare-business-scenarios.png"
+ },
+ {
+  "page": "compare-two-models",
+  "title": "Compare two models or two moments",
+  "screen": "#/compare",
+  "file": "compare-two-models.png"
+ },
+ {
+  "page": "connect-to-another-site",
+  "title": "Connect to another EA Explorer site",
+  "screen": "#/farm/connect",
+  "file": "connect-to-another-site.png"
+ },
+ {
+  "page": "connect-your-ai-assistant",
+  "title": "Connect your AI assistant",
+  "screen": "#/mcp",
+  "file": "connect-your-ai-assistant.png"
+ },
+ {
+  "page": "copy-a-model-from-the-library",
+  "title": "Copy a model from the library",
+  "screen": "#/model-admin/wizards?wizard=library",
+  "file": "copy-a-model-from-the-library.png"
+ },
+ {
+  "page": "copy-a-view-into-your-model",
+  "title": "Copy a view into your model",
+  "screen": "#/metamodel/{m}/views",
+  "file": "copy-a-view-into-your-model.png"
+ },
+ {
+  "page": "correct-a-row-that-failed-to-load",
+  "title": "Correct a row that failed to load",
+  "screen": "#/metamodel/{m}/import",
+  "file": "correct-a-row-that-failed-to-load.png"
+ },
+ {
+  "page": "decline-a-delivery",
+  "title": "Decline a delivery",
+  "screen": "#/metamodel/{m}/import",
+  "file": "decline-a-delivery.png"
+ },
+ {
+  "page": "delete-a-model",
+  "title": "Delete a model",
+  "screen": "#/model-admin/wizards?wizard=delete",
+  "file": "delete-a-model.png"
+ },
+ {
+  "page": "delete-an-entity",
+  "title": "Delete an entity",
+  "screen": "#/metamodel/{m}/grid",
+  "file": "delete-an-entity.png"
+ },
+ {
+  "page": "delete-old-change-log-entries",
+  "title": "Delete old change log entries",
+  "screen": "#/change-log",
+  "file": "delete-old-change-log-entries.png"
+ },
+ {
+  "page": "derive-a-new-project",
+  "title": "Derive a new project from another",
+  "screen": "#/project-admin?wizard=derive",
+  "file": "derive-a-new-project.png"
+ },
+ {
+  "page": "design-a-survey",
+  "title": "Design a survey",
+  "screen": "#/surveys",
+  "file": "design-a-survey.png"
+ },
+ {
+  "page": "detach-a-model-from-its-parent",
+  "title": "Detach a model from its parent",
+  "screen": "#/model-admin/wizards?wizard=family",
+  "file": "detach-a-model-from-its-parent.png"
+ },
+ {
+  "page": "discover-the-enterprise-with-ai",
+  "title": "Discover the enterprise with AI",
+  "screen": "#/discovery-projects",
+  "file": "discover-the-enterprise-with-ai.png"
+ },
+ {
+  "page": "download-a-metamodel",
+  "title": "Download a metamodel",
+  "screen": "#/model-admin/wizards?wizard=spec",
+  "file": "download-a-metamodel.png"
+ },
+ {
+  "page": "download-a-model-package",
+  "title": "Download a model as a package",
+  "screen": "#/model-admin/wizards?wizard=download",
+  "file": "download-a-model-package.png"
+ },
+ {
+  "page": "download-an-empty-template",
+  "title": "Download an empty template",
+  "screen": "#/metamodel/{m}/import",
+  "file": "download-an-empty-template.png"
+ },
+ {
+  "page": "draw-a-view",
+  "title": "Draw a view",
+  "screen": "#/metamodel/{m}/views",
+  "file": "draw-a-view.png"
+ },
+ {
+  "page": "drop-a-file-in-the-import-folder",
+  "title": "Drop a file in the import folder",
+  "screen": "#/metamodel/{m}/import",
+  "file": "drop-a-file-in-the-import-folder.png"
+ },
+ {
+  "page": "edit-a-project",
+  "title": "Change a project's set-up",
+  "screen": "#/projects/{p}/edit",
+  "file": "edit-a-project.png"
+ },
+ {
+  "page": "edit-entities-in-the-grid",
+  "title": "Edit entities in the grid",
+  "screen": "#/metamodel/{m}/grid",
+  "file": "edit-entities-in-the-grid.png"
+ },
+ {
+  "page": "explore-a-model-with-ai",
+  "title": "Explore a model with AI",
+  "screen": "#/mcp/tools",
+  "file": "explore-a-model-with-ai.png"
+ },
+ {
+  "page": "export-a-drawn-view",
+  "title": "Export a drawn view",
+  "screen": "#/metamodel/{m}/views",
+  "file": "export-a-drawn-view.png"
+ },
+ {
+  "page": "export-settings",
+  "title": "Export settings to a file",
+  "screen": "#/admin/settings-transfer",
+  "file": "export-settings.png"
+ },
+ {
+  "page": "extend-from-another-model",
+  "title": "Extend a model from another",
+  "screen": "#/model-admin/wizards?wizard=extend",
+  "file": "extend-from-another-model.png"
+ },
+ {
+  "page": "fill-in-a-delivery-template",
+  "title": "Fill in a delivery template",
+  "screen": "#/metamodel/{m}/import",
+  "file": "fill-in-a-delivery-template.png"
+ },
+ {
+  "page": "fill-in-the-business-model-canvas",
+  "title": "Fill in the business model canvas",
+  "screen": "#/projects/{p}/canvas",
+  "file": "fill-in-the-business-model-canvas.png"
+ },
+ {
+  "page": "find-and-merge-duplicates",
+  "title": "Find and merge duplicates",
+  "screen": "#/metamodel/{m}/duplicates",
+  "file": "find-and-merge-duplicates.png"
+ },
+ {
+  "page": "find-anything",
+  "title": "Find anything",
+  "screen": "#/search",
+  "file": "find-anything.png"
+ },
+ {
+  "page": "finish-a-project",
+  "title": "Finish a project",
+  "screen": "#/project-admin?wizard=finish",
+  "file": "finish-a-project.png"
+ },
+ {
+  "page": "finish-the-first-run-setup",
+  "title": "Finish the first-run setup",
+  "screen": "#/admin/wizards?wizard=first-run",
+  "file": "finish-the-first-run-setup.png"
+ },
+ {
+  "page": "follow-a-setup-guide",
+  "title": "Follow a setup guide",
+  "screen": "#/admin/setup",
+  "file": "follow-a-setup-guide.png"
+ },
+ {
+  "page": "follow-the-adm-phases",
+  "title": "Follow a project through the ADM phases",
+  "screen": "#/projects/{p}/phases",
+  "file": "follow-the-adm-phases.png"
+ },
+ {
+  "page": "freeze-a-model",
+  "title": "Freeze a model",
+  "screen": "#/model-admin/wizards?wizard=freeze",
+  "file": "freeze-a-model.png"
+ },
+ {
+  "page": "get-a-token-or-api-key",
+  "title": "Get a token or an API key",
+  "screen": "#/admin/machine-access",
+  "file": "get-a-token-or-api-key.png"
+ },
+ {
+  "page": "get-help-on-any-screen",
+  "title": "Get help on any screen",
+  "screen": "#/",
+  "file": "get-help-on-any-screen.png"
+ },
+ {
+  "page": "give-a-model-a-new-parent",
+  "title": "Give a model a new parent",
+  "screen": "#/model-admin/wizards?wizard=family",
+  "file": "give-a-model-a-new-parent.png"
+ },
+ {
+  "page": "give-people-roles-on-a-model",
+  "title": "Give people roles on a model",
+  "screen": "#/metamodel/{m}/people",
+  "file": "give-people-roles-on-a-model.png"
+ },
+ {
+  "page": "give-people-roles-on-a-project",
+  "title": "Give people roles on a project",
+  "screen": "#/projects/{p}/edit",
+  "file": "give-people-roles-on-a-project.png"
+ },
+ {
+  "page": "give-someone-an-installation-role",
+  "title": "Give someone a role on the installation",
+  "screen": "#/admin/users",
+  "file": "give-someone-an-installation-role.png"
+ },
+ {
+  "page": "go-back-to-a-tag",
+  "title": "Put a model back to a tag",
+  "screen": "#/model-admin/wizards?wizard=restore",
+  "file": "go-back-to-a-tag.png"
+ },
+ {
+  "page": "hand-over-a-model",
+  "title": "Hand a model over",
+  "screen": "#/model-admin/wizards?wizard=hand",
+  "file": "hand-over-a-model.png"
+ },
+ {
+  "page": "import-settings",
+  "title": "Import settings from a file",
+  "screen": "#/admin/settings-transfer",
+  "file": "import-settings.png"
+ },
+ {
+  "page": "limit-who-can-reach-ea-explorer",
+  "title": "Limit who can reach EA Explorer",
+  "screen": "#/admin/security",
+  "file": "limit-who-can-reach-ea-explorer.png"
+ },
+ {
+  "page": "list-the-administrators",
+  "title": "List the administrators",
+  "screen": "#/admin/setup",
+  "file": "list-the-administrators.png"
+ },
+ {
+  "page": "load-data-from-excel",
+  "title": "Load data from Excel",
+  "screen": "#/metamodel/{m}/import",
+  "file": "load-data-from-excel.png"
+ },
+ {
+  "page": "lock-a-model",
+  "title": "Lock a model",
+  "screen": "#/model-admin/wizards?wizard=lock",
+  "file": "lock-a-model.png"
+ },
+ {
+  "page": "log-a-governance-record",
+  "title": "Log a governance record",
+  "screen": "#/projects/{p}/governance",
+  "file": "log-a-governance-record.png"
+ },
+ {
+  "page": "look-after-the-installation-with-ai",
+  "title": "Look after the installation with AI",
+  "screen": "#/mcp/tools",
+  "file": "look-after-the-installation-with-ai.png"
+ },
+ {
+  "page": "make-a-blank-model",
+  "title": "Make a blank model",
+  "screen": "#/model-admin/wizards?wizard=new",
+  "file": "make-a-blank-model.png"
+ },
+ {
+  "page": "make-a-child-model",
+  "title": "Make a child model",
+  "screen": "#/model-admin/wizards?wizard=child",
+  "file": "make-a-child-model.png"
+ },
+ {
+  "page": "make-a-dr-pack",
+  "title": "Make a DR pack",
+  "screen": "#/admin/disaster-recovery",
+  "file": "make-a-dr-pack.png"
+ },
+ {
+  "page": "make-a-gap-analysis",
+  "title": "Make a gap analysis",
+  "screen": "#/projects/{p}/gaps",
+  "file": "make-a-gap-analysis.png"
+ },
+ {
+  "page": "make-a-library-project",
+  "title": "Make a library project",
+  "screen": "#/project-admin/libprojects",
+  "file": "make-a-library-project.png"
+ },
+ {
+  "page": "make-a-migration-plan",
+  "title": "Make a migration plan",
+  "screen": "#/projects/{p}/gaps",
+  "file": "make-a-migration-plan.png"
+ },
+ {
+  "page": "make-a-model-from-a-metamodel-workbook",
+  "title": "Make a model from a metamodel workbook",
+  "screen": "#/model-admin/wizards?wizard=new",
+  "file": "make-a-model-from-a-metamodel-workbook.png"
+ },
+ {
+  "page": "make-a-model-of-common-elements",
+  "title": "Make a model of the common elements",
+  "screen": "#/compare/common",
+  "file": "make-a-model-of-common-elements.png"
+ },
+ {
+  "page": "make-a-pairing-key",
+  "title": "Make a pairing key",
+  "screen": "#/admin/pairings",
+  "file": "make-a-pairing-key.png"
+ },
+ {
+  "page": "make-a-separate-copy",
+  "title": "Make a separate copy of a model",
+  "screen": "#/model-admin/wizards?wizard=copy",
+  "file": "make-a-separate-copy.png"
+ },
+ {
+  "page": "make-a-service-account",
+  "title": "Make a service account",
+  "screen": "#/admin/machine-access",
+  "file": "make-a-service-account.png"
+ },
+ {
+  "page": "make-a-tracking-sheet",
+  "title": "Make a tracking sheet",
+  "screen": "#/projects/{p}/sheets",
+  "file": "make-a-tracking-sheet.png"
+ },
+ {
+  "page": "make-a-view",
+  "title": "Make your own view",
+  "screen": "#/metamodel/{m}/views",
+  "file": "make-a-view.png"
+ },
+ {
+  "page": "make-a-work-package-from-a-gap",
+  "title": "Make a work package from a gap",
+  "screen": "#/projects/{p}/gaps",
+  "file": "make-a-work-package-from-a-gap.png"
+ },
+ {
+  "page": "map-a-customer-journey",
+  "title": "Map a customer journey",
+  "screen": "#/projects/{p}/journeys",
+  "file": "map-a-customer-journey.png"
+ },
+ {
+  "page": "map-a-keycloak-role",
+  "title": "Map a Keycloak role",
+  "screen": "#/admin/users/mapping",
+  "file": "map-a-keycloak-role.png"
+ },
+ {
+  "page": "map-directory-groups-to-roles",
+  "title": "Map directory groups to roles",
+  "screen": "#/admin/users/mapping",
+  "file": "map-directory-groups-to-roles.png"
+ },
+ {
+  "page": "map-stakeholders",
+  "title": "Map a project's stakeholders",
+  "screen": "#/projects/{p}/stakeholders",
+  "file": "map-stakeholders.png"
+ },
+ {
+  "page": "mark-a-template-not-needed",
+  "title": "Mark a template not needed",
+  "screen": "#/projects/{p}/library",
+  "file": "mark-a-template-not-needed.png"
+ },
+ {
+  "page": "move-a-model-to-the-archive-database",
+  "title": "Move a model to the archive database",
+  "screen": "#/archive",
+  "file": "move-a-model-to-the-archive-database.png"
+ },
+ {
+  "page": "open-a-deliverable",
+  "title": "Open a project deliverable",
+  "screen": "#/projects/{p}/phases",
+  "file": "open-a-deliverable.png"
+ },
+ {
+  "page": "open-a-standard-report",
+  "title": "Open a standard report",
+  "screen": "#/metamodel/{m}/reports",
+  "file": "open-a-standard-report.png"
+ },
+ {
+  "page": "open-a-standard-view",
+  "title": "Open a standard view",
+  "screen": "#/metamodel/{m}/views",
+  "file": "open-a-standard-view.png"
+ },
+ {
+  "page": "organise-project-documents-in-folders",
+  "title": "Organise project documents in folders",
+  "screen": "#/projects/{p}/otherdocs",
+  "file": "organise-project-documents-in-folders.png"
+ },
+ {
+  "page": "pair-two-sites",
+  "title": "Pair two sites",
+  "screen": "#/admin/pairings",
+  "file": "pair-two-sites.png"
+ },
+ {
+  "page": "pin-a-backup",
+  "title": "Pin a backup",
+  "screen": "#/admin/backups",
+  "file": "pin-a-backup.png"
+ },
+ {
+  "page": "pin-a-model-or-project",
+  "title": "Pin a model or project",
+  "screen": "#/work?tab=models",
+  "file": "pin-a-model-or-project.png"
+ },
+ {
+  "page": "plan-a-migration-from-gaps",
+  "title": "Plan the migration from gaps",
+  "screen": "#/model-admin/wizards?wizard=migration",
+  "file": "plan-a-migration-from-gaps.png"
+ },
+ {
+  "page": "plan-a-project-with-ai",
+  "title": "Plan a project with AI",
+  "screen": "#/mcp/tools",
+  "file": "plan-a-project-with-ai.png"
+ },
+ {
+  "page": "principles-library",
+  "title": "Look after the principles library",
+  "screen": "#/project-admin/principles",
+  "file": "principles-library.png"
+ },
+ {
+  "page": "promote-a-model-to-the-library",
+  "title": "Promote a model to the library",
+  "screen": "#/model-admin/wizards?wizard=promote",
+  "file": "promote-a-model-to-the-library.png"
+ },
+ {
+  "page": "push-changes-to-a-child",
+  "title": "Push changes to a child",
+  "screen": "#/model-admin/wizards?wizard=to-child",
+  "file": "push-changes-to-a-child.png"
+ },
+ {
+  "page": "push-data-with-python",
+  "title": "Push data with Python",
+  "screen": "#/metamodel/{m}/import",
+  "file": "push-data-with-python.png"
+ },
+ {
+  "page": "put-in-your-certificate",
+  "title": "Put in your organisation's certificate",
+  "screen": "#/admin/secrets",
+  "file": "put-in-your-certificate.png"
+ },
+ {
+  "page": "put-up-a-banner",
+  "title": "Put up a banner",
+  "screen": "#/admin/banner",
+  "file": "put-up-a-banner.png"
+ },
+ {
+  "page": "reactivate-a-model",
+  "title": "Reactivate an archived model",
+  "screen": "#/model-admin/wizards?wizard=archive",
+  "file": "reactivate-a-model.png"
+ },
+ {
+  "page": "read-a-dashboard",
+  "title": "Read a dashboard",
+  "screen": "#/metamodel/{m}/reports",
+  "file": "read-a-dashboard.png"
+ },
+ {
+  "page": "read-a-discovery-report",
+  "title": "Read a discovery run's report",
+  "screen": "#/discovery-projects",
+  "file": "read-a-discovery-report.png"
+ },
+ {
+  "page": "read-a-model-in-excel",
+  "title": "Read a model in Excel",
+  "screen": "#/metamodel/{m}/odata",
+  "file": "read-a-model-in-excel.png"
+ },
+ {
+  "page": "read-a-model-in-power-bi",
+  "title": "Read a model in Power BI",
+  "screen": "#/metamodel/{m}/odata",
+  "file": "read-a-model-in-power-bi.png"
+ },
+ {
+  "page": "read-an-odata-feed-from-another-system",
+  "title": "Read an OData feed from another system",
+  "screen": "#/metamodel/{m}/import",
+  "file": "read-an-odata-feed-from-another-system.png"
+ },
+ {
+  "page": "read-survey-results",
+  "title": "Read a survey's results",
+  "screen": "#/surveys",
+  "file": "read-survey-results.png"
+ },
+ {
+  "page": "read-the-documentation",
+  "title": "Read the documentation inside EA Explorer",
+  "screen": "#/documentation",
+  "file": "read-the-documentation.png"
+ },
+ {
+  "page": "read-the-governance-log",
+  "title": "Read the organisation's governance log",
+  "screen": "#/governance",
+  "file": "read-the-governance-log.png"
+ },
+ {
+  "page": "read-the-logs",
+  "title": "Read the logs",
+  "screen": "#/admin/logs",
+  "file": "read-the-logs.png"
+ },
+ {
+  "page": "receive-webhooks",
+  "title": "Receive webhooks",
+  "screen": "#/admin/system",
+  "file": "receive-webhooks.png"
+ },
+ {
+  "page": "record-a-sign-off",
+  "title": "Record a sign-off decision",
+  "screen": "#/projects/{p}/signoff",
+  "file": "record-a-sign-off.png"
+ },
+ {
+  "page": "refine-a-principle",
+  "title": "Refine a principle",
+  "screen": "#/projects/{p}/principles",
+  "file": "refine-a-principle.png"
+ },
+ {
+  "page": "relate-an-entity-to-many",
+  "title": "Relate an entity to several others at once",
+  "screen": "#/metamodel/{m}/entry",
+  "file": "relate-an-entity-to-many.png"
+ },
+ {
+  "page": "remove-a-lost-authenticator",
+  "title": "Remove a lost authenticator",
+  "screen": "#/admin/setup",
+  "file": "remove-a-lost-authenticator.png"
+ },
+ {
+  "page": "repeat-a-step",
+  "title": "Repeat a project step",
+  "screen": "#/projects/{p}/steps",
+  "file": "repeat-a-step.png"
+ },
+ {
+  "page": "request-publishing",
+  "title": "Ask for a library model to be published",
+  "screen": "#/model-admin/wizards?wizard=request-publish",
+  "file": "request-publishing.png"
+ },
+ {
+  "page": "reset-an-administrators-password",
+  "title": "Reset an administrator's password",
+  "screen": "#/admin/setup",
+  "file": "reset-an-administrators-password.png"
+ },
+ {
+  "page": "resolve-a-clash-when-committing",
+  "title": "Resolve a clash when committing",
+  "screen": "#/metamodel/{m}/changes",
+  "file": "resolve-a-clash-when-committing.png"
+ },
+ {
+  "page": "restart-everything",
+  "title": "Restart every service",
+  "screen": "#/admin/system",
+  "file": "restart-everything.png"
+ },
+ {
+  "page": "restore-a-project-from-a-file",
+  "title": "Restore a project from a backup file",
+  "screen": "#/project-admin?wizard=restore-file",
+  "file": "restore-a-project-from-a-file.png"
+ },
+ {
+  "page": "restore-a-project",
+  "title": "Restore a project",
+  "screen": "#/projects/{p}/home",
+  "file": "restore-a-project.png"
+ },
+ {
+  "page": "restore-everything",
+  "title": "Restore everything from a backup",
+  "screen": "#/admin/restores",
+  "file": "restore-everything.png"
+ },
+ {
+  "page": "restore-one-model",
+  "title": "Restore one model from a backup",
+  "screen": "#/admin/restores",
+  "file": "restore-one-model.png"
+ },
+ {
+  "page": "restore-part-of-the-installation",
+  "title": "Restore part of the installation",
+  "screen": "#/admin/restores",
+  "file": "restore-part-of-the-installation.png"
+ },
+ {
+  "page": "review-a-merge-request",
+  "title": "Review a merge request",
+  "screen": "#/merge-requests",
+  "file": "review-a-merge-request.png"
+ },
+ {
+  "page": "review-a-metamodel-draft",
+  "title": "Review a metamodel draft",
+  "screen": "#/model-admin/drafts",
+  "file": "review-a-metamodel-draft.png"
+ },
+ {
+  "page": "review-someone-elses-changes",
+  "title": "Review and commit someone else's changes",
+  "screen": "#/metamodel/{m}/changes",
+  "file": "review-someone-elses-changes.png"
+ },
+ {
+  "page": "revoke-a-token",
+  "title": "Revoke a token or API key",
+  "screen": "#/admin/machine-access",
+  "file": "revoke-a-token.png"
+ },
+ {
+  "page": "roll-an-entity-back",
+  "title": "Roll an entity back to an earlier version",
+  "screen": "#/metamodel/{m}/changes",
+  "file": "roll-an-entity-back.png"
+ },
+ {
+  "page": "roll-back-a-commit",
+  "title": "Roll back a commit",
+  "screen": "#/metamodel/{m}/changes",
+  "file": "roll-back-a-commit.png"
+ },
+ {
+  "page": "roll-back-an-update",
+  "title": "Roll back an update",
+  "screen": "#/admin/updates",
+  "file": "roll-back-an-update.png"
+ },
+ {
+  "page": "rotate-everything",
+  "title": "Rotate every password and key",
+  "screen": "#/admin/secrets",
+  "file": "rotate-everything.png"
+ },
+ {
+  "page": "rotate-one-secret",
+  "title": "Rotate one password or key",
+  "screen": "#/admin/secrets",
+  "file": "rotate-one-secret.png"
+ },
+ {
+  "page": "run-a-compliance-review",
+  "title": "Run a compliance review",
+  "screen": "#/project-admin?wizard=compliance",
+  "file": "run-a-compliance-review.png"
+ },
+ {
+  "page": "run-a-gap-analysis-between-models",
+  "title": "Run a gap analysis between two models",
+  "screen": "#/compare/gaps",
+  "file": "run-a-gap-analysis-between-models.png"
+ },
+ {
+  "page": "run-a-restore-drill",
+  "title": "Run a restore drill",
+  "screen": "#/admin/disaster-recovery",
+  "file": "run-a-restore-drill.png"
+ },
+ {
+  "page": "run-sql",
+  "title": "Run a SQL query",
+  "screen": "#/admin/sql",
+  "file": "run-sql.png"
+ },
+ {
+  "page": "run-the-data-quality-wizard",
+  "title": "Run the data quality wizard",
+  "screen": "#/model-admin/wizards?wizard=quality",
+  "file": "run-the-data-quality-wizard.png"
+ },
+ {
+  "page": "run-the-self-test",
+  "title": "Run the self-test",
+  "screen": "#/admin/self-test",
+  "file": "run-the-self-test.png"
+ },
+ {
+  "page": "save-a-picture-as-a-drawn-view",
+  "title": "Save a picture as a drawn view",
+  "screen": "#/metamodel/{m}/graph",
+  "file": "save-a-picture-as-a-drawn-view.png"
+ },
+ {
+  "page": "save-a-project-as-a-template",
+  "title": "Save a project as a template",
+  "screen": "#/project-admin?wizard=as-template",
+  "file": "save-a-project-as-a-template.png"
+ },
+ {
+  "page": "schedule-a-command",
+  "title": "Schedule a command",
+  "screen": "#/admin/commands",
+  "file": "schedule-a-command.png"
+ },
+ {
+  "page": "schedule-rotation",
+  "title": "Rotate passwords and keys on a schedule",
+  "screen": "#/admin/secrets",
+  "file": "schedule-rotation.png"
+ },
+ {
+  "page": "search-everything",
+  "title": "Search everything",
+  "screen": "#/search",
+  "file": "search-everything.png"
+ },
+ {
+  "page": "see-a-models-quality-score",
+  "title": "See a model's quality score",
+  "screen": "#/metamodel/{m}/quality",
+  "file": "see-a-models-quality-score.png"
+ },
+ {
+  "page": "see-an-entitys-history",
+  "title": "See everything that happened to an entity",
+  "screen": "#/metamodel/{m}/changes",
+  "file": "see-an-entitys-history.png"
+ },
+ {
+  "page": "see-an-entitys-network",
+  "title": "See an entity's network",
+  "screen": "#/metamodel/{m}/graph",
+  "file": "see-an-entitys-network.png"
+ },
+ {
+  "page": "see-background-tasks",
+  "title": "See your background tasks",
+  "screen": "#/notifications/tasks",
+  "file": "see-background-tasks.png"
+ },
+ {
+  "page": "see-earlier-versions-of-a-document",
+  "title": "See earlier versions of a document",
+  "screen": "#/projects/{p}/content",
+  "file": "see-earlier-versions-of-a-document.png"
+ },
+ {
+  "page": "see-every-model",
+  "title": "See every model and its state",
+  "screen": "#/model-admin/list",
+  "file": "see-every-model.png"
+ },
+ {
+  "page": "see-failing-checks",
+  "title": "See the checks a model fails",
+  "screen": "#/metamodel/{m}/checks",
+  "file": "see-failing-checks.png"
+ },
+ {
+  "page": "see-quality-across-models",
+  "title": "See data quality across every model",
+  "screen": "#/admin/quality",
+  "file": "see-quality-across-models.png"
+ },
+ {
+  "page": "see-the-architecture-board",
+  "title": "See the architecture board",
+  "screen": "#/repository/board",
+  "file": "see-the-architecture-board.png"
+ },
+ {
+  "page": "see-the-business-view",
+  "title": "See a model's business view",
+  "screen": "#/metamodel/{m}/business",
+  "file": "see-the-business-view.png"
+ },
+ {
+  "page": "see-the-change-log",
+  "title": "See the change log",
+  "screen": "#/change-log",
+  "file": "see-the-change-log.png"
+ },
+ {
+  "page": "see-the-containers",
+  "title": "See the containers",
+  "screen": "#/admin/containers",
+  "file": "see-the-containers.png"
+ },
+ {
+  "page": "see-the-content-framework",
+  "title": "See a project's content framework",
+  "screen": "#/projects/{p}/content",
+  "file": "see-the-content-framework.png"
+ },
+ {
+  "page": "see-the-databases",
+  "title": "See the databases",
+  "screen": "#/admin/databases",
+  "file": "see-the-databases.png"
+ },
+ {
+  "page": "see-the-estate",
+  "title": "See the estate",
+  "screen": "#/admin/estate",
+  "file": "see-the-estate.png"
+ },
+ {
+  "page": "see-the-health-of-every-part",
+  "title": "See the health of every part",
+  "screen": "#/admin/health",
+  "file": "see-the-health-of-every-part.png"
+ },
+ {
+  "page": "see-the-hierarchy",
+  "title": "See a model as a hierarchy",
+  "screen": "#/metamodel/{m}/hierarchy",
+  "file": "see-the-hierarchy.png"
+ },
+ {
+  "page": "see-the-impact-of-a-change",
+  "title": "See the impact of a change",
+  "screen": "#/metamodel/{m}/graph",
+  "file": "see-the-impact-of-a-change.png"
+ },
+ {
+  "page": "see-the-job-queue",
+  "title": "See the job queue",
+  "screen": "#/admin/jobs",
+  "file": "see-the-job-queue.png"
+ },
+ {
+  "page": "see-the-licences",
+  "title": "See the licences",
+  "screen": "#/admin/licences",
+  "file": "see-the-licences.png"
+ },
+ {
+  "page": "see-the-model-hierarchy",
+  "title": "See the model hierarchy",
+  "screen": "#/model-admin/hierarchy",
+  "file": "see-the-model-hierarchy.png"
+ },
+ {
+  "page": "see-the-model-kpis",
+  "title": "See a model's KPIs",
+  "screen": "#/metamodel/{m}/kpis",
+  "file": "see-the-model-kpis.png"
+ },
+ {
+  "page": "see-the-project-portfolio",
+  "title": "See the project portfolio",
+  "screen": "#/work?tab=projects",
+  "file": "see-the-project-portfolio.png"
+ },
+ {
+  "page": "see-the-project-report",
+  "title": "See a project's report",
+  "screen": "#/projects/{p}/report",
+  "file": "see-the-project-report.png"
+ },
+ {
+  "page": "see-the-projects-organisation",
+  "title": "See a project's organisation",
+  "screen": "#/projects/{p}/organisation",
+  "file": "see-the-projects-organisation.png"
+ },
+ {
+  "page": "see-the-skills-repository",
+  "title": "See the skills repository",
+  "screen": "#/repository/skills",
+  "file": "see-the-skills-repository.png"
+ },
+ {
+  "page": "see-what-ea-explorer-uses",
+  "title": "See the resources EA Explorer uses",
+  "screen": "#/admin/footprint",
+  "file": "see-what-ea-explorer-uses.png"
+ },
+ {
+  "page": "see-what-waits-for-your-approval",
+  "title": "See what waits for your approval",
+  "screen": "#/notifications/received",
+  "file": "see-what-waits-for-your-approval.png"
+ },
+ {
+  "page": "see-whats-new",
+  "title": "See what's new in a release",
+  "screen": "#/documentation?group=Release%20notes",
+  "file": "see-whats-new.png"
+ },
+ {
+  "page": "see-who-has-a-role",
+  "title": "See who has a role",
+  "screen": "#/admin/users",
+  "file": "see-who-has-a-role.png"
+ },
+ {
+  "page": "see-your-ai-activity",
+  "title": "See what your AI assistant did",
+  "screen": "#/mcp/activity?who=me",
+  "file": "see-your-ai-activity.png"
+ },
+ {
+  "page": "see-your-requests-and-notifications",
+  "title": "See requests and notifications",
+  "screen": "#/notifications",
+  "file": "see-your-requests-and-notifications.png"
+ },
+ {
+  "page": "send-a-child-for-merge",
+  "title": "Send a child model for merge",
+  "screen": "#/model-admin/wizards?wizard=send",
+  "file": "send-a-child-for-merge.png"
+ },
+ {
+  "page": "send-a-request-to-someone",
+  "title": "Send a request to someone",
+  "screen": "#/notifications/new",
+  "file": "send-a-request-to-someone.png"
+ },
+ {
+  "page": "send-a-sign-off-link",
+  "title": "Send someone a sign-off link",
+  "screen": "#/projects/{p}/signoff",
+  "file": "send-a-sign-off-link.png"
+ },
+ {
+  "page": "send-a-survey",
+  "title": "Send a survey",
+  "screen": "#/surveys",
+  "file": "send-a-survey.png"
+ },
+ {
+  "page": "set-a-backup-schedule",
+  "title": "Set when backups are taken",
+  "screen": "#/admin/backups",
+  "file": "set-a-backup-schedule.png"
+ },
+ {
+  "page": "set-a-models-architecture-level",
+  "title": "Set a model's architecture level",
+  "screen": "#/metamodel/{m}",
+  "file": "set-a-models-architecture-level.png"
+ },
+ {
+  "page": "set-a-models-icon",
+  "title": "Set a model's icon",
+  "screen": "#/metamodel/{m}",
+  "file": "set-a-models-icon.png"
+ },
+ {
+  "page": "set-application-settings",
+  "title": "Set the application settings",
+  "screen": "#/admin/application",
+  "file": "set-application-settings.png"
+ },
+ {
+  "page": "set-how-quality-is-measured",
+  "title": "Set how data quality is measured",
+  "screen": "#/metamodel/{m}/quality",
+  "file": "set-how-quality-is-measured.png"
+ },
+ {
+  "page": "set-relationship-attributes",
+  "title": "Set a relationship's attributes",
+  "screen": "#/metamodel/{m}/entry",
+  "file": "set-relationship-attributes.png"
+ },
+ {
+  "page": "set-task-statuses",
+  "title": "Set the statuses tasks can have",
+  "screen": "#/projects/{p}/tasks",
+  "file": "set-task-statuses.png"
+ },
+ {
+  "page": "set-the-branding",
+  "title": "Set the logo and themes",
+  "screen": "#/admin/branding",
+  "file": "set-the-branding.png"
+ },
+ {
+  "page": "set-the-ip-allow-list",
+  "title": "Set who may reach EA Explorer by address",
+  "screen": "#/admin/security",
+  "file": "set-the-ip-allow-list.png"
+ },
+ {
+  "page": "set-the-projects-scope",
+  "title": "Set a project's scope",
+  "screen": "#/projects/{p}/charter",
+  "file": "set-the-projects-scope.png"
+ },
+ {
+  "page": "set-up-a-delivery-source",
+  "title": "Set up a delivery source",
+  "screen": "#/metamodel/{m}/import",
+  "file": "set-up-a-delivery-source.png"
+ },
+ {
+  "page": "set-up-a-discovery-project",
+  "title": "Set up a discovery project",
+  "screen": "#/discovery-projects",
+  "file": "set-up-a-discovery-project.png"
+ },
+ {
+  "page": "set-up-a-grid-column",
+  "title": "Set up a grid column",
+  "screen": "#/metamodel/{m}/grid",
+  "file": "set-up-a-grid-column.png"
+ },
+ {
+  "page": "set-up-alerts",
+  "title": "Set up alerts",
+  "screen": "#/admin/alerts",
+  "file": "set-up-alerts.png"
+ },
+ {
+  "page": "set-what-survives-a-reset",
+  "title": "Set what survives a reset",
+  "screen": "#/admin/persist",
+  "file": "set-what-survives-a-reset.png"
+ },
+ {
+  "page": "sign-in-with-break-glass",
+  "title": "Sign in with break glass",
+  "screen": "#/break-glass",
+  "file": "sign-in-with-break-glass.png"
+ },
+ {
+  "page": "silence-a-check",
+  "title": "Silence a check during planned work",
+  "screen": "#/admin/alerts",
+  "file": "silence-a-check.png"
+ },
+ {
+  "page": "size-the-installation",
+  "title": "Size the installation",
+  "screen": "#/admin/sizing",
+  "file": "size-the-installation.png"
+ },
+ {
+  "page": "split-part-of-a-model",
+  "title": "Split part of a model into a new model",
+  "screen": "#/model-admin/wizards?wizard=split",
+  "file": "split-part-of-a-model.png"
+ },
+ {
+  "page": "start-a-blank-project",
+  "title": "Start a blank project",
+  "screen": "#/projects/new?template=blank",
+  "file": "start-a-blank-project.png"
+ },
+ {
+  "page": "start-a-metamodel-draft",
+  "title": "Start a metamodel draft",
+  "screen": "#/model-admin/drafts",
+  "file": "start-a-metamodel-draft.png"
+ },
+ {
+  "page": "start-a-project-from-a-template",
+  "title": "Start a project from a template",
+  "screen": "#/project-admin",
+  "file": "start-a-project-from-a-template.png"
+ },
+ {
+  "page": "subscribe-to-a-project-calendar",
+  "title": "Subscribe to a project calendar",
+  "screen": "#/projects/{p}/calendar",
+  "file": "subscribe-to-a-project-calendar.png"
+ },
+ {
+  "page": "switch-a-service-on-or-off",
+  "title": "Switch a service on or off",
+  "screen": "#/admin/system",
+  "file": "switch-a-service-on-or-off.png"
+ },
+ {
+  "page": "switch-to-the-dr-site",
+  "title": "Switch to the DR site",
+  "screen": "#/admin/pairings",
+  "file": "switch-to-the-dr-site.png"
+ },
+ {
+  "page": "tag-a-model",
+  "title": "Tag a model",
+  "screen": "#/model-admin/wizards?wizard=tag",
+  "file": "tag-a-model.png"
+ },
+ {
+  "page": "tag-entities-with-labels",
+  "title": "Label entities with tags",
+  "screen": "#/metamodel/{m}/tags",
+  "file": "tag-entities-with-labels.png"
+ },
+ {
+  "page": "tailor-the-adm-steps",
+  "title": "Tailor a project's ADM steps",
+  "screen": "#/projects/{p}/steps",
+  "file": "tailor-the-adm-steps.png"
+ },
+ {
+  "page": "take-changes-from-the-parent",
+  "title": "Take changes from the parent",
+  "screen": "#/model-admin/wizards?wizard=down",
+  "file": "take-changes-from-the-parent.png"
+ },
+ {
+  "page": "take-data-out-with-the-guide",
+  "title": "Take data out with the guide",
+  "screen": "#/metamodel/{m}/import",
+  "file": "take-data-out-with-the-guide.png"
+ },
+ {
+  "page": "track-performance-measures",
+  "title": "Track performance measures",
+  "screen": "#/repository/measures",
+  "file": "track-performance-measures.png"
+ },
+ {
+  "page": "try-the-api-in-the-browser",
+  "title": "Try the API in the browser",
+  "screen": "/api/docs",
+  "file": "try-the-api-in-the-browser.png"
+ },
+ {
+  "page": "tune-the-installation",
+  "title": "Tune the installation",
+  "screen": "#/admin/optimisation",
+  "file": "tune-the-installation.png"
+ },
+ {
+  "page": "turn-on-multi-factor-sign-in",
+  "title": "Turn on multi-factor sign-in",
+  "screen": "#/admin/security",
+  "file": "turn-on-multi-factor-sign-in.png"
+ },
+ {
+  "page": "undo-a-load",
+  "title": "Undo a load",
+  "screen": "#/metamodel/{m}/import",
+  "file": "undo-a-load.png"
+ },
+ {
+  "page": "unfreeze-a-model",
+  "title": "Unfreeze a model",
+  "screen": "#/model-admin/wizards?wizard=freeze",
+  "file": "unfreeze-a-model.png"
+ },
+ {
+  "page": "unlock-a-model",
+  "title": "Unlock a model",
+  "screen": "#/model-admin/wizards?wizard=lock",
+  "file": "unlock-a-model.png"
+ },
+ {
+  "page": "unlock-an-administrator",
+  "title": "Unlock an administrator",
+  "screen": "#/admin/setup",
+  "file": "unlock-an-administrator.png"
+ },
+ {
+  "page": "update-to-a-new-release",
+  "title": "Update to a new release",
+  "screen": "#/admin/updates",
+  "file": "update-to-a-new-release.png"
+ },
+ {
+  "page": "upgrade-to-another-framework",
+  "title": "Upgrade a model to another framework",
+  "screen": "#/model-admin/wizards?wizard=upgrade",
+  "file": "upgrade-to-another-framework.png"
+ },
+ {
+  "page": "upload-a-document-template",
+  "title": "Upload your own document template",
+  "screen": "#/project-admin/library",
+  "file": "upload-a-document-template.png"
+ },
+ {
+  "page": "upload-a-model-package",
+  "title": "Upload a model package",
+  "screen": "#/model-admin/wizards?wizard=upload",
+  "file": "upload-a-model-package.png"
+ },
+ {
+  "page": "upload-project-files",
+  "title": "Upload files to a project",
+  "screen": "#/projects/{p}/otherdocs",
+  "file": "upload-project-files.png"
+ },
+ {
+  "page": "upload-your-certificate",
+  "title": "Upload your organisation's certificate",
+  "screen": "#/admin/secrets",
+  "file": "upload-your-certificate.png"
+ },
+ {
+  "page": "use-a-view-as-project-evidence",
+  "title": "Use a view as project evidence",
+  "screen": "#/metamodel/{m}/views",
+  "file": "use-a-view-as-project-evidence.png"
+ },
+ {
+  "page": "use-ai-for-surveys",
+  "title": "Use AI for surveys",
+  "screen": "#/mcp/tools",
+  "file": "use-ai-for-surveys.png"
+ },
+ {
+  "page": "use-an-industry-pack",
+  "title": "Use an industry pack",
+  "screen": "#/library?kind=reference",
+  "file": "use-an-industry-pack.png"
+ },
+ {
+  "page": "use-the-architecture-repository",
+  "title": "Find your way round the Architecture Repository",
+  "screen": "#/repository",
+  "file": "use-the-architecture-repository.png"
+ },
+ {
+  "page": "use-the-command-centre",
+  "title": "Use the command centre",
+  "screen": "#/admin/commands",
+  "file": "use-the-command-centre.png"
+ },
+ {
+  "page": "use-the-standard-look",
+  "title": "Use the standard look",
+  "screen": "#/my-profile?look=standard",
+  "file": "use-the-standard-look.png"
+ },
+ {
+  "page": "watch-a-self-test",
+  "title": "Watch a self-test as it runs",
+  "screen": "#/admin/self-test",
+  "file": "watch-a-self-test.png"
+ },
+ {
+  "page": "withdraw-a-library-model",
+  "title": "Withdraw a library model",
+  "screen": "#/model-admin/wizards?wizard=withdraw",
+  "file": "withdraw-a-library-model.png"
+ },
+ {
+  "page": "work-the-service-desk-queue",
+  "title": "Work the service desk queue",
+  "screen": "#/service-desk/queue",
+  "file": "work-the-service-desk-queue.png"
+ },
+ {
+  "page": "write-a-report-with-ai",
+  "title": "Write a report or a deck with AI",
+  "screen": "#/mcp/tools",
+  "file": "write-a-report-with-ai.png"
+ },
+ {
+  "page": "write-the-project-charter",
+  "title": "Write the project charter",
+  "screen": "#/projects/{p}/charter",
+  "file": "write-the-project-charter.png"
+ }
+]

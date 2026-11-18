@@ -3,7 +3,18 @@ title: Limit who can reach EA Explorer
 summary: IP allow lists: only the addresses you list may reach EA Explorer, its sign-in pages, System Admin, the AI connector or the machine port.
 group: Security
 roles: system-admin
+screen: #/admin/security
 ---
+
+## Why do this
+
+An allow list limits which network addresses may reach the site, the sign-in pages, the admin screens or the AI server. It is a strong extra layer of protection where the repository holds sensitive information.
+
+Security in EA Explorer is a set of layers: who can reach it, how they prove who they are, what their roles allow, and secrets no one can read. Each layer is set on the screens, and nothing here ever shows a secret's value.
+
+**In TOGAF terms:** Outside the method: this protects the repository and who reaches it. See [[ea-explorer-and-togaf]].
+
+**The goal:** Only the networks you trust can reach EA Explorer.
 
 > **Before you start** You need the Super Admin or IT Admin role, and the addresses or ranges your people come from
 > (for example the office's 10.20.0.0/16).

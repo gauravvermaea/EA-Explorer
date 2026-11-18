@@ -3,7 +3,18 @@ title: Turn on multi-factor sign-in
 summary: Ask admins, or everyone, for a one-time code from an authenticator app when they sign in.
 group: Security
 roles: system-admin
+screen: #/admin/security
 ---
+
+## Why do this
+
+Multi-factor sign-in asks for a code from an authenticator as well as the password. Turning it on for admins, or everyone, protects the repository against the most common attacks. See [[roles-and-access]].
+
+Security in EA Explorer is a set of layers: who can reach it, how they prove who they are, what their roles allow, and secrets no one can read. Each layer is set on the screens, and nothing here ever shows a secret's value.
+
+**In TOGAF terms:** Outside the method: this protects the repository and who reaches it. See [[ea-explorer-and-togaf]].
+
+**The goal:** A stolen password is not enough to get in.
 
 > **Before you start** You need the Super Admin or IT Admin role. People need an authenticator app on their phone.
 
@@ -25,5 +36,5 @@ Sign out and in: after the password, EA Explorer asks for the code (the first ti
 
 ## Related
 
-- [Get an administrator back in](get-an-administrator-back-in.md)
+- [Get an administrator back in](../guides/get-an-administrator-back-in.md)
 - [Limit who can reach EA Explorer](limit-who-can-reach-ea-explorer.md)

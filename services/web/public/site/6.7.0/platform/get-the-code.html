@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Get the code · EA Explorer</title>
+<meta name="description" content="Where the code lives, how it is laid out, and the documents to read first.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../guides/index.html">Guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html" class="here">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Get the code</h1>
+    <p class="who">For: Platform developers</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">Where the code lives, how it is laid out, and the documents to read first.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-read-before-running">Why read before running</a></li><li><a href="#the-repository">The repository</a></li><li><a href="#read-these-first">Read these first</a></li><li><a href="#read-next">Read next</a></li></ul></nav>
+    <h2 id="why-read-before-running">Why read before running</h2>
+<p>EA Explorer is a large, documented project. A few minutes with its own guides saves hours: they say how the owner works, why things are as they are, and what state each part is in.</p>
+<h2 id="the-repository">The repository</h2>
+<p>The code is on GitHub (the link is at the foot of every page of this site). Clone it with git. The top level:</p>
+<div class="table"><table><thead><tr><th>Folder</th><th>What it holds</th></tr></thead><tbody><tr><td><code>services/api</code></td><td>The Python API, job runner, MCP server, migrations, tests</td></tr><tr><td><code>services/web</code></td><td>The React screens (Vite), the nginx that serves them, this website's built copy</td></tr><tr><td><code>services/ops</code>, <code>services/backup</code></td><td>The operations helper and the backup service</td></tr><tr><td><code>eaxcli/</code></td><td>The <code>eax</code> command in Python (with <code>eax.ps1</code>, <code>eax.sh</code> and <code>eaxpy</code> launchers at the top)</td></tr><tr><td><code>deploy/</code></td><td>Compose files, templates, Keycloak realm, proxy, Jenkins, reports</td></tr><tr><td><code>tools/</code></td><td>Builders such as this website's</td></tr><tr><td><code>docs/</code></td><td>Architecture, database, decisions, phases, guides, this site's sources</td></tr><tr><td><code>releases/</code></td><td>Every release's notes</td></tr></tbody></table></div>
+<h2 id="read-these-first">Read these first</h2>
+<ol><li><code>AGENTS.md</code>: how the owner works and the rules the product keeps.</li><li><code>docs/architecture.md</code>: the containers, the code layout, the pattern for a feature.</li><li><code>docs/handover.md</code>: where the work stands.</li><li><code>docs/decisions.md</code>: every decision, numbered, with its reasons.</li></ol>
+<h2 id="read-next">Read next</h2>
+<ul><li><a href="../platform/run-it-on-your-machine.html">Run it on your machine</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: platform/get-the-code.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

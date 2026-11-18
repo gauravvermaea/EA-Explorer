@@ -157,3 +157,9 @@ class Settings:
 def get_settings() -> Settings:
     """The settings, read from the environment now."""
     return Settings()
+
+
+def jenkins_url() -> str:
+    """Jenkins' address, as eax jenkins up prints it (eaxcli/jenkins.py): System Admin > Jenkins opens it (owner, 18 Nov
+    2026, 18:26: "make it a menu item to open in admin. It will just open the jenkins URL")."""
+    return f"http://{os.environ.get('EAX_HOSTNAME') or 'localhost'}:{os.environ.get('EAX_JENKINS_PORT') or '8088'}"

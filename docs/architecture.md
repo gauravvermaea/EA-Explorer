@@ -134,6 +134,7 @@ The user runs Docker; agents write code (see AGENTS.md).
 | Database checks | `Get-Content services/api/tests/sql/phase4_checks.sql \| docker compose --env-file work/eaexplorer.env exec -T db psql -U eax_app -d eaexplorer -v ON_ERROR_STOP=1` (and phase 1, 2 as postgres; 3, 3.1 as eax_app) |
 | Web build | `cd services/web; npm install; npm run build` |
 | API explorer | `https://localhost/api/docs` |
+| The website (D776, D777) | `.\eax site build` after changing docs/site, docs/guides or releases (or `python tools/build_website.py`); `.\eax site shots --missing` takes the How do I pictures from the running installation, signed in as the first Super Admin, opening pages only |
 
 `tests/sql/phaseN_checks.sql` each run in a transaction that is rolled back and end with
 "phase N checks passed". Every phase adds one.

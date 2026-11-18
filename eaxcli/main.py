@@ -701,6 +701,9 @@ def main(argv: list[str]) -> int:
         if command == "settings":               # the settings exported and imported (Release 6.7, D755)
             from . import settings_cli
             return settings_cli.main(rest)
+        if command == "site":                   # the website: made, checked, its pictures taken (Release 7.1, D776, D777)
+            from . import site_cli
+            return site_cli.main(rest)
         if command == "access":                 # an administrator back in, from the machine (R6.6-J1, D762)
             from . import access
             return access.main(rest)

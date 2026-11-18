@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Switching to DR and back · EA Explorer</title>
+<meta name="description" content="Switching to DR and back">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../guides/index.html">Guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html" class="here">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Switching to DR and back</h1>
+    <p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    
+    
+    
+    <p>The DR site takes over; later the primary comes back.</p>
+<p>On screen: System Admin &gt; Setup &gt; Switching to DR and back, where you fill in your values and get every command ready to copy. On the machine: <code>eax setup switch-to-dr</code>. In Jenkins: the <code>setup</code> pipeline with <code>switch-to-dr</code>.</p>
+<h2 id="steps">Steps</h2>
+<h3 id="1-take-over">1. Take over</h3>
+<p>On the DR site: System Admin &gt; Site pairings &gt; the DR pairing &gt; Stop and take over.</p>
+<h3 id="2-point-people-at-it">2. Point people at it</h3>
+<p>The address people open (DNS) moved to the DR site.</p>
+<h3 id="3-check-it">3. Check it</h3>
+<p>The integrity check runs by itself when it takes over.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax db integrity</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh db integrity</code></pre>
+<h3 id="4-fail-back">4. Fail back</h3>
+<p>Pair the other way (the DR site sends), then switch back the same way.</p>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: install/switch-to-dr.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

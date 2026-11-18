@@ -6,6 +6,7 @@ from flask_smorest import Blueprint
 
 from .. import permissions
 from ..auth import require_auth
+from ..config import jenkins_url
 from ..db import get_engine
 from .schemas import Me
 
@@ -31,7 +32,8 @@ class MeView(MethodView):
                 "sees_every_model": permissions.sees_every_model(u.roles), "models": models,
                 # the Auditor (R5.22): sees as a Super Admin, changes nothing unless another role allows it
                 "auditor": permissions.AUDITOR in real, "view_only": permissions.view_only(real),
-                "break_glass": u.break_glass, "parts": _parts(), "library": _library()}
+                "break_glass": u.break_glass, "parts": _parts(), "library": _library(),
+                "jenkins": jenkins_url()}
 
 
 def _library() -> dict:

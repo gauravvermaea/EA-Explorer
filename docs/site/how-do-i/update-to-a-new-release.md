@@ -3,7 +3,18 @@ title: Update to a new release
 summary: Move EA Explorer to a newer release, with a full backup first and a way back.
 group: Running it
 roles: system-admin
+screen: #/admin/updates
 ---
+
+## Why do this
+
+Updates bring fixes and features. EA Explorer takes a pinned backup first, moves one release at a time, and can roll back, so updating is routine rather than risky. See [[running-the-installation]].
+
+The installation is built to look after itself as far as it can, and to ask before anything risky. These tasks are the decisions it leaves to you: what to run, when, and how far to trust a change.
+
+**In TOGAF terms:** Outside the method: this keeps the tool that holds the Architecture Repository running. See [[ea-explorer-and-togaf]].
+
+**The goal:** EA Explorer is on the newer release, safely.
 
 > **Before you start** You need the Super Admin or IT Admin role. Read the release's notes: they say what changes and
 > anything to do before.

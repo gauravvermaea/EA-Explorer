@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Send data with a delivery · EA Explorer</title>
+<meta name="description" content="Your system writes the published Excel or CSV format; EA Explorer previews it for a Committer to accept.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../guides/index.html" class="here">Guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Send data with a delivery</h1>
+    <p class="who">For: Developers</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">Your system writes the published Excel or CSV format; EA Explorer previews it for a Committer to accept.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-do-this">Why do this</a></li><li><a href="#the-ways-to-do-it">The ways to do it</a></li><li><a href="#each-task-one-page">Each task, one page</a></li><li><a href="#related">Related</a></li></ul></nav>
+    <h2 id="why-do-this">Why do this</h2>
+<p>Deliveries are how other systems feed EA Explorer without direct access: a file in an agreed shape, reviewed before it counts. See <a href="../concepts/bringing-data-in-and-out.html">Data in and out: integration</a>.</p>
+<p>Every route in ends the same way: what arrives is shown as new, changed, kept and problem rows, and a person decides. That review is what lets you automate feeds without losing control of the model.</p>
+<p><strong>In TOGAF terms:</strong> Supports the content of phases B, C and D (baseline architectures), keeping the Architecture Landscape current from the systems that already know it. See <a href="../concepts/ea-explorer-and-togaf.html">EA Explorer and the TOGAF Standard</a>.</p>
+<p><strong>The goal:</strong> Another system's data reaches a model, reviewed.</p>
+<blockquote class="before"><p><strong>Before you start</strong> The model's Model Admin has set up a delivery source for your system.</p></blockquote>
+<h2 id="the-ways-to-do-it">The ways to do it</h2>
+<ol><li>Get the empty template: the model's <strong>Import and export</strong>, choose the types, tick <strong>Empty template</strong>, Excel or CSV set. It has exactly the columns and drop-down values the model accepts.</li><li>Write your data in it. Rows are matched by <strong>type and name</strong>: an existing entity of that type and name is updated, otherwise a new one is made. A delivery never deletes.</li><li>Deliver it, one of three ways:<ul><li><strong>A folder</strong>: drop the files in the source's <code>incoming</code> folder, then <strong>Take dropped files</strong> (or <code>eax import &lt;source&gt;</code>).</li><li><strong>The API</strong>, as the source's service account:</li></ul></li></ol>
+<pre class="code"><code>curl -H &quot;Authorization: Bearer &lt;token&gt;&quot; -F file=@cmdb.zip https://&lt;your EA Explorer address&gt;/api/v1/import-sources/&lt;source id&gt;/deliveries</code></pre>
+<ul><li><strong>An upload</strong> on the Deliveries tab.</li></ul>
+<ol><li>It waits for review: a Committer accepts or declines it.</li></ol>
+<h2 id="each-task-one-page">Each task, one page</h2>
+<ol><li><a href="../how-do-i/download-an-empty-template.html">Download an empty template</a></li><li><a href="../how-do-i/fill-in-a-delivery-template.html">Fill in a delivery template</a></li><li><a href="../how-do-i/drop-a-file-in-the-import-folder.html">Drop a file in the import folder</a></li><li><a href="../how-do-i/set-up-a-delivery-source.html">Set up a delivery source</a></li><li><a href="../how-do-i/accept-a-delivery.html">Accept a delivery</a></li><li><a href="../how-do-i/decline-a-delivery.html">Decline a delivery</a></li></ol>
+<h2 id="related">Related</h2>
+<ul><li><a href="../how-do-i/set-up-a-delivery-source.html">Set up a delivery source</a></li><li><a href="../how-do-i/push-data-with-python.html">Push data with Python</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: guides/send-data-with-a-delivery.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

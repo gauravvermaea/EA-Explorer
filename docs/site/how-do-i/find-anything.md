@@ -3,7 +3,18 @@ title: Find anything
 summary: Any function, model, project or entity, by name, ID, description or value.
 group: Getting around
 roles: user
+screen: #/search
 ---
+
+## Why do this
+
+EA Explorer does a lot, and nobody remembers every menu. Find searches every menu item, the tabs and actions of the page you are on, the help, and your content, so you can go straight there.
+
+EA Explorer covers a lot of ground. A few habits (search, help on every screen, your own requests and pins) make it feel smaller and get you to your work faster.
+
+**In TOGAF terms:** General use of the tool, across every part of the Architecture Repository. See [[ea-explorer-and-togaf]].
+
+**The goal:** You get to any function or content without knowing where it is.
 
 ## Steps
 

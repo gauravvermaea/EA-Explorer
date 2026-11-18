@@ -1,5 +1,5 @@
 ---
-title: What EA Explorer has for users
+title: What EA Explorer has for practising architects
 summary: You find, change, draw and report on the architecture: entities and relationships, views, reports, projects, and your own AI assistant.
 ---
 
@@ -9,6 +9,25 @@ Everyone who works with the architecture day to day: **Architects** (change cont
 commit changes), **History Viewers** and **Report Viewers** (read and report), and the people on projects
 (**Architect**, **Stakeholder**). What you may do depends on your roles on each model and project: what you may not use
 is not shown.
+
+## A day in your life
+
+You are the architect doing the work. In a day you might update the applications that changed after last week's
+release, map how a new process uses three systems, draw a view for a design review, answer a stakeholder's question
+about what retiring a platform would affect, and draft the target architecture for your project. You commit your
+changes with a message saying why, and your Committer reviews them.
+
+## Where EA Explorer fits
+
+EA Explorer is your workbench and your evidence. It holds the entities and relationships you know, checks them
+against the metamodel as you save, and turns them into the views, matrices, heat maps and impact graphs your audience
+needs, always consistent with each other. When someone asks "what happens if...", the answer is a few clicks away, and
+your own AI assistant can explore and draft with you. See [[enterprise-architecture]], [[views-and-reports]] and
+[[ai-in-ea-explorer]].
+
+## Where you sit in TOGAF
+
+You do the content work of the ADM: describing the baseline and target in phases B (business), C (data and applications) and D (technology), analysing the gaps in phase E, and producing the views that address stakeholders' concerns. See [[ea-explorer-and-togaf]].
 
 ## What you have
 

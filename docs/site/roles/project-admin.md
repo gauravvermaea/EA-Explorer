@@ -8,6 +8,24 @@ summary: You run architecture projects: start them from a template, choose the A
 People with the **Project Admin** or **Lead Architect** role on a project. Project Admins look after the projects,
 templates and libraries of the installation under the **Project Admin** menu.
 
+## A day in your life
+
+You run architecture projects from idea to sign-off. Your day moves between people and progress: setting up a new
+project from the right template, getting the charter in front of the sponsor, adding the stakeholders and their key
+questions, checking which deliverables are late, chasing a sign-off, logging a decision the board made, and preparing
+the project report for the steering committee on Thursday.
+
+## Where EA Explorer fits
+
+EA Explorer holds everything a project needs in one place, laid out the way the TOGAF ADM works: the phases and
+steps tailored to this project, the deliverables from the template library, the models it changes, who signs off and
+what they decided. Instead of chasing documents across shared drives and email, you see the whole project on one page,
+and when it finishes the record stays. See [[the-adm]], [[kinds-of-projects]] and [[projects-and-deliverables]].
+
+## Where you sit in TOGAF
+
+You run the ADM. Each project you set up is one or more passes through its phases, from the Architecture Vision (phase A) to Change Management (phase H), tailored to the project's purpose, with the deliverables, stakeholders and sign-offs the standard describes. See [[ea-explorer-and-togaf]].
+
 ## What you have
 
 | Area | Where | What it gives you |

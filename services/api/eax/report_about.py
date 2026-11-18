@@ -22,7 +22,7 @@ G: dict[str, tuple[str, str]] = {
               "is a candidate for investment."),
     "SR-03": ("Use it to keep the technology inventory current and plan upgrades.",
               "Check the end-of-life dates: anything past or within the next year needs a plan (see SR-17 and SR-23). Missing "
-              "versions or vendors mean the inventory cannot support support-contract or risk decisions yet."),
+              "versions or vendors mean the inventory cannot inform support-contract or risk decisions yet."),
     "SR-04": ("Use it with data owners to agree the data entities, their owners and classification.",
               "Every data entity should have an owner and a classification; restricted and confidential data without an owner "
               "is a governance risk. Compare with SR-11 to see which applications touch each entity."),
@@ -135,7 +135,7 @@ FAMILY: dict[str, tuple[str, str]] = {
     "TOGAF matrix": ("Use it as the TOGAF {title}: which items of one kind relate to which of another.",
                      "A filled cell is a relationship between the row and the column. Empty rows or columns are items with no "
                      "link to the other kind; very full rows or columns are hubs."),
-    "View": ("Use it to look at the model the way the {title} view's stakeholders need: only the element and "
+    "View": ("Use it to look at the model the way the {title}'s stakeholders need: only the element and "
                   "relationship types that matter to their concerns.",
                   "The catalog lists the elements, the relationships table shows how they connect, and the heat map colours "
                   "elements by the view's attribute. Missing elements of a type mean that part is not modelled yet."),

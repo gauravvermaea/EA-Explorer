@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Get an administrator back in · EA Explorer</title>
+<meta name="description" content="A forgotten password, a locked account or a lost phone, sorted from the machine.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../guides/index.html" class="here">Guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Get an administrator back in</h1>
+    <p class="who">For: System Admin</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">A forgotten password, a locked account or a lost phone, sorted from the machine.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-do-this">Why do this</a></li><li><a href="#the-ways-to-do-it">The ways to do it</a></li><li><a href="#each-task-one-page">Each task, one page</a></li><li><a href="#related">Related</a></li></ul></nav>
+    <h2 id="why-do-this">Why do this</h2>
+<p>Lockouts happen: a forgotten password, too many attempts, a lost phone, sign-in itself down. Each has its own safe fix from the machine. See <a href="../concepts/roles-and-access.html">Roles and access</a>.</p>
+<p>Security in EA Explorer is a set of layers: who can reach it, how they prove who they are, what their roles allow, and secrets no one can read. Each layer is set on the screens, and nothing here ever shows a secret's value.</p>
+<p><strong>In TOGAF terms:</strong> Outside the method: this protects the repository and who reaches it. See <a href="../concepts/ea-explorer-and-togaf.html">EA Explorer and the TOGAF Standard</a>.</p>
+<p><strong>The goal:</strong> An administrator who cannot sign in is back in, safely.</p>
+<blockquote class="before"><p><strong>Before you start</strong> You need to be on the machine EA Explorer runs on. This is only for the administrators; everyone else is helped by an administrator in Keycloak.</p></blockquote>
+<h2 id="the-ways-to-do-it">The ways to do it</h2>
+<ol><li><code>eax access admins</code> lists the administrators, and whether each is enabled.</li><li><strong>A forgotten password</strong>: <code>eax access reset-password &lt;user name&gt;</code> gives a temporary password, shown once; it must be changed at the next sign-in.</li><li><strong>Locked out after wrong passwords</strong>: <code>eax access unlock &lt;user name&gt;</code>.</li><li><strong>A lost phone</strong>: <code>eax access mfa-off &lt;user name&gt;</code> removes the authenticator; a new one is set up at the next sign-in.</li><li><strong>Sign-in itself is down</strong>: the break-glass page (<code>/#/break-glass</code>) signs in with the break-glass password, kept offline by the Super Admins.</li></ol>
+<h2 id="each-task-one-page">Each task, one page</h2>
+<ol><li><a href="../how-do-i/list-the-administrators.html">List the administrators</a></li><li><a href="../how-do-i/reset-an-administrators-password.html">Reset an administrator's password</a></li><li><a href="../how-do-i/unlock-an-administrator.html">Unlock an administrator</a></li><li><a href="../how-do-i/remove-a-lost-authenticator.html">Remove a lost authenticator</a></li><li><a href="../how-do-i/sign-in-with-break-glass.html">Sign in with break glass</a></li></ol>
+<h2 id="related">Related</h2>
+<ul><li><a href="../install/forgotten.html">Install and run: A forgotten password or certificate</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: guides/get-an-administrator-back-in.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

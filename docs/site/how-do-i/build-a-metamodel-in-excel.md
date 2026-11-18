@@ -3,7 +3,18 @@ title: Build a metamodel in Excel
 summary: A whole metamodel as one workbook: types, attributes, allowed relationships and rules, made into a model.
 group: Metamodels
 roles: industry-modeller, model-admin
+screen: #/model-admin/wizards?wizard=new
 ---
+
+## Why do this
+
+Designing a metamodel is easier in a spreadsheet: types, attributes, pick lists and allowed relationships side by side, reviewed with colleagues. EA Explorer reads the workbook, checks it, and builds the metamodel from it. See [[metamodels]].
+
+A metamodel change ripples: into what people may record, what reports read, what rules check and what integrations send. That is why it goes through drafts and review, and why each version is kept and can be compared.
+
+**In TOGAF terms:** The content framework and content metamodel: what building blocks and relationships the architecture may hold. See [[ea-explorer-and-togaf]].
+
+**The goal:** A whole metamodel designed in a workbook, then made into a model.
 
 > **Before you start** You need the Model Creator role.
 
@@ -20,5 +31,5 @@ roles: industry-modeller, model-admin
 
 ## Related
 
-- [Change a model's metamodel](change-a-metamodel.md)
-- [Publish a reference model to the library](publish-a-reference-model.md)
+- [Change a model's metamodel](../guides/change-a-metamodel.md)
+- [Publish a reference model to the library](../guides/publish-a-reference-model.md)

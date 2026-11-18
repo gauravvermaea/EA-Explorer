@@ -760,6 +760,20 @@ Enter leaves an optional one out. The whole command is shown before it runs, and
 a command that does not exist shows the nearest ones (did you mean).
 $ {eax} menu
 
+### site [build|check|shots] [--only PAGES] [--missing]
+> Makes the website (role guides, How do I, setup guides, releases) and takes its pictures.
+The website is a folder for each release, services/web/public/site/<version>: EA Explorer serves them at /site/
+(it opens the newest), and the folder can be copied anywhere and published as it is. Every How do I page names the screen it is done on; shots opens each of those screens
+on this installation, signed in as the first Super Admin (eaadmin unless set), and keeps a picture of it in docs/site/shots.
+It only signs in and opens pages: nothing is changed. It is not part of the tests. Use it on a laptop or test
+installation with the demo data, then make the website again (shots does that itself).
+  build     the website made again from docs/site, docs/guides and releases.
+  check     the same in memory: what is wrong (a link to nowhere, a page with no screen); nothing written.
+  shots     the pictures taken (--only: those pages, by file name; --missing: only those not taken yet).
+$ {eax} site build
+$ {eax} site shots --missing
+$ {eax} site shots --only back-up-now,add-an-entity
+
 ### document [--console|--web]
 > Every command in full, with examples: in the console (page by page) or as a web page in your browser.
 Asks which unless --console or --web is given. The web page is made from the same help, as one file with nothing to

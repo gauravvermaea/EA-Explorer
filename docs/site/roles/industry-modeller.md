@@ -9,6 +9,24 @@ People who build **reference models** for an industry or a domain (banking, insu
 **metamodels** they use, for others to start their own models from. You need the **Model Creator** role to make models,
 and **Library Admin** to publish them in the model library.
 
+## A day in your life
+
+You build the reference models others start from. A day might go on designing the capability map for an industry,
+tuning a metamodel so its types and attributes match how that industry speaks, writing the value streams and the
+starter landscape, testing it by making a model from it, then promoting it to the library and asking for it to be
+published.
+
+## Where EA Explorer fits
+
+EA Explorer gives your work reach: once published, your reference model is in every installation's library,
+copied as a starting point or made the parent of real models so your later improvements flow to them. You work in the
+same tool as everyone else, with metamodels in Excel when that is quicker, drafts and reviews, and versions you can
+compare. See [[industry-models]] and [[metamodels]].
+
+## Where you sit in TOGAF
+
+You work on the Enterprise Continuum: turning what an industry shares into reusable reference models and metamodels, so each organisation can move from the general to its own specific architecture faster. See [[ea-explorer-and-togaf]].
+
 ## What you have
 
 | Area | Where | What it gives you |

@@ -7,13 +7,32 @@ and I should be just able to copy it seperately and publish it. The help guides 
     python tools/build_website.py            writes services/web/public/site/ (committed; the app serves it at /site/)
     python tools/build_website.py --check    builds it in memory and says what is wrong (a test runs this)
 
-Sources (Markdown, a small front matter between --- lines: title, summary, roles):
+Sources (Markdown, a small front matter between --- lines: title, summary, roles; a How do I page also group and
+screen, the screen its picture shows, and screen2 for a second one):
   docs/site/index.md                 the home page
   docs/site/roles/*.md               what EA Explorer has for each kind of person
-  docs/site/how-do-i/*.md            one task each, printable (roles: who it is for)
+  docs/site/how-do-i/*.md            one simple task each, printable (roles: who it is for)
+  docs/site/concepts/*.md            the ideas behind the work: the ADM, metamodels, kinds of project, quality...
+  docs/site/reports/*.md             every standard report and dashboard (tools/build_report_pages.py writes them)
+  docs/site/integrate, platform      the developers' and platform developers' sections
+  docs/site/guides/*.md              a topic from start to end (making a model, restoring, merging...): how its tasks fit
+                                     together, each task linked to its own How do I page; printable
   docs/site/*.md                     the other pages (videos, further reading)
   docs/guides/*.md                   Install and run: the setup guides (eaxcli/setup.py writes them)
   releases/*.md                      Releases: every release's notes
+  docs/site/shots/<page>.png         a How do I page's picture (<page>-2.png the second), taken by `eax site shots`
+                                     from the screen its front matter names; a page with none shows where it will go
+
+Every How do I page is one task (the owner, 18 Nov 2026, 13:48: "a seperate how do I file per task with screenshots.
+This will help in future pdf generations and making videos"; 14:02: "For each user case and each how do I seperate
+task page"). docs/site/shots/screens.json lists each page's screens for `eax site shots` (written by this builder).
+
+Any page links another by its name, as in a wiki: [[data-quality]] (the page's own title as the words) or
+[[data-quality|why data quality matters]]; the name is a file in concepts, how-do-i or guides.
+
+Each release has its own copy (the owner, 18 Nov 2026, 16:37: "All documents to be inside a release sub folder"):
+services/web/public/site/<version>/ (the version in services/api/version.toml); site/index.html opens the newest and
+lists the others, which are kept.
 
 The folder it writes is the whole site: plain HTML, CSS and JavaScript with relative links, nothing loaded from the
 internet, search that works offline (search-index.js), a print layout on every page. Copy the folder anywhere (GitHub
@@ -33,7 +52,19 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "docs" / "site"
-OUT = ROOT / "services" / "web" / "public" / "site"
+SITE = ROOT / "services" / "web" / "public" / "site"   # every release's copy, and the page that opens the newest
+
+
+def version() -> str:
+    """The release this copy of the site describes: services/api/version.toml."""
+    m = re.search(r'^version\s*=\s*"([^"]+)"', (ROOT / "services" / "api" / "version.toml").read_text(encoding="utf-8"), re.MULTILINE)
+    return m.group(1) if m else "dev"
+
+
+OUT = SITE / version()
+WIKI = re.compile(r"\[\[([a-z0-9-]+)(?:\|([^\]]+))?\]\]")
+WIKI_MISSES: list[str] = []
+SHOTS = SRC / "shots"
 YOUTUBE = "https://www.youtube.com/@ea-explorer-os"
 GITHUB = "https://github.com/gauravvermaea/EA-Explorer"
 
@@ -41,17 +72,34 @@ ROLES = [   # (code, the name people know it by, one line)
     ("system-admin", "System Admin", "Run the installation: people, security, backups, updates, health"),
     ("model-admin", "Model Admin", "Look after models and their metamodels: people, quality, versions, merges"),
     ("project-admin", "Project Admin", "Run architecture projects: templates, phases, deliverables, sign-off"),
-    ("user", "Users", "Find, change, draw, report and commit the architecture"),
+    ("user", "Practising architects", "Find, change, draw, report and commit the architecture"),
     ("industry-modeller", "Industry model makers", "Build reference models and metamodels for an industry"),
     ("developer", "Developers", "Bring data in and take it out: the API, feeds, formats, scripts, AI"),
+    ("executive", "Executives", "See where the architecture and its projects stand, and approve what needs you"),
+    ("platform-developer", "Platform developers", "Change EA Explorer itself: run it locally, debug, test, release"),
+]
+# the sections of pages that explain rather than instruct (the owner, 18 Nov 2026, 16:36 and 16:51), each a folder of
+# docs/site: (folder, its name in the site's top bar, what its index page says)
+READING = [
+    ("concepts", "Concepts", ("The ideas behind the work: what enterprise architecture is for, the ADM, metamodels and "
+                              "models, the kinds of project and what each is for, and how EA Explorer maps to TOGAF.")),
+    ("reports", "Reports", ("Every standard report and dashboard: what it shows, who it is for, how to use it and how "
+                            "to read it, and where it sits in TOGAF. Open them on any model's Reports tab.")),
+    ("integrate", "Integrate", ("For developers connecting other systems: connectors, the published formats, deliveries, "
+                                "push sources, OData in and out, reports, webhooks, the API and MCP.")),
+    ("platform", "Platform", ("For developers working on EA Explorer itself: the code, running it locally, debugging, "
+                              "testing, making a change and releasing it.")),
 ]
 ROLE_NAME = {c: n for c, n, _ in ROLES}
 # the How do I topics, in the order a person meets them (the owner, 18 Nov 2026, 13:01: "Group them by some common")
-GROUP_ORDER = ["Getting around", "Working with content", "Views and reports", "Projects", "Models", "Metamodels",
+GROUP_ORDER = ["Start here", "The practice", "Getting around", "Working with content", "Views and reports", "Projects", "Models", "Metamodels",
                "Data quality", "Versions and merging", "Industry models", "Bringing data in", "Taking data out",
                "Access for systems", "People and access", "Security", "Backups and recovery", "Running it",
-               "Surveys and maturity", "AI"]
-SECTIONS = [("index.html", "Home"), ("roles/index.html", "Your role"), ("how-do-i/index.html", "How do I"),
+               "Surveys and maturity", "AI", "Connectors", "Reading and reporting", "Running locally", "The code"]
+SECTIONS = [("index.html", "Home"), ("roles/index.html", "Your role"), ("concepts/index.html", "Concepts"),
+            ("how-do-i/index.html", "How do I"), ("guides/index.html", "Guides"), ("reports/index.html", "Reports"),
+            ("integrate/index.html", "Integrate"),
+            ("platform/index.html", "Platform"),
             ("install/index.html", "Install and run"), ("releases/index.html", "Releases"), ("videos.html", "Videos"),
             ("further-reading.html", "Further reading")]
 
@@ -134,7 +182,7 @@ def markdown(text: str, link=lambda u: u) -> tuple[str, list[tuple[int, str, str
             continue
         if line.startswith("|") and i + 1 < len(lines) and re.match(r"^\|?\s*:?-{3,}", lines[i + 1]):
             flush()
-            cells = lambda s: [c.strip() for c in s.strip().strip("|").split("|")]  # noqa: E731
+            cells = lambda s: [c.strip() for c in s.strip().strip("|").split("|")]
             head = cells(line)
             rows = []
             j = i + 2
@@ -226,6 +274,7 @@ class Page:
     source: str = ""              # where it came from, for messages
     printable: bool = True
     extra_html: str = ""          # lists made by the builder (the role's tasks, a section's index)
+    screens: list[str] = field(default_factory=list)   # a How do I page's screens: its pictures, in order
 
 
 def _title_of(md: str, fallback: str) -> tuple[str, str]:
@@ -241,8 +290,20 @@ def collect() -> list[Page]:
     """Every page of the site, from docs/site, docs/guides and releases."""
     pages: list[Page] = []
 
+    named = {f.stem: f for d in ("concepts", "reports", "integrate", "platform", "how-do-i", "guides") for f in sorted((SRC / d).glob("*.md"))}
+    WIKI_MISSES.clear()
+
+    def wiki(m: re.Match, here: Path) -> str:
+        target = named.get(m.group(1))
+        if not target:
+            WIKI_MISSES.append(f"{here.relative_to(ROOT)}: [[{m.group(1)}]] names no page")
+            return m.group(0)
+        words = m.group(2) or front_matter(target.read_text(encoding="utf-8"))[0].get("title", target.stem)
+        return f"[{words}]({posixpath.relpath(target.as_posix(), here.parent.as_posix())})"
+
     def read(p: Path) -> tuple[dict, str]:
-        return front_matter(p.read_text(encoding="utf-8"))
+        meta, md = front_matter(p.read_text(encoding="utf-8"))
+        return meta, WIKI.sub(lambda m: wiki(m, p), md)
     # home, and the other pages at the top
     for p in sorted(SRC.glob("*.md")):
         meta, md = read(p)
@@ -261,13 +322,37 @@ def collect() -> list[Page]:
                       "platform has for you, how it is put together, and the tasks you will do.", "roles/index.html",
                       printable=False))
     # How do I
+    guides = {g.stem for g in (SRC / "guides").glob("*.md")}
     for p in sorted((SRC / "how-do-i").glob("*.md")):
+        if p.stem in guides:   # an older copy of a page that became a Guide (D777): the Guide is the page
+            print(f"  left out {p.relative_to(ROOT)}: it is now docs/site/guides/{p.name} (delete the old copy)")
+            continue
         meta, md = read(p)
         title, md = _title_of(md, p.stem)
         pages.append(Page(f"how-do-i/{p.stem}.html", meta.get("title", title), md, "how-do-i/index.html",
-                          meta.get("summary", ""), meta.get("roles", []), meta.get("group", "Other"), str(p.relative_to(ROOT))))
+                          meta.get("summary", ""), meta.get("roles", []), meta.get("group", "Other"), str(p.relative_to(ROOT)),
+                          screens=[meta[k] for k in ("screen", "screen2") if meta.get(k)]))
     pages.append(Page("how-do-i/index.html", "How do I", "One task on each page, step by step, ready to print or save as "
                       "PDF. Choose your role, or type to find a task.", "how-do-i/index.html", printable=False))
+    # Concepts, Integrate, Platform: the ideas behind the work and the developers' sections (the owner, 16:36: "pages
+    # around phelosphy of project ADM, meta model..."; 16:51: "a whole section for developers... another section for
+    # platform developers")
+    for folder, name, intro in READING:
+        for p in sorted((SRC / folder).glob("*.md")):
+            meta, md = read(p)
+            title, md = _title_of(md, p.stem)
+            pages.append(Page(f"{folder}/{p.stem}.html", meta.get("title", title), md, f"{folder}/index.html",
+                              meta.get("summary", ""), meta.get("roles", []), meta.get("group", "Other"), str(p.relative_to(ROOT))))
+        pages.append(Page(f"{folder}/index.html", name, intro, f"{folder}/index.html", printable=False))
+    # Guides: a topic from start to end, its tasks linked to their How do I pages (owner, 18 Nov 2026, 14:12: "Each is
+    # simple one task only", "and then other pages as discussed")
+    for p in sorted((SRC / "guides").glob("*.md")):
+        meta, md = read(p)
+        title, md = _title_of(md, p.stem)
+        pages.append(Page(f"guides/{p.stem}.html", meta.get("title", title), md, "guides/index.html",
+                          meta.get("summary", ""), meta.get("roles", []), meta.get("group", "Other"), str(p.relative_to(ROOT))))
+    pages.append(Page("guides/index.html", "Guides", "A topic from start to end: how its tasks fit together, each task "
+                      "with its own How do I page.", "guides/index.html", printable=False))
     # Install and run: the setup guides
     for p in sorted((ROOT / "docs" / "guides").glob("*.md")):
         md = p.read_text(encoding="utf-8")
@@ -343,9 +428,10 @@ def _tiles(tasks: list[Page], frm: str) -> str:
 
 def _role_tasks(pages: list[Page], role: str, frm: str) -> str:
     tasks = _tasks_of(pages, role)
-    if not tasks:
-        return ""
-    return '<h2 id="your-tasks">How do I: your tasks</h2>' + _tiles(tasks, frm)
+    reading = tuple(f"{f}/" for f in ("guides", *(r[0] for r in READING)))
+    guides = [p for p in pages if p.out.startswith(reading) and not p.out.endswith("/index.html") and role in p.roles]
+    out = ('<h2 id="your-guides">Read first: concepts and guides for you</h2>' + _tiles(guides, frm)) if guides else ""
+    return out + ('<h2 id="your-tasks">How do I: your tasks</h2>' + _tiles(tasks, frm) if tasks else "")
 
 
 def _index_html(page: Page, pages: list[Page]) -> str:
@@ -363,8 +449,46 @@ def _index_html(page: Page, pages: list[Page]) -> str:
         panes = "".join(f'<div class="role-pane" data-pane="{c}"><h2 id="{c}">{n}</h2>{_tiles(t, page.out)}</div>'
                         for c, n, t in tabs)
         return f'<div class="howto">{bar}{panes}</div>'
+    for folder, _name, _intro in READING:
+        if page.out == f"{folder}/index.html":
+            return _tiles([p for p in pages if p.out.startswith(f"{folder}/") and p.out != page.out], page.out)
+    if page.out == "guides/index.html":
+        return _tiles([p for p in pages if p.out.startswith("guides/") and p.out != page.out], page.out)
 
     return ""
+
+
+def shot_name(slug: str, n: int) -> str:
+    """The picture of a How do I page's nth screen (0 the first): <page>.png, <page>-2.png."""
+    return f"{slug}.png" if n == 0 else f"{slug}-{n + 1}.png"
+
+
+def _figures(page: Page) -> str:
+    """The page's pictures, after its summary; where one has not been taken yet, a box saying which screen it shows."""
+    if not page.screens:
+        return ""
+    slug = page.out.rsplit("/", 1)[-1].removesuffix(".html")
+    out = []
+    for n, screen in enumerate(page.screens):
+        name = shot_name(slug, n)
+        where = html.escape(screen)
+        if (SHOTS / name).is_file():
+            out.append(f'<figure class="shot"><img src="../shots/{name}" alt="The screen: {html.escape(page.title)}" '
+                       f'loading="lazy"><figcaption>The screen: <code>{where}</code></figcaption></figure>')
+        else:
+            out.append(f'<figure class="shot missing"><div>Picture to come: <code>{where}</code></div>'
+                       f'<figcaption>Taken by <code>eax site shots</code> on an installation with the demo data.</figcaption></figure>')
+    return "".join(out)
+
+
+def screens_list(pages: list[Page]) -> str:
+    """docs/site/shots/screens.json: every How do I page's screens and the picture each makes, for eax site shots."""
+    rows = []
+    for p in pages:
+        slug = p.out.rsplit("/", 1)[-1].removesuffix(".html")
+        for n, screen in enumerate(p.screens):
+            rows.append({"page": slug, "title": p.title, "screen": screen, "file": shot_name(slug, n)})
+    return json.dumps(rows, indent=1, ensure_ascii=False) + "\n"
 
 
 def render(page: Page, pages: list[Page], sources: dict[str, str]) -> str:
@@ -378,10 +502,10 @@ def render(page: Page, pages: list[Page], sources: dict[str, str]) -> str:
            + "".join(f'<li><a href="#{hid}">{html.escape(words)}</a></li>' for _l, hid, words in contents) + "</ul></nav>"
            ) if len(contents) > 2 else ""
     who = (f'<p class="who">For: {", ".join(html.escape(ROLE_NAME.get(r, r)) for r in page.roles)}</p>'
-           if page.roles and page.out.startswith("how-do-i/") else "")
-    tools = (f'<p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>'
+           if page.roles and page.out.startswith(("how-do-i/", "guides/", *(f"{r[0]}/" for r in READING))) else "")
+    tools = ('<p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>'
              if page.printable else "")
-    asset = lambda name: _rel(page.out, f"assets/{name}")  # noqa: E731
+    asset = lambda name: _rel(page.out, f"assets/{name}")
     return f"""<!doctype html>
 <html lang="en-GB">
 <head>
@@ -405,6 +529,7 @@ def render(page: Page, pages: list[Page], sources: dict[str, str]) -> str:
     <h1>{html.escape(page.title)}</h1>
     {who}{tools}
     {f'<p class="summary">{html.escape(page.summary)}</p>' if page.summary and not page.body_md.strip().startswith(page.summary[:30]) else ''}
+    {_figures(page)}
     {toc}
     {body}
     {extra}
@@ -439,6 +564,43 @@ def search_index(pages: list[Page]) -> str:
     return "window.EAX_SEARCH = " + json.dumps(rows, ensure_ascii=False, separators=(",", ":")) + ";\n"
 
 
+# ---------------------------------------------------------------- one copy for each release
+def _release_dir(name: str) -> bool:
+    return bool(re.fullmatch(r"\d+\.\d+\.\d+|dev", name))
+
+
+def releases_on_disk() -> list[str]:
+    """The releases with a copy of the site, newest first (this one always among them)."""
+    found = {d.name for d in SITE.iterdir() if d.is_dir() and _release_dir(d.name)} if SITE.is_dir() else set()
+    return sorted(found | {version()}, key=_version_key, reverse=True)
+
+
+def front_page(releases: list[str]) -> str:
+    """site/index.html: opens the newest release's copy at once (no script: a refresh the page itself asks for) and
+    lists every copy kept."""
+    newest = releases[0]
+    rows = "".join(f'<li><a href="{r}/index.html">EA Explorer {html.escape(r)}</a>{" (newest)" if r == newest else ""}</li>'
+                   for r in releases)
+    return f"""<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="refresh" content="0; url={newest}/index.html">
+<title>EA Explorer: the website</title>
+<link rel="stylesheet" href="{newest}/assets/site.css">
+</head>
+<body>
+<main class="page"><article>
+<h1>EA Explorer: the website</h1>
+<p>Opening the website for EA Explorer {html.escape(newest)}. Each release has its own copy:</p>
+<ul class="cards-list">{rows}</ul>
+</article></main>
+</body>
+</html>
+"""
+
+
 # ---------------------------------------------------------------- build and check
 def build(write: bool = True, made: dict | None = None) -> list[str]:
     """Builds the site; returns what is wrong (a link to nowhere, a page with no title, a role with no page). `made`, when
@@ -462,6 +624,7 @@ def build(write: bool = True, made: dict | None = None) -> list[str]:
             target = posixpath.normpath(posixpath.join(posixpath.dirname(p.out), href.split("#")[0]))
             if target.startswith("..") or (target not in outs and not target.startswith("assets/")):
                 problems.append(f"{p.source or p.out}: a link to nowhere: {href}")
+    problems += WIKI_MISSES
     for code, _name, _line in ROLES:
         if f"roles/{code}.html" not in outs:
             problems.append(f"no page for {code} (docs/site/roles/{code}.md)")
@@ -471,13 +634,25 @@ def build(write: bool = True, made: dict | None = None) -> list[str]:
         for r in p.roles:
             if r not in ROLE_NAME:
                 problems.append(f"{p.source}: no role called {r}")
+        if p.out.startswith("how-do-i/") and p.out != "how-do-i/index.html":
+            if not p.screens:
+                problems.append(f"{p.source}: no screen (the screen its picture shows)")
+            for s in p.screens:
+                if not re.fullmatch(r"(#/|/)[A-Za-z0-9_\-/{}?=&%.]*", s):
+                    problems.append(f"{p.source}: a screen is an address in EA Explorer (#/... or /...): {s}")
+    pictures: dict[str, bytes] = {f"shots/{s.name}": s.read_bytes() for s in sorted(SHOTS.glob("*.png"))} if SHOTS.is_dir() else {}
     files["search.html"] = search_page()
     files["assets/search-index.js"] = search_index(pages)
     for name in ("site.css", "site.js"):
         files[f"assets/{name}"] = (SRC / "assets" / name).read_text(encoding="utf-8")
     if made is not None:
         made.update(files)
+        made.update(pictures)
     if write:
+        if SITE.is_dir():   # what an older build left at the top (before each release had its own folder)
+            for old in SITE.iterdir():
+                if not (old.is_dir() and _release_dir(old.name)) and old.name not in ("index.html", "README.txt"):
+                    shutil.rmtree(old) if old.is_dir() else old.unlink()
         if OUT.exists():
             shutil.rmtree(OUT)
         (OUT / "assets").mkdir(parents=True)
@@ -487,11 +662,20 @@ def build(write: bool = True, made: dict | None = None) -> list[str]:
         for name in ("site.css", "site.js"):
             shutil.copyfile(SRC / "assets" / name, OUT / "assets" / name)
         (OUT / "assets" / "search-index.js").write_text(search_index(pages), encoding="utf-8")
+        for name, data in pictures.items():
+            (OUT / name).parent.mkdir(parents=True, exist_ok=True)
+            (OUT / name).write_bytes(data)
+        SHOTS.mkdir(parents=True, exist_ok=True)
+        (SHOTS / "screens.json").write_text(screens_list(pages), encoding="utf-8")
         (OUT / "README.txt").write_text(
             "The EA Explorer website, made by tools/build_website.py from docs/site, docs/guides and releases.\n"
             "Do not edit these files: change the Markdown and build again.\n"
             "To publish it anywhere (GitHub Pages, a web server, a file share), copy this whole folder.\n"
-            "Inside EA Explorer it is at /site/.\n", encoding="utf-8")
+            f"Inside EA Explorer it is at /site/{version()}/.\n", encoding="utf-8")
+        (SITE / "index.html").write_text(front_page(releases_on_disk()), encoding="utf-8")
+        (SITE / "README.txt").write_text(
+            "The EA Explorer website: one folder for each release (made by tools/build_website.py); index.html opens\n"
+            "the newest. To publish it, copy this whole folder, or one release's folder on its own.\n", encoding="utf-8")
     return problems
 
 

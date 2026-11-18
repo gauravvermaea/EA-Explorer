@@ -36,7 +36,10 @@ def test_the_areas_and_where_they_sit():
     keys = re.findall(r'\{ key: "([a-z]+)", label: "([^"]+)"(?:, title: "[^"]+")?(?:, place: "([a-z]+)")?', MENU)
     main = [label for _, label, place in keys if not place]
     assert main == ["Architecture Work", "Model Admin", "Project Admin", "Repository & Content Framework",
-                    "AI (MCP)", "System Admin"], keys                     # AI (MCP): R4.20
+                    "AI (MCP)", "System Admin", "Documentation"], keys    # AI (MCP): R4.20; Documentation: R7.1
+    # owner, 18 Nov 2026, 18:24: "Please make site or documentation as top level menu item": the website first
+    docs = MENU[MENU.index('key: "docs"'):]
+    assert docs.index('href: "/site/index.html"') < docs.index('href: "#/documentation"'), "the website comes first"
     # owner, 21:46: "Call it Reposiory & Content Framework"
     assert {k: place for k, _, place in keys if place} == {"me": "right", "help": "right", "farm": "left"}
     me = MENU[MENU.index('key: "me"'):MENU.index('key: "work"')]

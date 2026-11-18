@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data quality: why it matters and how it is measured · EA Explorer</title>
+<meta name="description" content="What good architecture data looks like, what goes wrong without it, and how EA Explorer scores and improves it.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html" class="here">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../guides/index.html">Guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Data quality: why it matters and how it is measured</h1>
+    <p class="who">For: Model Admin, Practising architects, Executives</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">What good architecture data looks like, what goes wrong without it, and how EA Explorer scores and improves it.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-it-matters">Why it matters</a></li><li><a href="#what-good-looks-like">What good looks like</a></li><li><a href="#how-ea-explorer-measures-and-improves-it">How EA Explorer measures and improves it</a></li><li><a href="#read-next">Read next</a></li></ul></nav>
+    <h2 id="why-it-matters">Why it matters</h2>
+<p>A repository is only worth what its data is worth. If owners are missing, a question about accountability has no answer. If lifecycle dates are stale, a retirement plan is built on yesterday. If the same application is recorded three times, impact analysis misses two thirds of the dependencies. People notice quickly when a repository is wrong, and then they stop using it, and it decays further. Data quality is what keeps the repository trusted.</p>
+<h2 id="what-good-looks-like">What good looks like</h2>
+<ul><li><strong>Complete</strong>: the attributes that matter are filled in (owner, status, cost where it is asked for).</li><li><strong>Correct</strong>: values follow the rules (a retirement date after the go-live date, an allowed value from the list).</li><li><strong>Current</strong>: entities have been looked at recently; nothing has gone stale.</li><li><strong>Connected</strong>: entities are related to what they should be; no orphans.</li><li><strong>Unique</strong>: each real thing is recorded once.</li></ul>
+<h2 id="how-ea-explorer-measures-and-improves-it">How EA Explorer measures and improves it</h2>
+<p>Each model has a <strong>quality score</strong> built from those five, with weights its Model Admin sets (<a href="../how-do-i/see-a-models-quality-score.html">See a model's quality score</a>, <a href="../how-do-i/set-how-quality-is-measured.html">Set how data quality is measured</a>). <strong>Rules</strong> check values as they are saved: an error blocks a commit, a warning does not (<a href="../how-do-i/add-a-quality-rule.html">Add a data quality rule</a>, <a href="../how-do-i/see-failing-checks.html">See the checks a model fails</a>). A <strong>wizard</strong> walks through what is missing one entity at a time (<a href="../how-do-i/run-the-data-quality-wizard.html">Run the data quality wizard</a>), <strong>duplicates</strong> are found and merged (<a href="../how-do-i/find-and-merge-duplicates.html">Find and merge duplicates</a>), and System Admins see every model's score side by side (<a href="../how-do-i/see-quality-across-models.html">See data quality across every model</a>).</p>
+<h2 id="read-next">Read next</h2>
+<ul><li><a href="../guides/improve-data-quality.html">Check and improve data quality</a></li><li><a href="../concepts/metamodels.html">Metamodels: the shape of a model</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: concepts/data-quality.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

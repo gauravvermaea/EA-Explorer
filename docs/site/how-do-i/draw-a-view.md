@@ -3,7 +3,18 @@ title: Draw a view
 summary: A view drawn in the built-in draw.io with the model's own entities, kept in step with the model.
 group: Views and reports
 roles: user
+screen: #/metamodel/{m}/views
 ---
+
+## Why do this
+
+Some audiences need a picture arranged for them: a context diagram for a board, a landscape for a workshop. A drawn view gives you draw.io's freedom while each shape stays bound to the model, so the picture never drifts from the truth. See [[views-and-reports]].
+
+Views and reports are where the model meets its audience. Choose the one that answers the question in front of you, for the person in front of you, and it stays current as the model changes.
+
+**In TOGAF terms:** Architecture views and viewpoints: artifacts that address stakeholders' concerns, in any ADM phase. See [[ea-explorer-and-togaf]].
+
+**The goal:** A diagram laid out by hand, every shape a real entity.
 
 > **Before you start** You need a role on the model; drawing relationships into the model needs Architect or higher.
 
@@ -20,4 +31,4 @@ roles: user
 
 ## Related
 
-- [Open a report or a view](open-a-report-or-view.md)
+- [Open a report or a view](../guides/open-a-report-or-view.md)

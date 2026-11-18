@@ -74,7 +74,7 @@ class AssignedModelOut(Schema):
 
 class Me(Schema):
     """The shape of me in the API's answers: username, email, name, roles, keycloak_roles, permissions,
-    sees_every_model, models, break_glass, parts, library."""
+    sees_every_model, models, break_glass, parts, library, jenkins."""
     username = fields.String()
     email = fields.String(allow_none=True)
     name = fields.String(allow_none=True)
@@ -88,6 +88,7 @@ class Me(Schema):
                         metadata={"description": "Which parts are on: projects, repository, references (D329)"})
     library = fields.Dict(metadata={"description": "The enterprise library (D350): mode (ours, link, off), link, search_link "
                                                    "(with {q}), service (whether the library service is on)"})
+    jenkins = fields.String(metadata={"description": "Jenkins' address, as eax jenkins up prints it (System Admin > Jenkins)"})
 
 
 class JobRequestIn(Schema):

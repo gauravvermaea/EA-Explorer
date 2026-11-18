@@ -8,6 +8,25 @@ summary: You look after models: who works in them, their metamodel, their qualit
 People with the **Model Admin** role on a model (given on that model's People tab), and the **Model Sub Admin** who
 helps them. A **Model Creator** (a global role) may make new models; a **Library Admin** looks after the model library.
 
+## A day in your life
+
+You own one or more models, and a typical day is about keeping them trustworthy. You review and commit the changes
+architects made yesterday, answer a request to give a new colleague the Architect role, glance at the quality score
+and chase the owners still missing, and accept a delivery the application inventory sent overnight. Now and then a
+project needs a working copy of your model, or a child comes back to be merged, or the metamodel needs a new attribute
+and you open a draft for it.
+
+## Where EA Explorer fits
+
+Your models are the shared memory of the organisation's architecture; you are their custodian. EA Explorer gives you
+control over who changes what, review before anything counts, a quality score with the rules behind it, and every
+version kept so nothing is ever lost. It handles the mechanics of copying, splitting and merging so you can focus on
+whether the content is right. See [[models]], [[metamodels]], [[data-quality]] and [[versions-tags-and-merging]].
+
+## Where you sit in TOGAF
+
+You look after the Architecture Landscape in the Architecture Repository: the models at strategic, segment, capability and transition levels, built on the content metamodel. Your review of changes is a small piece of architecture governance, done every day. See [[ea-explorer-and-togaf]].
+
 ## What you have
 
 | Area | Where | What it gives you |

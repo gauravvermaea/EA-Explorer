@@ -3,7 +3,18 @@ title: Receive webhooks
 summary: Signed messages to your system when something happens in EA Explorer.
 group: Taking data out
 roles: developer, system-admin
+screen: #/admin/system
 ---
+
+## Why do this
+
+A webhook sends a message to another system when something happens (a commit, an approval, a retirement), so it can act at once instead of polling. See [[bringing-data-in-and-out]].
+
+The architecture is most useful where decisions are made, which is often outside EA Explorer: in reports, spreadsheets, other systems. Data leaves in the shapes those places need, from the same trusted model.
+
+**In TOGAF terms:** Communicating the architecture: views and data for stakeholders and other systems. See [[ea-explorer-and-togaf]].
+
+**The goal:** Another system is told the moment something changes.
 
 > **Before you start** An IT Admin or Super Admin adds the webhook.
 

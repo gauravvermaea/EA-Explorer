@@ -2,8 +2,19 @@
 title: Run the self-test
 summary: Check the installation works: the smoke test in a few minutes, or the full test.
 group: Running it
-roles: system-admin
+roles: system-admin, platform-developer
+screen: #/admin/self-test
 ---
+
+## Why do this
+
+The self-test checks that every role can sign in, every area answers and the main journeys work, in its own fixtures, so nothing real changes. Run it after an update or a change of settings. See [[running-the-installation]].
+
+The installation is built to look after itself as far as it can, and to ask before anything risky. These tasks are the decisions it leaves to you: what to run, when, and how far to trust a change.
+
+**In TOGAF terms:** Outside the method: this keeps the tool that holds the Architecture Repository running. See [[ea-explorer-and-togaf]].
+
+**The goal:** You know the installation works, end to end.
 
 > **Before you start** You need the Super Admin or IT Admin role.
 
@@ -28,4 +39,4 @@ The run ends **Passed**. Its History entry has the report; each failure says wha
 
 ## Related
 
-- [Check the health and alerts](check-health-and-alerts.md)
+- [Check the health and alerts](../guides/check-health-and-alerts.md)

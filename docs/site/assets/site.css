@@ -85,6 +85,11 @@ blockquote p { margin: 4px 0; }
 .tiles li[hidden], .group[hidden] { display: none; }
 
 /* Printed or saved as PDF: only the page, black on white, links' addresses written out */
+/* a How do I page's pictures (D777): the screen the task is done on; a box where one is still to be taken */
+.shot { margin: 16px 0 20px; }
+.shot img { display: block; max-width: 100%; height: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--card); }
+.shot figcaption { font-size: 0.85em; color: var(--quiet); margin-top: 6px; }
+.shot.missing div { border: 2px dashed var(--line); border-radius: 6px; padding: 28px 16px; text-align: center; color: var(--quiet); background: var(--card); }
 @media print {
   :root { --ink: #000; --quiet: #333; --line: #bbb; --bg: #fff; --card: #fff; --accent: #000; --accent-soft: #f2f2f2; color-scheme: light; }
   .top, .page-tools, .toc, .skip, .foot a, .search { display: none !important; }
@@ -96,4 +101,6 @@ blockquote p { margin: 4px 0; }
   pre, table, blockquote, li { break-inside: avoid; }
   a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.85em; color: #333; }
   .out { display: none; }
+  .shot { break-inside: avoid; }
+  .shot.missing { display: none; }
 }

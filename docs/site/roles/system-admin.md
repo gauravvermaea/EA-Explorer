@@ -10,6 +10,26 @@ settings and the delete-everything commands) and the **IT Admin** (running it: h
 logs), helped by the **User Admin** (people and their roles) and the **Auditor** (sees everything a Super Admin sees,
 changes nothing).
 
+## A day in your life
+
+Your morning starts with the dot in the top bar: green means the night's backups ran, the checks passed and nobody
+was locked out. Most days the work is small and steady: a new team needs access, a directory group should give a role,
+an alert about disk space wants a look, a release is waiting to be scheduled for the weekend. Some days are bigger: a
+restore drill, rotating every password before an audit, setting up a DR site, or getting an administrator back in when
+sign-in itself is the problem.
+
+## Where EA Explorer fits
+
+EA Explorer is the platform your architects depend on, and you are the one who keeps it dependable. It is built to
+need little from you: it watches itself, backs itself up and checks the backups, tells you before anything risky, and
+writes every set-up down with your own values in the commands. Your job is to decide, not to fight the tool: who gets
+in, how safe it is, when it changes, and how fast it comes back if something goes wrong. See
+[[running-the-installation]] and [[roles-and-access]].
+
+## Where you sit in TOGAF
+
+The TOGAF Standard is about the architecture, not the tool that holds it, so most of your work sits outside the method. It serves the method all the same: the Architecture Repository the standard describes only helps if it is available, secure, backed up and current, and that is your part. See [[ea-explorer-and-togaf]].
+
 ## What you have
 
 Everything you need is under **System Admin** in the menu bar, and on the machine in one command, `eax`.

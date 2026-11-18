@@ -3,7 +3,18 @@ title: Push data with Python
 summary: A push source and the Python kit: your records sent in one call, proposed as a delivery.
 group: Bringing data in
 roles: developer
+screen: #/metamodel/{m}/import
 ---
+
+## Why do this
+
+Where a system can run a script, Python can read its data and push it to EA Explorer as a delivery for review. The kit includes the script and a mapping you edit. See [[bringing-data-in-and-out]].
+
+Every route in ends the same way: what arrives is shown as new, changed, kept and problem rows, and a person decides. That review is what lets you automate feeds without losing control of the model.
+
+**In TOGAF terms:** Supports the content of phases B, C and D (baseline architectures), keeping the Architecture Landscape current from the systems that already know it. See [[ea-explorer-and-togaf]].
+
+**The goal:** A script sends data into a model as a delivery.
 
 > **Before you start** Someone who may change the model sets up a **push** source on its Import and export ›
 > Discovery tab.
@@ -20,4 +31,4 @@ roles: developer
 
 ## Related
 
-- [Send data with a delivery](send-data-with-a-delivery.md)
+- [Send data with a delivery](../guides/send-data-with-a-delivery.md)

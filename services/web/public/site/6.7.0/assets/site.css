@@ -1,0 +1,106 @@
+/* The EA Explorer website (tools/build_website.py, D776): the app's own colours, readable on a phone, and a print
+   layout with nothing but the page (the owner, 18 Nov 2026: "They should be able to print them as pdf"). */
+:root {
+  --ink: #1d2733; --quiet: #5b6775; --line: #d9dee5; --bg: #f6f7f9; --card: #ffffff;
+  --accent: #1f5fb8; --accent-soft: #e8f0fb; --warn: #8a4b00; --warn-soft: #fff4d6;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --ink: #e6e9ee; --quiet: #a7b0bc; --line: #333c48; --bg: #12161c; --card: #1a2029;
+          --accent: #7fb0ff; --accent-soft: #1d2a3d; --warn: #ffcf7a; --warn-soft: #3a2e14; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+html { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: var(--ink); background: var(--bg); }
+body { margin: 0; line-height: 1.55; }
+a { color: var(--accent); }
+.skip { position: absolute; left: -999px; }
+.skip:focus { left: 16px; top: 8px; background: var(--card); padding: 6px 10px; z-index: 2; }
+.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; padding: 12px 24px; background: var(--card);
+       border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 1; }
+.brand { font-weight: 700; font-size: 18px; color: var(--ink); text-decoration: none; }
+.sections { display: flex; flex-wrap: wrap; gap: 4px 16px; flex: 1; }
+.sections a { color: var(--quiet); text-decoration: none; padding: 2px 0; }
+.sections a.here, .sections a:hover { color: var(--ink); border-bottom: 2px solid var(--accent); }
+.search input { font: inherit; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg);
+                color: var(--ink); width: 220px; max-width: 100%; }
+.page { max-width: 920px; margin: 0 auto; padding: 24px 16px 48px; }
+article h1 { margin: 8px 0 6px; font-size: 28px; line-height: 1.25; }
+article h2 { margin: 32px 0 10px; font-size: 20px; border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+article h3 { margin: 22px 0 8px; font-size: 16px; }
+.summary { font-size: 17px; color: var(--quiet); }
+.who { margin: 0; color: var(--quiet); font-size: 14px; }
+.page-tools { margin: 8px 0 0; }
+button.print { font: inherit; font-size: 14px; padding: 5px 12px; border-radius: 6px; border: 1px solid var(--line);
+               background: var(--card); color: var(--ink); cursor: pointer; }
+.toc { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 16px; margin: 16px 0; }
+.toc ul { margin: 6px 0 0; padding-left: 18px; columns: 2; }
+.quiet { color: var(--quiet); }
+code { font-family: ui-monospace, Consolas, "Cascadia Mono", monospace; font-size: 0.92em; background: var(--accent-soft);
+       padding: 1px 4px; border-radius: 4px; }
+pre.code { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; overflow-x: auto; }
+pre.code code { background: none; padding: 0; }
+.table { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; background: var(--card); margin: 8px 0 16px; }
+th, td { text-align: left; vertical-align: top; padding: 7px 10px; border: 1px solid var(--line); }
+th { background: var(--accent-soft); }
+blockquote { margin: 12px 0; padding: 8px 14px; border-left: 4px solid var(--accent); background: var(--accent-soft); border-radius: 0 6px 6px 0; }
+blockquote.careful, blockquote.before { border-left-color: var(--warn); background: var(--warn-soft); }
+blockquote p { margin: 4px 0; }
+.cards { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+.cards a { display: block; height: 100%; padding: 14px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--card);
+           color: var(--ink); text-decoration: none; }
+.cards a:hover { border-color: var(--accent); }
+.cards strong { display: block; margin-bottom: 4px; }
+.cards span { color: var(--quiet); font-size: 14px; }
+.tasks li { margin: 4px 0; }
+.tasks .quiet { font-size: 14px; }
+.cards-list li { margin: 4px 0; }
+.out { font-size: 0.8em; }
+.foot { display: flex; flex-wrap: wrap; gap: 8px 20px; padding: 16px 24px; border-top: 1px solid var(--line); background: var(--card);
+        color: var(--quiet); font-size: 13px; }
+.printed-from { display: none; }
+.result { margin: 0 0 14px; }
+.result a { font-weight: 600; }
+.result p { margin: 2px 0; color: var(--quiet); font-size: 14px; }
+@media (max-width: 640px) { .top { padding: 10px 16px; position: static; } .search input { width: 100%; } .toc ul { columns: 1; } }
+
+/* How do I: role tabs, topic groups of tiles, and the filter (D776) */
+.howto-tools { margin: 12px 0; }
+.filter { font: inherit; width: 100%; max-width: 480px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px;
+          background: var(--card); color: var(--ink); }
+.role-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; border-bottom: 1px solid var(--line); }
+.role-tabs button { font: inherit; padding: 6px 12px; border: 1px solid var(--line); border-bottom: 0; border-radius: 8px 8px 0 0;
+                    background: var(--bg); color: var(--quiet); cursor: pointer; }
+.role-tabs button[aria-selected="true"] { background: var(--card); color: var(--ink); font-weight: 600; }
+.js .role-pane { display: none; }
+.js .role-pane.on { display: block; }
+.js .role-pane > h2 { display: none; }
+.group h3 { margin: 18px 0 8px; font-size: 15px; color: var(--quiet); text-transform: none; }
+.tiles { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.tiles a { display: block; height: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--card);
+           color: var(--ink); text-decoration: none; }
+.tiles a:hover, .tiles a:focus { border-color: var(--accent); }
+.tiles strong { display: block; margin-bottom: 4px; }
+.tiles span { color: var(--quiet); font-size: 14px; }
+.tiles li[hidden], .group[hidden] { display: none; }
+
+/* Printed or saved as PDF: only the page, black on white, links' addresses written out */
+/* a How do I page's pictures (D777): the screen the task is done on; a box where one is still to be taken */
+.shot { margin: 16px 0 20px; }
+.shot img { display: block; max-width: 100%; height: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--card); }
+.shot figcaption { font-size: 0.85em; color: var(--quiet); margin-top: 6px; }
+.shot.missing div { border: 2px dashed var(--line); border-radius: 6px; padding: 28px 16px; text-align: center; color: var(--quiet); background: var(--card); }
+@media print {
+  :root { --ink: #000; --quiet: #333; --line: #bbb; --bg: #fff; --card: #fff; --accent: #000; --accent-soft: #f2f2f2; color-scheme: light; }
+  .top, .page-tools, .toc, .skip, .foot a, .search { display: none !important; }
+  .foot { border: 0; padding: 12px 0 0; }
+  .printed-from { display: inline; }
+  .page { max-width: none; padding: 0; }
+  article h1 { font-size: 22pt; }
+  article h2 { break-after: avoid; } h3 { break-after: avoid; }
+  pre, table, blockquote, li { break-inside: avoid; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.85em; color: #333; }
+  .out { display: none; }
+  .shot { break-inside: avoid; }
+  .shot.missing { display: none; }
+}

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Limit who can reach EA Explorer · EA Explorer</title>
+<meta name="description" content="IP allow lists: only the addresses you list may reach EA Explorer, its sign-in pages, System Admin, the AI connector or the machine port.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html" class="here">How do I</a><a href="../guides/index.html">Guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Limit who can reach EA Explorer</h1>
+    <p class="who">For: System Admin</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">IP allow lists: only the addresses you list may reach EA Explorer, its sign-in pages, System Admin, the AI connector or the machine port.</p>
+    <figure class="shot"><img src="../shots/limit-who-can-reach-ea-explorer.png" alt="The screen: Limit who can reach EA Explorer" loading="lazy"><figcaption>The screen: <code>#/admin/security</code></figcaption></figure>
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-do-this">Why do this</a></li><li><a href="#steps">Steps</a></li><li><a href="#check-it-worked">Check it worked</a></li><li><a href="#if-something-goes-wrong">If something goes wrong</a></li><li><a href="#related">Related</a></li></ul></nav>
+    <h2 id="why-do-this">Why do this</h2>
+<p>An allow list limits which network addresses may reach the site, the sign-in pages, the admin screens or the AI server. It is a strong extra layer of protection where the repository holds sensitive information.</p>
+<p>Security in EA Explorer is a set of layers: who can reach it, how they prove who they are, what their roles allow, and secrets no one can read. Each layer is set on the screens, and nothing here ever shows a secret's value.</p>
+<p><strong>In TOGAF terms:</strong> Outside the method: this protects the repository and who reaches it. See <a href="../concepts/ea-explorer-and-togaf.html">EA Explorer and the TOGAF Standard</a>.</p>
+<p><strong>The goal:</strong> Only the networks you trust can reach EA Explorer.</p>
+<blockquote class="before"><p><strong>Before you start</strong> You need the Super Admin or IT Admin role, and the addresses or ranges your people come from (for example the office's 10.20.0.0/16).</p></blockquote>
+<h2 id="steps">Steps</h2>
+<ol><li>Open <strong>System Admin › Security</strong>, <strong>Allowed addresses</strong>.</li><li>Each place has its own list: <strong>site</strong> (everything), <strong>signin</strong> (the sign-in pages), <strong>admin</strong> (System Admin), <strong>mcp</strong> (the AI connector) and <strong>machine</strong> (the client-certificate port). An empty list lets everyone in.</li><li>Add an address or range with a name and why, then <strong>Save</strong>. It applies at once, without a restart.</li></ol>
+<h2 id="check-it-worked">Check it worked</h2>
+<p>From an address not on the list, the place answers with a refusal. System Admin › Security shows the addresses refused.</p>
+<h2 id="if-something-goes-wrong">If something goes wrong</h2>
+<ul><li><strong>A change that would shut you out is refused</strong> on the screen, so you cannot lock yourself out.</li><li><strong>Everyone is locked out anyway</strong> (for example the office's address changed): on the machine, <code>eax allow clear</code> empties every list, or <code>eax allow add site &lt;address&gt;</code> lets one in. The machine itself and EA Explorer's own containers are always allowed.</li></ul>
+<h2 id="related">Related</h2>
+<ul><li><a href="../how-do-i/turn-on-multi-factor-sign-in.html">Turn on multi-factor sign-in</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: how-do-i/limit-who-can-reach-ea-explorer.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>
