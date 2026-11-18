@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A laptop · EA Explorer</title>
+<meta name="description" content="A laptop">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../how-do-i/index.html">How do I</a><a href="../install/index.html" class="here">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>A laptop</h1>
+    <p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    
+    
+    <p>EA Explorer on your own computer, to try it or to work alone.</p>
+<p>On screen: System Admin &gt; Setup &gt; A laptop, where you fill in your values and get every command ready to copy. On the machine: <code>eax setup laptop</code>. In Jenkins: the <code>setup</code> pipeline with <code>laptop</code>.</p>
+<h2 id="steps">Steps</h2>
+<h3 id="1-docker-runs">1. Docker runs</h3>
+<p>Docker Desktop installed and started; at least 16 GB of memory.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax check</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh check</code></pre>
+<h3 id="2-the-config-file">2. The config file</h3>
+<p>Answers laptop and password (or certificate).</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax init laptop --password</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh init laptop --password</code></pre>
+<h3 id="3-start">3. Start</h3>
+<p>The core first (a few minutes), the rest in the background.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax up</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh up</code></pre>
+<h3 id="4-trust-the-certificate">4. Trust the certificate</h3>
+<p>The browser stops warning about the laptop's own certificate.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax trust</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh trust</code></pre>
+<h3 id="5-check-it">5. Check it</h3>
+<p>The smoke test: every role signs in, every area answers.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax test smoke</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh test smoke</code></pre>
+<h3 id="6-sign-in">6. Sign in</h3>
+<p>https://localhost: the logins are printed by eax logins.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax logins</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh logins</code></pre>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: install/laptop.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

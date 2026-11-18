@@ -1,5 +1,6 @@
 // How to connect a language model to the EA Explorer MCP server; the AI activity log (phases 26/27, D482, D483).
 import { useState } from "react";
+import { roles } from "./auth";
 import { config } from "./config";
 import { fmtDateTime, serviceOn } from "./fmt";
 import { useApi } from "./ModelViews";
@@ -104,7 +105,7 @@ function Snippet({ title, text }) {
 
 export default function Mcp() {
   const tab = (window.location.hash.split("/")[2] || "connect").split("?")[0];
-  const tabs = [["connect", "Connect"], ["activity", "AI activity"], ["tools", "Tools"]];
+  const tabs = [["connect", "Connect"], ["activity", "AI activity"], ["tools", "What it can do"]];
   const laptop = config.deployment === "laptop";
   // Laptop: plain http through nginx works without trusting a certificate; https works once the local
   // certificate is trusted (.\eax trust) and Node is told about it (NODE_EXTRA_CA_CERTS), D107.
@@ -128,7 +129,7 @@ export default function Mcp() {
         {tabs.map(([k, n]) => <a key={k} role="tab" aria-selected={tab === k} className={`tab${tab === k ? " on" : ""}`} href={`#/mcp/${k}`}>{n}</a>)}
       </div>
       {tab === "activity" && <Activity />}
-      {tab === "tools" && <ToolList />}
+      {tab === "tools" && <WhatItCanDo />}
       {tab === "connect" && <>
       <p className="quiet">
         Connect your own language model to the repository through the Model Context Protocol. No model is
@@ -163,19 +164,72 @@ export default function Mcp() {
   );
 }
 
+// What it can do (R7.5, inside R7.1; the owner, 16 Nov 2026: "tiles telling what it can do with a click taking to a help
+// page telling how to do it. All current features etc to still be kept"; 18 Nov 2026, D776): a tile for each thing the AI
+// does for a person, in plain words; its help page is the website's How do I page; "tools" shows that tile's tools in the
+// list below, which stays as it was. Every tool area (eax/mcp_catalogue.py AREAS) is on a tile, or a test fails.
+export const AI_TILES = [
+  { title: "Explore a model", say: "What is in a model, how things relate, what changed", page: "explore-a-model-with-ai",
+    areas: ["Reading the repository"] },
+  { title: "Change content and commit it", say: "Entities and relationships added and changed, as your changes, after your yes",
+    page: "change-content-with-ai", areas: ["Building models and projects", "Model operations"] },
+  { title: "Analyse and clean up", say: "Impact, overlaps, cost, technology risk, duplicates, orphans and names",
+    page: "analyse-with-ai", areas: ["Analysis and clean-up"] },
+  { title: "Write a report or a deck", say: "Documents and presentations from a model or a project",
+    page: "write-a-report-with-ai", areas: ["Reports, projects and the rest"] },
+  { title: "Plan a project", say: "An ADM project from a template, its iteration, scenarios compared",
+    page: "plan-a-project-with-ai", areas: ["Scenario planning", "A project's ADM iteration"] },
+  { title: "Run a survey", say: "A survey from plain words, sent, reminded and summarised", page: "use-ai-for-surveys",
+    areas: [] },
+  { title: "Discover the enterprise", say: "Your sources read and what is found proposed for a model",
+    page: "discover-the-enterprise-with-ai", areas: ["Enterprise discovery"] },
+  { title: "Look after the installation", say: "Its state, what slows it, usage, housekeeping and test results",
+    page: "look-after-the-installation-with-ai", areas: ["Running the installation", "The platform's test results"], admins: true },
+];
+
+function WhatItCanDo() {
+  const [areas, setAreas] = useState(null);
+  const admin = roles().some((r) => ["super-admin", "it-admin", "auditor"].includes(r));
+  const tiles = AI_TILES.filter((x) => !x.admins || admin);
+  return (
+    <>
+      <p className="quiet">What your AI assistant can do for you, once it is connected. Each tile opens a page saying how,
+        with things to say to it; <b>tools</b> shows the tools behind it below. It always works as you, with your
+        rights, and anything that changes something waits for your yes.</p>
+      <div className="grid ai-tiles">
+        {tiles.map((x) => (
+          <div key={x.page} className="tile live">
+            <h3><a href={`/site/how-do-i/${x.page}.html`} target="_blank" rel="noopener">{x.title}</a></h3>
+            <p>{x.say}</p>
+            <p className="small">
+              <a href={`/site/how-do-i/${x.page}.html`} target="_blank" rel="noopener">How to do it</a>
+              {x.areas.length > 0 && <>{" · "}<button className="linkish" onClick={() => setAreas(x.areas)}>tools</button></>}
+            </p>
+          </div>))}
+      </div>
+      <p className="small"><a href="/site/how-do-i/connect-your-ai-assistant.html" target="_blank" rel="noopener">Connect your AI assistant</a>
+        {" · "}<a href="/site/how-do-i/index.html#user" target="_blank" rel="noopener">Every How do I page</a></p>
+      <h2 id="every-tool">Every tool</h2>
+      <ToolList only={areas} onAll={() => setAreas(null)} />
+    </>
+  );
+}
+
 // every MCP tool and what it does (owner, 13 Nov 2026, R2.54: "list all MCP tools and what they do on the MCP page"),
 // read from the tools' own code by the API, so the list is always the server's
-function ToolList() {
+function ToolList({ only = null, onAll = () => {} }) {
   const { data, error } = useApi("/api/v1/mcp/tools");
   const [find, setFind] = useState("");
   if (error) return <p className="status bad">{error}</p>;
   if (!data) return <p>Loading...</p>;
-  const shown = data.tools.filter((t) => !find || `${t.name} ${t.what}`.toLowerCase().includes(find.toLowerCase()));
+  const shown = data.tools.filter((t) => (!only || only.includes(t.area))
+    && (!find || `${t.name} ${t.what}`.toLowerCase().includes(find.toLowerCase())));
   const areas = [...new Set(shown.map((t) => t.area))];
   return (
     <>
       <p className="quiet">The {data.count} tools an assistant can use. Each acts with your own rights; those marked <b>changes</b> preview the
         change and make it only after you agree.</p>
+      {only && <p className="small">Showing the tools for {only.join(" and ")}. <button className="linkish" onClick={onAll}>Every tool</button></p>}
       <input type="search" placeholder="Find a tool" value={find} onChange={(e) => setFind(e.target.value)} aria-label="Find a tool" />
       {areas.map((a) => (
         <div key={a}>

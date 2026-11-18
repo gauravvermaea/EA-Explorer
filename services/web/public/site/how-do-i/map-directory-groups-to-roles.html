@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Map directory groups to roles · EA Explorer</title>
+<meta name="description" content="Make a Keycloak role or a directory group give an EA Explorer role, so people get their roles from the groups they are already in.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../how-do-i/index.html" class="here">How do I</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Map directory groups to roles</h1>
+    <p class="who">For: System Admin</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">Make a Keycloak role or a directory group give an EA Explorer role, so people get their roles from the groups they are already in.</p>
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#steps">Steps</a></li><li><a href="#check-it-worked">Check it worked</a></li><li><a href="#if-something-goes-wrong">If something goes wrong</a></li><li><a href="#related">Related</a></li></ul></nav>
+    <blockquote class="before"><p><strong>Before you start</strong> You need the User Admin or Super Admin role. Your directory (Active Directory or another LDAP, or your identity provider) is connected to Keycloak.</p></blockquote>
+<h2 id="steps">Steps</h2>
+<ol><li>Open <strong>System Admin › Users and roles › Keycloak role mapping</strong>.</li><li>Choose the Keycloak role or directory group, and the EA Explorer global role it gives (for example the group <em>EA-Architects</em> gives <strong>user</strong>, <em>EA-Admins</em> gives <strong>it-admin</strong>).</li><li><strong>Add</strong>. The mapping applies at each person's next sign-in.</li></ol>
+<h2 id="check-it-worked">Check it worked</h2>
+<p>A person in that group signs in again; System Admin › Users and roles shows the role on them, with where it came from.</p>
+<h2 id="if-something-goes-wrong">If something goes wrong</h2>
+<ul><li><strong>Nothing changed for the person</strong>: they must sign out and in again. Check the group name is exactly as Keycloak sees it.</li><li><strong>To take a mapping away</strong>: Remove beside it; people keep any role given to them directly.</li></ul>
+<h2 id="related">Related</h2>
+<ul><li><a href="../how-do-i/add-a-person-and-give-roles.html">Add a person and give them roles</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: how-do-i/map-directory-groups-to-roles.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

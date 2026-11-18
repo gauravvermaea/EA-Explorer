@@ -14,6 +14,13 @@ server {
         try_files $uri =404;
     }
 
+    # the website (R7.1, R7.7, D776): plain files built by tools/build_website.py into public/site; a folder opens its
+    # index.html; never the screens' index.html in its place
+    location /site/ {
+        add_header Cache-Control "no-cache";
+        try_files $uri $uri/index.html =404;
+    }
+
     location / {
         add_header Cache-Control "no-cache";
         try_files $uri /index.html;

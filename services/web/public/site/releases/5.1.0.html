@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EA Explorer 5.1.0: Release 5.1, stabilisation · EA Explorer</title>
+<meta name="description" content="EA Explorer 5.1.0: Release 5.1, stabilisation">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../how-do-i/index.html">How do I</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html" class="here">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>EA Explorer 5.1.0: Release 5.1, stabilisation</h1>
+    <p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#the-job-queue">The job queue</a></li><li><a href="#screens">Screens</a></li><li><a href="#testing">Testing</a></li><li><a href="#installing-and-starting">Installing and starting</a></li><li><a href="#not-in-this-release">Not in this release</a></li></ul></nav>
+    <p>Release 5.1, a stabilisation release (16 Nov 2026; the owner: "release this as a stabalization release before we do any more work"; "make it 5.1"): the bugs found running 5.0.0 on a laptop and in its full self-test, fixed, each with a test that fails without its fix (D599); the job queue made visible and safe to look after; nothing new beyond that.</p>
+<p><strong>Before updating:</strong> take a backup (<code>.\eax backup before-5.1.0</code>). From 5.0.0 the update runs migrations 0090 to 0092 (the self-test's Jobs suite, two indexes for the service desk, the version; constraints, indexes and a row only). A <strong>clean rebuild</strong> is needed: the API's start-up, the job runner, the screens and the test runner change (<code>.\eax clean-restart</code>). Then <code>.\eax test full</code>.</p>
+<h2 id="the-job-queue">The job queue</h2>
+<ul><li><strong>A database connection was ended every five minutes</strong>: the idle-session clean-up ended every connection on the server, not only idle ones. This was behind sample data stuck part-way, projects missing and backups that hung (R5.36).</li><li><strong>System Admin › Running › Jobs</strong>: what is being worked on and what waits, in words; Kill, Cancel, Move up and down; the stuck ones counted on the dashboard with what to do, and an alert. Nothing is killed without a person saying so (R5.30). The same from the command line: <code>eax jobs</code> (R5.35).</li><li><strong>Job slots set on screen</strong>, on Scaling and Containers, with a warning past the machine's CPU threads (R5.33); the job history deleted on screen (R5.34).</li><li><strong>Each scheduled job runs one copy at a time</strong> (R5.30, R5.32); the industry packs load for at most 8 minutes a run and carry on at the next (R5.32), and their lock is never ended by database maintenance (R5.38).</li><li><strong>Jobs left by a job runner that stopped</strong> are marked stopped when it starts again, so they no longer show as being worked on and their next runs start; each of the three job runners is watched (R5.45, R5.46).</li><li><strong>Kill, Cancel, Move and Delete history work</strong> (they failed on the job runner's own database rules); Kill asks a running job to stop, and a second Kill marks one no runner has any more as stopped (R5.45, R5.46).</li><li><strong>Waiting jobs say why</strong>: behind the earlier run of the same job, or put off to a later time, instead of "stuck" (R5.46).</li><li><strong>The library models move once</strong>: the start-up step and the scheduled job no longer move them at the same time (R5.43).</li></ul>
+<h2 id="screens">Screens</h2>
+<ul><li>A service request shows the project and the model by name, not by identifier (R5.37).</li><li>Operations and Personal data no longer flicker to "starting" when the API is busy (R5.39).</li><li>A value a caller gets wrong (not an identifier, not a date, not JSON) is answered "not valid" (400), never a server error (R5.40).</li><li>System Admin › Logs: the containers in a drop-down with a tick each, the time window labelled, and step-by-step help (R5.42).</li><li><strong>The versions on the start-up status</strong>: the API, its database and the code on this machine; down when the API and the database differ, a warning when the code is newer than what runs (rebuild before testing); the self-test checks the running version and says when its runner was built from other code (R5.48).</li><li>System Admin › SQL: names only in the tree, with a Properties panel for the database, schema, table or view chosen (R5.44).</li></ul>
+<h2 id="testing">Testing</h2>
+<ul><li><strong>A Jobs suite</strong> in the self-test and the full test (<code>eax test jobs</code>): the job runner takes jobs, the alert checks run, nothing stuck, every scheduled job has its lock, Cancel, Move and Kill work on probe jobs rolled back (R5.46).</li><li><strong>Each area's passed and failed</strong> on the self-test's area cards, while a run goes on and for a finished run (R5.47).</li><li><strong>How many checks have run and are left in each phase</strong>, big on screen (R5.5.3).</li><li>The full test no longer backs up and restores the infrastructure (<code>eax test backup-restore</code> does), and never runs the performance test (R5.29, R5.31).</li><li>Fixed in the tests themselves (EA Explorer was not failing): the Reports suite read only the first 100 dashboards and counted chart requests aborted by moving to the next dashboard; the cross-model attack used addresses that had changed (R5.47).</li></ul>
+<h2 id="installing-and-starting">Installing and starting</h2>
+<ul><li><code>.\eax clean-restart</code> no longer stops when Windows cannot start docker for one look ("The paging file is too small"): it says so and waits on (R5.41).</li></ul>
+<h2 id="not-in-this-release">Not in this release</h2>
+<p>Everything recorded for later stays there: Release 5.5 (enterprise discovery, decision records), Release 5.6 (pausing a test, job priorities and fair turns, every job reviewed, Updates and Deploy from GitHub Releases), Release 6.6 (setup guides, database checks, an external database server, real certificates) and Release 5.7 (customer journey maps).</p>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: releases/5.1.0.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

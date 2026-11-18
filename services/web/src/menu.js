@@ -169,6 +169,7 @@ export function menuTree() {
     ] },
     { key: "help", label: "?", title: "Help and documentation", place: "right", items: [
       { label: "Help for this page (F1)", action: "help" },
+      { label: "Website: role guides and How do I ↗", href: "/site/index.html" },   // R7.1 (D776): the website, served here
       { label: "Documentation: every document", href: "#/documentation" },
       { label: "Getting started", href: "#/documentation/readme" },
       { label: "What EA Explorer does", href: "#/documentation/capabilities" },

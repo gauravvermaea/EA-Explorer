@@ -4083,6 +4083,15 @@
       "Sync now sends at once; Stop and take over ends a DR pairing."
     ]
   },
+  "tab:What it can do": {
+    "title": "What it can do",
+    "what": "What your AI assistant can do for you once it is connected, as tiles in plain words (R7.5), and below them every tool it can use.",
+    "how": [
+      "Click a tile, or How to do it, for the website's page on it: what you need first and things to say to your AI.",
+      "tools shows the tools behind a tile in the list below; Every tool shows them all again.",
+      "Find a tool searches the list by name and what it does."
+    ]
+  },
   "tab:Settings import and export": {
     "title": "Settings import and export",
     "what": "Every admin setting in one file, the parts you tick: System settings, branding, alerts, keep-for rules, report audiences, webhooks, pairings' settings, the banner, the IP allow lists and the schedules (R6.7). Never content, people, a password, key or certificate. The same as eax settings export and import, and their Jenkins pipelines.",
@@ -4144,5 +4153,7 @@
   "field:Choose a settings file": "A file made by Export settings or eax settings export, on this site or another. Every difference is shown before anything changes.",
   "button:Copy every command": "Every command of this guide, with your values filled in, copied in order: paste them into PowerShell or a terminal on the machine.",
   "button:Download this guide": "This guide as a Markdown file, with your values and the commands for the system you chose, to keep, print or send.",
+  "button:tools": "Show, in the list below, the tools behind this tile.",
+  "button:Every tool": "Show every tool again, not only one tile's.",
   "button:Fix the safe ones": "Make the safe fixes the last check found (an index rebuilt, a constraint validated, a sequence moved on), after a backup when there is none from the last day: the maintenance page is up for a few minutes while it is taken."
 }
