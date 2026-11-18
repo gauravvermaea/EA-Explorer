@@ -4062,5 +4062,87 @@
   },
   "button:Rotate now": "A new value for this password or key, now: changed where it is also kept (the database, Keycloak) and in the config file; the services that use it start again in a few seconds (R6-R1).",
   "button:Rotate every one that is due now": "Every password and key that rotates by itself and is due, now, instead of waiting for tonight's schedule (03:17); what needs a person is listed, not rotated.",
-  "button:Renew now": "A new certificate for this service now, from EA Explorer's own authority (R6-C1); to refuse an old one at once, eax certs revoke on the machine."
+  "button:Renew now": "A new certificate for this service now, from EA Explorer's own authority (R6-C1); to refuse an old one at once, eax certs revoke on the machine.",
+  "tab:Setup": {
+    "title": "Setup",
+    "what": "The guides, one step at a time: a laptop, a server, any server over SSH, DR, backups, restores, a catastrophic failure, upgrades, moving machines, security, your own database server, certificates and Jenkins (R6.6). The same guides are eax setup <guide> on the machine and a pipeline in Jenkins.",
+    "how": [
+      "Choose a guide.",
+      "Read each step; Run it starts the step's eax command through the Command centre (see History for its output).",
+      "A step that stops or replaces everything opens the Command centre, where it is confirmed.",
+      "Tick Done for a step done by hand."
+    ]
+  },
+  "tab:Site pairings": {
+    "title": "Site pairings",
+    "what": "This site paired with another: content sync (models, projects, organisations) or DR sync (everything, the other site kept read only and up to date) (R6.5).",
+    "how": [
+      "On the receiving site: Make a key (shown once).",
+      "On the sending site: Pair with a site, with its address and the key.",
+      "On the receiving site: accept the pairing; batches then arrive and are committed by hand or by themselves.",
+      "Sync now sends at once; Stop and take over ends a DR pairing."
+    ]
+  },
+  "tab:Settings import and export": {
+    "title": "Settings import and export",
+    "what": "Every admin setting in one file, the parts you tick: System settings, branding, alerts, keep-for rules, report audiences, webhooks, pairings' settings, the banner, the IP allow lists and the schedules (R6.7). Never content, people, a password, key or certificate. The same as eax settings export and import, and their Jenkins pipelines.",
+    "how": [
+      "Tick the parts, then Export to a file, or Put on git.",
+      "To import: Choose a settings file (or From git). Every difference is shown with the value here and in the file; nothing changes yet.",
+      "Tick what to take, then Take: a safety copy of the settings here is kept first and each change goes in the audit trail.",
+      "Nothing here is ever removed by an import. A file from a newer release is refused.",
+      "Undo on a safety copy puts those settings back (and keeps the ones before, so it can be undone too)."
+    ]
+  },
+  "popup:Make a pairing key": {
+    "what": "A key another site uses to pair with this one: shown once, only its fingerprint kept here.",
+    "how": [
+      "Give it a name, make it, copy it into the other site's Pair with a site.",
+      "A key that leaks: remove it; pairings made with it stop."
+    ]
+  },
+  "popup:Pair with a site": {
+    "what": "This site sends to another: content sync or DR sync.",
+    "how": [
+      "The other site's address and the key it made.",
+      "What is sent: content, or everything for DR.",
+      "By hand or every few minutes; Read its fingerprint checks you reach the right site."
+    ]
+  },
+  "field:Branch": "The git branch to put the file on or take it from (main if empty).",
+  "field:Chain (PEM, the authorities in order; may be in the certificate file)": "The authorities that issued the certificate, each in turn up to the root, as PEM. Leave empty when the certificate file already holds them.",
+  "field:DR site, Johannesburg": "A name for the pairing, as people call the other site.",
+  "field:Every (minutes)": "How often a sync is sent by itself.",
+  "field:From production": "A name for the pairing, as people call the other site.",
+  "field:Pairing key": "The key the other site made (System Admin > Site pairings > Make a key). It is kept encrypted here.",
+  "field:Private key (PEM, no password)": "The certificate's private key, as PEM, without a password. It is never shown again or written to a log.",
+  "field:The other site's address": "The other site's web address, e.g. https://ea-dr.example.com.",
+  "field:What": "What the pairing sends: content (models, projects, organisations) or everything for DR.",
+  "field:What is sent": "Content (models, projects, organisations) or everything for DR.",
+  "field:https://ea-dr.example.com": "The other site's web address.",
+  "field:https://git.example.org/ea/packages.git": "The git repository's address (HTTPS). Its token is asked each time and never kept.",
+  "button:A git repository": "Take the file from a git repository instead of this computer.",
+  "button:Check the integrity now": "Check every database now: indexes, tables, constraints, sequences and the newest records.",
+  "button:Make a key": "Make a pairing key for another site; it is shown once.",
+  "button:Make the key": "Make it and show it once: copy it now.",
+  "button:Pair with a site": "Pair this site with another, to send it content or keep it as a DR copy.",
+  "button:Preview the repair": "Show the orphan rows that would be removed, before anything changes.",
+  "button:Put on git": "Put the file in a git repository (the address and branch are remembered, the token never).",
+  "button:Read its fingerprint": "Reach the other site and show its fingerprint, to check it is the right one.",
+  "button:Refuse": "Refuse this pairing or batch: nothing is taken.",
+  "button:Remove them": "Remove the orphan rows shown (a backup is taken first).",
+  "button:Resume": "Start the pairing's syncs again.",
+  "button:Run it": "Run the step's eax command now, through the Command centre.",
+  "button:Sync now": "Send the changes to the other site now.",
+  "button:This computer": "Take the file from this computer.",
+  "button:Undo the last upload": "Put back the certificate used before the last upload, at once.",
+  "button:← The guides": "Back to the list of guides.",
+  "button:Rotate all": "Every password and key EA Explorer can rotate, behind the maintenance page: the background is let finish first, the services are made again at the end, then you are asked to restart. What needs a person is listed, never changed. One rotation at a time.",
+  "button:Restart EA Explorer": "Restarts EA Explorer so every service starts with the new values (recommended after Rotate all). On Windows it runs from PowerShell in the installation folder: .\\eax restart.",
+  "button:Schedule it": "Rotate all once, at the date and time chosen (the installation's time zone), behind the maintenance page; cancel it on Command centre › Schedules.",
+  "field:Change...": "Rotate all regularly: monthly or every three months (the 1st, 03:30), or off.",
+  "field:Choose a settings file": "A file made by Export settings or eax settings export, on this site or another. Every difference is shown before anything changes.",
+  "button:Copy every command": "Every command of this guide, with your values filled in, copied in order: paste them into PowerShell or a terminal on the machine.",
+  "button:Download this guide": "This guide as a Markdown file, with your values and the commands for the system you chose, to keep, print or send.",
+  "button:Fix the safe ones": "Make the safe fixes the last check found (an index rebuilt, a constraint validated, a sequence moved on), after a backup when there is none from the last day: the maintenance page is up for a few minutes while it is taken."
 }

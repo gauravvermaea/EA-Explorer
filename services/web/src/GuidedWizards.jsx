@@ -10,6 +10,7 @@ import { apiFetch, can, canOn, myInfo } from "./auth";
 import { refreshAll, useApi } from "./ModelViews";
 import { Field, Modal } from "./ModelOps";
 import { Download, Upload } from "./Sheets";
+import UpkeepChoices from "./Upkeep";
 import { liveProjects } from "./ModelMarks";
 
 const post = (path, body, method = "POST") => apiFetch(path, { method, body: JSON.stringify(body || {}) });
@@ -405,6 +406,7 @@ export function FirstRunPanel({ always = false }) {
           <span aria-hidden="true">{s.done ? "✓" : "○"}</span> <b>{s.label}</b> <span className="small quiet">{s.why}</span>
           {" "}<a href={s.link} className="small">Open</a>
           {!s.seen && <> · <button className="linkish small" onClick={() => mark({ step: s.key, done: !s.marked })}>{s.marked ? "Not done yet" : "Mark done"}</button></>}
+          {s.key === "upkeep" && !s.done && <UpkeepChoices />}
         </li>)}
       </ol>
       <div className="row-gap">

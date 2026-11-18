@@ -21,7 +21,7 @@ from pathlib import Path
 from .metamodel_edit import EditError
 
 FOLDER = "eax-packages"
-_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 ._()+-]{0,200}\.(zip|xlsx)$")
+_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 ._()+-]{0,200}\.(zip|xlsx|json)$")   # json: a settings file (R6.7)
 
 
 def _check(repo_url: str, file: str | None = None) -> None:

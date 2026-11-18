@@ -28,7 +28,9 @@ restarts the system from the administration console. It talks to the Docker engi
   GET  /backups                 the infrastructure backups, the one running (progress), maintenance
   GET  /secrets-check           which containers hold a password or key in their environment (R6-F1): none should
   GET  /secrets                 every password, key and certificate by name: ages, next due, what needs a person (R6-S1)
-  POST /secrets/rotate          {key | "--due", by}: rotate now, in the Command centre's runner (R6-R1)
+  POST /secrets/rotate          {key | "--due" | "--all", by}: rotate now, in the Command centre's runner (R6-R1)
+  POST /tls/install             {certificate, key, by}: the front door's certificate in place, reloaded (R6.6.3)
+  POST /tls/undo                {by}: the certificate in use before the last upload put back (R6.6.3)
   GET  /allow, /allow/refused   the IP allow lists and the refusals nginx logged;  POST /allow {lists, trusted, by}: save,
                                 write nginx's files, test them and reload the proxy (R5.2, D686; allowlist.py)
   POST /backups/backup          {tag, by, kind, version, pinned, keep}: an infrastructure backup now, in the background
@@ -2136,6 +2138,9 @@ def reset_db_passwords(say=lambda _m: None) -> list[str]:
     restores and every service still signs in. Inside the db container as postgres (its own socket, no password);
     each statement on psql's input, never a command line. Logins the database does not have are passed over."""
     values = _values(_read_config())
+    if values.get("EAX_EXTERNAL_DB_HOST"):       # the customer's server (R6.6.2): its DBA keeps the logins' passwords
+        say("the database passwords were not reset: the logins live on the customer's own server (a restore leaves them as they were)")
+        return []
     db = _container("db")
     if not db or db["state"] != "running":
         say("the database passwords were not reset: the database is not running")
@@ -2218,15 +2223,90 @@ def secrets_list() -> dict:
     return out
 
 
+# ---------------------------------------------------------------- the front door's certificate (R6.6.3, D750)
+TLS_DIR = os.environ.get("EAX_OPS_TLS_DIR", "/tls")
+
+
+def _write_atomic(path: str, text: str, mode: int) -> None:
+    tmp = path + ".new"
+    with open(tmp, "w", encoding="ascii") as f:
+        f.write(text)
+    os.chmod(tmp, mode)
+    os.replace(tmp, path)
+
+
+def _proxy_reload() -> str:
+    """The web server checks its settings with the new certificate, then reloads them in place (no restart, nobody's
+    session dropped). Refused when the check fails."""
+    px = _container("proxy")
+    if not px or px["state"] != "running":
+        return "the front door is not running: it takes the certificate when it starts"
+    docker("exec", px["id"], "nginx", "-t", timeout=60)
+    docker("exec", px["id"], "nginx", "-s", "reload", timeout=60)
+    return "reloaded in place"
+
+
+def tls_install(body: dict, d: str | None = None, reload=None) -> dict:
+    """The new certificate (with its chain) and key in place, the one in use kept as tls.previous.*, the front door
+    reloaded; when the front door refuses it, the one in use is put back. The API checked it first (eax/frontcert.py);
+    the key is never logged."""
+    d = d or TLS_DIR
+    reload = reload or _proxy_reload
+    crt, key = str(body.get("certificate") or ""), str(body.get("key") or "")
+    if "BEGIN CERTIFICATE" not in crt or "PRIVATE KEY" not in key:
+        raise ValueError("a certificate and its key are needed")
+    cur_c, cur_k = os.path.join(d, "tls.crt"), os.path.join(d, "tls.key")
+    prev_c, prev_k = os.path.join(d, "tls.previous.crt"), os.path.join(d, "tls.previous.key")
+    had = os.path.exists(cur_c) and os.path.exists(cur_k)
+    if had:
+        shutil.copy2(cur_c, prev_c)
+        shutil.copy2(cur_k, prev_k)
+        os.chmod(prev_k, 0o600)
+    _write_atomic(cur_c, crt, 0o644)
+    _write_atomic(cur_k, key, 0o600)
+    try:
+        how = reload()
+    except Exception as exc:  # noqa: BLE001 - the web server refused it: the one in use goes back
+        if had:
+            shutil.copy2(prev_c, cur_c)
+            shutil.copy2(prev_k, cur_k)
+            try:
+                reload()
+            except Exception:  # noqa: BLE001
+                pass
+        raise ValueError(f"the front door refused the certificate, so the one in use was kept: {str(exc)[:300]}") from exc
+    return {"installed": True, "how": how, "previous_kept": had, "by": str(body.get("by") or "")}
+
+
+def tls_undo(body: dict, d: str | None = None, reload=None) -> dict:
+    """The certificate in use before the last upload put back (the two swap, so undo can be undone)."""
+    d = d or TLS_DIR
+    reload = reload or _proxy_reload
+    cur_c, cur_k = os.path.join(d, "tls.crt"), os.path.join(d, "tls.key")
+    prev_c, prev_k = os.path.join(d, "tls.previous.crt"), os.path.join(d, "tls.previous.key")
+    if not (os.path.exists(prev_c) and os.path.exists(prev_k)):
+        raise ValueError("there is no earlier certificate to go back to")
+    for a, b in ((cur_c, prev_c), (cur_k, prev_k)):
+        tmp = a + ".swap"
+        os.replace(a, tmp)
+        os.replace(b, a)
+        os.replace(tmp, b)
+    os.chmod(cur_k, 0o600)
+    return {"undone": True, "how": reload(), "by": str(body.get("by") or "")}
+
+
 def secrets_rotate(body: dict) -> dict:
     """Rotate one secret, or every one that is due, now (the Secrets tab's button): `eax secrets rotate` in the Command
     centre's runner, which changes the database or Keycloak too and makes the services that use it again."""
     import commandcentre
     key = str(body.get("key") or "")
     by = str(body.get("by") or "console")
-    if key != "--due" and key not in secret_keys():
+    if key not in ("--due", "--all") and key not in secret_keys():
         raise ValueError("No such password or key.")
-    run = commandcentre._launch(["secrets", "rotate", key, "--by", by], by, commandcentre._new_id("rotate"))
+    try:
+        run = commandcentre._launch(["secrets", "rotate", key, "--by", by], by, commandcentre._new_id("rotate"))
+    except commandcentre.C.Refused as exc:      # on Windows: the command to type in PowerShell instead
+        raise ValueError(str(exc)) from exc
     return {"run": run}
 
 
@@ -2568,6 +2648,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send(200, commandcentre.catalogue())
             if u.path == "/commands/runs":
                 return self._send(200, {"runs": commandcentre.history()})
+            if u.path == "/commands/guides":   # the guides (R6.6, D750): eaxcli/setup.py, the same list as eax setup
+                from eaxcli import setup as guides
+                return self._send(200, {"guides": guides.listing()})
             if u.path == "/commands/schedules":
                 return self._send(200, commandcentre.schedules_list())
             if u.path == "/commands/reset-survival":
@@ -2642,6 +2725,12 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 return self._send(200, allowlist.apply(b, project(), str(b.get("by") or "console")))
             except ValueError as exc:
+                return self._send(400, {"message": str(exc)})
+        if self.path in ("/tls/install", "/tls/undo"):                   # the front door's certificate (R6.6.3)
+            try:
+                b = self._body()
+                return self._send(200, tls_install(b) if self.path == "/tls/install" else tls_undo(b))
+            except (ValueError, RuntimeError, OSError) as exc:
                 return self._send(400, {"message": str(exc)})
         if self.path == "/secrets/rotate":                                # the Secrets tab's Rotate now (R6-S1)
             try:
@@ -2970,6 +3059,14 @@ def cli(argv: list[str]) -> int:
     if cmd in ("update", "rollback"):      # eax update / eax rollback (phase 36, D417)
         return updates.cli(argv if cmd == "rollback" else args)
     version = args[args.index("--version") + 1] if "--version" in args else os.environ.get("EAX_VERSION", "")
+    if cmd == "tls" and args[:1] in (["install"], ["undo"]):   # eax certs front install|undo (R6.6.3): JSON on stdin
+        try:
+            body = json.loads(sys.stdin.read() or "{}")
+            out = tls_install(body) if args[0] == "install" else tls_undo(body)
+        except (ValueError, RuntimeError, OSError) as exc:
+            out = {"error": str(exc)}
+        print(json.dumps(out), flush=True)
+        return 1 if out.get("error") else 0
     if cmd == "brtest":                   # eax test backup-restore's steps, one at a time (R5.6-B1)
         return brtest.cli(args, version)
     if cmd == "filesystems":              # .\eax status shows these after the containers (owner, 8 Nov 2026)

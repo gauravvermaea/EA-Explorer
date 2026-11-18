@@ -123,6 +123,36 @@ def same(before: dict, after: dict, ignore: set[str]) -> dict:
     return {"tables": nt, "files": nf, "differ": differ, "allowed": allowed, "not_compared": skipped}
 
 
+# the key items (owner, 18 Nov 2026, 06:39: "Can the testing be not exhasutive and just check number of rows or some key
+# items"): their row counts before and after, shown in the report; fewer after fails, like every table
+KEY_TABLES = [
+    ("models", "eaexplorer core.models"), ("entities", "eaexplorer core.entities"),
+    ("relationships", "eaexplorer core.relationships"), ("commits", "eaexplorer core.commits"),
+    ("projects", "eaexplorer proj.projects"), ("project documents", "eaexplorer proj.documents"),
+    ("people (sign-in)", "keycloak public.user_entity"), ("documents in Documents", "mayan public.documents_document"),
+    ("audit lines", "eaexplorer audit.events"),
+]
+
+
+def key_counts(before: dict, after: dict) -> list[dict]:
+    """The key items' row counts before and after (pure): each found in both fingerprints, with whether any was lost.
+    A table kept in another database (R2.50) is looked for by its schema and name in any database."""
+    out = []
+    for label, key in KEY_TABLES:
+        def rows(fp: dict, k: str = key) -> int | None:
+            t = fp.get("tables", {})
+            if k in t:
+                return int(t[k][0])
+            tail = k.split(" ", 1)[1]
+            hit = next((v for name, v in t.items() if name.split(" ", 1)[-1] == tail), None)
+            return int(hit[0]) if hit else None
+        b, a = rows(before), rows(after)
+        if b is None and a is None:
+            continue
+        out.append({"what": label, "before": b, "after": a, "lost": (b or 0) > (a or 0)})
+    return out
+
+
 NEEDED_DBS = ("eaexplorer", "keycloak", "mayan")
 
 

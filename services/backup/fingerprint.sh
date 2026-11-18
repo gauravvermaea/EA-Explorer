@@ -7,7 +7,7 @@
 # A table's md5 is over its rows' md5s in order, so the same rows in any physical order give the same fingerprint.
 set -eu
 [ -f /etc/eax-backup.env ] && . /etc/eax-backup.env
-export PGHOST="${EAX_BACKUP_PGHOST:-db}" PGPORT="${EAX_BACKUP_PGPORT:-5432}" PGUSER=postgres PGPASSWORD="${EAX_DB_SUPERUSER_PASSWORD:-}"
+export PGHOST="${EAX_BACKUP_PGHOST:-db}" PGPORT="${EAX_BACKUP_PGPORT:-5432}" PGUSER="${EAX_DB_ADMIN_USER:-postgres}" PGPASSWORD="${EAX_DB_SUPERUSER_PASSWORD:-}"
 . "$(dirname "$0")/servers.sh"           # beside this script (/usr/local/bin in the backup container)
 
 tables() {   # tables <database> [host port]: the T lines of one database

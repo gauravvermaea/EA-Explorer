@@ -18,14 +18,13 @@ import json
 import re
 import subprocess
 
-from .core import EAX, ENV_FILE, ENV_REL, ROOT, Failure, say, setting
+from .core import EAX, ENV_FILE, ENV_REL, ROOT, Failure, compose_args, say, setting
 
 SERVICES = ("api", "library", "views", "keycloak", "reports", "dms")
 
 
 def _in_setup(args: list[str]) -> dict:
     """python -m eax.certs in a short-lived setup container, with eax-certs mounted (it holds the authority)."""
-    from .core import compose_args
     p = subprocess.run(compose_args(["run", "--rm", "--no-deps", "-T", "setup", "python", "-m", "eax.certs", *args]),
                        cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace", check=False)
     for line in reversed((p.stdout or "").splitlines()):
@@ -73,12 +72,72 @@ def switch(mode: str) -> None:
         f"EAX_AUTH_MODE={mode}). Run {EAX} restart: the certificates are made as it starts; no data changes.")
 
 
+# ---------------------------------------------------------------- the front door's certificate, from the machine
+# The organisation's certificate put in from files on the machine (the owner, 18 Nov 2026, 09:59: Jenkins "add the ability
+# to add certificate"): checked by the API exactly as the screen's upload is (eax/frontcert.py), put in place by the
+# operations helper with the one in use kept to undo, the front door reloaded in place. The key travels on standard
+# input only, never on a command line or in a log.
+def _exec_json(service: str, cmd: list[str], body: dict | None = None, run=subprocess.run) -> dict:
+    p = run(compose_args(["exec", "-T", service, *cmd]), cwd=ROOT, input=json.dumps(body or {}), capture_output=True,
+            text=True, encoding="utf-8", errors="replace", check=False)
+    lines = [ln for ln in (p.stdout or "").splitlines() if ln.strip().startswith("{")]
+    if not lines:
+        return {"error": (p.stderr or p.stdout or f"exit {p.returncode}").strip()[-400:]}
+    return json.loads(lines[-1])
+
+
+def _read(path: str, what: str) -> str:
+    from pathlib import Path
+    p = Path(path).expanduser()
+    if not p.is_file():
+        raise Failure(f"The {what} file {path} is not there.")
+    return p.read_text(encoding="utf-8", errors="replace")
+
+
+def front(rest: list[str], run=subprocess.run) -> int:
+    """eax certs front [show] | install --cert <file> --key <file> [--chain <file>] | undo."""
+    action = rest[0] if rest and not rest[0].startswith("--") else "show"
+    opt = lambda k: rest[rest.index(k) + 1] if k in rest and rest.index(k) + 1 < len(rest) else ""  # noqa: E731
+    if action == "show":
+        out = _exec_json("api", ["python", "-c", "import json; from eax import frontcert; print(json.dumps(frontcert.presented()))"], run=run)
+        if out.get("error"):
+            raise Failure(out["error"])
+        say(f"The front door presents: {out['subject']}, issued by {out['issuer']}{' (self-signed)' if out.get('self_signed') else ''}")
+        say(f"  names {', '.join(out.get('names') or [])}; until {out['not_after'][:10]} ({out['days_left']} days)")
+        return 0
+    if action == "install":
+        if not opt("--cert") or not opt("--key"):
+            raise Failure(f"{EAX} certs front install --cert <file> --key <file> [--chain <file>]")
+        body = {"certificate": _read(opt("--cert"), "certificate"), "key": _read(opt("--key"), "key"),
+                "chain": _read(opt("--chain"), "chain") if opt("--chain") else "",
+                "hostname": setting("EAX_HOSTNAME", "localhost")}
+        checked = _exec_json("api", ["python", "-m", "eax.frontcert"], body, run=run)
+        if checked.get("error"):
+            raise Failure(f"Not put in: {checked['error']}")
+        out = _exec_json("ops", ["python3", "/app/ops.py", "tls", "install"],
+                         {"certificate": checked["full_chain"], "key": body["key"], "by": "eax certs front"}, run=run)
+        if out.get("error"):
+            raise Failure(out["error"])
+        say(f"Put in and the front door reloaded, nobody signed out: {checked['subject']}, until {checked['not_after'][:10]} "
+            f"({checked['days_left']} days). {EAX} certs front undo puts the one before back.")
+        return 0
+    if action == "undo":
+        out = _exec_json("ops", ["python3", "/app/ops.py", "tls", "undo"], {"by": "eax certs front"}, run=run)
+        if out.get("error"):
+            raise Failure(out["error"])
+        say("The certificate in use before the last one is back, the front door reloaded.")
+        return 0
+    raise Failure(f"{EAX} certs front [show] | install --cert <file> --key <file> [--chain <file>] | undo")
+
+
 def main(options: list[str]) -> int:
     """eax certs [list|renew [--force|--authority]|revoke <service>|switch certificate|password]."""
     if not ENV_FILE.exists():
         raise Failure(f"No {ENV_REL} yet: run {EAX} init first.")
     action = options[0] if options else "list"
     rest = options[1:]
+    if action == "front":                    # the front door's certificate from files (R6.6.3; Jenkins, 18 Nov 2026)
+        return front(rest)
     if action == "switch":
         switch(rest[0] if rest else "")
         return 0

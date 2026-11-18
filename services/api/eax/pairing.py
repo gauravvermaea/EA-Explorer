@@ -56,7 +56,7 @@ from .metamodel_edit import EditError
 FORMAT = "eax-sync/1"
 KEY_PREFIX = "eaxp_"
 KINDS = ("content", "dr")
-PURPOSES = ("PROD", "PRE-PROD", "UAT", "TEST", "DEV", "DR", "TRAINING")
+PURPOSES = ("PROD", "PRE-PROD", "UAT", "TEST", "DEV", "CONTENT", "DR", "TRAINING")
 BATCH_MB = 50                       # items are grouped into batches of about this size
 TIMEOUT = 120
 FIELDS = ("guid AS id, side, name, peer_url, peer_name, peer_guid, peer_pin, kind, status, commit_mode, send_mode, "
@@ -317,6 +317,9 @@ def decide(conn, user, ident: Any, action: str, d: dict | None = None) -> dict:
     elif action == "stop":
         conn.execute(text("UPDATE core.site_pairings SET status = 'stopped', modified_at = now() WHERE id = :id"), {"id": p["_id"]})
         forget_dr()
+        if p["side"] == "receiver" and p["kind"] == "dr":       # a DR site taking over: its databases checked (R6.6.1)
+            from .jobs import integrity_after
+            integrity_after(f"the DR site took over from {p['peer_name'] or p['name']}", user.username)
     elif action == "resume":
         if p["side"] != "sender" or p["status"] != "stopped":
             raise EditError("Only a pairing stopped on this (sending) site resumes; Site 2 must still accept it.", 409)

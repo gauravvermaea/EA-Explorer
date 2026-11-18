@@ -568,6 +568,10 @@ def files_change(service: str, b: dict) -> dict:
 
 # ---------------------------------------------------------------- R2.19 alerts when a container is not working
 ONE_SHOT = ("setup", "reports-init", "testrunner")
+# the self-test's containers: stopped is their normal state, and a self-test that fails ends its runner with a non-zero
+# exit code, which the Test runs page reports; never an alert (the owner, 18 Nov 2026, 11:53: "fix helth watch to ignore
+# test runner")
+SELF_TEST = ("testrunner", "testrunner-service")
 WORDS = {"stopped": "has stopped", "restarting": "keeps restarting", "unhealthy": "is unhealthy (its health check fails)",
          "oom": "ran out of memory", "host-cpu": "CPU has been high", "host-memory": "memory has been high", "host-disk": "disk is nearly full"}
 
@@ -578,6 +582,8 @@ def assess(rows: list[dict], host_levels: dict | None = None, seen_restarts: dic
     seen = seen_restarts if seen_restarts is not None else {}
     for r in rows:
         name = r.get("key") or r.get("service") or "?"
+        if r.get("service") in SELF_TEST and r.get("state") in ("exited", "dead", "created"):
+            continue
         if r.get("service") in ONE_SHOT or str(r.get("service", "")).endswith("-init"):
             if r.get("state") == "exited" and int(r.get("exit_code") or 0) != 0:
                 out.append({"key": f"{name}:stopped", "service": name, "kind": "stopped",

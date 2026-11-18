@@ -246,7 +246,7 @@ def test_compose_has_the_runner_and_the_scale_out_files():
     assert "http://api:8000;" not in tpl and tpl.count("http://${EAX_API_UPSTREAM};") == 6   # and the exact /api/v1/me in each block (D644)
     scale = REPO / "deploy" / "compose" / "scale"
     names = sorted(p.name.removeprefix("docker-compose.").removesuffix(".yml") for p in scale.glob("docker-compose.*.yml"))
-    assert names == ["api-host", "library-elsewhere", "library-host", "primary", "shared-storage", "standby"]
+    assert names == ["api-host", "external-db", "library-elsewhere", "library-host", "primary", "shared-storage", "standby"]
     for p in scale.glob("*.yml"):
         assert isinstance(_yaml(p), dict), p
     standby = _yaml(scale / "docker-compose.standby.yml")["services"]
@@ -295,7 +295,7 @@ def test_build_command_in_every_form():
     assert '$RestArgs -contains "--build"' in ps
     helptext = (REPO / "eaxcli/help.txt").read_text()
     # --build still works for scripts but is no longer shown (R2.0.1, D592): the help shows smoke, full and clean
-    assert "### test [smoke|full|jobs|mcp|reports|security|performance|backup|backup-restore|restore|ui-review|failed [run] [--warnings]|watch [run] [--log|--browser]|stop [run]|api <method> <path>|delete <run|all> [--older-than DAYS]|clean] [--yes]" in helptext and "$ {eax} test full" in helptext and "$ {eax} test clean" in helptext
+    assert "### test [smoke|full|jobs|mcp|reports|security|performance|backup|backup-restore|restore|failed [run] [--warnings]|watch [run] [--log|--browser]|stop [run]|api <method> <path>|delete <run|all> [--older-than DAYS]|clean] [--yes]" in helptext and "$ {eax} test full" in helptext and "$ {eax} test clean" in helptext
     sys.path.insert(0, str(REPO))
     from eaxcli import commands as C
     assert C.check_argv(["test", "--build"]) == ["test", "--build"]

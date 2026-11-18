@@ -665,6 +665,10 @@ cleanup() {
     [ "$answer" = "yes" ] || { echo "Nothing deleted."; exit 0; }
   fi
   # the logs first, where no reset deletes them (R2.30); a log backup never stops the cleanup
+  # the Jenkins agent stopped first: it holds its log open in work/logs (owner's clean-restart, 18 Nov 2026, 09:49)
+  [ -f "$WORK_DIR/jenkins/agent.pid" ] && { "$BASH" ./eaxpy.sh jenkins stop-agent || true; }
+  # and any agent of this installation still running without its pid file (a cleanup stopped half way)
+  command -v pkill >/dev/null 2>&1 && pkill -f "$(pwd)/eaxpy.py jenkins agent" 2>/dev/null || true
   "$BASH" ./eaxpy.sh logs backup before-cleanup --outside-work --then-clear || echo "The logs could not be backed up first."
   if [ -f "$ENV_FILE" ]; then
     if $all; then compose down -v --remove-orphans || true; else compose down --remove-orphans || true; fi
@@ -796,7 +800,7 @@ case "$CMD" in
   menu) EAX_FORM=sh exec "$BASH" ./eaxpy.sh menu ;;   # the numbered menu (R2.29), one Python program for every form
   screen) EAX_FORM=sh exec "$BASH" ./eaxpy.sh screen ;;   # the full screen (R3.1), Python with Textual
   measure) EAX_FORM=sh exec "$BASH" ./eaxpy.sh "$@" ;;   # memory measured in one go (R3.5-M1); eax commands run back here
-  certs|deploy|secrets|packs|schedule|persist|folders|allow|drill|dr-pack|sign|verify|db|ticket|jobs|optimise|estimate|dev)   # packs (D546); schedule (D559); persist (R2.26); folders (R5.4); allow (R5.2); drill (R5.6-B2)
+  certs|deploy|secrets|packs|schedule|persist|folders|allow|drill|dr-pack|sign|verify|db|ticket|jobs|optimise|estimate|dev|jenkins|setup|access|hostname|settings)   # packs (D546); schedule (D559); persist (R2.26); folders (R5.4); allow (R5.2); drill (R5.6-B2)
     # phase 36 (D498, D504): one Python program for every form (D500): eaxpy.sh fetches uv and Python into work/tools
     exec "$BASH" ./eaxpy.sh "$@" ;;
   restart)
@@ -805,6 +809,12 @@ case "$CMD" in
       echo; echo "=== ./eax.sh $step"
       # shellcheck disable=SC2086
       "$BASH" "./$(basename "${BASH_SOURCE[0]}")" $step || { err "./eax.sh $step failed; restart stopped there."; exit 1; }
+      # after down nothing runs: a maintenance page or a paused background left behind is stale (owner, 18 Nov 2026, 11:50)
+      if [ "$step" = "down" ]; then
+        for f in work/proxy/maintenance work/quiet.json; do
+          [ -f "$f" ] && rm -f "$f" && echo "Removed what was left: $f (the maintenance page and the paused background)."
+        done
+      fi
     done
     exit 0 ;;
   console)        shift; console "$@"; exit 0 ;;

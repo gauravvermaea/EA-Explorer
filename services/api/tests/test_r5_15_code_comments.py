@@ -95,5 +95,5 @@ def test_eax_dev_check_is_in_every_form_and_finds_document_problems(tmp_path):
     (tmp_path / "eaxcli/help.txt").write_bytes("café".encode())
     found = " ".join(dev_cli.documents(tmp_path))
     assert "D3 recorded more than once" in found and "no D2" in found and "not ASCII" in found and "handover.md is missing" in found
-    assert "|dev)" in (REPO / "eax.sh").read_text() and '"estimate", "dev")' in (REPO / "eax.ps1").read_text()
+    assert "|dev|" in (REPO / "eax.sh").read_text() and '"estimate", "dev",' in (REPO / "eax.ps1").read_text()
     assert "### dev check" in (REPO / "eaxcli/help.txt").read_text()

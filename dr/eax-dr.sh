@@ -145,7 +145,7 @@ compare_pack() {
   mkdir -p "$INSTALL/work/dr"
   eax drill fingerprint "$INSTALL/work/dr/fingerprint-after.json" || return 1
   eax drill compare "$FINGERPRINT" "$INSTALL/work/dr/fingerprint-after.json" || return 1
-  echo "$(json_get tables "$EAX_JSON") tables and $(json_get files "$EAX_JSON") files the same as when the pack was made"
+  echo "key items $(json_get keys_said "$EAX_JSON")"
 }
 
 say "EA Explorer DR: builds $INSTALL from the backup $BACKUP, version $VERSION. Nothing is asked."
@@ -157,14 +157,17 @@ step "the env file, the work folders and the backup in place" in_place
 # (up to 30 minutes, the owner's drill of 17 Nov 2026, 13:22) was time lost; everything is waited for after it
 step "EA Explorer built and its core started" eax up
 T1=$SECONDS
-step "the maintenance page on and the background paused" eax drill quiet on
+# what fails the DR (the owner, 18 Nov 2026, 07:12): the pack, the code, the build, the restore and the sign-in; the rest
+# is a warning and the DR carries on
+soft_step "the maintenance page on and the background paused" eax drill quiet on
 step "the full restore of $NAME" eax drill restore "$NAME"
 step "EA Explorer's core started again (sign-in, the API, the screens)" eax up
-[ -z "$FINGERPRINT" ] || step "every table and file compared with the pack's fingerprint" compare_pack
+step "a real sign-in" eax drill signin
+[ -z "$FINGERPRINT" ] || soft_step "every table and file compared with the pack's fingerprint" compare_pack
 RECOVERY=$(((SECONDS - T1) / 60))
-[ "$KEEP_QUIET" -eq 1 ] || step "the background back and the maintenance page off: everyone can sign in" eax drill quiet off
+[ "$KEEP_QUIET" -eq 1 ] || soft_step "the background back and the maintenance page off: everyone can sign in" eax drill quiet off
 if [ "$NO_SMOKE" -eq 0 ]; then
-  step "the rest up (Reports, Documents, Diagrams), while people work" eax up --wait-all
-  step "the smoke test" eax test smoke
+  soft_step "the rest up (Reports, Documents, Diagrams), while people work" eax up --wait-all
+  soft_step "the smoke test (its findings are warnings)" eax test smoke
 fi
 exit 0

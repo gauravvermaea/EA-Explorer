@@ -23,7 +23,7 @@
 // #/admin/projects moved to #/project-admin/library. The old addresses #/users, #/heartbeat and #/sql are gone (R2.0.1):
 // #/admin/users, #/admin/health and #/admin/sql.
 import { lazy, Suspense, useEffect, useState } from "react";
-import { apiFetch, can, needsRole } from "./auth";
+import { apiFetch, can, needsRole, roles } from "./auth";
 import { refreshAll, useApi } from "./ModelViews";
 import { Modal } from "./ModelOps";
 import { WebhooksPanel } from "./Notifications";
@@ -43,6 +43,7 @@ const Scaling = lazy(() => import("./Scaling"));
 const SelfTest = lazy(() => import("./TestRuns"));
 const Updates = lazy(() => import("./Updates"));
 const CommandCentre = lazy(() => import("./CommandCentre"));
+const SetupGuides = lazy(() => import("./SetupGuides"));
 const BannerAdmin = lazy(() => import("./AdminBanner").then((m) => ({ default: m.BannerAdmin })));
 const DatabasesPage = lazy(() => import("./Databases"));
 const SecretsPage = lazy(() => import("./Secrets"));
@@ -61,6 +62,7 @@ const SizingPage = lazy(() => import("./Sizing"));
 const JobsPage = lazy(() => import("./Jobs"));   // R5.30
 const DisasterRecoveryPage = lazy(() => import("./DisasterRecovery"));
 const BrandingPage = lazy(() => import("./BrandingAdmin"));
+const SettingsTransferPage = lazy(() => import("./SettingsTransfer"));   // Release 6.7 (D755)
 const QualityAdmin = lazy(() => import("./Quality").then((x) => ({ default: x.QualityAdmin })));
 
 const TABS = [
@@ -78,6 +80,7 @@ const TABS = [
   ["databases", "Databases", () => can("system.operate"), ["it-admin", "super-admin"]],   // where each lives (R2.50)
   ["secrets", "Secrets", () => can("system.operate"), ["it-admin", "super-admin"]],   // passwords, keys, certificates (R6-S1)
   ["pairings", "Site pairings", () => can("system.operate"), ["it-admin", "super-admin"]],   // sync and DR sync (Release 6.5)
+  ["settings-transfer", "Settings import and export", () => roles().includes("super-admin"), ["super-admin"]],   // Release 6.7 (D755)
   ["db-maintenance", "Database maintenance", () => can("system.operate"), ["it-admin", "super-admin", "auditor"]],   // R5.12
   ["optimisation", "Optimisation", () => true, null],
   ["jobs", "Jobs", () => can("system.operate"), ["it-admin", "super-admin"]],   // the job queue, stuck jobs (R5.30)
@@ -96,6 +99,7 @@ const TABS = [
   ["operations", "Operations", () => can("system.operate"), ["it-admin", "super-admin"]],
   ["updates", "Updates", () => can("system.operate"), ["it-admin", "super-admin"]],
   ["commands", "Command centre", () => can("system.operate"), ["it-admin", "super-admin"]],
+  ["setup", "Setup", () => can("system.operate"), ["it-admin", "super-admin"]],   // the guides, guided (R6.6, D750)
   ["banner", "Banner", () => can("system.operate"), ["it-admin", "super-admin"]],
   ["branding", "Branding", () => can("settings.manage"), ["super-admin"]],   // logo, themes and CSS (R5.7-B1)
   ["licences", "Licences", () => true, null],
@@ -135,6 +139,7 @@ export default function Admin({ route }) {
                 : t[0] === "databases" ? <DatabasesPage />
                 : t[0] === "secrets" ? <SecretsPage />
                 : t[0] === "pairings" ? <PairingsPage />
+                : t[0] === "settings-transfer" ? <SettingsTransferPage />
                 : t[0] === "db-maintenance" ? <DbMaintenancePage />
                 : t[0] === "optimisation" ? <OptimisationPage />
                 : t[0] === "sizing" ? <SizingPage />
@@ -153,6 +158,7 @@ export default function Admin({ route }) {
                   : t[0] === "self-test" ? <SelfTest />
                   : t[0] === "updates" ? <Updates />
                   : t[0] === "commands" ? <CommandCentre route={route} />
+                  : t[0] === "setup" ? <SetupGuides />
                   : t[0] === "banner" ? <BannerAdmin />
                   : t[0] === "branding" ? <BrandingPage />
                   : t[0] === "licences" ? <Licences />

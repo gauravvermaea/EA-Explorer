@@ -209,8 +209,30 @@ def _persist_inside(me: dict, host: str) -> str:
     return host if host.startswith("/") else "/eax-persist"
 
 
+# what makes EA Explorer's services again from the runner: on Windows, compose in a container gives them Linux paths for
+# the Windows folders, and Keycloak, Documents and Reports cannot find their start script ("Restarting (127)": the
+# owner's Rotate all from the Secrets tab, 18 Nov 2026, 11:31). Refused there, before anything changes, as R2.49 does
+# for the commands that stop or start EA Explorer: PowerShell in the installation folder runs them.
+def remakes_services(argv: list[str]) -> bool:
+    """Whether an eax command line makes services again (pure)."""
+    a = [str(x) for x in argv or []]
+    return a[:2] in (["secrets", "rotate"], ["secrets", "set"], ["secrets", "pull"]) or a[:2] in (
+        ["certs", "renew"], ["certs", "revoke"], ["certs", "switch"])
+
+
+def refuse_on_windows(argv: list[str]) -> None:
+    """Refused on Windows when it makes services again (see remakes_services), with the command to type instead."""
+    if remakes_services(argv) and hooks["me"]().get("windows"):
+        a = [str(x) for x in argv]
+        shown = " ".join(x for i, x in enumerate(a) if x != "--by" and not (i > 0 and a[i - 1] == "--by"))
+        raise C.Refused(f"On Windows this runs from PowerShell in the installation folder, not from the web or a schedule: "
+                        f".\\eax {shown}. (From here the services it makes again would get Linux paths for your Windows "
+                        "folders.)")
+
+
 def _launch(argv: list[str], by: str, run_id: str, env: dict | None = None) -> str:
     """The short-lived runner container (outside Compose): eaxcli.cmdrun runs the command through eaxpy."""
+    refuse_on_windows(argv)
     me = hooks["me"]()
     name = f"{me['project']}-cmd-{run_id}"[:63]
     me.setdefault("inside", me["install"])
@@ -279,6 +301,7 @@ def schedule_add(body: dict) -> dict:
         s = S.demo_reset(by, roles, installation_name(), str(conf.get("typed") or ""), bool(conf.get("understood")),
                          at=str(body.get("at") or "02:00"))
     else:
+        refuse_on_windows(body.get("argv") or [])          # it would be refused when it runs: refused now, in words
         s = S.make(body, by, roles, installation_name())
     if s.get("banner"):
         B.set_banner({"text": S.banner_text(s), "level": "info", "audience": "everyone", "dismissible": True}, by,
@@ -298,6 +321,8 @@ def schedule_change(sid: str, what: str, body: dict) -> dict:
         run_id = start_scheduled(s)
         S.record(s["id"], {"run": run_id, "at": time.strftime("%Y-%m-%dT%H:%M:%S"), "state": "started", "note": f"run now by {by}"})
         return {"id": run_id, "schedule": s["id"], "command": " ".join(["eax", *s["argv"]])}
+    if what == "on":
+        refuse_on_windows(S.find(sid).get("argv") or [])
     s = S.change(sid, what, by, roles)
     if what == "remove":
         B.clear(by, source=f"schedule:{sid}")
@@ -525,10 +550,14 @@ def seed_persist(deployment: str) -> int:
 # the schedules Release 6 keeps on every installation (R6-R1, D743): rotation and renewal at a quiet hour, by themselves
 SYSTEM_SCHEDULES = [
     {"id": "r6rotate", "name": "Rotate the passwords and keys that are due (R6-R1)", "argv": ["secrets", "rotate", "--due"],
-     "cron": "17 3 * * *"},
+     "cron": "17 3 * * *", "enabled": False},   # off until an admin chooses it (first-run setup, 18 Nov 2026, 10:21)
     {"id": "r6certs", "name": "Renew the certificates that are due (R6-R1; nothing in password mode)", "argv": ["certs", "renew"],
-     "cron": "41 2 * * *"},
+     "cron": "41 2 * * *", "enabled": False},
 ]
+# off by default until rotation and renewal are fully tested (the owner, 18 Nov 2026, 10:58: "For now disable key and
+# certificate rotation by default until this is fully tested"): switched off once on installations that have them,
+# unless an admin has switched them on since (chosen)
+OFF_UNTIL_CHOSEN = ("r6rotate", "r6certs")
 
 
 def ensure_system_schedules(now: str | None = None) -> int:
@@ -539,11 +568,15 @@ def ensure_system_schedules(now: str | None = None) -> int:
     items = S.load()[0] if S.path().exists() else []
     have = {x.get("id") for x in items}
     made = 0
+    for x in items:
+        if x.get("id") in OFF_UNTIL_CHOSEN and x.get("enabled") and not x.get("chosen"):
+            x["enabled"] = False
+            made += 1
     at = now or time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime())
     for x in SYSTEM_SCHEDULES:
         if x["id"] in have:
             continue
-        items.append({**x, "enabled": True, "created_by": "EA Explorer (Release 6)", "created_at": at, "checked": at,
+        items.append({"enabled": True, **x, "created_by": "EA Explorer (Release 6)", "created_at": at, "checked": at,
                       "wipe": False, "backup_first": False, "keep": 3, "banner": False, "confirmed": None, "last": {},
                       "system": True})
         made += 1

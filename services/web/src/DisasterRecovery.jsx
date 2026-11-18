@@ -88,7 +88,7 @@ export default function DisasterRecovery() {
         <li>From the pack's <code>dr</code> folder, rebuild into a new or empty folder.
           <Cmd k="rebuild" os={os} />
           <span className="small">Check: it ends with <code>EA Explorer DR DONE</code>; the report (<code>&lt;install&gt;/work/dr/</code>)
-            gives the comparison with the pack's fingerprint and the recovery time.</span></li>
+            gives the sign-in, the key items compared with the pack (warnings only) and the recovery time.</span></li>
         <li>Sign in with an account of the old installation, open a model, a project and one of its documents; then point your users at
           the new machine.</li>
       </ol>
@@ -98,9 +98,12 @@ export default function DisasterRecovery() {
         <li>On this installation (its folder and data are not touched; the DR copy goes into its own folder under its own Docker name),
           give the installation, a DR folder and a temp folder. The drill makes both and deletes both at the end.
           <Cmd k="drill" os={os} />
-          <span className="small">Check: it ends with <code>EA Explorer restore drill PASSED</code>.</span></li>
-        <li>Nothing to tidy: passed or failed, the drill removes the DR copy from Docker, deletes both folders and starts this
-          installation again. The report is in this installation's <code>work/tests/drill-&lt;time&gt;/</code>.</li>
+          <span className="small">Check: it ends with <code>EA Explorer restore drill PASSED</code> (or <code>PASSED with N
+            warning(s)</code>). It fails only when the restore cannot be done or nobody can sign in to the copy; the key items
+            compared and the rest are warnings.</span></li>
+        <li>The DR copy is left running for you to test, at this installation's address; this installation stays stopped (they
+          share the ports). Back: <code>eax stop</code> in the DR folder, then <code>eax up</code> here. The next drill removes the
+          DR copy at its start. The report is in this installation's <code>work/tests/drill-&lt;time&gt;/</code>.</li>
         <li>Test the backups themselves too: the backup and restore test (about half an hour, the maintenance page on meanwhile).
           <Cmd k="test" os={os} /></li>
       </ol>

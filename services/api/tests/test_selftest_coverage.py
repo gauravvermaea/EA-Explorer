@@ -355,10 +355,10 @@ def test_eax_test_has_two_choices_and_clean():
     for scripts and CI."""
     text = (ROOT / "eaxcli" / "help.txt").read_text(encoding="utf-8")
     entry = store.test_entry(text)
-    assert entry["syntax"].startswith("test [smoke|full|jobs|mcp|reports|security|performance|backup|backup-restore|restore|ui-review|failed")   # backup-restore: R5.6-B1
+    assert entry["syntax"].startswith("test [smoke|full|jobs|mcp|reports|security|performance|backup|backup-restore|restore|failed")   # backup-restore: R5.6-B1
     names = [o["flag"].split()[0] for o in entry["options"]]
-    assert names == ["smoke", "full", "backup", "backup-restore", "ui-review", "failed", "watch", "stop", "api", "delete", "clean"], names   # restore: R3.8; watch, stop: R3.2   # ui-review: R2.12
-    assert entry["examples"] == ["{eax} test", "{eax} test full", "{eax} test performance --size medium --users 50", "{eax} test backup", "{eax} test backup-restore", "{eax} test api GET /api/v1/models --as architect", "{eax} test watch", "{eax} test watch --browser", "{eax} test stop 12", "{eax} test ui-review", "{eax} test failed",
+    assert names == ["smoke", "full", "backup", "backup-restore", "failed", "watch", "stop", "api", "delete", "clean"], names   # restore: R3.8; watch, stop: R3.2   # ui-review removed: D770
+    assert entry["examples"] == ["{eax} test", "{eax} test full", "{eax} test performance --size medium --users 50", "{eax} test backup", "{eax} test backup-restore", "{eax} test api GET /api/v1/models --as architect", "{eax} test watch", "{eax} test watch --browser", "{eax} test stop 12", "{eax} test failed",
                                  "{eax} test failed 12 --warnings", "{eax} test delete --older-than 30",
                                  "{eax} test clean", "{eax} test clean --dry-run"]
     ops = (ROOT / "services" / "ops" / "testruns.py").read_text(encoding="utf-8")

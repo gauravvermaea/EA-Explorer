@@ -28,6 +28,10 @@ STEPS = [
     ("charter", "The organisation's architecture charter", "Filled in from the seed: read it, change it, approve it.", ""),
     ("principles", "The organisation's principles", "Areas, the principles, and which are enforced in every project.", "#/project-admin/principles"),
     ("backups", "When backups run", "The infrastructure and application backups, and how many are kept.", "#/admin/backups"),
+    # the owner, 18 Nov 2026, 10:21: "The user needs to be able to enable the key rotation and all these schedules as one
+    # of the initial configuration tasks": what can take EA Explorer down for a moment is off until chosen here
+    ("upkeep", "Scheduled upkeep", "Rotating passwords when due, Rotate all regularly, database fixes by themselves: off until "
+     "you choose, as each can put the maintenance page up for a few minutes.", "#/admin/commands/schedules"),
 ]
 
 

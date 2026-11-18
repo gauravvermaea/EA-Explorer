@@ -134,6 +134,12 @@ def cleanup(options: list[str]) -> None:
     if not yes and input("Type yes to continue: ").strip() != "yes":
         say("Nothing deleted.")
         return
+    if (WORK / "jenkins" / "agent.pid").exists():   # the Jenkins agent holds its log open in work/logs (18 Nov 2026)
+        try:
+            from . import jenkins
+            say(jenkins.stop_agent())
+        except Exception:  # noqa: BLE001 - never stops the cleanup
+            pass
     try:                                   # the logs first, where no reset deletes them (R2.30)
         from . import logkeep
         base = logkeep.folder(WORK.parent)
@@ -210,6 +216,11 @@ def restart(wait_all: bool) -> int:
         if code != 0:
             say(f"ERROR: {EAX} {' '.join(step)} failed (exit {code}); restart stopped there.", "red")
             return code
+        if step == ["down"]:   # nothing runs now: a maintenance page or a paused background left behind is stale (18 Nov 2026)
+            for f in (WORK / "proxy" / "maintenance", WORK / "quiet.json"):
+                if f.exists():
+                    f.unlink()
+                    say(f"Removed what was left: {f.relative_to(ROOT)} (the maintenance page and the paused background).", "yellow")
     return 0
 
 
@@ -309,7 +320,7 @@ def auth_mode(rest: list[str], kind_: str, ask=input, tty: bool | None = None) -
 
 
 def init(rest: list[str]) -> None:
-    """eax init [laptop|server] [--certificate|--password]: the config file from the laptop or server template. A server
+    """eax init [laptop|server] [--certificate|--password] [--hostname NAME]: the config file from the laptop or server template. A server
     gets strong random passwords made here (R6-C1); a laptop keeps the template's (laptop users carry on as before)."""
     import re
 
@@ -334,6 +345,13 @@ def init(rest: list[str]) -> None:
         text = re.sub(r"^([A-Z0-9_]+)=change-me.*$", lambda m: f"{m.group(1)}={values.get(m.group(1), m.group(0))}", text,
                       flags=re.MULTILINE)
         made = len(values)
+    # the name people open it at (D765): --hostname, else asked on a server when someone is at the keyboard
+    from . import hostname as H
+    given = rest[rest.index("--hostname") + 1] if "--hostname" in rest and rest.index("--hostname") + 1 < len(rest) else ""
+    if not given and kind_ != "laptop" and sys.stdin.isatty() and not os.environ.get("EAX_NONINTERACTIVE"):
+        given = input("The name people will open EA Explorer at (e.g. ea.example.org; Enter to set it later with eax hostname set): ").strip()
+    if given:
+        text = re.sub(r"^EAX_HOSTNAME=.*$", f"EAX_HOSTNAME={H.valid(given)}", text, flags=re.MULTILINE)
     if re.search(r"^EAX_AUTH_MODE=", text, re.MULTILINE):
         text = re.sub(r"^EAX_AUTH_MODE=.*$", f"EAX_AUTH_MODE={mode}", text, flags=re.MULTILINE)
     else:
@@ -674,6 +692,21 @@ def main(argv: list[str]) -> int:
         if command == "certs":                  # certificate mode (R6-C1, D743)
             from . import certs
             return certs.main(rest)
+        if command == "jenkins":                # Jenkins, a pipeline per command (R6.6-J1, D750)
+            from . import jenkins
+            return jenkins.main(rest)
+        if command == "hostname":               # the name people open EA Explorer at (D765)
+            from . import hostname
+            return hostname.main(rest)
+        if command == "settings":               # the settings exported and imported (Release 6.7, D755)
+            from . import settings_cli
+            return settings_cli.main(rest)
+        if command == "access":                 # an administrator back in, from the machine (R6.6-J1, D762)
+            from . import access
+            return access.main(rest)
+        if command == "setup":                  # the guides, guided (R6.6, D750)
+            from . import setup
+            return setup.main(rest)
         if command in ("deploy", "secrets"):    # phase 36 (D498, D504): one Python program for every form (D500)
             if command == "deploy":
                 from . import deploy

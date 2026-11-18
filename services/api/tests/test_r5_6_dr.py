@@ -143,9 +143,11 @@ def test_the_drill_uses_eax_dr_from_its_own_folder_and_keeps_the_dr_copy_apart()
     sh = (DR / "eax-drill.sh").read_text()
     assert 'Join-Path $Here "eax-dr.ps1"' in ps and '"$HERE/eax-dr.sh"' in sh                # eax-dr beside it
     assert "-Project $DrProject" in ps and '--project "$DR_PROJECT"' in sh                     # its own volumes (21:52)
-    for step in ("running", "content", "backup", "shutdown", "fingerprint", "compare", "content-check", "content-remove", "code"):
+    # the drill kept simple (the owner, 18 Nov 2026, 07:12): no test content; the backup taken out; a real sign-in
+    for step in ("running", "backup", "take", "shutdown", "fingerprint", "compare", "signin", "code"):
         assert f'"drill", "{step}"' in ps and f"eax drill {step}" in sh, step
     for t in (ps, sh):
+        assert "drill content" not in t.replace('"drill", "content', "drill content")
         assert "Remove-Item -LiteralPath $Install" not in t and 'rm -rf "$INSTALL"' not in t   # the installation is never deleted
         assert "teardown" not in t
     for f in ("eax-dr.ps1", "eax-dr.sh"):
@@ -181,8 +183,10 @@ def test_eax_drill_steps_answer_in_json_and_never_from_the_web(tmp_path, capsys,
     assert D.main(["compare", str(a), str(b)]) == 0                                   # a row added: noted
     capsys.readouterr()
     b.write_text(json.dumps({"tables": {"eaexplorer core.models": [1, "x"]}, "files": {}}))
-    assert D.main(["compare", str(a), str(b)]) == 1                                   # a file lost: fails
-    assert "persist/s.json: missing after" in json.loads(capsys.readouterr().out.strip().splitlines()[0])["error"]
+    # a file lost: a warning, never a failure (the owner, 18 Nov 2026, 07:12: "Key items, check is only a warning")
+    assert D.main(["compare", str(a), str(b)]) == 0
+    out = json.loads(capsys.readouterr().out.strip().splitlines()[0])
+    assert "error" not in out and any("persist/s.json: missing after" in w for w in out["warnings"])
     assert D.main(["nonsense"]) == 1
     from eaxcli import commands
     assert "drill" in commands.HOST and "eax-drill" in commands.HOST_WHY["drill"]
@@ -205,7 +209,8 @@ mkdir -p "$here/work"; echo "$*" >> "$here/work/calls.txt"; [ -z "${CALLS_ALL:-}
 case "$*" in
   'drill info') printf '{"version": "5.6.0", "repo": "https://github.com/a/b", "backups": "%s/bk", "config": "%s/work/eaexplorer.env"}\n' "$here" "$here";;
   'drill running') echo '{"running": true}';;
-  'drill content '*) echo '{"made": 3}';;
+  'drill take '*) rm -rf "$4"; mkdir -p "$(dirname "$4")"; cp -R "$here/bk/$3" "$4" && echo '{"files": 3, "how": "from the backups folder"}';;
+  'drill signin') echo '{"people": 5, "realm": "eaexplorer", "api": "answers"}';;
   'drill backup') echo '{"name": "20261116T010000Z-nightly"}';;
   'drill code '*) python3 -c 'import json, sys; sys.path.insert(0, sys.argv[1]); from pathlib import Path; from eaxcli.drill import copy_code
 print(json.dumps(copy_code(Path(sys.argv[2]), Path(sys.argv[3]))))' "@REPO@" "$3" "$here";;
@@ -314,13 +319,21 @@ def test_eax_drill_runs_end_to_end_from_the_installations_own_code_with_no_githu
     mine = [c.split(": ", 1)[1] for c in calls if c.startswith(f"{inst}: ")]
     there = [c.split(": ", 1)[1] for c in calls if c.startswith(f"{dr}: ")]
     assert mine[mine.index("drill running") + 1].startswith("drill preflight ")          # the pre-flight (D747)
-    assert mine[mine.index("drill running") + 2] == "drill remove-copy eaexplorer-dr"   # the earlier copy cleared first
-    assert mine.index("drill shutdown") < mine.index(next(c for c in mine if c.startswith("drill code ")))
-    assert "drill restore 20261116T010000Z-nightly" in there and "test smoke" in there   # built and tested there
-    assert mine[-3:] == ["drill remove-copy eaexplorer-dr", "up --wait-all", "drill delete-backup 20261116T010000Z-nightly"]
-    assert not dr.exists() and not temp.exists()                                        # cleaned and deleted
+    # the last drill's DR copy (left running for the owner, 18 Nov 2026, 07:46) removed first, before the running check
+    assert mine.index("drill remove-copy eaexplorer-dr") < mine.index("drill running")
+    # the backup and the code taken out while EA Explorer still runs (the owner's drill, 18 Nov 2026, 07:04), then shut down
+    assert mine.index(next(c for c in mine if c.startswith("drill take "))) < mine.index("drill shutdown")
+    assert mine.index(next(c for c in mine if c.startswith("drill code "))) < mine.index("drill shutdown")
+    assert "drill signin" in there                                                       # a real sign-in to the DR copy
+    assert "drill restore 20261116T010000Z-nightly" in there                             # built and restored there
+    # 18 Nov 2026, 06:39: "not exhasutive ... number of rows or some key items": no smoke test unless asked (--smoke)
+    assert "test smoke" not in there and "test smoke" not in mine
+    # the DR copy left running for the owner to test, the installation left stopped (07:46); the backup kept
+    assert mine[-1] == "drill shutdown" and not any(c.startswith(("drill delete-backup", "up")) for c in mine)
+    assert (dr / "work" / "compose-project").exists() and not temp.exists()
     report = next((inst / "work" / "tests").glob("drill-*/report.md")).read_text()
-    assert "Passed" in report and "The DR folder" in report and "The installation started again." in report
+    assert "Passed" in report and "The DR copy is left running" in report and ".\\eax stop" not in report
+    assert "./eax stop" in report and "is kept (pinned)" in report
     assert (inst / "work" / "tests").glob("drill-*/drill.log")
 
 
@@ -376,7 +389,9 @@ def test_no_step_block_can_see_step_s_own_variables_by_mistake():
 @needs_bash
 def test_a_failed_drill_still_puts_everything_back_and_keeps_its_backup(tmp_path):
     inst = _code_source(tmp_path)
-    eax = (inst / "eax.sh").read_text().replace("  'drill compare '*)", "  'drill content-check '*) echo '{\"error\": \"differs\"}'; exit 1;;\n  'drill compare '*)")
+    # the DR copy restored but nobody can sign in: the one check after the restore that fails the drill (18 Nov 2026, 07:12)
+    eax = (inst / "eax.sh").read_text().replace("""  'drill signin') echo '{"people": 5, "realm": "eaexplorer", "api": "answers"}';;""",
+                                                """  'drill signin') echo '{"error": "nobody can sign in"}'; exit 1;;""")
     (inst / "eax.sh").write_text(eax)
     (inst / "work").mkdir()
     (inst / "work" / "eaexplorer.env").write_text("EAX_DEPLOYMENT=laptop\n")
@@ -387,9 +402,10 @@ def test_a_failed_drill_still_puts_everything_back_and_keeps_its_backup(tmp_path
                        env=env, capture_output=True, text=True, timeout=180)
     assert r.returncode == 1 and "FAILED" in r.stdout
     mine = [c.split(": ", 1)[1] for c in (tmp_path / "all-calls.txt").read_text().splitlines() if c.startswith(f"{inst}: ")]
-    assert mine[-2:] == ["drill remove-copy eaexplorer-dr", "up --wait-all"]           # copy gone, installation back
+    # the DR copy left as it is for the owner to look at, the installation left stopped (18 Nov 2026, 07:46)
+    assert mine[-2] == "drill shutdown" and mine[-1].startswith("drill diagnose ")
     assert not any(c.startswith("drill delete-backup") for c in mine)                    # the backup kept
-    assert not dr.exists() and not temp.exists()
+    assert dr.exists() and not temp.exists()
     report = next((inst / "work" / "tests").glob("drill-*/report.md")).read_text()
     assert "Failed" in report and "is kept (pinned)" in report
 
@@ -407,7 +423,7 @@ def test_remove_copy_never_touches_this_installation_and_the_powershell_drill_cl
     assert all("label=com.docker.compose.project=eaexplorer-dr" in a for a in seen)
     ps = (DR / "eax-drill.ps1").read_text()
     for must in ('Disposable-Dr $Dr', 'Disposable-Temp $Temp', '@("drill", "remove-copy", $DrProject)', '@("up", "--wait-all")',
-                 '@("drill", "delete-backup", $BackupName)', 'work\\tests\\$Stamp', "Remove-Item -Recurse -Force -LiteralPath $Dr"):
+                 'The DR copy is left running', 'work\\tests\\$Stamp', "Remove-Item -Recurse -Force -LiteralPath $Dr"):
         assert must in ps, must
     assert ps.index("Disposable-Temp $Temp") < ps.index("New-Item -ItemType Directory -Force $Run")
 

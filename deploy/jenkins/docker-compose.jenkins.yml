@@ -1,0 +1,38 @@
+# Jenkins beside EA Explorer (Release 6.6, R6.6-J1, D748): a stack of its own (eax jenkins up names it
+# <installation>-jenkins), so a restore drill or a full restore that shuts EA Explorer down never stops it. It has no
+# Docker socket: its pipelines call the agent on the machine (eax jenkins agent) with a token, and the agent runs only
+# the eax commands and DR tools of the catalogue. Its passwords reach it from the config file through eax, never written
+# here: they are Docker secrets (files under /run/secrets, R6-F1), which Jenkins' configuration as code reads by name.
+services:
+  jenkins:
+    build:
+      context: ./
+      args:
+        JENKINS_IMAGE: ${EAX_JENKINS_IMAGE:-jenkins/jenkins:lts-jdk21}
+    image: eaexplorer/jenkins:${EAX_VERSION:-dev}
+    restart: unless-stopped
+    ports:
+      - "${EAX_JENKINS_BIND:-127.0.0.1}:${EAX_JENKINS_PORT:-8088}:8080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"      # the agent on this machine
+    environment:
+      CASC_JENKINS_CONFIG: /usr/share/jenkins/ref/${EAX_JENKINS_CASC:-casc.yaml}   # casc-keycloak.yaml: EAX_JENKINS_SIGNIN=keycloak
+      EAX_AGENT_URL: http://host.docker.internal:${EAX_JENKINS_AGENT_PORT:-8091}
+      EAX_JENKINS_ADMIN: ${EAX_JENKINS_ADMIN:-jenkins-admin}
+      EAX_KEYCLOAK_PUBLIC: https://${EAX_HOSTNAME:-localhost}${EAX_HTTPS_SUFFIX:-}/auth
+      EAX_KEYCLOAK_REALM: ${EAX_KEYCLOAK_REALM:-eaexplorer}
+      EAX_JENKINS_OIDC_INSECURE: ${EAX_JENKINS_OIDC_INSECURE:-false}
+      EAX_JENKINS_URL: http://${EAX_HOSTNAME:-localhost}:${EAX_JENKINS_PORT:-8088}/
+    secrets: [EAX_JENKINS_AGENT_TOKEN, EAX_JENKINS_OIDC_SECRET, EAX_JENKINS_ADMIN_PASSWORD]
+    volumes:
+      - jenkins-home:/var/jenkins_home
+      - ../../work/jenkins:/eax-jenkins:ro          # pipelines.json (eax jenkins pipelines)
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "5" }
+volumes:
+  jenkins-home:
+secrets:     # from eax's environment when it starts the stack (eax jenkins up), never written to a file here
+  EAX_JENKINS_AGENT_TOKEN: {environment: EAX_JENKINS_AGENT_TOKEN}
+  EAX_JENKINS_OIDC_SECRET: {environment: EAX_JENKINS_OIDC_SECRET}
+  EAX_JENKINS_ADMIN_PASSWORD: {environment: EAX_JENKINS_ADMIN_PASSWORD}

@@ -43,7 +43,8 @@ $ {eax} stop
 
 ### restart [--wait-all]
 > Stops EA Explorer and starts it again (stop, then up). Keeps all data.
-Use it when something is stuck. Each step writes its own log. To start again with empty databases, use
+Use it when something is stuck. A maintenance page or a paused background left behind is taken away between the
+two, so EA Explorer comes back open. Each step writes its own log. To start again with empty databases, use
 clean-restart instead.
 $ {eax} restart
 
@@ -197,14 +198,16 @@ report: measure now and print; last: the newest report.
 $ {eax} optimise
 $ {eax} optimise last
 
-### db [check|tidy [--dry-run]|compact <database> <table>|clear|locks|cancel <pid>|end <pid>] [--yes]
+### db [check|integrity|tidy|compact|clear|locks|cancel|end] [DATABASE|PID] [TABLE] [--dry-run] [--fix] [--yes]
 > Database maintenance: every database checked and tidied, as System Admin > Database maintenance.
 check: what needs doing in every database, in plain words (swollen tables and indexes, stale statistics, unused,
 duplicate or invalid indexes, the transaction age, connections, long transactions, the cache, sequences near their
 limit, tables with no primary key, replication). tidy: what check finds, done without locking a table (VACUUM,
 ANALYZE, REINDEX CONCURRENTLY); it runs by itself every night in the window (01:00 to 05:00 by default). compact: VACUUM
 FULL of one table, which locks it while it runs (asked first). clear: the keep-for rules now. locks: who blocks whom;
-cancel or end a session (asked first). Nothing runs during a backup, a restore or a self-test (R5.12).
+cancel or end a session (asked first). Nothing runs during a backup, a restore or a self-test (R5.12). integrity:
+every database's indexes, tables, constraints, sequences and newest records checked, nothing changed; --fix: the safe
+fixes too, after a backup (the maintenance page up while it is taken) (R6.6.1).
 $ {eax} db check
 $ {eax} db tidy --dry-run
 $ {eax} db locks
@@ -379,7 +382,7 @@ $ {eax} import --all
 > Checks that Docker is running and the config and compose files are valid. Starts nothing.
 $ {eax} check
 
-### test [smoke|full|jobs|mcp|reports|security|performance|backup|backup-restore|restore|ui-review|failed [run] [--warnings]|watch [run] [--log|--browser]|stop [run]|api <method> <path>|delete <run|all> [--older-than DAYS]|clean] [--yes]
+### test [smoke|full|jobs|mcp|reports|security|performance|backup|backup-restore|restore|failed [run] [--warnings]|watch [run] [--log|--browser]|stop [run]|api <method> <path>|delete <run|all> [--older-than DAYS]|clean] [--yes]
 > Test this installation: smoke or full; only what failed last time; or delete the test data.
 The same two tests as System Admin > Tools > Self-test (owner, 12 Nov 2026, D592: "Smoke or Full. Not too many
 options"); a run started in either place shows in both. Each run first removes any test data earlier runs left
@@ -424,9 +427,6 @@ and IT Admins.
           random names; the test's data and both backups are removed when it passes. It asks nothing; it says
           plainly first that anything done on this installation while it runs is lost (about an hour; everyone is locked out while each
           restore runs). The report: work/tests/backup-restore-<time>/report.md. The command line only.
-  ui-review  screenshots of every main page as each test role at laptop, large and narrow widths, with notes (page
-          wider than the window, missing titles, unnamed buttons and fields, long text); ui-review.html in the run's
-          folder. It changes nothing: the notes are discussed before any fix (R2.12)
   failed  only the checks that failed in the last finished run (or in the run named: failed 12), as the same roles,
           in fresh test data; --warnings repeats its warnings too. Quicker while fixing; the report shows each check
           then and now, and when all pass the earlier run is marked as followed up. A full run is still what counts
@@ -461,7 +461,6 @@ $ {eax} test api GET /api/v1/models --as architect
 $ {eax} test watch
 $ {eax} test watch --browser
 $ {eax} test stop 12
-$ {eax} test ui-review
 $ {eax} test failed
 $ {eax} test failed 12 --warnings
 $ {eax} test delete --older-than 30
@@ -480,14 +479,16 @@ RESTORE.txt, and PACK.sha256 with every file's checksum, checked. On the new mac
 fingerprint.json. The pack holds every password and all the data: keep it safe, away from this machine.
 $ {eax} dr-pack D:\ea-dr-pack-2026-11-16
 
-### drill [info|running|quiet on|off|content|content-check|content-remove <file>|fingerprint <file>|backup|shutdown|restore <name>|compare <a> <b>|code <folder>]
+### drill [info|running|quiet on|off|fingerprint <file>|backup|take <name> <folder>|shutdown|restore <name>|signin|compare <a> <b>|code <folder>]
 > The steps dr/eax-drill and dr/eax-dr ask of eax (R5.6-B2): you run those, not this.
 dr/eax-dr builds an environment from a backup (backup folder, install folder, env file, and the code: a copy, or a
 version from GitHub). code <folder> copies this installation's code, as it runs, with CODE.sha256. dr/eax-drill takes a
-running installation, a new DR folder and a temp folder: test content, a backup, the installation shut down (containers
-removed, data and images kept), a copy built from its own code with eax-dr under its own Docker name, restored and compared,
-every table and file. Each step here answers one line of JSON; shutdown removes the containers only. Never from the
-web. Asks nothing. work/compose-project, when there, is this installation's own Docker name.
+running installation, a new DR folder and a temp folder: a backup copied straight out of EA Explorer (take), the
+installation shut down (containers removed, data and images kept), a copy built from its own code with eax-dr under its
+own Docker name and restored. It fails only when the restore cannot be done or nobody can sign in (signin: Keycloak signs
+its admin in and counts the people, the API answers); the key items compared are warnings. Each step here answers one
+line of JSON; shutdown removes the containers only. Never from the web. Asks nothing. work/compose-project, when there,
+is this installation's own Docker name.
 $ {eax} drill info
 
 ### services
@@ -517,13 +518,20 @@ and run {eax} up. A standby is not a backup: the nightly backups stay.
 $ {eax} standby
 $ {eax} standby promote
 
-### secrets [show|rotate|set|fill|push|pull] [KEY] [--due] [--to|--from file:PATH] [--by WHO]
+### secrets [show|rotate|set|fill|push|pull|schedule] [KEY] [--due] [--all] [--restart] [--at TIME] [--to|--from file:PATH] [--by WHO]
 > The passwords and keys: their ages, rotating them, and a copy in a file outside the installation.
 Every password and key lives in work/eaexplorer.env and reaches each container as a file of its own (Docker secrets,
 R6-F1), never as an environment variable. No key vault and no cloud service is used (D744, D746).
   show           every one by name (never its value): how it changes, when it last changed, when it is next due.
   rotate KEY     a new value now: a database login is changed in the database too, a sign-in client's secret in
                  Keycloak too; the services that use it are made again (a few seconds each).
+  rotate --all   every one eax can rotate, in one go, behind the maintenance page: the background is paused and
+                 waited for first (at most half an hour, else nothing changes); the services made again once at the
+                 end, then the page comes down. What needs a person is listed, never changed. One rotation at a time.
+                 --restart: EA Explorer restarted afterwards (Jenkins' Rotate all does this; the web page offers it).
+  schedule       Rotate all on a schedule: monthly, quarterly (every three months) or off, the regular one; --at
+                 YYYY-MM-DDTHH:MM once, at that time; show (the default) what is set. The same schedules as the
+                 Secrets tab and Jenkins (Command centre > Schedules), so nothing runs twice.
   rotate --due   every one that is due (every 90 days: EAX_ROTATE_PASSWORD_DAYS). A schedule runs this every night at
                  03:17 (System Admin > Commands > Schedules). A laptop keeps its passwords unless EAX_ROTATE_ON_LAPTOP=on.
                  What needs a person (the break-glass password, the mail server's, Keycloak's admin) is never rotated
@@ -537,8 +545,11 @@ Every restore of the databases and every DR sets each database login's password 
 $ {eax} secrets
 $ {eax} secrets rotate EAX_DB_PASSWORD
 $ {eax} secrets rotate --due
+$ {eax} secrets rotate --all
+$ {eax} secrets schedule monthly
+$ {eax} secrets schedule --at 2026-11-20T17:00
 
-### certs [list|renew|revoke|switch] [WHAT] [--force] [--authority]
+### certs [list|renew|revoke|switch|front] [WHAT] [--force] [--authority] [--cert FILE] [--key FILE] [--chain FILE]
 > Certificate mode: EA Explorer's own certificates, which the services sign in to the database with.
 With EAX_AUTH_MODE=certificate the setup service makes EA Explorer's own certificate authority and a certificate for
 each service at every start, on this machine, in the Docker volume eax-certs: never in a backup or a DR pack (a DR copy
@@ -550,9 +561,75 @@ makes its own). The database then accepts only TLS, each service by its certific
   revoke WHAT    a service's certificate refused at once and a new one issued (WHAT: api, library, views,
                  keycloak, reports or dms).
   switch WHAT    how the services sign in, certificate or password (EAX_AUTH_MODE); then eax restart.
+  front [show]   the front door's certificate (the one people's browsers see), in both modes.
+  front install --cert FILE --key FILE [--chain FILE]   your organisation's certificate from files on this machine:
+                 checked as System Admin > Secrets checks an upload, the one in use kept, reloaded with no restart.
+  front undo     the certificate in use before the last one put back.
 $ {eax} certs
 $ {eax} certs revoke api
 $ {eax} certs switch certificate
+$ {eax} certs front install --cert ea.crt --key ea.key --chain chain.pem
+
+### jenkins [up|down|status|pipelines|agent|stop-agent]
+> Jenkins: a pipeline for every eax command and DR tool, run with a click (R6.6-J1).
+Jenkins runs in its own stack beside EA Explorer, at http://127.0.0.1:8088 on this machine. You sign in with its own
+account (eax jenkins up prints it), whatever state EA Explorer is in; EAX_JENKINS_SIGNIN=keycloak signs in with EA
+Explorer instead (Super Admins and IT Admins), the own account kept for when Keycloak is down. up waits until Jenkins
+answers and, when it does not, says why (its log's own words; all of it in work/jenkins/start.log).
+The pipelines are written from this help, so a new command gets a pipeline by itself. A small agent on this machine
+(port 8091, its own token) runs each command exactly as typed here. A pipeline that changes everything (a restore, an
+update, a wipe, a DR tool) asks for the installation's name before it runs. No job is ever stopped without a person.
+  up         Jenkins and the agent started, the pipelines written (the default).
+  down       both stopped; the jobs' history is kept.
+  status     whether each runs, and the address.
+  pipelines  the pipelines written again (after an update).
+  agent      the agent, in this window (up starts it in the background).
+  stop-agent the agent stopped (down and cleanup do this too). After a clean-run, eax jenkins up again: the
+             config file and its tokens are new.
+$ {eax} jenkins up
+$ {eax} jenkins status
+
+### setup [guide] [--yes] [--confirm NAME]
+> The guides, one step at a time: a laptop, a server, DR, backups, restores, upgrades and more (R6.6).
+Each step says what to do, offers its command (run it now, skip it or stop) and checks it worked where it can. The same
+guides are on System Admin > Setup and in Jenkins; the written ones are docs/guides/<guide>.md.
+  (none)        the guides, with what each is for.
+  <guide>       that guide, guided. --yes runs every step's command in turn (a step that changes everything still
+                needs --confirm <installation name>).
+  external-db --host H [--port 5432] [--admin-user eax_admin]   EA Explorer on your own PostgreSQL server: tested
+                before it is saved; --dba shows the command your DBA runs (deploy/external-db/prepare.sql).
+$ {eax} setup
+$ {eax} setup server
+$ {eax} setup external-db --host db.example.org
+
+### access [admins|reset-password|unlock|mfa-off] [USER]
+> Gets an administrator back in, from the machine: a new password, the account unlocked, or MFA removed.
+Only for the administrators (the first admin and anyone with the Super Admin or IT Admin role in Keycloak), only to get
+back in: people and their roles are managed in EA Explorer and Keycloak. It works inside Keycloak's container, nothing
+over the network. USER: the first admin when not given.
+  admins           the administrators and whether each is enabled (the default).
+  reset-password   a new temporary password, shown once; it must be changed at the next sign-in.
+  unlock           the account enabled and its lock after wrong passwords lifted.
+  mfa-off          the authenticator removed (a lost phone): set up again at the next sign-in.
+$ {eax} access
+$ {eax} access reset-password eaadmin
+$ {eax} access unlock eaadmin
+
+### settings [parts|export|import|copies|undo] [FILE] [--parts LIST] [--yes]
+> Exports or imports the settings and admin configuration as one file, the parts you choose.
+The same file as System Admin > Settings import and export: System settings, branding, alerts, keep-for rules, report
+audiences, webhooks, pairings' settings, the banner, the IP allow lists and the schedules. Never content, people, a
+password, key or certificate. An import first shows every difference and changes nothing; --yes keeps a safety copy,
+then takes every difference in those parts (the screen lets you tick them one by one). A file from a newer release is
+refused. Nothing is ever removed by an import.
+  parts     the parts a file carries.
+  export    the settings written to FILE (--parts system,branding: only those).
+  import    the differences with FILE shown; with --yes taken.
+  copies    the safety copies kept before each import.
+  undo      the settings a safety copy kept put back (FILE: the copy's id, from copies).
+$ {eax} settings export work/exports/settings.json
+$ {eax} settings import work/exports/settings.json --parts system,alerts
+$ {eax} settings undo 2c6f0d0e-5e1a-4c43-9d0c-3f1f2c7e6b1a
 
 ### trust [--remove]
 > Makes the browser trust EA Explorer's local certificate (no more warnings on https://localhost).
@@ -564,7 +641,7 @@ certificates out again.
 $ {eax} trust
 $ {eax} trust --remove
 
-### allow [show|clear|add <place> <address> [name]|remove <place> <address>]
+### allow [show|clear|add|remove] [PLACE] [ADDRESS] [NAME]
 > The IP allow lists from this machine: who may reach EA Explorer, place by place.
 Normally set on System Admin > Security (R5.2). Places: site (everything: the screens, the API, Reports, Documents),
 signin (the sign-in pages), admin (System Admin's API), mcp (AI), machine (the client-certificate port). An empty list
@@ -577,7 +654,7 @@ $ {eax} allow add site 10.20.0.0/16 head office
 
 ## Site and deploy
 
-### init [laptop|server] [--certificate|--password]
+### init [laptop|server] [--certificate|--password] [--hostname NAME]
 > Creates the config file work/eaexplorer.env and the work folders. Never overwrites a config file.
 Made from the template for the deployment kind (laptop if not given). On a laptop every password is P^55w0rd1234&, as
 before; on a server every password and key is made here, strong and random (R6-C1). --certificate or --password says
@@ -586,7 +663,16 @@ asks, else a laptop uses passwords and a server certificates.
 A server asks for the base folder for all the data (EAX_DATA_ROOT, /srv/eax if nothing is typed; R5.4): a folder
 for each kind goes under it (see folders). A laptop keeps its Docker volumes and work/ unless EAX_DATA_ROOT is set.
 $ {eax} init
-$ {eax} init server --certificate
+$ {eax} init server --certificate --hostname ea.example.org
+
+### hostname [show|set] [NAME]
+> The name people open EA Explorer at (EAX_HOSTNAME), with reports.NAME and docs.NAME beside it.
+Your certificate must cover all three, and each needs a DNS record pointing at this machine; Keycloak signs people in at
+that name. A laptop uses localhost. Moving to a DR site is pointing the name at the other machine, so bookmarks keep
+working. set changes it (a dated copy of the config file first); then eax restart. init --hostname sets it at the start;
+a server's init asks for it.
+$ {eax} hostname
+$ {eax} hostname set ea.example.org
 
 ### folders [show]
 > Where the data lives: the base folder and a folder for each kind, where each is and the space free.

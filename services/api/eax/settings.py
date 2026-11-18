@@ -115,8 +115,15 @@ REGISTRY: dict[str, tuple] = {
                  "off: nobody is asked (anyone may still add an authenticator app to their own account). admins: the "
                  "Super, IT, User and Keycloak Admins and the Auditors set up a code at their next sign-in. everyone: "
                  "every person does. Codes come from an authenticator app (TOTP)."),
+    # database safe fixes by themselves (R6.6.1; the owner, 18 Nov 2026, 10:21: "ensure its not restarting like this when it
+    # feels. The user needs to be able to enable the key rotation and all these schedules as one of the initial
+    # configuration tasks"): off until an admin chooses it, as a fix takes a backup behind the maintenance page first
+    "integrity_fixes": ("system", "Database safe fixes by themselves", "bool", False, None,
+                        "On: the weekly check (Sundays 02:20) and the check after a restore rebuild an index, validate a "
+                        "constraint or move a sequence on by themselves, after a backup (the maintenance page is up while "
+                        "it is taken). Off: they are reported, and made with Fix the safe ones on Database maintenance."),
     # the site's purpose (Release 6.5, D749; owner, 17 Nov 2026: "site purpose: a label only, PROD by default")
-    "site_purpose": ("system", "Site purpose", "choice", "PROD", ["PROD", "PRE-PROD", "UAT", "TEST", "DEV", "DR", "TRAINING"],
+    "site_purpose": ("system", "Site purpose", "choice", "PROD", ["PROD", "PRE-PROD", "UAT", "TEST", "DEV", "CONTENT", "DR", "TRAINING"],
                      "A label shown at the top of every screen, so people know which site they are on. Nothing behaves "
                      "differently."),
     # the parts of EA Explorer an organisation uses (owner, 8 Nov 2026, phase 13.3, D329): off hides a part's screens, menus,

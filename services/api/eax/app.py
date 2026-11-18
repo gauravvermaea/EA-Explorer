@@ -107,6 +107,8 @@ def create_app(testing: bool = False) -> Flask:
         blp as pairing_blp,  # site pairings and sync, git for packages (Release 6.5, D749)
     )
     api.register_blueprint(pairing_blp)
+    from .api.settings_transfer import blp as settings_transfer_blp  # settings exported and imported (Release 6.7, D755)
+    api.register_blueprint(settings_transfer_blp)
     api.register_blueprint(operations_blp)
     api.register_blueprint(archive_blp)               # archived and deleted models (R2.41)
     from .api.decisions import blp as decisions_blp  # decision records and dispensations (R5.5.1)

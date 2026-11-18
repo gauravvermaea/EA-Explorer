@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { apiFetch, can } from "./auth";
 import { fmtDateTime, fmtNumber } from "./fmt";
+import DbIntegrity from "./DbIntegrity";
 
 const MB = (b) => `${fmtNumber(Math.round((b || 0) / 1048576))} MB`;
 
@@ -93,6 +94,7 @@ export default function DbMaintenance() {
                     <button className="small" onClick={() => stop(s, true)}>End session</button></td></tr>))}</tbody>
             </table>)}
         </div>)}
+      <DbIntegrity />
       <h3>History</h3>
       <table className="grid-table small">
         <thead><tr><th>When</th><th>What</th><th>By</th><th>Found</th><th>Done</th><th>Status</th></tr></thead>

@@ -13,29 +13,31 @@
   22:44: the code goes with the backup, as in a DR pack, so no GitHub is needed; 17 Nov, 09:03: "For testing auto
   remove and create destination folders. Expect them to be cleaned and deleted".
 
-  Asks nothing. One step after another, stopping at the first that fails:
-    Each problem is a failure (the drill stops) or a warning (noted, the drill carries on, the report lists it first):
-    too little disk, the installation down, the backup, its checksums, the restore or the data after it are failures; a
-    kind of test content not made (then not checked after the restore), a smoke test only slow, a container still
-    starting or the background busy are warnings. A failure leaves diagnostics\ beside the report (every container's
-    state and its log's last lines). The owner, 17 Nov 2026, 19:05.
-    1. checks, nothing touched: the installation is there and running; the DR and temp folders are apart from it and
-       hold nothing but an earlier drill's leftovers (a DR copy, drill-* folders); the pre-flight (free disk for the
-       backup, its copy and the DR copy; containers and the background); then those leftovers are removed (the
-       earlier DR copy from Docker too) and the folders made
-    2. the smoke test; a test project, models and content of every kind (as the backup and restore test makes them)
-    3. the maintenance page on, the background paused, the fingerprint of every table and file; a full backup
-    4. the test content removed from the installation again, the background back, the maintenance page off; the
-       installation shut down (its containers removed; its data volumes and images kept)
-    5. the backup, the env file and the installation's code (eax drill code) copied into the temp folder and checked
-       against their checksums, as a DR pack holds them
-    6. eax-dr (this folder): that code into the DR folder (no GitHub), under its own Docker name (eaexplorer-dr, its own
+  Asks nothing. Simple on purpose (the owner, 18 Nov 2026, 07:12: "this will be used in critical failure so things need
+  to work"; "Key items, check is only a warning, unless the actual migration fails dont fail test. If we can login into
+  the new instance we are good"). The drill FAILS only when the restore cannot be done or nobody can sign in afterwards:
+  the checks before anything is touched, the backup, its copy, shutting the installation down, eax-dr (build and
+  restore) and the sign-in. Everything else is a WARNING and the drill carries on: the maintenance page, the background,
+  the key items counted before and after (models, elements, relationships, commits, projects, documents, people), the
+  rest of the DR copy starting, and the smoke test (only with -Smoke). No test content is made.
+    1. checks: the installation is there; the DR and temp folders are apart from it and hold nothing but an earlier
+       drill's leftovers; then the last drill's DR copy (left running for you to test) removed from Docker with its
+       folder, and the folders made; the installation started if the last drill left it stopped; free disk checked
+    2. the maintenance page on, the background paused and finished (warnings); the key items counted (a warning)
+    3. a full backup, copied straight out of EA Explorer into the temp folder with the env file and the code, and
+       checked against their checksums (while EA Explorer still runs, so no folder setting can send it astray)
+    4. the background back, the maintenance page off (warnings); the installation shut down (containers removed; data
+       volumes and images kept)
+    5. eax-dr (this folder): that code into the DR folder (no GitHub), under its own Docker name (eaexplorer-dr, its own
        volumes), the env file and the backup put in place, built, restored
-    7. in the DR copy: the fingerprint compared with before (every table and file), the test content found as it was
-       made, the background back, the smoke test, the test content removed
-  Then, passed or failed, everything is put back: the DR copy removed from Docker (its containers and data) and its
-  folder deleted, the temp folder deleted, the installation started again, the drill's backup deleted (kept when it
-  failed). The report and the logs stay in the installation: work\tests\drill-<time>\report.md, with the recovery time.
+    6. in the DR copy: a real sign-in (Keycloak signs its admin in and counts EA Explorer's people; the API answers);
+       then the key items compared with before, the background back, the rest up (warnings)
+  Then the DR copy is LEFT RUNNING for you to test, and the installation stays stopped (they share the ports): the
+  owner, 18 Nov 2026, 07:46: "Leave the drill running and install stopped. I will manually remove it or delete it and
+  start back install as I see fit". Back: `.\eax stop` in the DR folder, `.\eax up` in the installation. The next
+  drill removes the DR copy at its start. When it fails before eax-dr starts, the installation is started again. The
+  drill's backup is kept (pinned). The temp folder is deleted; the report and the logs stay in the installation:
+  work\tests\drill-<time>\report.md, with the recovery time.
 
 .EXAMPLE
   .\dr\eax-drill.ps1 -Install C:\Users\gaura\Github\EA-Enterpise -Dr C:\EA-DR\drill1 -Temp C:\EA-DR\temp
@@ -43,7 +45,8 @@
 param(
     [Parameter(Mandatory = $true)][string]$Install,
     [Parameter(Mandatory = $true)][string]$Dr,
-    [Parameter(Mandatory = $true)][string]$Temp
+    [Parameter(Mandatory = $true)][string]$Temp,
+    [switch]$Smoke      # the full smoke test before and after too (its findings are warnings): about ten minutes more
 )
 $ErrorActionPreference = "Stop"
 $Install = [IO.Path]::GetFullPath($Install).TrimEnd('\', '/')
@@ -70,13 +73,12 @@ function Disposable-Temp([string]$Folder) {
     return $true
 }
 
-# the smoke test: passed; or failed only on timing (a warning, the drill carries on); or found a fault (a failure)
+# the smoke test, only with -Smoke (owner, 18 Nov 2026, 06:39): what it finds is a warning
 function Smoke {
     try { Eax @("test", "smoke") | Out-Null; return "passed" }
     catch {
-        $why = $_.Exception.Message
-        $r = Eax @("drill", "smoke-result")       # fails the step itself when a check found a fault
-        return "passed, but $(@($r.warnings).Count) check(s) only slow ($why)"
+        $r = Eax @("drill", "smoke-result")
+        return "$(@($r.warnings).Count) finding(s), as warnings: the restore is judged on the sign-in"
     }
 }
 
@@ -87,7 +89,6 @@ $Results = New-Object System.Collections.Generic.List[object]
 . (Join-Path $Here "dr-common.ps1")    # Say, Step, Eax, Sha, Test-BackupWhole, Test-CodeWhole
 $Stamp = "drill-" + $Started.ToUniversalTime().ToString("yyyyMMddTHHmmssZ")
 $Run = Join-Path $Temp $Stamp
-$State = Join-Path $Run "content.json"      # the test content's ids and its test accounts' tokens: removed at the end
 $exit = 1
 $info = $null
 $BackupName = ""
@@ -95,7 +96,6 @@ $copy = ""
 $shutDown = $false
 $drStarted = $false       # eax-dr began building the DR copy (it may be half built)
 $quietWhere = ""          # the folder whose background is paused, so it is never left paused
-$contentWhere = ""        # the folder that still holds the test content
 if (-not (Disposable-Temp $Temp)) {
     Write-Host "$Temp holds files other than an earlier drill's: give a new folder (the drill deletes it afterwards)" -ForegroundColor Red
     exit 2 }
@@ -115,63 +115,64 @@ try {
         $script:info = Eax @("drill", "info")
         if (@($info.shared).Count) { throw ("the config file puts data in this machine's own folders (" + (@($info.shared) -join ", ") +
             "): a DR copy on this machine would use the same folders and its restore would write over the installation's data. Rehearse on another machine with a DR pack instead") }
-        Eax @("drill", "running") | Out-Null
-        # the pre-flight (19:05): too little disk fails now, in seconds, not half an hour in; a container still starting or
-        # the background busy is a warning
-        $pf = Eax @("drill", "preflight", $Temp, $Dr)
-        "running, version $($info.version); a backup of about $($pf.backup_gb) GB fits" }
-    Step "an earlier drill's leftovers removed and the folders made" {
+        "version $($info.version)" }
+    # the last drill's DR copy is left running for the owner to test (18 Nov 2026, 07:46: "I want the dr site to be there
+    # for me to test as I see fit"; "you can start at the start of the test to remove any historic data"): removed here
+    Step "an earlier drill's DR copy and leftovers removed and the folders made" {
+        # its background start finished first, or its log locks the folder (the owner's drill, 17 Nov 2026, 21:10)
+        if (Test-Path -LiteralPath $Dr) { if (-not (Wait-LaterStart $Dr 20)) { Warn "the earlier DR copy's background start was still running after 20 minutes; removed anyway" } }
         $r = Eax @("drill", "remove-copy", $DrProject)
         if (Test-Path -LiteralPath $Dr) { Remove-Item -Recurse -Force -LiteralPath $Dr }
         Get-ChildItem -Force -LiteralPath $Temp | Where-Object { $_.Name -ne $Stamp } | Remove-Item -Recurse -Force
         New-Item -ItemType Directory -Force $Dr | Out-Null
         "$($r.containers) container(s), $($r.volumes) volume(s) of an earlier DR copy removed" }
-    Step "the smoke test, before" { Smoke }
-    Step "a test project, models and content of every kind" {
-        $script:contentWhere = $Install     # set first: a step that fails half way may have made some of it
-        $c = Eax @("drill", "content", $State); "$($c.made) kinds made and read back" }   # a kind not made: a warning
-    Step "the maintenance page on and the background paused" { Eax @("drill", "quiet", "on") | Out-Null; $script:quietWhere = $Install }
-    Step "the background finished what it was doing" { $w = Eax @("drill", "idle"); "waited $($w.waited) s" }
-    Step "the fingerprint before (every table and file)" {
+    Step "the installation running (started when the last drill left it stopped)" {
+        $said = "running"
+        try { Eax @("drill", "running") | Out-Null }
+        catch { Eax @("up", "--wait-all") | Out-Null; Eax @("drill", "running") | Out-Null; $said = "started" }
+        # the pre-flight (19:05): too little disk fails now, in seconds, not half an hour in; a container still starting or
+        # the background busy is a warning
+        $pf = Eax @("drill", "preflight", $Temp, $Dr)
+        "$said; a backup of about $($pf.backup_gb) GB fits" }
+    if ($Smoke) { SoftStep "the smoke test, before (asked for: findings are warnings)" { Smoke } }
+    SoftStep "the maintenance page on and the background paused" { $script:quietWhere = $Install; Eax @("drill", "quiet", "on") | Out-Null }
+    SoftStep "the background finished what it was doing" { $w = Eax @("drill", "idle"); "waited $($w.waited) s" }
+    SoftStep "the key items counted" {
         $f = Eax @("drill", "fingerprint", (Join-Path $Run "before.json")); "$($f.tables) tables, $($f.files) files" }
     Step "a full infrastructure backup" {
         $b = Eax @("drill", "backup"); $script:BackupName = $b.name
         "$($b.name), $([math]::Round($b.bytes / 1GB, 2)) GB in $($b.seconds) s" }
-    Step "the test content removed from the installation" {
-        Eax @("drill", "content-remove", $State) | Out-Null; $script:contentWhere = ""; "removed" }
-    Step "the background back and the maintenance page off" { Eax @("drill", "quiet", "off") | Out-Null; $script:quietWhere = "" }
-    $t0 = Get-Date
-    Step "the installation shut down (containers removed; data and images kept)" {
-        Eax @("drill", "shutdown") | Out-Null; $script:shutDown = $true; "stopped" }
-    Step "the backup, the env file and the code copied into the temp folder and checked" {
-        $src = Join-Path $info.backups $BackupName
+    Step "the backup, the env file and the code copied out into the temp folder and checked" {
         $script:copy = Join-Path $Run "backup\$BackupName"
-        New-Item -ItemType Directory -Force (Split-Path $copy) | Out-Null
-        Copy-Item -LiteralPath $src $copy -Recurse -Force
+        $t = Eax @("drill", "take", $BackupName, $copy)
         Copy-Item -LiteralPath $info.config (Join-Path $Run "eaexplorer.env") -Force
         if ((Sha $info.config) -ne (Sha (Join-Path $Run "eaexplorer.env"))) { throw "the env file's copy does not match" }
         $n = Test-BackupWhole $copy
         Eax @("drill", "code", (Join-Path $Run "code")) | Out-Null
         $c = Test-CodeWhole (Join-Path $Run "code") $info.version
-        "$n backup files, the env file and $c code files, each matching its checksum" }
+        "$n backup files ($($t.how)), the env file and $c code files, each matching its checksum" }
+    SoftStep "the background back and the maintenance page off" { Eax @("drill", "quiet", "off") | Out-Null; $script:quietWhere = "" }
+    $t0 = Get-Date
+    Step "the installation shut down (containers removed; data and images kept)" {
+        Eax @("drill", "shutdown") | Out-Null; $script:shutDown = $true; "stopped" }
     Step "eax-dr: v$($info.version) from the copied code (no GitHub) into $Dr, built and restored ($DrProject)" {
         $script:drStarted = $true
         & (Get-Process -Id $PID).Path -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Here "eax-dr.ps1") `
             -Backup $copy -Install $Dr -Code (Join-Path $Run "code") -Env (Join-Path $Run "eaexplorer.env") -Project $DrProject -KeepQuiet -NoSmoke
         if ($LASTEXITCODE -ne 0) { throw "eax-dr failed (its report is in $Dr\work\dr)" }
-        $script:quietWhere = $Dr; $script:contentWhere = $Dr
+        $script:quietWhere = $Dr
         "done" }
-    $script:Recovery = [int]((Get-Date) - $t0).TotalMinutes
     $Install = $Dr                     # from here on, eax runs in the DR copy
-    Step "the fingerprint after, compared with before (every table and file)" {
+    Step "a real sign-in to the DR copy" { $s = Eax @("drill", "signin"); "signed in; $($s.people) people in $($s.realm); the API answers" }
+    $script:Recovery = [int]((Get-Date) - $t0).TotalMinutes
+    SoftStep "the key items compared with before" {
+        if (-not (Test-Path (Join-Path $Run "before.json"))) { throw "not counted before the backup" }
         Eax @("drill", "fingerprint", (Join-Path $Run "after.json")) | Out-Null
         $c = Eax @("drill", "compare", (Join-Path $Run "before.json"), (Join-Path $Run "after.json"))
-        "$($c.tables) tables and $($c.files) files the same$(if (@($c.not_compared).Count) { "; $(@($c.not_compared).Count) the installation writes by itself not compared" })$(if (@($c.allowed).Count) { "; $(@($c.allowed).Count) rewritten by the installation itself (allowed, in the log)" })" }
-    Step "the test content found in the DR copy as it was made" { $c = Eax @("drill", "content-check", $State); "$($c.kinds) kinds, the same" }
-    Step "the background back and the maintenance page off" { Eax @("drill", "quiet", "off") | Out-Null; $script:quietWhere = "" }
-    Step "the rest of the DR copy up (Reports, Documents, Diagrams)" { Eax @("up", "--wait-all") | Out-Null; "every container up" }
-    Step "the smoke test, after" { Smoke }
-    Step "the test content removed from the DR copy" { Eax @("drill", "content-remove", $State) | Out-Null; $script:contentWhere = ""; "removed" }
+        "$($c.keys_said)" }
+    SoftStep "the background back and the maintenance page off" { Eax @("drill", "quiet", "off") | Out-Null; $script:quietWhere = "" }
+    SoftStep "the rest of the DR copy up (Reports, Documents, Diagrams)" { Eax @("up", "--wait-all") | Out-Null; "every container up" }
+    if ($Smoke) { SoftStep "the smoke test, after (asked for: findings are warnings)" { Smoke } }
     $exit = 0
 } catch {
     $exit = 1
@@ -181,36 +182,29 @@ try {
     $notes = New-Object System.Collections.Generic.List[string]
     foreach ($w in @($quietWhere) | Where-Object { $_ }) {
         $Install = $w; try { Eax @("drill", "quiet", "off") | Out-Null } catch { } }
-    # the test content removed wherever EA Explorer still runs with it, before its state (and tokens) goes
-    if ($contentWhere -and (Test-Path $State) -and -not ($shutDown -and $contentWhere -ieq $Original)) {
-        $Install = $contentWhere
-        try { Eax @("drill", "content-remove", $State) | Out-Null; $contentWhere = "" } catch { } }
-    if (Test-Path $State) { Remove-Item -Force $State }          # the test accounts' tokens never stay on disk
     $ok = $exit -eq 0
     $Install = $Original
-    # put everything back (09:03): the DR copy out of Docker and its folder gone, the installation started again
+    # the DR copy left as it is, running, for the owner to test; the installation left stopped (they share the ports)
+    # (the owner, 18 Nov 2026, 07:46: "Leave the drill running and install stopped. I will manually remove it or delete it
+    # and start back install as I see fit"); the next drill removes it at its start
     if ($drStarted) {
         $drReports = Join-Path $Dr "work\dr"
         if (Test-Path $drReports) { Copy-Item -Recurse -Force $drReports (Join-Path $Run "eax-dr") }
-        if (-not (Wait-LaterStart $Dr 20)) { $notes.Add("The DR copy's background start was still running after 20 minutes; removed anyway.") }
-        try { $r = Eax @("drill", "remove-copy", $DrProject); $notes.Add("The DR copy removed from Docker: $($r.containers) container(s), $($r.volumes) volume(s).") }
-        catch { $notes.Add("The DR copy could not be removed from Docker: $($_.Exception.Message). Run ``.\eax drill remove-copy $DrProject`` in the installation.") }
-        try { Remove-Item -Recurse -Force -LiteralPath $Dr; $notes.Add("The DR folder $Dr deleted.") }
-        catch { $notes.Add("The DR folder $Dr could not be deleted: $($_.Exception.Message)") }
+        $notes.Add("The DR copy is left running in $Dr ($DrProject), at the address your installation uses; your installation is stopped (they share the ports).")
+        $notes.Add("Back to your installation: in $Dr run ``.\eax stop``, then in $Original run ``.\eax up``.")
+        $notes.Add("To remove the DR copy: in $Original run ``.\eax drill remove-copy $DrProject`` and delete $Dr; the next drill does both at its start.")
     } elseif ((Test-Path -LiteralPath $Dr) -and -not (Get-ChildItem -Force -LiteralPath $Dr | Select-Object -First 1)) {
         Remove-Item -Force -LiteralPath $Dr }
-    if ($shutDown) {
+    if ($shutDown -and -not $drStarted) {
         Say "`n> the installation started again" "Cyan"
         try { Eax @("up", "--wait-all") | Out-Null; $notes.Add("The installation started again.") }
         catch { $notes.Add("The installation could not be started again: $($_.Exception.Message). In $Original run ``.\eax up``.") }
+        # the maintenance page never left on in the installation (a warning step may not have switched it off)
+        try { Eax @("drill", "quiet", "off") | Out-Null } catch { $notes.Add("The maintenance page may still be on: in $Original run ``.\eax drill quiet off``.") }
     }
     if ($BackupName) {
-        if ($ok) {
-            try { Eax @("drill", "delete-backup", $BackupName) | Out-Null; $notes.Add("The drill's backup $BackupName deleted.") }
-            catch { $notes.Add("The drill's backup $BackupName could not be deleted: ``.\eax drill delete-backup $BackupName``.") }
-        } else { $notes.Add("The drill's backup $BackupName is kept (pinned) in the installation's backups: ``.\eax drill delete-backup $BackupName`` when done.") }
+        $notes.Add("The drill's backup $BackupName is kept (pinned) in the installation's backups: once the installation runs again, ``.\eax drill delete-backup $BackupName`` when done.")
     }
-    if ($contentWhere) { $notes.Add("The test content (self_test_...) may still be in $contentWhere; the next self-test run there removes it.") }
     $mins = [int]((Get-Date) - $Started).TotalMinutes
     $md = @("# EA Explorer restore drill, $($Started.ToString('yyyy-MM-dd HH:mm'))", "",
             "**$(if (-not $ok) { 'Failed' } elseif ($AllWarnings.Count) { "Passed with $($AllWarnings.Count) warning(s)" } else { 'Passed' })** in $mins minutes. Installation ``$Original``, DR copy ``$Dr`` ($DrProject), version $($info.version), backup ``$BackupName``.", "")

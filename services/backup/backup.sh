@@ -20,7 +20,7 @@ TARGET="${EAX_BACKUP_ROOT:-/backups}/$REL"
 mkdir -p "$TARGET/databases" "$TARGET/files"
 . /usr/local/bin/tarset.sh                     # one file set at a time, its failure named (R2.46)
 . /usr/local/bin/dumpdb.sh                     # one database at a time, tried three times, its failure named (R5.6-B1)
-export PGHOST="${EAX_BACKUP_PGHOST:-db}" PGPORT="${EAX_BACKUP_PGPORT:-5432}" PGUSER=postgres PGPASSWORD="${EAX_DB_SUPERUSER_PASSWORD:-}"
+export PGHOST="${EAX_BACKUP_PGHOST:-db}" PGPORT="${EAX_BACKUP_PGPORT:-5432}" PGUSER="${EAX_DB_ADMIN_USER:-postgres}" PGPASSWORD="${EAX_DB_SUPERUSER_PASSWORD:-}"
 
 # every database on a server of its own (D410, R2.50: each database's own setting): "<name> <host> <port>"
 . /usr/local/bin/servers.sh

@@ -87,6 +87,8 @@ class Start(MethodView):
         """Update now, or at a time ({channel, to, at}): a full backup first, then one release at a time"""
         if not data.get("confirm"):
             abort(422, message="Confirm the update (confirm: true): EA Explorer is unavailable while it runs.")
+        from .maintenance_gate import LATER, NOW, needs_yes
+        needs_yes(data, "An update", LATER if data.get("at") else NOW)
         out = _ops("POST", "/updates/start", {"channel": data.get("channel", "prod"), "to": data.get("to", ""),
                                               "at": data.get("at", ""), "by": g.user.username}, timeout=240)
         with get_engine().begin() as conn:
@@ -107,10 +109,13 @@ def _decide(action: str):
 class Retry(MethodView):
     """/api/v1/operations/updates/retry: POST a failed update: its failed step again, then the rest."""
     @blp.doc(security=SECURITY)
+    @blp.arguments(FreeIn)
     @blp.response(202, Free)
     @require_auth("system.operate")
-    def post(self):
+    def post(self, data):
         """A failed update: its failed step again, then the rest"""
+        from .maintenance_gate import needs_yes
+        needs_yes(data, "The update, tried again")
         return _decide("retry")
 
 
@@ -127,6 +132,8 @@ class Rollback(MethodView):
         up first)"""
         if not data.get("confirm"):
             abort(422, message="Confirm the roll back (confirm: true): work done since the update is lost.")
+        from .maintenance_gate import needs_yes
+        needs_yes(data, "A roll back")
         return _decide("rollback")
 
 

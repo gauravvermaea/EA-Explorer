@@ -58,16 +58,35 @@ def test_the_preflight_fails_on_disk_and_warns_on_the_rest(monkeypatch, tmp_path
     assert "too little disk" in D.preflight(str(tmp_path / "t"), str(tmp_path / "d"))["error"]
 
 
-def test_a_smoke_test_only_slow_is_a_warning_and_a_fault_is_a_failure(monkeypatch):
+def test_what_the_smoke_test_finds_is_a_warning_only(monkeypatch):
+    """The owner, 18 Nov 2026, 06:39: "Can the testing be not exhasutive and just check number of rows or some key
+    items": the smoke test runs only when asked (-Smoke), and even a fault it finds is a warning; the drill is judged on
+    the rows, the key items and the test content."""
     slow = [{"suite": "reports", "name": "VP-25 as super-admin", "detail": "not loaded after 60 seconds"}]
     monkeypatch.setattr(D, "_api", lambda cmd, state: {"run": 9, "state": "failed", "failed": slow})
     out = D.smoke_result()
     assert "error" not in out and len(out["warnings"]) == 1
     fault = slow + [{"suite": "api", "name": "a model opens", "detail": "500 Internal Server Error"}]
     monkeypatch.setattr(D, "_api", lambda cmd, state: {"run": 9, "state": "failed", "failed": fault})
-    assert "found faults" in D.smoke_result()["error"]
+    out = D.smoke_result()
+    assert "error" not in out and len(out["warnings"]) == 2 and "500 Internal Server Error" in out["warnings"][1]
     monkeypatch.setattr(D, "_api", lambda cmd, state: {"run": 9, "state": "failed", "failed": []})
-    assert D.smoke_result()["error"]
+    assert "error" not in D.smoke_result() and D.smoke_result()["warnings"]
+
+
+def test_the_key_items_rows_before_and_after():
+    from eaxcli import backup_restore as BR
+    before = {"tables": {"eaexplorer core.models": [12, "a"], "eaexplorer proj.projects": [5, "b"],
+                         "keycloak public.user_entity": [20, "c"], "eaxprojects proj.documents": [7, "d"]}}
+    after = {"tables": {"eaexplorer core.models": [12, "x"], "eaexplorer proj.projects": [4, "b"],
+                        "keycloak public.user_entity": [20, "c"], "eaxprojects proj.documents": [7, "d"]}}
+    keys = {k["what"]: k for k in BR.key_counts(before, after)}
+    assert keys["models"] == {"what": "models", "before": 12, "after": 12, "lost": False}
+    assert keys["projects"]["lost"] and keys["project documents"]["before"] == 7      # in a database of its own (R2.50)
+    assert "entities" not in keys                                                     # in neither: not shown
+    ps = (REPO / "dr/eax-drill.ps1").read_text(encoding="utf-8")
+    sh = (REPO / "dr/eax-drill.sh").read_text(encoding="utf-8")
+    assert "[switch]$Smoke" in ps and "if ($Smoke)" in ps and "--smoke) SMOKE=1" in sh and "keys_said" in ps and "keys_said" in sh
 
 
 def test_both_drills_do_the_same(monkeypatch):

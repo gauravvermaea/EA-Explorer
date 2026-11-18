@@ -12,7 +12,7 @@ temp location - backups, env etc; then at dr location download the install from 
   eax drill running                    whether this installation runs (the API and sign-in answer)
   eax drill preflight <temp> <dr>      before anything is touched, in seconds: free disk for the backup, its copy and the
                                        DR copy (too little fails); containers not healthy and the background busy (warnings)
-  eax drill smoke-result               after a smoke test that failed: whether every failed check failed only on timing
+  eax drill smoke-result               after a smoke test that failed (only with -Smoke): its findings, as warnings
                                        (then a warning, the drill carries on) or found a fault (a failure)
   eax drill diagnose <folder>          after a failure: every container's state and the last lines of its log, into <folder>
   eax drill quiet on|off               the maintenance page and the background paused, or back
@@ -26,9 +26,17 @@ temp location - backups, env etc; then at dr location download the install from 
   eax drill backup                     an infrastructure backup now: its name and folder
   eax drill shutdown                   every container of this installation stopped and removed (volumes and images kept)
   eax drill restore <name>             a full restore of a backup, then EA Explorer answering again
-  eax drill compare <a> <b>            two fingerprints compared (what the installation writes by itself is not): exit 1
-                                       when data was lost or added; values the installation rewrote by itself are
-                                       allowed and listed (backup_restore.same)
+  eax drill compare <a> <b>            two fingerprints compared: the key items' counts (models, elements, relationships,
+                                       projects, people, documents) and every table; a difference is a WARNING, never a
+                                       failure (the owner, 18 Nov 2026, 07:12: "Key items, check is only a warning, unless
+                                       the actual migration fails dont fail test")
+  eax drill take <name> <folder>       the backup copied out of EA Explorer into <folder> while it still runs: from the
+                                       backups folder on this machine when it is there, else straight out of the
+                                       operations helper (docker compose cp), so no folder setting can send it astray
+                                       (the owner's drill, 18 Nov 2026, 07:04: "Cannot find path ...\\infrastructure\\...")
+  eax drill signin                     a real sign-in: Keycloak signs its admin in and counts the people of EA
+                                       Explorer's realm, and the API answers: "If we can login into the new instance we
+                                       are good" (07:12)
   eax drill remove-copy <name>         a DR copy's Docker containers, data (volumes) and networks removed, by its Docker
                                        name (eaexplorer-dr); never this installation's own; images kept (shared names)
   eax drill delete-backup <name>       one of this installation's backups unpinned and deleted (the drill's own)
@@ -278,6 +286,79 @@ def remove_copy(name: str) -> dict:
     return out
 
 
+def compare_warnings(c: dict) -> list[str]:
+    """What a comparison found, as warnings only (pure): each key item with fewer rows after, then the other tables that
+    lost rows (the first ten). Never a failure: the drill fails only when the restore itself fails or nobody can sign in
+    (the owner, 18 Nov 2026, 07:12)."""
+    out = [f"{k['what']}: {k['before']} before, {k['after']} after" for k in c.get("keys") or [] if k.get("lost")]
+    rest = c.get("differ") or []
+    if rest:
+        out.append(f"{len(rest)} table(s) or file(s) differ: " + "; ".join(rest[:10]) + (" ..." if len(rest) > 10 else ""))
+    return out
+
+
+BACKUP_NAME = re.compile(r"^[0-9]{8}T[0-9]{6}Z-[A-Za-z0-9._-]+$")
+
+
+def take(name: str, dest: str, run=subprocess.run) -> dict:
+    """The backup copied out of EA Explorer into dest while it still runs (see the module): the folder on this machine
+    when it holds it, else out of the operations helper. Checked to hold its SHA256SUMS."""
+    if not BACKUP_NAME.match(name or ""):
+        return {"error": f"{name} is not a backup's name"}
+    target = Path(dest).expanduser()
+    if target.exists():
+        shutil.rmtree(target)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    src = Path(info()["backups"]) / name
+    if (src / "SHA256SUMS").exists():
+        shutil.copytree(src, target)
+        how = f"from {src}"
+    else:
+        p = run(compose_args(["cp", f"ops:/backups/infrastructure/{name}", str(target)]), cwd=ROOT, capture_output=True,
+                text=True, encoding="utf-8", errors="replace", check=False)
+        if p.returncode != 0:
+            return {"error": f"the backup could not be copied out of EA Explorer: {(p.stderr or p.stdout).strip()[-300:]}"}
+        how = "out of EA Explorer's operations helper"
+    if not (target / "SHA256SUMS").exists():
+        return {"error": f"the copy of {name} has no SHA256SUMS: not a whole backup"}
+    return {"folder": str(target), "files": sum(1 for f in target.rglob("*") if f.is_file()), "how": how}
+
+
+SIGNIN_KC = ('set -e; K=/opt/keycloak/bin/kcadm.sh; C=/tmp/eax-drill-kcadm.config; '
+             '$K config credentials --config $C --server http://localhost:8080/auth --realm master --user "$1" '
+             '--password "$(cat /run/secrets/EAX_KC_ADMIN_PASSWORD)" >/dev/null; '
+             '$K get users/count --config $C -r "$2"; rm -f $C')
+SIGNIN_API = ("import urllib.request,sys; r=urllib.request.urlopen('http://localhost:8000/api/health', timeout=20); "
+              "print(r.status)")
+
+
+def signin(minutes: int = 10, run=subprocess.run, sleep=None) -> dict:
+    """A real sign-in to this installation (see the module), tried for up to `minutes` while it finishes starting."""
+    import time
+
+    from .core import setting
+    sleep = sleep or time.sleep
+    realm, admin = setting("EAX_KEYCLOAK_REALM", "eaexplorer"), setting("EAX_KC_ADMIN", "kcadmin")
+    why, end = "", time.time() + minutes * 60
+    while True:
+        kc = run(compose_args(["exec", "-T", "keycloak", "bash", "-c", SIGNIN_KC, "kc", admin, realm]), cwd=ROOT,
+                 capture_output=True, text=True, encoding="utf-8", errors="replace", check=False)
+        api = run(compose_args(["exec", "-T", "api", "python", "-c", SIGNIN_API]), cwd=ROOT, capture_output=True, text=True,
+                  encoding="utf-8", errors="replace", check=False)
+        people = (kc.stdout or "").strip().splitlines()[-1:] if kc.returncode == 0 else []
+        if people and people[0].strip().isdigit() and api.returncode == 0 and "200" in (api.stdout or ""):
+            n = int(people[0].strip())
+            out = {"people": n, "realm": realm, "api": "answers"}
+            if n == 0:
+                out["warnings"] = [f"signed in, but the realm {realm} has no people: were they restored?"]
+            return out
+        why = ("Keycloak: " + (kc.stderr or kc.stdout or "").strip()[-200:]) if kc.returncode or not people else \
+              ("the API: " + (api.stderr or api.stdout or "").strip()[-200:])
+        if time.time() >= end:
+            return {"error": f"nobody can sign in after {minutes} minutes ({why})"}
+        sleep(15)
+
+
 def _ops(*args: str) -> dict:
     return BR.run_in(BR.OPS, [*args, "--version", version()])
 
@@ -423,17 +504,20 @@ def timing_only(failed: list[dict]) -> bool:
 
 
 def smoke_result() -> dict:
-    """After `eax test smoke` failed: a warning when it failed only on timing, a failure when it found a fault."""
+    """After `eax test smoke` failed (it runs only when asked: -Smoke): its findings as warnings. Whether the backup and
+    the restore work is judged on the row counts, the key items and the test content (owner, 18 Nov 2026, 06:39: "Can
+    the testing be not exhasutive and just check number of rows or some ket items"), not on the installation's own
+    faults the smoke test finds."""
     r = _api("failed", {})
     if r.get("error"):
-        return {"error": f"the smoke test failed, and its checks could not be read: {r['error']}"}
+        return {"warnings": [f"the smoke test failed, and its checks could not be read: {r['error']}"]}
     failed = r.get("failed") or []
     lines = [f"{f['suite']} {f['name']}: {f['detail'][:200]}" for f in failed]
     if timing_only(failed):
         return {"run": r.get("run"), "warnings": [f"smoke test, only slow (run {r.get('run')}): {x}" for x in lines[:20]]}
     if not failed:
-        return {"error": f"the smoke test failed (run {r.get('run')}, {r.get('state')}) with no failed check recorded"}
-    return {"error": f"the smoke test found faults (run {r.get('run')}): " + "; ".join(lines[:10])}
+        return {"warnings": [f"the smoke test failed (run {r.get('run')}, {r.get('state')}) with no failed check recorded"]}
+    return {"run": r.get("run"), "warnings": [f"smoke test found (run {r.get('run')}): {x}" for x in lines[:20]]}
 
 
 LOG_LINES = 200
@@ -520,17 +604,20 @@ def main(args: list[str]) -> int:
         elif cmd == "compare" and len(rest) >= 2:
             a, b = (json.loads(Path(p).read_text(encoding="utf-8")) for p in rest[:2])
             out = BR.same(a, b, set())
-            for x in out.get("allowed") or []:
-                say(f"  allowed: {x}", "yellow")
-            if out["differ"]:
-                out["error"] = f"{len(out['differ'])} differ: " + "; ".join(out["differ"][:20])
+            out["keys"] = BR.key_counts(a, b)
+            out["keys_said"] = ", ".join(f"{k['what']} {k['before']}->{k['after']}" for k in out["keys"])
+            out["warnings"] = compare_warnings(out)
+        elif cmd == "take" and len(rest) >= 2:
+            out = take(rest[0], rest[1])
+        elif cmd == "signin":
+            out = signin()
         elif cmd == "code" and rest:
             out = copy_code(Path(rest[0]).expanduser())
             if out["version"] != version():
                 out["error"] = f"the code copied says version {out['version']}, the installation {version()}"
         else:
             out = {"error": "eax drill info | running | preflight <temp> <dr> | smoke-result | diagnose <folder> | quiet on|off | content|content-check|content-remove <state file> | "
-                            "idle | remove-copy <name> | delete-backup <name> | fingerprint <file> | backup | shutdown | restore <name> | compare <a> <b> | code <folder>"}
+                            "idle | remove-copy <name> | delete-backup <name> | fingerprint <file> | backup | take <name> <folder> | shutdown | restore <name> | signin | compare <a> <b> | code <folder>"}
     except (Failure, OSError, ValueError) as exc:
         out = {"error": str(exc)[:1000]}
     print(json.dumps(out, default=str), flush=True)

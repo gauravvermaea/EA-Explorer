@@ -12,6 +12,7 @@
 //             installation's time zone; a wipe command needs a Super Admin and the strong confirm once; the one-click
 //             demo reset (clean-restart laptop every night at 02:00, with a banner).
 import PlatformNotice from "./PlatformNotice";
+import UpkeepChoices from "./Upkeep";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch, can } from "./auth";
 import { fmtDateTime } from "./fmt";
@@ -407,6 +408,7 @@ function Schedules() {
     onDone={(text) => { setAdding(null); setMsg(text || ""); load(); }} />;
   return (
     <div className="cc-schedules">
+      <UpkeepChoices />
       <p className="quiet">eax commands that run by themselves, in the installation's time zone (<strong>{data.time_zone}</strong>). They are kept in
         <code> persist/schedules.json</code>, which no reset deletes, so a demo can reset itself every night and still keep its schedule.
         Each run is in the <a href="#/admin/commands/history">History</a>.</p>

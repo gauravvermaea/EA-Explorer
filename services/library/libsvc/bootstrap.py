@@ -3,6 +3,7 @@ server on a laptop, D346), then the migrations in libsvc/migrations are run, eac
 
 from __future__ import annotations
 
+import os
 import sys
 import time
 from pathlib import Path
@@ -29,7 +30,7 @@ def ensure_database() -> None:
         return
     for attempt in range(60):
         try:
-            with psycopg.connect(s.dsn(user="postgres", password=s.superuser_password, db="postgres"), autocommit=True) as c:
+            with psycopg.connect(s.dsn(user=os.environ.get("EAX_DB_ADMIN_USER") or "postgres", password=s.superuser_password, db="postgres"), autocommit=True) as c:
                 if not c.execute("SELECT 1 FROM pg_roles WHERE rolname = %s", (s.db_user,)).fetchone():
                     c.execute(sql.SQL("CREATE ROLE {} LOGIN PASSWORD {}").format(sql.Identifier(s.db_user), sql.Literal(s.db_password)))
                     _say(f"login {s.db_user} made")
@@ -39,7 +40,7 @@ def ensure_database() -> None:
                     c.execute(sql.SQL("CREATE DATABASE {} OWNER {}").format(sql.Identifier(s.db_name), sql.Identifier(s.db_user)))
                     c.execute(sql.SQL("REVOKE ALL ON DATABASE {} FROM PUBLIC").format(sql.Identifier(s.db_name)))
                     _say(f"database {s.db_name} made")
-            with psycopg.connect(s.dsn(user="postgres", password=s.superuser_password), autocommit=True) as c:
+            with psycopg.connect(s.dsn(user=os.environ.get("EAX_DB_ADMIN_USER") or "postgres", password=s.superuser_password), autocommit=True) as c:
                 c.execute("CREATE EXTENSION IF NOT EXISTS pgcrypto")
                 c.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm")
             return

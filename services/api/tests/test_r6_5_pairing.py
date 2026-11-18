@@ -79,6 +79,11 @@ def test_the_api_the_jobs_the_page_and_the_read_only_are_wired():
     assert "#/admin/pairings" in (root / "services/web/src/menu.js").read_text()
     from eax import settings
     assert settings.REGISTRY["site_purpose"][3] == "PROD"
+    # R6.5.4: the purposes the owner named (17 Nov 2026, 19:40: "DEV, UAT, PROD, CONTENT etc"), each with its badge colour
+    from eax import pairing
+    assert {"DEV", "UAT", "PROD", "CONTENT"} <= set(settings.REGISTRY["site_purpose"][4]) == set(pairing.PURPOSES)
+    css = (root / "services/web/src/styles.css").read_text()
+    assert all(f".site-purpose-{p.lower()}" in css for p in pairing.PURPOSES if p != "PROD")
 
 
 # ---------------------------------------------------------------- the flow, on a real database

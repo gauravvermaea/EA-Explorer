@@ -60,11 +60,25 @@ class Run(MethodView):
     def post(self, data):
         """Run one command now ({argv} or {name, values}; for the wipe commands also {confirm: {typed, understood}}).
         Checked again by the helper: only known eax commands with their own options"""
+        from .maintenance_gate import argv_needs_yes
+        argv_needs_yes(data, data.get("argv") or [data.get("name") or ""])
         body = {"argv": data.get("argv"), "name": data.get("name"), "values": data.get("values") or {},
                 "confirm": data.get("confirm") or {}, "by": g.user.username, "roles": _roles()}
         out = _ops("POST", "/commands/run", body, timeout=60)
         _record("command.run", out.get("id", ""), {"command": out.get("command"), "kind": out.get("kind")})
         return out
+
+
+@blp.route("/guides")
+class Guides(MethodView):
+    """/api/v1/admin/commands/guides: GET the guides (System Admin > Setup; R6.6, D750): each with its steps and the eax
+    command a step runs, the same list as eax setup and Jenkins."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def get(self):
+        """The guides, each with its steps and the eax command a step runs (the same list as eax setup and Jenkins)"""
+        return _ops("GET", "/commands/guides", timeout=20)
 
 
 @blp.route("/runs")
@@ -153,6 +167,9 @@ class Schedules(MethodView):
         minute, at}, enabled, backup_first, keep, banner, confirm {typed, understood}}, or {demo: true, at, confirm}
         for the one-click demo reset (clean-restart laptop every night). A command that deletes everything needs a
         Super Admin and the strong confirm, given once here"""
+        from .maintenance_gate import argv_needs_yes
+        argv_needs_yes(data, (data or {}).get("argv") or [str((data or {}).get("command") or "")]
+                       if not (data or {}).get("demo") else ["clean-restart"], scheduled=True)
         body = {**(data or {}), "by": g.user.username, "roles": _roles()}
         out = _ops("POST", "/commands/schedules", body, timeout=30)
         _record("schedule.add", out.get("id", ""), {"name": out.get("name"), "command": " ".join(["eax", *out.get("argv", [])]),
@@ -173,6 +190,10 @@ class ScheduleChange(MethodView):
         if what not in ("on", "off", "remove", "run"):
             from flask_smorest import abort
             abort(404, message="Choose on, off, remove or run.")
+        if what in ("on", "run"):
+            from .maintenance_gate import argv_needs_yes
+            mine = next((s for s in _ops("GET", "/commands/schedules", timeout=20).get("schedules", []) if s.get("id") == sid), {})
+            argv_needs_yes(data, mine.get("argv") or [], scheduled=what == "on")
         out = _ops("POST", f"/commands/schedules/{sid}/{what}", {"by": g.user.username, "roles": _roles()}, timeout=30)
         _record(f"schedule.{what}", sid, {"name": out.get("name"), "run": out.get("id") if what == "run" else None})
         return out

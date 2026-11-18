@@ -36,6 +36,24 @@ step() {
   fi
 }
 
+# soft_step "name" command...: a step that never stops the drill or the DR (the owner, 18 Nov 2026, 07:12: "this will be
+# used in critical failure so things need to work"; "unless the actual migration fails dont fail test"): when it fails,
+# its last line is a warning and the script carries on.
+soft_run() {
+  local tmp rc l
+  tmp=$(mktemp)
+  "$@" > >(tee "$tmp") 2>&1 && rc=0 || rc=$?
+  wait $! 2>/dev/null || true
+  if [ "$rc" -ne 0 ]; then
+    l=$(grep -v '^    ' "$tmp" | grep . | tail -n 1)
+    printf '%s\n' "${l:-exit $rc}" >>"$STEP_WARNINGS"; say "  warning: ${l:-exit $rc}"
+    echo "not done (a warning: the rest carries on)"
+  fi
+  rm -f "$tmp"
+  return 0
+}
+soft_step() { local name=$1; shift; step "$name" soft_run "$@"; }
+
 # eax args...: one eax command in the installation, waited for, its lines shown (indented) as they come; its JSON answer
 # (when it gives one) in EAX_JSON
 eax() {

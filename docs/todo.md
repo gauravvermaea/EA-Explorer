@@ -5,6 +5,15 @@ Tick an item (`[x]`) when it is done; remove it at the next tidy-up.
 
 ## Waiting on a test (Gaurav)
 
+- [ ] **Test R6.7, settings import and export** (D768, 18 Nov 2026): `.\eax restart` (migration 0106), then System Admin
+  > Settings > Settings import and export: Export to a file (all parts); change two settings and the banner; Choose that
+  file: the differences show here and in the file; tick one, Take; the safety copy is listed; Undo puts it back. From
+  the machine: `.\eax settings export work\exports\s.json`, `.\eax settings import work\exports\s.json` (shows, changes
+  nothing), `--yes` (takes), `.\eax settings copies`, `.\eax settings undo <id>`. In Jenkins: eax-admin > Settings.
+  Optional: Put on git, then From git.
+- [ ] **Test the health watch** (D769): after `.\eax up` a stopped test runner raises no alert. Jenkins itself is
+  tested in Release 6.8 (D773).
+
 - [ ] **Test backups that carry everything** (D410, 10 Nov 2026): `.\eax up` (the backup container mounts the reports'
   home and the import and export folders); `.\eax backup check` and look at its `manifest.json` (`contents`: every
   database, the file sets, what is not included and why); `.\eax restore check --what full`; on Administration >

@@ -131,8 +131,15 @@ def start_log(name: str, rest: list[str]) -> None:
         except OSError:
             pass
     path = LOG_DIR / f"eax-{STAMP}-{name}.log"
+    try:
+        f = open(path, "a", encoding="utf-8", newline="\n")  # noqa: SIM115 - open for the whole run
+    except PermissionError:
+        # the PowerShell form holds a log of the same name and second open while it hands the command here (the
+        # owner's `.\eax maintenance clear`, 18 Nov 2026, 11:13: "Permission denied: ...-maintenance.log"): a log of its own
+        path = LOG_DIR / f"eax-{STAMP}-{name}-py.log"
+        f = open(path, "a", encoding="utf-8", newline="\n")  # noqa: SIM115
     _log["path"] = path
-    _log["file"] = open(path, "a", encoding="utf-8", newline="\n")  # noqa: SIM115 - open for the whole run
+    _log["file"] = f
     log_only(f"=== eax {name} {' '.join(rest)}   {datetime.now().astimezone().isoformat()}")
     log_only(f"=== folder {ROOT}   Python {platform.python_version()}   {platform.platform()}   (eaxpy, D331)")
     print(paint(f"Log: {path}", "grey"), flush=True)

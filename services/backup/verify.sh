@@ -13,7 +13,7 @@ REL="${1:?give the backup folder, for example infrastructure/20261112T200000Z-se
 case "$REL" in *..*|/*) echo "A folder under the backups folder, please"; exit 2;; esac
 SOURCE="${EAX_BACKUP_ROOT:-/backups}/$REL"
 [ -d "$SOURCE" ] || { printf 'CHECK\tthe backup folder\tfailed\tno folder %s\n' "$REL"; exit 1; }
-export PGHOST="${EAX_BACKUP_PGHOST:-db}" PGPORT="${EAX_BACKUP_PGPORT:-5432}" PGUSER=postgres PGPASSWORD="${EAX_DB_SUPERUSER_PASSWORD:-}" PGOPTIONS="-c client_min_messages=warning"
+export PGHOST="${EAX_BACKUP_PGHOST:-db}" PGPORT="${EAX_BACKUP_PGPORT:-5432}" PGUSER="${EAX_DB_ADMIN_USER:-postgres}" PGPASSWORD="${EAX_DB_SUPERUSER_PASSWORD:-}" PGOPTIONS="-c client_min_messages=warning"
 BAD=0
 check() { printf 'CHECK\t%s\t%s\t%s\n' "$1" "$2" "$3"; [ "$2" = ok ] || BAD=1; }
 tables() { psql -qAtX -d "$1" -c "SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind = 'r' AND n.nspname NOT IN ('pg_catalog', 'information_schema')" 2>/dev/null; }

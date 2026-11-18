@@ -337,7 +337,7 @@ Built ([operations.md](operations.md), [command-line-and-console.md](command-lin
 - **The self-test's data in its own database** (R2.28, D613): runs, results and screenshots apart from the
   architecture; tables made and kept in line at every start; `eax databases copy tests` moves earlier runs.
 - **Operations data in its own database** (R2.27, D614); **persist/ emptied from the web or eax** (D618); **logs kept by day,
-  backed up and cleaned** (D619); **the footprint measured** (D620); **the UI review's screenshots** (D621); **the release
+  backed up and cleaned** (D619); **the footprint measured** (D620); **the release
   and build at the top left** (D616).
 - **Memory measured and recorded** (Release 3.5): `eax footprint --watch` and `eax measure` (start-up, smoke test, at
   rest, in use, full test, one summary); every self-test run watched; **the resource history** (D679): memory, CPU,

@@ -1,0 +1,43 @@
+# Jenkins signing in through EA Explorer's Keycloak (R6.6-J1, D748, D750), chosen with EAX_JENKINS_SIGNIN=keycloak;
+# casc.yaml (Jenkins' own account) is the default, as it starts whatever Keycloak's state (18 Nov 2026). The values come from the environment the stack gives it
+# (deploy/jenkins/docker-compose.jenkins.yml): no password is written here.
+jenkins:
+  systemMessage: "EA Explorer's operations: one pipeline per eax command and DR tool. Pipelines that change everything ask for the installation's name."
+  numExecutors: 2
+  # Keycloak sign-in (Super Admins and IT Admins), and Jenkins' own account as the way in when Keycloak is down
+  securityRealm:
+    oic:
+      clientId: "jenkins"
+      clientSecret: "${EAX_JENKINS_OIDC_SECRET}"
+      serverConfiguration:
+        wellKnown:
+          wellKnownOpenIDConfigurationUrl: "${EAX_KEYCLOAK_PUBLIC}/realms/${EAX_KEYCLOAK_REALM:-eaexplorer}/.well-known/openid-configuration"
+      userNameField: "preferred_username"
+      fullNameFieldName: "name"
+      emailFieldName: "email"
+      groupsFieldName: "realm_access.roles"
+      disableSslVerification: ${EAX_JENKINS_OIDC_INSECURE:-false}
+      escapeHatchEnabled: true
+      escapeHatchUsername: "${EAX_JENKINS_ADMIN:-jenkins-admin}"
+      escapeHatchSecret: "${EAX_JENKINS_ADMIN_PASSWORD}"
+      escapeHatchGroup: "eax-super-admin"
+  authorizationStrategy:
+    globalMatrix:
+      entries:
+        - group:
+            name: "eax-super-admin"
+            permissions: ["Overall/Administer"]
+        - group:
+            name: "eax-it-admin"
+            permissions: ["Overall/Read", "Job/Build", "Job/Read", "Job/Cancel", "Job/Workspace", "Run/Replay"]
+        - group:
+            name: "authenticated"
+            permissions: ["Overall/Read"]
+security:
+  globalJobDslSecurityConfiguration:
+    useScriptSecurity: false
+unclassified:
+  location:
+    url: "${EAX_JENKINS_URL}"
+jobs:
+  - file: /usr/share/jenkins/ref/seed.groovy

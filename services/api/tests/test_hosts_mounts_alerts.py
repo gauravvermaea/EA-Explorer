@@ -181,6 +181,18 @@ def test_what_counts_as_not_working(hw):
     assert hw.assess([{"key": "setup", "service": "setup", "state": "exited", "exit_code": 1}])[0]["kind"] == "stopped"
 
 
+def test_a_stopped_test_runner_is_never_an_alert(hw):
+    """The owner, 18 Nov 2026, 11:53: "My installation says test runner is down": a self-test that failed left its runner
+    exited with code 1, and the watch called it a failed set-up step. Stopped is the runner's normal state."""
+    rows = [{"key": "testrunner", "service": "testrunner", "state": "exited", "exit_code": 1},
+            {"key": "testrunner-service", "service": "testrunner-service", "state": "exited", "exit_code": 137},
+            {"key": "reports-init", "service": "reports-init", "state": "exited", "exit_code": 1}]
+    assert [(p["service"], p["kind"]) for p in hw.assess(rows)] == [("reports-init", "stopped")]
+    running = hw.assess([{"key": "testrunner-service", "service": "testrunner-service", "state": "running",
+                          "health": "unhealthy"}])
+    assert running and running[0]["kind"] == "unhealthy"                   # a runner that runs is still watched
+
+
 def test_one_alert_per_problem_a_reminder_later_and_a_recovery(hw):
     open_ = {}
     p = [{"key": "web:unhealthy", "service": "web", "kind": "unhealthy", "detail": ""}]
@@ -267,13 +279,13 @@ def test_the_self_test_raises_an_alert_and_sees_its_recovery(monkeypatch):
 
 
 def test_measurements_and_watchers_are_not_critical():
-    """R2.35 decided (13 Nov 2026, D645): the limit of 10 stays; coverage, the alert check and the UI review's notes are
-    non-critical; the application's own checks stay critical."""
+    """R2.35 decided (13 Nov 2026, D645): the limit of 10 stays; coverage and the alert check are non-critical;
+    the application's own checks stay critical (the UI review removed, 18 Nov 2026, D770)."""
     from eax.testing import health
     assert health.NON_CRITICAL_LIMIT == 10
     assert health.importance("api", "coverage: the API's code run by this test") == "non-critical"
     assert health.importance("api", "alerts: a container that stops raises an alert") == "non-critical"
-    assert health.importance("ui", "UI review: projects as architect") == "non-critical"
+    assert health.importance("ui", "UI review: projects as architect") == "critical"   # removed (D770)
     assert health.importance("api", "GET /api/v1/models as architect") == "critical"
     assert health.importance("security", "headers") == "non-critical"
 

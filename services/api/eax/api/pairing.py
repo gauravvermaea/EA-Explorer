@@ -285,7 +285,12 @@ def _package_file(data: dict) -> tuple[bytes, str]:
                 return pb.path_of(str(p["guid"]), str(data.get("file") or "")).read_bytes(), str(data.get("file"))
         except EditError as exc:
             abort(exc.status, message=str(exc))
-    abort(400, message="source is model (with model, format, content) or project-backup (with project, file).")
+    if source == "settings":                    # the settings file (Release 6.7, D755): Super Admins only
+        _super()
+        from .settings_transfer import settings_file
+        return settings_file(data.get("parts"))
+    abort(400, message="source is model (with model, format, content), project-backup (with project, file) or settings "
+                       "(with parts).")
     raise AssertionError  # abort raises
 
 

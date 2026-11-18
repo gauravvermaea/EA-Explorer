@@ -85,3 +85,26 @@ export function GitPicker({ suffix = "", onFile }) {
     </div>
   );
 }
+
+// "Put on git" for a file made elsewhere on the screens (a project's backup file): the repository's fields and one button.
+export function GitPushDialog({ title, source, onClose, Modal }) {
+  const [g, set] = useGitPlace();
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState({ ok: true, text: "" });
+  async function push() {
+    setBusy(true); setMsg({ ok: true, text: "" });
+    try { const r = await gitPush(g, source); setMsg({ ok: true, text: `Put on ${r.repository} (${r.branch}): ${r.pushed}` }); }
+    catch (e) { setMsg({ ok: false, text: e.message }); }
+    setBusy(false);
+  }
+  return (
+    <Modal title={title} onClose={onClose}
+      actions={<><button onClick={onClose}>Close</button><button className="primary" disabled={busy || !gitReady(g)} onClick={push}>{busy ? "Putting it on git..." : "Put it on git"}</button></>}>
+      <div className="ed-form">
+        <p className="quiet small">One commit under eax-packages/ in the repository; another site takes it with Upload, from the same repository.</p>
+        <GitFields g={g} set={set} />
+        {msg.text && <p className={`status ${msg.ok ? "ok" : "bad"}`}>{msg.text}</p>}
+      </div>
+    </Modal>
+  );
+}

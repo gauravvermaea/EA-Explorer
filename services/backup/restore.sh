@@ -34,7 +34,7 @@ done
 case "$REL" in *..*|/*) echo "A folder under the backups folder, please"; exit 2;; esac
 SOURCE="${EAX_BACKUP_ROOT:-/backups}/$REL"
 [ -d "$SOURCE" ] || { echo "No backup folder $SOURCE"; exit 1; }
-export PGHOST="${EAX_BACKUP_PGHOST:-db}" PGPORT="${EAX_BACKUP_PGPORT:-5432}" PGUSER=postgres PGPASSWORD="${EAX_DB_SUPERUSER_PASSWORD:-}" PGOPTIONS="-c client_min_messages=warning"
+export PGHOST="${EAX_BACKUP_PGHOST:-db}" PGPORT="${EAX_BACKUP_PGPORT:-5432}" PGUSER="${EAX_DB_ADMIN_USER:-postgres}" PGPASSWORD="${EAX_DB_SUPERUSER_PASSWORD:-}" PGOPTIONS="-c client_min_messages=warning"
 say() { echo "restore: $*"; }
 q() { psql -qAtX -v ON_ERROR_STOP=1 -d postgres -c "$1"; }
 exists() { [ "$(q "SELECT 1 FROM pg_database WHERE datname = '$1'")" = "1" ]; }

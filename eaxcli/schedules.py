@@ -273,6 +273,7 @@ def change(sid: str, what: str, by: str, roles: list[str], root: Path | str | No
         items.remove(s)
     elif what in ("on", "off"):
         s["enabled"] = what == "on"
+        s["chosen"] = True                   # an admin's choice: never switched back by EA Explorer itself
         if s["enabled"]:
             s["checked"] = datetime.now(zone(root)).isoformat(timespec="seconds")   # no catching up on what passed
     else:

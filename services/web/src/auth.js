@@ -275,6 +275,20 @@ export async function apiFetch(path, options = {}) {
     throw new Error("The break-glass session has ended.");
   }
   const body = await response.json().catch(() => ({}));
+  // anything that puts the maintenance page up asks first (the owner, 18 Nov 2026, 10:32: "Anything that will bring up
+  // mantaiance page needs to show a warning and user to accept it"): the API refuses with 428 and says what happens;
+  // on OK the same request goes again with the yes (eax/api/maintenance_gate.py)
+  if (response.status === 428 && body.errors?.accept_maintenance && !options._askedMaintenance) {
+    if (window.confirm(`${body.errors.accept_maintenance}\n\nOK puts the maintenance page up; Cancel changes nothing.`)) {
+      let sent = {};
+      try { sent = options.body ? JSON.parse(options.body) : {}; } catch { sent = {}; }
+      return apiFetch(path, { ...options, _askedMaintenance: true, body: JSON.stringify({ ...sent, accept_maintenance: true }) });
+    }
+    const err = new Error("Nothing was done: the maintenance page was not accepted.");
+    err.status = 428;
+    err.cancelled = true;
+    throw err;
+  }
   if (!response.ok) {
     const err = new Error(body.message || `${response.status} ${response.statusText}`);
     err.status = response.status;

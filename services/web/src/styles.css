@@ -2952,7 +2952,7 @@ th.sortable { cursor: pointer; }
 .site-purpose { order: 0; align-self: center; margin-left: 8px; padding: 1px 7px; border-radius: 9px; font-size: 11px; font-weight: 600;
   letter-spacing: .04em; white-space: nowrap; border: 1px solid var(--border, #ccd); color: var(--muted, #556); }
 .site-purpose-dr, .site-purpose-uat, .site-purpose-pre-prod { background: #fff4d6; border-color: #e3b341; color: #6b4e00; }
-.site-purpose-test, .site-purpose-dev, .site-purpose-training { background: #e6f0ff; border-color: #7aa7e8; color: #1d4a8f; }
+.site-purpose-test, .site-purpose-dev, .site-purpose-content, .site-purpose-training { background: #e6f0ff; border-color: #7aa7e8; color: #1d4a8f; }
 /* System Admin › Site pairings (Release 6.5) */
 .pairing-scope { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px; max-height: 260px; overflow: auto; margin: 6px 0; }
 .pairing-scope .check { display: block; }
@@ -2960,3 +2960,34 @@ th.sortable { cursor: pointer; }
 .pairing-actions button, .pairing-actions select { margin: 0 4px 4px 0; }
 .pairing-key { word-break: break-all; user-select: all; font-size: 13px; }
 .pairing-batches { margin: 4px 0 10px 16px; }
+/* the front door's certificate (R6.6.3) */
+.front-cert-files { display: grid; gap: 8px; margin: 8px 0; max-width: 640px; }
+.front-cert-files label { display: grid; gap: 2px; }
+
+/* System Admin > Setup: the guides, guided (R6.6, D750) */
+.setup-steps { padding-left: 1.4em; }
+.setup-steps li { margin: 0 0 14px; }
+.setup-steps li.done > strong { text-decoration: line-through; opacity: .7; }
+.setup-steps p { margin: 4px 0; }
+
+/* System Admin > Secrets: a rotation followed on the page (18 Nov 2026) */
+.secrets-run { max-height: 16em; overflow: auto; white-space: pre-wrap; margin: 6px 0; }
+
+/* Scheduled upkeep, chosen by an admin (18 Nov 2026) */
+.upkeep-choices { margin: 8px 0 16px; }
+.upkeep-list { list-style: none; padding-left: 0; }
+.upkeep-list li { margin: 6px 0; }
+
+/* System Admin › Settings import and export (Release 6.7, D755) */
+.settings-parts { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 2px 16px; }
+.settings-part h4 { margin: 14px 0 4px; }
+.settings-diff td { vertical-align: top; }
+.settings-diff tr.muted td { opacity: 0.6; }
+.settings-value { max-width: 420px; max-height: 160px; overflow: auto; margin: 0; white-space: pre-wrap; word-break: break-word; font-size: 12px; }
+
+/* System Admin › Setup: the guides as documents, the commands filled in (D772) */
+.setup-values { margin: 8px 0 12px; }
+.setup-command { display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap; }
+.setup-command pre { flex: 1 1 360px; margin: 4px 0; padding: 6px 8px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+.setup-missing { color: #8a4b00; background: #fff4d6; border-radius: 3px; padding: 0 3px; }
+label.check.inline { display: inline-flex; margin-right: 8px; }

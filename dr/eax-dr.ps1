@@ -173,23 +173,26 @@ try {
     # load (up to 30 minutes, the owner's drill of 17 Nov 2026, 13:22) was time lost; everything is waited for after it
     Step "EA Explorer built and its core started" { Eax @("up") | Out-Null; "the core up" }
     $t1 = Get-Date
-    Step "the maintenance page on and the background paused" { Eax @("drill", "quiet", "on") | Out-Null }
+    # what fails the DR (the owner, 18 Nov 2026, 07:12: "this will be used in critical failure so things need to work"):
+    # the pack, the code, the build, the restore and the sign-in; the rest is a warning and the DR carries on
+    SoftStep "the maintenance page on and the background paused" { Eax @("drill", "quiet", "on") | Out-Null }
     Step "the full restore of $BackupName" { $r = Eax @("drill", "restore", $BackupName); "took $($r.seconds) s; EA Explorer answers" }
     # the core only (13:25: "The DR should let us in as soon as the web is up"); the rest is waited for after the door opens
     Step "EA Explorer's core started again (sign-in, the API, the screens)" { Eax @("up") | Out-Null; "the core up" }
+    Step "a real sign-in" { $s = Eax @("drill", "signin"); "signed in; $($s.people) people in $($s.realm); the API answers" }
     if ($Fingerprint) {
-        Step "every table and file compared with the pack's fingerprint" {
+        SoftStep "every table and file compared with the pack's fingerprint" {
             $after = Join-Path $Install "work\dr\fingerprint-after.json"
             New-Item -ItemType Directory -Force (Split-Path $after) | Out-Null
             Eax @("drill", "fingerprint", $after) | Out-Null
             $c = Eax @("drill", "compare", $Fingerprint, $after)
-            "$($c.tables) tables and $($c.files) files the same as when the pack was made$(if (@($c.not_compared).Count) { "; $(@($c.not_compared).Count) the installation writes by itself not compared" })$(if (@($c.allowed).Count) { "; $(@($c.allowed).Count) rewritten by the installation itself (allowed, in the log)" })" }
+            "key items $($c.keys_said)" }
     }
     $script:Recovery = [int]((Get-Date) - $t1).TotalMinutes
-    if (-not $KeepQuiet) { Step "the background back and the maintenance page off: everyone can sign in" { Eax @("drill", "quiet", "off") | Out-Null } }
+    if (-not $KeepQuiet) { SoftStep "the background back and the maintenance page off: everyone can sign in" { Eax @("drill", "quiet", "off") | Out-Null } }
     if (-not $NoSmoke) {
-        Step "the rest up (Reports, Documents, Diagrams), while people work" { Eax @("up", "--wait-all") | Out-Null; "every container up" }
-        Step "the smoke test" { Eax @("test", "smoke") | Out-Null; "passed" } }
+        SoftStep "the rest up (Reports, Documents, Diagrams), while people work" { Eax @("up", "--wait-all") | Out-Null; "every container up" }
+        SoftStep "the smoke test (its findings are warnings)" { Eax @("test", "smoke") | Out-Null; "passed" } }
     $exit = 0
 } catch {
     $exit = 1

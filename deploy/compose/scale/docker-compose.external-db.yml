@@ -1,0 +1,19 @@
+# The customer's own database server (Release 6.6, R6.6.2, D750; owner, 15 Nov 2026, 22:15, and 17 Nov 2026, 19:44:
+# "EA Explorer's backups still run"). Switched on with
+#   EAX_COMPOSE_EXTRA=external-db      and   EAX_EXTERNAL_DB_HOST / EAX_EXTERNAL_DB_PORT in the config file
+# (`eax setup external-db` sets them and tests the connection first). The db service is no longer PostgreSQL: it passes
+# every connection through to the customer's server, so every service, the backups, restores, the restore drill and DR
+# reach it at db:5432 exactly as before, and nothing else changes. No data lives in this container. The customer's DBA
+# prepares the server once with deploy/external-db/prepare.sql (the databases, the logins and their rights).
+services:
+  db:
+    image: ${EAX_IMAGE_SOCAT:-alpine/socat:1.8.0.0}
+    command: ["-d", "TCP-LISTEN:5432,fork,reuseaddr", "TCP:${EAX_EXTERNAL_DB_HOST:?set EAX_EXTERNAL_DB_HOST}:${EAX_EXTERNAL_DB_PORT:-5432}"]
+    secrets: !reset []
+    environment: !reset {}
+    volumes: !reset []
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z -w 3 \"${EAX_EXTERNAL_DB_HOST}\" \"${EAX_EXTERNAL_DB_PORT:-5432}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 30

@@ -842,15 +842,11 @@ def cmd_run(args) -> int:
                     )
                     r.log("API and MCP: enterprise discovery as an AI runs it (the reading assumed), decision records and dispensations")
                     discovery_projects_check.run(API, tokens, ids, r.recorder("api"))
-            guarded = "ui" in suites and not getattr(args, "ui_review", False) and _admin_journey(journeys, role, args.pages_only)
+            guarded = "ui" in suites and _admin_journey(journeys, role, args.pages_only)
             if guarded:                                  # the real banner and schedules, put back however the run ends (D583)
                 admin_before = _admin_guard(tokens, "before", r.log)
             try:
-                if "ui" in suites and getattr(args, "ui_review", False):   # the UI review only (R2.12)
-                    from . import ui_review
-                    r.log("UI review: every main page as each role at three widths (screenshots and notes, nothing changed)")
-                    r.counts.update(ui_review.run(ids, ticket, r.dir, r.recorder("ui"), roles=[role] if role else None))
-                elif "ui" in suites and not args.watch:
+                if "ui" in suites and not args.watch:
                     r.log("browser: every page, then the journeys (Chromium, headless)" if not (journeys or args.pages_only)
                           else "browser: the page sweep" if args.pages_only else f"browser: journey {', '.join(journeys)}")
                     r.counts.update(ui_journeys.run_all(ids, ticket, r.dir, r.recorder("ui"), role=role, journeys=journeys, live=_live(r),
@@ -1065,7 +1061,6 @@ def main(argv: list[str] | None = None) -> int:
     a.add_argument("--watch", action="store_true")
     a.add_argument("--journey", action="append", default=[])
     a.add_argument("--pages-only", action="store_true")
-    a.add_argument("--ui-review", action="store_true", help="screenshots of every main page, each role, three widths (R2.12)")
     a.add_argument("--run-id", type=int, default=0)
     a.add_argument("--trigger", default="eax", choices=["web", "eax", "ci"])
     a.add_argument("--by", default="")

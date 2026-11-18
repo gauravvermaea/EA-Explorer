@@ -11,6 +11,7 @@ import { RestoreDialog, RestoreProjectFile } from "./ProjectTabs";
 import { Modal } from "./ModelOps";
 import { refreshAll, useApi } from "./ModelViews";
 import { trackTask } from "./tasks";
+import { GitPushDialog } from "./GitPlace";
 
 // search (D232): every word in the tag, name or who made it
 const matches = (b, q) => !q.trim() || q.toLowerCase().split(/\s+/).filter(Boolean)
@@ -530,6 +531,7 @@ function ProjectSection({ act }) {
   const [why, setWhy] = useState("");
   const [restore, setRestore] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [gitOf, setGitOf] = useState(null);       // a backup file put on a git repository (Release 6.5, D753)
   const superAdmin = roles().includes("super-admin");
   const list = (data?.projects || []).filter((p) => !q.trim() || p.name.toLowerCase().includes(q.toLowerCase()));
   async function backup(p) {
@@ -571,6 +573,7 @@ function ProjectSection({ act }) {
                     <td className="small nowrap">{size(b.size)}</td>
                     <td className="small nowrap">
                       <button className="linkish" onClick={() => apiDownload(`/api/v1/projects/${p.id}/backups/${b.file}`, b.file).catch((e) => act(() => Promise.reject(e)))}>Download</button>
+                      {" · "}<button className="linkish" onClick={() => setGitOf({ p, b })}>Put on git...</button>
                       {" · "}<button className="linkish" onClick={() => setRestore({ p, b, over: false })}>Restore as a new project...</button>
                       {superAdmin && <>{" · "}<button className="linkish" onClick={() => setRestore({ p, b, over: true })}>Put back over itself...</button></>}
                       {" · "}<button className="linkish" onClick={() => {
@@ -587,6 +590,8 @@ function ProjectSection({ act }) {
       </div>}
       {restore && <RestoreDialog {...restore} onClose={() => { setRestore(null); refreshAll(); }} />}
       {uploading && <RestoreProjectFile onClose={() => setUploading(false)} />}
+      {gitOf && <GitPushDialog Modal={Modal} title={`Put ${gitOf.b.file} on git`} source={{ source: "project-backup", project: gitOf.p.id, file: gitOf.b.file }}
+        onClose={() => setGitOf(null)} />}
     </div>
   );
 }

@@ -100,7 +100,7 @@ class Secrets(MethodView):
 
 @blp.route("/admin/secrets/rotate")
 class SecretsRotate(MethodView):
-    """/api/v1/admin/secrets/rotate (R6-R1, D743): POST {key} (a password or key, or "--due" for every one that is due):
+    """/api/v1/admin/secrets/rotate (R6-R1, D743): POST {key} (a password or key, "--due" for every one that is due, or "--all" for every one eax can rotate):
     rotated now in the Command centre's runner, which changes it in the database or Keycloak too and makes the
     services that use it again (a few seconds each). In the audit trail."""
     @blp.doc(security=[{"bearerAuth": []}])
@@ -110,12 +110,65 @@ class SecretsRotate(MethodView):
     def post(self, data):
         """Rotate a password or key now, or every one that is due (key "--due"); in the audit trail (R6-R1)"""
         key = str((data or {}).get("key") or "")
+        if key == "--all":
+            from .maintenance_gate import needs_yes
+            needs_yes(data, "Rotate all")
         if not key:
-            abort(400, message="Which one? key: its setting's name, or --due.")
+            abort(400, message="Which one? key: its setting's name, --due or --all.")
         out = _ops("POST", "/secrets/rotate", {"key": key, "by": g.user.username}, timeout=30)
         with get_engine().begin() as conn:
             audit.record(conn, actor=g.user.username, action="secrets.rotate", object_type="secret", object_id=key,
                          details={"run": out.get("run")})
+        return out
+
+
+@blp.route("/admin/front-certificate")
+class FrontCertificate(MethodView):
+    """/api/v1/admin/front-certificate (R6.6.3, D750): GET the certificate the front door presents (names, issuer, end);
+    POST upload a new one {certificate, chain, key}: checked (names, dates, key, chain), then put in place and the front
+    door reloaded with no restart, the one in use kept to undo (Super Admins and IT Admins); DELETE put the one in use
+    before back. The key is never shown again or kept in the audit trail."""
+    @blp.doc(security=[{"bearerAuth": []}])
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def get(self):
+        """The certificate the front door presents now: names, issuer, when it ends (R6.6.3)"""
+        from .. import frontcert
+        from ..config import get_settings
+        return {"presented": frontcert.presented(), "needs": frontcert.names_needed(get_settings().hostname)}
+
+    @blp.doc(security=[{"bearerAuth": []}])
+    @blp.arguments(FreeIn)
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def post(self, data):
+        """Upload the front door's certificate {certificate, chain, key}: checked, put in place, reloaded with no
+        restart; the one in use kept to undo (R6.6.3)"""
+        from .. import frontcert
+        from ..config import get_settings
+        d = data or {}
+        try:
+            info = frontcert.check(str(d.get("certificate") or ""), str(d.get("chain") or ""), str(d.get("key") or ""),
+                                   get_settings().hostname)
+        except EditError as exc:
+            abort(exc.status, message=str(exc))
+        out = _ops("POST", "/tls/install", {"certificate": frontcert.full_chain(str(d.get("certificate") or ""),
+                                                                                  str(d.get("chain") or "")),
+                                             "key": str(d.get("key") or ""), "by": g.user.username}, timeout=120)
+        with get_engine().begin() as conn:
+            audit.record(conn, actor=g.user.username, action="tls.upload", object_type="certificate", object_id="front-door",
+                         details={k: info[k] for k in ("subject", "issuer", "names", "not_after")})
+        return {**info, **out}
+
+    @blp.doc(security=[{"bearerAuth": []}])
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def delete(self):
+        """Put back the certificate in use before the last upload (R6.6.3)"""
+        out = _ops("POST", "/tls/undo", {"by": g.user.username}, timeout=120)
+        with get_engine().begin() as conn:
+            audit.record(conn, actor=g.user.username, action="tls.undo", object_type="certificate", object_id="front-door",
+                         details={})
         return out
 
 
@@ -465,6 +518,11 @@ class AdminSettings(MethodView):
     @require_auth("settings.manage")
     def put(self, data):
         """Changes settings (Super Admin) and applies them at once: {key: value, ...}"""
+        data = dict(data or {})
+        if data.get("integrity_fixes") is True:
+            from .maintenance_gate import LATER, needs_yes
+            needs_yes(data, "Database safe fixes by themselves", LATER)
+        data.pop("accept_maintenance", None)
         try:
             with get_engine().connect() as conn, conn.begin():
                 out = st.update(conn, g.user, data)
@@ -1466,6 +1524,70 @@ class DbMaintenance(MethodView):
         with get_engine().connect() as conn:
             return {"last_check": dbmaint.last_check(conn), "history": dbmaint.history(conn), "settings": dbmaint.settings_of(conn),
                     "busy": dbmaint.busy_reason()}
+
+
+@blp.route("/admin/db-integrity")
+class DbIntegrity(MethodView):
+    """/api/v1/admin/db-integrity (R6.6.1, D750): GET the last integrity check (what is wrong, what was fixed, the recent
+    records); POST check every database now, in the background (the safe fixes made after a backup)."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def get(self):
+        """The last integrity check: what is wrong, what was fixed, the recent records (R6.6.1)"""
+        from .. import dbintegrity
+        with get_engine().connect() as conn:
+            return {"last": dbintegrity.last(conn)}
+
+    @blp.doc(security=SECURITY)
+    @blp.arguments(FreeIn)
+    @blp.response(202, Free)
+    @require_auth("system.operate")
+    def post(self, data):
+        """Check every database's integrity now, in the background: only a check ({}), or with the safe fixes after a
+        backup ({fix: true}, the maintenance page up while the backup is taken) (R6.6.1)"""
+        from ..jobs import integrity_after
+        fix = bool((data or {}).get("fix"))
+        if fix:
+            from .maintenance_gate import needs_yes
+            needs_yes(data, "The database's safe fixes (a backup first, when there is none from the last day)")
+        integrity_after(f"{'fixes' if fix else 'a check'} asked for by {g.user.username}", g.user.username, fix=fix)
+        with get_engine().begin() as conn:
+            audit.record(conn, actor=g.user.username, action="db.integrity", object_type="database", object_id="all",
+                         details={"fix": fix})
+        return {"queued": True, "message": ("Checking every database and making the safe fixes, after a backup (the maintenance "
+                                            "page is up while it is taken)" if fix else
+                                            "Checking every database in the background, nothing changed")
+                + " (minutes to an hour on a large one); the admins are told what was found."}
+
+
+@blp.route("/admin/db-integrity/repair")
+class DbIntegrityRepair(MethodView):
+    """/api/v1/admin/db-integrity/repair (R6.6.1): POST {finding} a preview of the orphan rows a repair would remove,
+    with a confirmation; POST {confirm} the rows removed (Super Admins; the rows kept in the run's record)."""
+    @blp.doc(security=SECURITY)
+    @blp.arguments(FreeIn)
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def post(self, data):
+        """{finding}: a preview of the orphan rows a repair would remove; {confirm}: removed (Super Admins) (R6.6.1)"""
+        from .. import dbintegrity, dbmaint
+        data = data or {}
+        if not g.user.can("settings.manage"):
+            abort(403, message="Only a Super Admin removes rows.")
+        try:
+            if data.get("confirm"):
+                if why := dbmaint.busy_reason():
+                    abort(409, message=f"Not now: {why}.")
+                out = dbintegrity.repair(str(data["confirm"]))
+                with get_engine().begin() as conn:
+                    dbmaint.record(conn, "repair", g.user.username, actions=[out])
+                    audit.record(conn, actor=g.user.username, action="db.repair", object_type="database",
+                                 object_id=out["database"], details={"table": out["table"], "removed": out["removed"]})
+                return {k: v for k, v in out.items() if k != "rows"}
+            return dbintegrity.repair_preview(dict(data.get("finding") or {}))
+        except ValueError as exc:
+            abort(400, message=str(exc))
 
 
 DB_ACTIONS = ("check", "tidy", "clear", "compact", "compact-preview", "locks", "stop", "stop-preview")

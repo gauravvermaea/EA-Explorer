@@ -336,6 +336,8 @@ def record_backup_events(timestamp: int) -> None:
     with get_engine().begin() as conn:
         for e in events:
             act = action.get(e.get("kind"), "backup.scheduled")
+            if e.get("kind") == "restore" and e.get("status", "ok") == "ok":     # R6.6.1: checked after every restore
+                integrity_after(f"the restore of {e.get('name') or 'a backup'}", str(e.get("by") or "system"))
             if e.get("kind") == "backup" and e.get("reason") != "scheduled":
                 act = "backup.infrastructure"
             audit.record(conn, actor=e.get("by") or "system", action=act, object_type="backup",
@@ -736,6 +738,45 @@ def db_check(timestamp: int) -> None:
             dbmaint.record(conn, "check", "schedule", out["findings"])
     except Exception:  # noqa: BLE001
         logging.getLogger("eax.dbmaint").exception("the database check failed")
+
+
+@app.periodic(cron="20 2 * * 0")
+@app.task(name="eax.db_integrity_weekly", queue="default", queueing_lock="db_integrity", lock="db_integrity")
+def db_integrity_weekly(timestamp: int) -> None:
+    """Every Sunday at 02:20 (R6.6.1, D750): every database's integrity and recent records checked, the safe fixes made
+    after a backup, the admins told."""
+    _integrity("schedule", "")
+
+
+@app.task(name="eax.db_integrity_after", queue="default", queueing_lock="db_integrity", lock="db_integrity")
+def db_integrity_after(why: str, by: str = "system", fix: bool | None = None) -> None:
+    """After a restore (a rebuild from a backup is one), a DR site taking over, or a person asking (R6.6.1): fix None is
+    the setting (integrity_fixes), False only checks (Check now), True makes the safe fixes (Fix the safe ones)."""
+    _integrity(by, why, fix)
+
+
+def _integrity(by: str, after: str, fix: bool | None = None) -> None:
+    import logging
+
+    from . import dbintegrity, dbmaint
+    if dbmaint.busy_reason():
+        logging.getLogger("eax.dbintegrity").info("the integrity check waits: %s", dbmaint.busy_reason())
+        return
+    try:
+        with get_engine().begin() as conn:
+            dbintegrity.run(conn, by, after, fix=fix)
+    except Exception:  # noqa: BLE001
+        logging.getLogger("eax.dbintegrity").exception("the integrity check failed")
+
+
+def integrity_after(why: str, by: str = "system", fix: bool | None = None) -> None:
+    """Queues the integrity check (a restore ended, a DR site took over, a person asked); a queued one already waiting
+    does."""
+    try:
+        with app.open():
+            db_integrity_after.defer(why=why, by=by, fix=fix)
+    except Exception:  # noqa: BLE001 - one already queued, or no job runner: the weekly run does it
+        pass
 
 
 @app.periodic(cron="*/15 * * * *")

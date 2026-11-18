@@ -14,6 +14,7 @@ import { refreshAll, useApi } from "./ModelViews";
 import { NewGapDialog } from "./Versions";
 import { projectPhaseEnabled } from "./iterations";
 import { MoveProjectToArchiveDialog } from "./Archive";
+import { GitPicker, GitPushDialog } from "./GitPlace";
 
 const shortPhase = (ph) => ph.name.replace(/^Phase /, "").replace(" Architecture", "").replace(" (repository-wide)", "");
 
@@ -238,6 +239,7 @@ export function ProjectCompare({ p, part = "all" }) {
 // ------------------------------------------------------------------ Back up and restore (owner, 7 Nov 2026)
 export function ProjectBackupPanel({ p }) {
   const { data } = useApi(`/api/v1/projects/${p.id}/backups`);
+  const [gitFile, setGitFile] = useState("");   // a backup file put on a git repository (Release 6.5, D753)
   const superAdmin = roles().includes("super-admin");
   const [busy, setBusy] = useState("");
   const [msg, setMsg] = useState("");
@@ -277,6 +279,7 @@ export function ProjectBackupPanel({ p }) {
             <td>{(b.models || []).filter((m) => !m.error).map((m) => m.name).join(", ")}</td>
             <td className="nowrap">
               <button className="linkish" onClick={() => apiDownload(`/api/v1/projects/${p.id}/backups/${encodeURIComponent(b.file)}`, b.file)}>⬇ Download</button>{" · "}
+              <button className="linkish" onClick={() => setGitFile(b.file)}>Put on git...</button>{" · "}
               {data.may_restore && <><button className="linkish" onClick={() => setRestoring({ b, over: false })}>Restore as a new project</button>{" · "}</>}
               {superAdmin && <><button className="linkish" onClick={() => setRestoring({ b, over: true })}>Put back over itself</button>{" · "}</>}
               <button className="linkish bad-text" onClick={() => del(b)}>Delete</button></td>
@@ -284,6 +287,8 @@ export function ProjectBackupPanel({ p }) {
       </table>}
       {restoring && <RestoreDialog p={p} b={restoring.b} over={restoring.over} onClose={() => setRestoring(null)} />}
       {archiving && <MoveProjectToArchiveDialog p={p} superAdmin={superAdmin} onClose={() => setArchiving(false)} />}
+      {gitFile && <GitPushDialog Modal={Modal} title={`Put ${gitFile} on git`} source={{ source: "project-backup", project: p.id, file: gitFile }}
+        onClose={() => setGitFile("")} />}
     </div>
   );
 }
@@ -352,6 +357,9 @@ export function RestoreProjectFile({ onClose }) {
         <p className="small">A project backup file (<code>.eaxproject.zip</code>, from Back up now on a project's About tab, here or on another
           installation) becomes a new project, with its models and documents.</p>
         <Field label="Backup file"><input type="file" accept=".eaxproject.zip,.zip" onChange={(e) => setFile(e.target.files[0] || null)} /></Field>
+        {!file && <details className="git-from"><summary>Or take it from a git repository</summary>
+          <GitPicker suffix=".eaxproject.zip" onFile={(f) => setFile(f)} /></details>}
+        {file && <p className="small">Chosen: <b>{file.name}</b></p>}
         <Field label="Name" hint="(optional)"><input value={name} onChange={(e) => setName(e.target.value)} /></Field>
         {err && <p className="status bad">{err}</p>}
       </div>

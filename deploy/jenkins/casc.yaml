@@ -1,0 +1,26 @@
+# Jenkins as EA Explorer wants it (R6.6-J1, D748, D750). The values come from the environment the stack gives it
+# (deploy/jenkins/docker-compose.jenkins.yml): no password is written here.
+jenkins:
+  systemMessage: "EA Explorer's operations: one pipeline per eax command and DR tool. Pipelines that change everything ask for the installation's name."
+  numExecutors: 2
+  # Jenkins' own account (the owner, 18 Nov 2026, 10:11: "Jenkins is not up"): the default, as it starts whatever state
+  # EA Explorer's Keycloak is in (Jenkins exists to bring EA Explorer back). Signing in through Keycloak instead:
+  # EAX_JENKINS_SIGNIN=keycloak in the config file (casc-keycloak.yaml), then eax jenkins up.
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "${EAX_JENKINS_ADMIN:-jenkins-admin}"
+          name: "Jenkins admin (EA Explorer)"
+          password: "${EAX_JENKINS_ADMIN_PASSWORD}"
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+security:
+  globalJobDslSecurityConfiguration:
+    useScriptSecurity: false
+unclassified:
+  location:
+    url: "${EAX_JENKINS_URL}"
+jobs:
+  - file: /usr/share/jenkins/ref/seed.groovy

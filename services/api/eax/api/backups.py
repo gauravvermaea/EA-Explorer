@@ -157,6 +157,12 @@ class Schedule(MethodView):
     def put(self, data, kind):
         """When a kind of backup runs and how many are kept ({enabled, cron, tag, keep, warn_after_hours}); IT and Super
         Admins. Kept in the database, never in the config file (D222)"""
+        if kind == "infrastructure" and (data or {}).get("enabled"):     # switched on: the page will go up when each runs
+            with get_engine().connect() as conn:
+                was_on = bool(bs.get(conn, kind).get("enabled"))
+            if not was_on:
+                from .maintenance_gate import LATER, needs_yes
+                needs_yes(data, "Scheduled backups of the whole installation", LATER)
         try:
             with get_engine().begin() as conn:
                 before = bs.get(conn, kind)
@@ -183,6 +189,8 @@ class InfraBackup(MethodView):
         image versions. Runs as a task; people keep working (no lock)"""
         if not services_on():
             abort(409, message="Backups are switched off (Administration > Services > Backups).")
+        from .maintenance_gate import needs_yes
+        needs_yes(data, "A backup of the whole installation")
         tag = str((data or {}).get("tag") or "").strip()[:60] or "on-demand"
         with get_engine().connect() as conn:
             keep = bs.keep(conn, "infrastructure")
@@ -234,6 +242,8 @@ class InfraRestore(MethodView):
         data = data or {}
         if str(data.get("confirm") or "") != "RESTORE":
             abort(400, message="Type RESTORE to confirm.")
+        from .maintenance_gate import needs_yes
+        needs_yes(data, "A restore", "the maintenance page goes up for everyone until it is done, and everyone signs in again")
         what = str(data.get("what") or "")
         _audit("backup.restore.start", "backup", name, {"what": what})
         return _ops("POST", "/backups/restore", {"name": name, "what": what, "by": g.user.username, "version": __version__},

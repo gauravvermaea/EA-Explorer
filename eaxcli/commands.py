@@ -125,10 +125,17 @@ def _params(args: str) -> list[dict]:
             if flags:
                 out.append({"key": "/".join(flags), "type": "flags", "choices": flags, "required": False})
             words = [w for w in words if not w.startswith("--")]
+            # an alternative with words after it ("add <place> <address> [name]", "tidy [--dry-run]"): the choice is its
+            # first word and what follows is free words (the owner's Jenkins admin tasks, 18 Nov 2026: "allow add site
+            # 10.20.0.0/16" was refused as "'add' is not one of ... add <place> <address> [name]")
+            more = any(" " in w.strip() for w in words)
+            words = [w.strip().split()[0] if w.strip() else w for w in words]
             choices = [c.strip("<>") for c in words]
             free = any(c.startswith("<") or c.strip("<>") in PLACEHOLDERS for c in words)
             out.append({"key": f"arg{len(out)}", "type": "word" if free else "choice", "choices": choices,
                         "required": not opt and not flags, "placeholder": "|".join(choices)})
+            if more:
+                out.append({"key": f"arg{len(out)}", "type": "words", "required": False, "placeholder": "its options"})
         else:                                                        # <name> [tag] [service...]
             out.append({"key": f"arg{len(out)}", "type": "words" if many else "word", "required": not opt and body != "",
                         "placeholder": body.strip("<>")})
@@ -138,8 +145,8 @@ def _params(args: str) -> list[dict]:
 PLACEHOLDERS = {"name", "tag", "run", "command", "source", "id", "words", "service", "n", "version"}
 # syntax lines too rich for the reader above: their fields written out
 OVERRIDES = {
-    "test": [{"key": "what", "type": "choice", "choices": ["smoke", "full", "backup", "ui-review", "failed", "delete", "clean"], "required": False,
-              "placeholder": "smoke|full|security|performance|backup|ui-review|failed|delete|clean"},
+    "test": [{"key": "what", "type": "choice", "choices": ["smoke", "full", "backup", "failed", "delete", "clean"], "required": False,
+              "placeholder": "smoke|full|security|performance|backup|failed|delete|clean"},
              {"key": "run", "type": "word", "required": False, "placeholder": "run (with failed: which run; the last if none)"},
              {"key": "--warnings", "type": "flag", "required": False},     # with failed: its warnings too (R2.36)
              {"key": "--older-than", "type": "flag-value", "flags": ["--older-than"], "required": False,

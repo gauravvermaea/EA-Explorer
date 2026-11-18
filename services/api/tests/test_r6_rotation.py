@@ -52,7 +52,7 @@ def test_a_rotation_changes_the_database_then_the_file_then_the_services(tmp_pat
     out = R.rotate("EAX_DB_PASSWORD", "tester")
     assert out["rotated"] == ["EAX_DB_PASSWORD"]
     alter = calls[0]
-    assert alter[0][:3] == ["exec", "-T", "db"] and 'ALTER ROLE "eax_app" PASSWORD' in alter[1] and "old" not in alter[1]
+    assert alter[0][:3] == ["exec", "-T", "db"] and "format('ALTER ROLE %I PASSWORD %L', 'eax_app'" in alter[1] and "old" not in alter[1]
     new = [ln for ln in env.read_text().splitlines() if ln.startswith("EAX_DB_PASSWORD=")][0].split("=", 1)[1]
     assert new != "old" and len(new) == 40 and new in alter[1]                   # the same value in both places
     assert calls[-1][0][:4] == ["up", "-d", "--no-deps", "--force-recreate"] and "api" in calls[-1][0]

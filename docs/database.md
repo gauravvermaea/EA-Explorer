@@ -392,3 +392,14 @@ are in `eax/decisions.py` and `eax/discovery_projects.py` (D248).
 - `proj.journey_part_kinds` (project_id, code, label, fields, note): a project's own kinds of part (x-...) and extra
   fields on the standard ones.
 - `proj.journey_documents`, `proj.journey_events`: the documents behind a journey and every change.
+
+## Settings exported and imported (Release 6.7, migration 0106; D755, D768)
+
+- `core.settings_copies` (guid, made_at, made_by, why import|undo, parts text[], body jsonb, undone_at, undone_by): the
+  settings as they were before each settings import or undo, so Undo puts them back. `body` is the same file Export
+  settings makes, of the parts that import changed; never a password, key or certificate (the export refuses a field
+  named like one). Kept in its own transaction before the import starts, so it stays even when the import then fails.
+- The settings file itself is not stored: it is made from `core.settings`, the branding tables, `core.alert_config`,
+  `core.alert_custom`, `core.retention_rules`, `core.report_audiences` and their links, `core.webhooks` (never the
+  secret), `core.site_pairings` (their send and commit settings only), and the operations helper's persist/ files (the
+  banner, the IP allow lists, the schedules). See `services/api/eax/settings_transfer.py`.

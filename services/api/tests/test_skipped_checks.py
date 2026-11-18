@@ -9,6 +9,8 @@ import importlib.util
 import json
 from pathlib import Path
 
+import pytest
+
 from eax.testing import api_matrix as am
 from eax.testing import ui_pages
 
@@ -90,6 +92,25 @@ def test_persist_is_mounted_in_a_runner_the_helper_starts():
     assert "C:\\\\eax\\\\persist:/persist:ro" in args
 
 
+def test_a_runner_the_helper_starts_has_the_api_containers_secret_files():
+    """The owner's smoke test from Jenkins, 18 Nov 2026, 12:19: "fe_sendauth: no password supplied": the runner copied
+    the api container's environment, but the passwords are files in /run/secrets since they can be rotated."""
+    spec = importlib.util.spec_from_file_location("testruns_secrets", REPO / "services/ops/testruns.py")
+    tr = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(tr)
+    own = [{"Destination": "/eax-work", "Source": "/host/work"}]
+    tr.H["docker"] = lambda *a, **k: json.dumps(own) if a[0] == "inspect" else ""
+    tr.socket.gethostname = lambda: "ops"
+    tr.runner_image = lambda info=None: "eaexplorer/testrunner:dev"
+    info = {"Config": {"Env": ["EAX_X=1"]}, "NetworkSettings": {"Networks": {"eax_backend": {}}},
+            "Mounts": [{"Type": "bind", "Source": "/host/work/secrets/EAX_DB_APP_PASSWORD",
+                        "Destination": "/run/secrets/EAX_DB_APP_PASSWORD"},
+                       {"Type": "volume", "Source": "/var/lib/docker/volumes/x", "Destination": "/data"}]}
+    args = tr._runner_args(info, "eax-testrunner", "F1", ["run"])
+    assert "/host/work/secrets/EAX_DB_APP_PASSWORD:/run/secrets/EAX_DB_APP_PASSWORD:ro" in args
+    assert not any(a.endswith(":/data:ro") or a.endswith(":/data") for a in args)
+
+
 def test_the_break_glass_page_is_opened_alone_and_everything_else_in_the_sweep():
     assert "#/more" in ui_pages.SEEDS and "#/more" not in ui_pages.SKIP_ROUTES
     assert ui_pages.TESTED_ALONE == {"#/break-glass"}
@@ -115,3 +136,41 @@ def test_the_break_glass_page_is_opened_alone_and_everything_else_in_the_sweep()
     assert seen[0] == "https://x/#/break-glass" and "Break-glass sign-in" in seen[1] and out[0][0] == "page: #/break-glass"
     src = (REPO / "services/api/eax/testing/ui_journeys.py").read_text()
     assert "ui_pages.break_glass_page(alone.new_page(), base, rec)" in src
+
+
+def test_the_api_containers_secrets_are_copied_into_the_runner_before_it_starts():
+    """The owner's smoke test from Jenkins, 18 Nov 2026, 12:28, again "fe_sendauth: no password supplied": secrets that
+    come from the environment are copied into each container by compose, not mounted, so docker inspect lists none.
+    They are streamed from the api container into the runner after it is made and before it starts."""
+    spec = importlib.util.spec_from_file_location("testruns_copy", REPO / "services/ops/testruns.py")
+    tr = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(tr)
+    order = []
+    tr.H["docker"] = lambda *a, **k: (order.append(a[0]) or "runner-1") if a[0] in ("create", "start", "rm") else \
+        (json.dumps([{"Destination": "/eax-work", "Source": "/host/work"}]) if a[0] == "inspect" else "")
+    tr.H["copy_secrets"] = lambda src, dst: order.append(("copy", src, dst))
+    tr.socket.gethostname = lambda: "ops"
+    tr.runner_image = lambda info=None: "eaexplorer/testrunner:dev"
+    info = {"Id": "api-1", "Config": {"Env": []}, "NetworkSettings": {"Networks": {"eax_backend": {}}}}
+    assert tr._start_runner(info, "eax-testrunner", "F1", ["run"]) == "runner-1"
+    assert order == ["rm", "create", ("copy", "api-1", "runner-1"), "start"]
+
+    class Proc:
+        def __init__(self, args, **k):
+            self.args, self.stdout, self.stderr, self.returncode = args, None, None, 0
+            calls.append(args)
+
+        def communicate(self, timeout=None):
+            return b"", b""
+
+        def wait(self, timeout=None):
+            return 0
+    calls = []
+    tr.copy_secrets("api-1", "runner-1", popen=Proc)
+    assert calls == [["docker", "cp", "api-1:/run/secrets", "-"], ["docker", "cp", "-", "runner-1:/run"]]
+
+    class Fails(Proc):
+        def wait(self, timeout=None):
+            return 1
+    with pytest.raises(RuntimeError, match="passwords could not be given"):
+        tr.copy_secrets("api-1", "runner-1", popen=Fails)

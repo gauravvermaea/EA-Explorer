@@ -253,7 +253,7 @@ export function NewModelButton({ admin = false }) {
 }
 
 // ------------------------------------------------------------------ download a package
-const CONTENT_LEVELS = [
+export const CONTENT_LEVELS = [
   ["metamodel", "Without data: the metamodel only", "Domains, types, attributes, pick lists, relationship types, rules"],
   ["content", "With the data", "The metamodel and every entity, value and relationship as they are now"],
   ["history", "Deep: the data with its full history", "As above, plus every change to every entity and the metamodel's version history: readable sheets, and loaded again on upload"],
@@ -342,7 +342,7 @@ export function UploadButton({ label: text = "⬆ Upload a model", className = "
   );
 }
 
-export function UploadWizard({ onClose }) {
+export function UploadWizard({ onClose, initialFile = null }) {
   const curator = can("library.curate");
   const [file, setFile] = useState(null);
   const [info, setInfo] = useState(null);
@@ -353,6 +353,8 @@ export function UploadWizard({ onClose }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [showDiff, setShowDiff] = useState(false);
+  // a package taken from git on a model's Import and export › Git (Release 6.5, D753): read as if chosen here
+  useEffect(() => { if (initialFile) analyse(initialFile); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
 
   async function analyse(f) {
     setFile(f); setInfo(null); setError("");

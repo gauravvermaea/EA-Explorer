@@ -72,7 +72,8 @@ def _conninfo(dbname: str) -> str:
     s = get_settings()
     pw = os.environ.get("EAX_DB_SUPERUSER_PASSWORD", "")
     q = lambda v: "'" + str(v).replace("\\", "\\\\").replace("'", "\\'") + "'"   # noqa: E731
-    return f"host={q(s.db_host)} port={q(s.db_port)} dbname={q(dbname)} user=postgres password={q(pw)} connect_timeout=10"
+    admin = os.environ.get("EAX_DB_ADMIN_USER") or "postgres"     # the customer's server: eax_admin (R6.6.2)
+    return f"host={q(s.db_host)} port={q(s.db_port)} dbname={q(dbname)} user={q(admin)} password={q(pw)} connect_timeout=10"
 
 
 def connect(dbname: str, autocommit: bool = True):
@@ -428,9 +429,13 @@ def tidy_due(conn, now_local: datetime) -> bool:
 
 # ---------------------------------------------------------------- eax db (in the api container)
 def main(argv: list[str]) -> int:
-    """python -m eax.dbmaint check | tidy [--dry-run] | compact <db> <table> [--yes] | clear | locks | cancel <pid> | end <pid>"""
+    """python -m eax.dbmaint check | tidy [--dry-run] | compact <db> <table> [--yes] | clear | locks | cancel <pid> | end <pid>
+    | integrity [--everything] | repair <db> <foreign key> [--yes]"""
     from .db import get_engine
     cmd = argv[0] if argv else "check"
+    if cmd in ("integrity", "repair"):                   # R6.6.1: eax db integrity, eax db repair
+        from . import dbintegrity
+        return dbintegrity.main(["check", *argv[1:]] if cmd == "integrity" else argv)
     try:
         if cmd in ("tidy", "compact", "clear") and (why := busy_reason()):
             print(f"Not now: {why}. Try again when it has finished.")

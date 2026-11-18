@@ -7,6 +7,7 @@ dropped, D744) and no cloud service is used (D746).
   eax secrets                         which passwords and keys there are, how old each is, which are due
   eax secrets rotate KEY              a new value now: a database login is changed in the database too, a Keycloak
                                       client's secret in Keycloak too; the services that use it are made again
+  eax secrets rotate --all            every one eax can rotate, now, in one go (the Secrets tab's Rotate all)
   eax secrets rotate --due            every one that is due (the schedule runs this; every 90 days by default, R6-T1;
                                       a laptop only with EAX_ROTATE_ON_LAPTOP=on)
   eax secrets set KEY                 a value you type (after changing it where it is also kept, e.g. the mail server)
@@ -18,12 +19,13 @@ Certificates (certificate mode, R6-C1) are `eax certs`.
 
 from __future__ import annotations
 
+import os
 import re
 import secrets as _random
 from datetime import datetime
 from pathlib import Path
 
-from .core import EAX, ENV_FILE, ENV_REL, WORK, Failure, say
+from .core import EAX, ENV_FILE, ENV_REL, ROOT, WORK, Failure, say
 
 # a value made from another (the broker's URL-encoded password: the same, as generated values need no encoding)
 DERIVED = {"EAX_DMS_BROKER_PASSWORD_URLENC": "EAX_DMS_BROKER_PASSWORD"}
@@ -35,7 +37,7 @@ DB_LOGINS = {"EAX_DB_SUPERUSER_PASSWORD": "postgres", "EAX_DB_PASSWORD": "eax_ap
              "EAX_VIEWS_DB_PASSWORD": "eax_views", "EAX_REPLICATION_PASSWORD": "eax_replicator",
              "EAX_CONSOLE_IT_PASSWORD": "eax_console_it", "EAX_CONSOLE_SUPER_PASSWORD": "eax_console_super"}
 # the Keycloak clients' secrets: changed in Keycloak through its admin API too
-KEYCLOAK_CLIENTS = {"EAX_SUPERSET_OIDC_SECRET": "superset", "EAX_MAYAN_OIDC_SECRET": "mayan", "EAX_KC_SERVICE_SECRET": "eax-service"}
+KEYCLOAK_CLIENTS = {"EAX_SUPERSET_OIDC_SECRET": "superset", "EAX_MAYAN_OIDC_SECRET": "mayan", "EAX_KC_SERVICE_SECRET": "eax-admin"}   # as deploy/keycloak/realm-eaexplorer.json.tmpl names them
 # kept where they are used as well, or by people: not rotated by themselves; the admins are alerted when due (R6-R1)
 NEEDS_A_PERSON = {
     "EAX_SUPERSET_SECRET_KEY": "Superset encrypts its database connections with it: changing it loses them",
@@ -60,8 +62,22 @@ def generate(keys, keep: dict[str, str] | None = None) -> dict[str, str]:
     return out
 
 
-def kind_of(key: str) -> str:
-    """How a secret is rotated: database, keycloak, person or here (pure)."""
+EXTERNAL_DB_WHY = ("the database is the customer's own server (R6.6.2): their DBA changes the login's password there, "
+                   "then eax secrets set <key> puts the same in the config file")
+
+
+def kind_of(key: str, external_db: bool | None = None) -> str:
+    """How a secret is rotated: database, keycloak, person or here. With the customer's own database server (R6.6.2)
+    the database logins' passwords are a person's (their DBA changes them on that server)."""
+    if key in DB_LOGINS or key == "EAX_DB_SUPERUSER_PASSWORD":
+        if external_db is None:
+            try:
+                from .core import setting
+                external_db = bool(setting("EAX_EXTERNAL_DB_HOST", ""))
+            except Exception:  # noqa: BLE001 - no config file here (the operations helper reads its own)
+                external_db = bool(os.environ.get("EAX_EXTERNAL_DB_HOST"))
+        if external_db:
+            return "person"
     if key in DB_LOGINS:
         return "database"
     if key in KEYCLOAK_CLIENTS:
@@ -149,7 +165,7 @@ def fill(env_file: Path | None = None, say_=None) -> list[str]:
 
 
 def main(options: list[str]) -> int:
-    """eax secrets [show|rotate KEY|rotate --due|set KEY|fill|push --to file:<path>|pull --from file:<path>]."""
+    """eax secrets [show|rotate KEY|rotate --due|rotate --all|set KEY|fill|push --to file:<path>|pull --from file:<path>]."""
     from .deploy import secret_values
     if not ENV_FILE.exists():
         raise Failure(f"No {ENV_REL} yet: run {EAX} init or {EAX} deploy first.")
@@ -170,12 +186,24 @@ def main(options: list[str]) -> int:
             say(f"  {s['key']:<34} {s['kind']:<9} changed {s['changed'][:10] or 'not yet'}{due}"
                 f"{'  (a person: ' + s['why'] + ')' if s['why'] and (s['due'] or s['warn']) else ''}")
         return 0
+    if action == "schedule":           # Rotate all now, at a time, or regularly (D763)
+        from . import secretsrot
+        by = next((rest[i + 1] for i, a in enumerate(rest) if a == "--by" and i + 1 < len(rest)), "eax command")
+        at = next((rest[i + 1] for i, a in enumerate(rest) if a == "--at" and i + 1 < len(rest)), "")
+        what = "at" if at else next((a for a in rest if a in ("show", "monthly", "quarterly", "off")), "show")
+        out = secretsrot.all_schedules() if what == "show" else secretsrot.schedule_all(what, by, at)
+        r = out["regular"]
+        say(f"Rotate all, regularly: {r['when'] + ' (next ' + str(r['next']).replace('T', ' ') + ')' if r else 'off'}.")
+        for s in out["once"]:
+            say(f"Rotate all, once: {str(s['next']).replace('T', ' ')} (eax schedule remove {s['id']} to cancel it).")
+        return 0
     if action in ("rotate", "set"):
         from . import secretsrot
-        what = "--due" if (action == "rotate" and "--due" in rest) else (rest[0] if rest else "")
+        flag = next((f for f in ("--all", "--due") if action == "rotate" and f in rest), "")
+        what = flag or (rest[0] if rest else "")
         if not what:
-            raise Failure(f"{EAX} secrets rotate KEY, {EAX} secrets rotate --due or {EAX} secrets set KEY")
-        if what != "--due" and what not in values:
+            raise Failure(f"{EAX} secrets rotate KEY, {EAX} secrets rotate --due, {EAX} secrets rotate --all or {EAX} secrets set KEY")
+        if what not in ("--due", "--all") and what not in values:
             raise Failure(f"{EAX} secrets {action} KEY: one of {', '.join(sorted(values))}")
         given = None
         if action == "set":
@@ -185,10 +213,17 @@ def main(options: list[str]) -> int:
                 raise Failure("No value given: nothing changed.")
         by = next((rest[i + 1] for i, a in enumerate(rest) if a == "--by" and i + 1 < len(rest)), "eax command")
         out = secretsrot.rotate(what, by, given=given)
+        if "--restart" in rest:          # Jenkins' Rotate all restarts EA Explorer afterwards (owner, 18 Nov 2026, 09:56)
+            import subprocess
+            import sys as _sys
+            say("Restarting EA Explorer with the new values (eax restart).")
+            code = subprocess.run([_sys.executable, str(ROOT / "eaxpy.py"), "restart"], cwd=ROOT, check=False).returncode
+            if code:
+                raise Failure(f"The values are rotated, but eax restart ended with {code}: run it again.")
         if out.get("skipped"):
             say(f"Nothing rotated: {out['skipped']}.")
         for r in out.get("person", []):
-            say(f"  {r['key']} is due and needs a person: {r['why']}", "yellow")
+            say(f"  {r['key']} {'needs a person' if what == '--all' else 'is due and needs a person'}: {r['why']}", "yellow")
         if out.get("made_again"):
             say(f"Made again with the new values: {', '.join(out['made_again'])}.")
         elif action == "rotate" and not out.get("rotated"):
@@ -217,4 +252,4 @@ def main(options: list[str]) -> int:
         say(f"{len(changed)} values taken from {name} into {ENV_REL} (the old file: {copy}): {', '.join(changed)}")
         say(f"Restart to use them: {EAX} restart --reset-passwords sets the database's logins to them (R6-D1).")
         return 0
-    raise Failure(f"{EAX} secrets [show|rotate KEY|rotate --due|set KEY|push --to file:<path>|pull --from file:<path>]")
+    raise Failure(f"{EAX} secrets [show|rotate KEY|rotate --due|rotate --all|set KEY|push --to file:<path>|pull --from file:<path>]")

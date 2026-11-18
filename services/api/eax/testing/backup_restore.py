@@ -660,6 +660,8 @@ def busy() -> list[str]:
     from .. import projects
     from ..db import get_engine, get_projects_engine
     from ..quiet import QUIET_RUNS
+    # the integrity check is never waited for: it waits itself for the backup it asked for (the owner's laptop, 18 Nov
+    # 2026, 10:17: "Check the integrity now" put the maintenance page up for half an hour)
     out = []
     with get_projects_engine().begin() as conn:
         for r in conn.execute(text(f"""SELECT name, repo_state FROM proj.projects
@@ -674,7 +676,8 @@ def busy() -> list[str]:
             for name, status in conn.execute(text("""SELECT task_name, status::text FROM jobs.procrastinate_jobs
                      WHERE (status = 'doing' OR (status = 'todo' AND (scheduled_at IS NULL
                                                                      OR scheduled_at <= now() + interval '15 minutes')))
-                       AND (NOT args ? 'timestamp' OR task_name = ANY(:runs)) ORDER BY id LIMIT 20"""),
+                       AND (NOT args ? 'timestamp' OR task_name = ANY(:runs))
+                       AND NOT starts_with(task_name, 'eax.db_integrity') ORDER BY id LIMIT 20"""),
                                                   {"runs": sorted(QUIET_RUNS)}).all():
                 out.append(f"the job {name} ({'running' if status == 'doing' else 'waiting'})")
     return out

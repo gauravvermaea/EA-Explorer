@@ -859,6 +859,16 @@ function Invoke-Cleanup([string[]]$Options) {
         if ($answer -ne "yes") { Write-Host "Nothing deleted."; return }
     }
     # the logs first, where no reset deletes them (R2.30); a log backup never stops the cleanup
+    # the Jenkins agent stopped first: it holds its log open in work\logs (owner's clean-restart, 18 Nov 2026, 09:49)
+    if (Test-Path (Join-Path $WorkDir "jenkins\agent.pid")) { try { & (Join-Path $PSScriptRoot "eaxpy.ps1") jenkins stop-agent } catch { }; $global:LASTEXITCODE = 0 }
+    # and any agent of this installation still running without its pid file (a cleanup stopped half way): found by its
+    # command line, this folder's eaxpy.py with "jenkins agent", nothing else
+    try {
+        $mine = [regex]::Escape((Join-Path $PSScriptRoot "eaxpy.py"))
+        Get-CimInstance Win32_Process -ErrorAction Stop | Where-Object { $_.CommandLine -match $mine -and $_.CommandLine -match "jenkins\s+agent" } |
+            ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue; Write-Host "The Jenkins agent stopped." }
+        Start-Sleep -Seconds 1
+    } catch { }
     try { & (Join-Path $PSScriptRoot "eaxpy.ps1") logs backup before-cleanup --outside-work --then-clear } catch { Write-Host "The logs could not be backed up first." }
     if (Test-Path $EnvFile) {
         $down = if ($all) { @("down", "-v", "--remove-orphans") } else { @("down", "--remove-orphans") }
@@ -899,6 +909,13 @@ if ($Command -eq "restart") {
         if ($LASTEXITCODE -ne 0) {
             Write-Host "ERROR: .\eax $($step -join ' ') failed (exit $LASTEXITCODE); restart stopped there." -ForegroundColor Red
             exit $LASTEXITCODE
+        }
+        if ($step[0] -eq "down") {
+            # nothing runs now, so a maintenance page or a paused background left behind is stale: taken away, so the
+            # restart brings EA Explorer back open (owner, 18 Nov 2026, 11:50: "eax restart should remove mantainance page if any")
+            foreach ($f in @("work/proxy/maintenance", "work/quiet.json")) {
+                if (Test-Path $f) { Remove-Item -Force $f; Write-Host "Removed what was left: $f (the maintenance page and the paused background)." -ForegroundColor Yellow }
+            }
         }
     }
     exit 0
@@ -1008,7 +1025,7 @@ if ($Command -eq "menu") {   # the numbered menu (R2.29): one Python program for
     & (Join-Path $PSScriptRoot "eaxpy.ps1") menu
     exit $LASTEXITCODE
 }
-if (($Command -in @("init", "certs", "deploy", "secrets", "packs", "schedule", "persist", "folders", "allow", "drill", "dr-pack", "sign", "verify", "db", "ticket", "jobs", "optimise", "estimate", "dev")) -or ($Command -eq "logs" -and $RestArgs.Count -gt 0 -and $RestArgs[0] -in @("backup", "clean")) -or ($Command -eq "test" -and ($RestArgs -contains "--reset-survival" -or $RestArgs -contains "backup-restore" -or $RestArgs -contains "restore" -or $RestArgs -contains "full"))) {   # packs (D546); schedule (D559); test --reset-survival (D561); test backup-restore, restore, full (R5.6-B1)
+if (($Command -in @("init", "certs", "deploy", "secrets", "packs", "schedule", "persist", "folders", "allow", "drill", "dr-pack", "sign", "verify", "db", "ticket", "jobs", "optimise", "estimate", "dev", "jenkins", "setup", "access", "hostname", "settings")) -or ($Command -eq "logs" -and $RestArgs.Count -gt 0 -and $RestArgs[0] -in @("backup", "clean")) -or ($Command -eq "test" -and ($RestArgs -contains "--reset-survival" -or $RestArgs -contains "backup-restore" -or $RestArgs -contains "restore" -or $RestArgs -contains "full"))) {   # packs (D546); schedule (D559); test --reset-survival (D561); test backup-restore, restore, full (R5.6-B1)
     # phase 36 (D498, D504): one Python program for every form (D500); eaxpy.ps1 fetches uv and Python into work\tools
     & (Join-Path $PSScriptRoot "eaxpy.ps1") $Command @RestArgs
     exit $LASTEXITCODE

@@ -43,6 +43,16 @@ function Step([string]$StepTitle, [scriptblock]$StepBody) {
     }
 }
 
+# A step that never stops the drill or the DR (the owner, 18 Nov 2026, 07:12: "this will be used in critical failure so
+# things need to work"; "unless the actual migration fails dont fail test. If we can login into the new instance we are
+# good"): when it fails, what went wrong is a warning and the script carries on.
+function SoftStep([string]$SoftTitle, [scriptblock]$SoftBody) {
+    Step $SoftTitle {
+        try { & $SoftBody }
+        catch { Warn "$($_.Exception.Message)"; "not done (a warning: the rest carries on)" }
+    }
+}
+
 # A program's own messages on its error stream are not failures: Windows PowerShell 5.1 turns each such line into an
 # error, and with $ErrorActionPreference = "Stop" the first one ended the step (the owner's drill, 17 Nov 2026, 08:17:
 # "FAIL a test project, models and content of every kind : the test's record: self-test run 14", a progress line the

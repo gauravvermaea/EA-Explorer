@@ -196,6 +196,7 @@ export function menuTree() {
         { label: "System settings", href: "#/admin/system", ok: () => ops() || can("settings.manage") },
         { label: "Banner", href: "#/admin/banner", ok: ops },
         { label: "Branding: logo and themes", href: "#/admin/branding", ok: () => can("settings.manage") },   // R5.7-B1
+        { label: "Settings import and export", href: "#/admin/settings-transfer", ok: sup },   // Release 6.7 (D755)
         { label: "Licences", href: "#/admin/licences" },
       ] },
       { label: "Users and roles", href: "#/admin/users", ok: () => can("users.read") },
@@ -229,6 +230,7 @@ export function menuTree() {
       { label: "Updates", href: "#/admin/updates", ok: ops },   // Deploy moved to the site picker (R2.14)
       { label: "Tools", ok: ops, items: [
         { label: "Command centre", href: "#/admin/commands" },
+        { label: "Setup", href: "#/admin/setup" },
         { label: "SQL", href: "#/admin/sql" },
         { label: "Self-test", href: "#/admin/self-test" },
       ] },

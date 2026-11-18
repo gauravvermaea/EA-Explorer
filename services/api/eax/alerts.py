@@ -51,13 +51,14 @@ FLAP_CHANGES, FLAP_WINDOW = 4, 10
 DEFAULTS: dict[str, tuple[str, str, float, float, bool]] = {
     "disk": ("The fullest disk the installation uses", "% used", 80, 90, True),
     "memory": ("The container nearest its memory limit", "% of its limit", 85, 95, True),
-    "certificate": ("Days until the front door's certificate ends", "days", 21, 7, False),
+    "certificate": ("Days until the front door's certificate ends (R6.6.3: 30 days before and on the day)", "days", 30, 1, False),
     "secrets": ("Days until a password, key or certificate needs a person (R6-R1; System Admin › Secrets)", "days", 30, 7, False),
     "db_connections": ("The database's connections", "% of its limit", 80, 90, True),
     "db_long_tx": ("The longest open transaction", "minutes", 30, 120, True),
     "web_errors": ("Server errors (5xx) in the last hour", "calls", 10, 50, True),
     "self_test": ("The last finished self-test", "checks failed", 1, 1000000, True),
     "db_maintenance": ("Database maintenance findings (R5.12)", "findings", 1, 5, True),
+    "db_integrity": ("Database integrity: what is still wrong (R6.6.1)", "findings", 1, 1, True),
     "security": ("High or critical security findings the gate fails on (R5.17)", "findings", 1, 1000000, True),
     "jobs_stuck": ("Background jobs stuck: waiting or running too long (R5.30; System Admin › Jobs)", "jobs", 1, 3, True),
     "discovery_overdue": ("Discovery projects whose run is overdue (R5.5; AI (MCP) › Enterprise discovery)", "projects", 1, 5, True),
@@ -209,6 +210,16 @@ def measure_db_maintenance(conn) -> tuple[float | None, str]:
     return float(n), f"{n} findings at the check of {last.get('at')}"
 
 
+def measure_db_integrity(conn) -> tuple[float | None, str]:
+    """How many warning or critical findings the last integrity check left (R6.6.1)."""
+    from . import dbintegrity
+    last = dbintegrity.last(conn)
+    if not last:
+        return None, "no integrity check yet"
+    n = len([f for f in last.get("findings") or [] if f.get("level") in ("warning", "critical")])
+    return float(n), f"{n} still wrong at the check of {last.get('at')}"
+
+
 def measure_custom(conn, c: dict) -> tuple[float | None, str]:
     """A custom check's value: a URL's answer time in milliseconds (999999 when it fails), or a SQL query's single
     number."""
@@ -288,6 +299,7 @@ def seen_now(conn, cfg: dict[str, dict]) -> dict[str, dict]:
         put("db_connections", None, str(exc)[:160])
     try:
         put("db_maintenance", *measure_db_maintenance(conn))
+        put("db_integrity", *measure_db_integrity(conn))
         from . import jobqueue
         put("jobs_stuck", *jobqueue.measure(conn))
     except Exception as exc:  # noqa: BLE001

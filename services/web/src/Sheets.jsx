@@ -5,6 +5,7 @@
 //   #/metamodel/<model>/import/loads            every load of the model you may see
 //   #/metamodel/<model>/import/deliveries       other systems' deliveries in the published formats (phase 34, Deliveries.jsx)
 //   #/metamodel/<model>/import/discovery        OData feeds read, pushes taken, documents read by AI (R3 epic, Discovery.jsx)
+//   #/metamodel/<model>/import/git              this model put on a git repository, a model taken from one (D753, ModelGit.jsx)
 //   Bring data in / Take data out   the two wizards over all of it (D676, ImportWizards.jsx)
 //   (collection sets, feeds and scheduled exports: a phase of their own, D198)
 import { useEffect, useMemo, useState } from "react";
@@ -16,6 +17,7 @@ import { trackTask, useTask } from "./tasks";
 import DeliveriesTab, { DeliveryActions } from "./Deliveries";
 import DiscoveryTab from "./Discovery";
 import { BringInWizard, TakeOutWizard } from "./ImportWizards";
+import ModelGitTab from "./ModelGit";
 
 const go = (path) => { window.location.hash = path; };
 const post = (path, body, method = "POST") => apiFetch(path, { method, body: JSON.stringify(body || {}) });
@@ -26,7 +28,7 @@ const FORMATS = [["xlsx", "Excel (.xlsx)", "Drop-downs and provisional IDs for n
 
 export default function SheetsTab({ model, m, sub, itemId }) {
   const may = canOn(model, "model.content");
-  const nav = [["", "Download and upload"], ["loads", "Loads"], ["deliveries", "Deliveries"], ["discovery", "Discovery"]];
+  const nav = [["", "Download and upload"], ["git", "Git"], ["loads", "Loads"], ["deliveries", "Deliveries"], ["discovery", "Discovery"]];
   const cur = sub === "load" ? "loads" : sub || "";
   const [wizard, setWizard] = useState("");
   return (
@@ -45,6 +47,7 @@ export default function SheetsTab({ model, m, sub, itemId }) {
         : sub === "loads" ? <><LoadList model={model} /><SavedMappings model={model} /></>
           : sub === "deliveries" ? <DeliveriesTab model={model} m={m} />
           : sub === "discovery" ? <DiscoveryTab model={model} />
+          : sub === "git" ? <ModelGitTab m={m} />
           : <><Download model={model} m={m} /><Upload model={model} m={m} may={may} /></>}
     </div>
   );

@@ -370,6 +370,13 @@ def _runner_args(info: dict, name: str, folder: str, cmd: list[str]) -> list[str
     # the test data the browser journeys upload (testbench/data, D580), beside work/ in the installation folder, as
     # docker-compose.yml's testrunner service mounts it (R2.0.1: a run started here had none, so the journeys stopped)
     args += ["-v", f"{test_data_folder(work)}:/testdata:ro"]
+    # the api container's secret files, read only (the owner's smoke test from Jenkins, 18 Nov 2026, 12:19: "fe_sendauth:
+    # no password supplied"): the passwords live in /run/secrets since they can be rotated, and only the environment was
+    # copied, so the runner had none
+    for m in info.get("Mounts") or []:
+        dest = str(m.get("Destination") or "")
+        if m.get("Source") and (dest == "/run/secrets" or dest.startswith("/run/secrets/")):
+            args += ["-v", f"{m['Source']}:{dest}:ro"]
     persist = host_mount("/eax-persist")               # persist/, read only: the database checks read its settings
     if persist:                                        # (R3.13: "persist/ is not mounted in the runner")
         args += ["-v", f"{persist}:/persist:ro"]
@@ -380,6 +387,23 @@ def _runner_args(info: dict, name: str, folder: str, cmd: list[str]) -> list[str
     return args + [runner_image(info), *cmd]
 
 
+def copy_secrets(source: str, target: str, popen=subprocess.Popen, timeout: int = 60) -> None:
+    """The api container's secret files copied into the runner before it starts (the owner's smoke test from Jenkins, 18
+    Nov 2026, 12:28, again "fe_sendauth: no password supplied"): compose makes secrets that come from the environment by
+    copying a file into each container, not by a mount, so docker inspect lists none to pass on. Streamed from one
+    container to the other (docker cp ... - | docker cp - ...), never written to disk here. Raises when it fails: a runner
+    with no passwords can only fail."""
+    out = popen(["docker", "cp", f"{source}:/run/secrets", "-"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    into = popen(["docker", "cp", "-", f"{target}:/run"], stdin=out.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if out.stdout:
+        out.stdout.close()                       # the second one holds it now
+    _o, err = into.communicate(timeout=timeout)
+    first = out.wait(timeout=timeout)
+    if first != 0 or into.returncode != 0:
+        said = (out.stderr.read().decode(errors="replace") if out.stderr else "") + (err or b"").decode(errors="replace")
+        raise RuntimeError(f"The passwords could not be given to the test runner: {said.strip()[-300:] or 'docker cp failed'}")
+
+
 def _start_runner(info: dict, name: str, folder: str, cmd: list[str]) -> str:
     for n in (name,):
         try:
@@ -387,6 +411,8 @@ def _start_runner(info: dict, name: str, folder: str, cmd: list[str]) -> str:
         except RuntimeError:
             pass
     cid = H["docker"](*_runner_args(info, name, folder, cmd), timeout=120).strip()
+    if info.get("Id"):
+        H.get("copy_secrets", copy_secrets)(info["Id"], cid)   # tests put their own in H
     for n in _networks(info):
         if not n.endswith("backend"):
             try:
@@ -574,7 +600,7 @@ def _trivy(hostdir: str, images: list[str], say) -> None:
 
 def run_sequence(level: str, suites: list[str], role: str = "", area: str = "", watch: bool = False, run_id: int = 0,
                  by: str = "", trigger: str = "web", follow=None, journeys: list[str] | None = None,
-                 pages_only: bool = False, repeat: int | None = None, warnings: bool = False, ui_review: bool = False,
+                 pages_only: bool = False, repeat: int | None = None, warnings: bool = False,
                  bench: dict | None = None, live_slow: bool = False) -> dict:
     """The whole run: the runner, then (detailed with security) ZAP and Trivy, then collect. Returns {run_id, folder, code}."""
     say = follow or (lambda _m: None)
@@ -607,8 +633,6 @@ def run_sequence(level: str, suites: list[str], role: str = "", area: str = "", 
             cmd += ["--journey", j]
         if pages_only:
             cmd.append("--pages-only")
-        if ui_review:                                  # screenshots for the UI review (R2.12)
-            cmd.append("--ui-review")
         if live_slow:                                  # slow motion and pause after each step, to be watched (R5.20)
             cmd.append("--live-slow")
         for k, v in (bench or {}).items():             # the benchmark's size, people and minutes (R5.18)
@@ -747,18 +771,6 @@ def cli(args: list[str]) -> int:
     ops.py test failed [N] [--warnings]: only the checks that failed in run N, or the newest finished run (R2.36, D605)."""
     if args[:1] == ["failed"]:
         return _cli_failed(args[1:])
-    if args[:1] == ["ui-review"]:                     # every main page, each role, three widths (R2.12)
-        role = _opt(args, "--role")
-        print("Self-test now: the UI review. Screenshots of every main page as " + (role or "each test role")
-              + " at laptop, large and narrow widths, with notes; nothing in the screens changes. "
-              "Results: work/tests/<run>/ui-review.html.", flush=True)
-        r = run_sequence("detailed", ["ui"], role, "", False, by="eax test", trigger="ci" if "--ci" in args else "eax",
-                         follow=lambda line: print(line, flush=True), ui_review=True)
-        if r.get("error"):
-            print(f"The UI review could not finish: {r['error']}")
-            return 1
-        print(f"UI review {r['run_id']}: work/tests/{r['folder']}/ui-review.html", flush=True)
-        return 0
     if "full" in args:
         args = [a for a in args if a != "full"] + ["--detailed"]
     args = [a for a in args if a != "smoke"]
