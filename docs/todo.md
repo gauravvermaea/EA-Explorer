@@ -3,6 +3,15 @@
 Open items that are not part of a build phase yet, or are waiting on a test or a decision.
 Tick an item (`[x]`) when it is done; remove it at the next tidy-up.
 
+## Later: carried out of Release 6 when it closed (D774, 18 Nov 2026)
+
+- [ ] **R6-E1: the config file encrypted** (optional, off by default): the operations helper reads the file for the
+  Secrets tab, the config editor and restores, so it would have to decrypt it too. A question for the owner first.
+- [ ] **R6-A1, the rest: certificates for the remaining internal links**: Documents' queue (Valkey) over TLS, the
+  Keycloak clients signing with keys (Documents' sign-in library takes only a client secret), the ops token. Until then
+  they are passwords that rotate. A question for the owner first.
+- [ ] **ACME: an automatic public certificate** (R6.6.3 part 2) for a server reachable from the internet.
+
 ## Waiting on a test (Gaurav)
 
 - [ ] **Test R6.7, settings import and export** (D768, 18 Nov 2026): `.\eax restart` (migration 0106), then System Admin
