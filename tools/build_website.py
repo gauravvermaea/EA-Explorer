@@ -56,6 +56,14 @@ SRC = ROOT / "docs" / "site"
 SITE = ROOT / "services" / "web" / "public" / "site"   # every release's copy, and the page that opens the newest
 
 
+def listed(folder: Path, pattern: str = "*.md") -> list[Path]:
+    """The files in a folder, ordered by plain name, the same on every machine (D798).
+
+    Sorting Path objects is case-blind on Windows and case-aware on Linux, so README.md
+    came first in the test runner and after backups.md on the laptop."""
+    return sorted(folder.glob(pattern), key=lambda f: f.name)
+
+
 def version() -> str:
     """The release this copy of the site describes: services/api/version.toml."""
     m = re.search(r'^version\s*=\s*"([^"]+)"', (ROOT / "services" / "api" / "version.toml").read_text(encoding="utf-8"), re.MULTILINE)
@@ -295,7 +303,7 @@ def collect() -> list[Page]:
     """Every page of the site, from docs/site, docs/guides and releases."""
     pages: list[Page] = []
 
-    named = {f.stem: f for d in ("concepts", "reports", "integrate", "platform", "how-do-i", "guides") for f in sorted((SRC / d).glob("*.md"))}
+    named = {f.stem: f for d in ("concepts", "reports", "integrate", "platform", "how-do-i", "guides") for f in listed(SRC / d)}
     WIKI_MISSES.clear()
 
     def wiki(m: re.Match, here: Path) -> str:
@@ -310,7 +318,7 @@ def collect() -> list[Page]:
         meta, md = front_matter(p.read_text(encoding="utf-8"))
         return meta, WIKI.sub(lambda m: wiki(m, p), md)
     # home, and the other pages at the top
-    for p in sorted(SRC.glob("*.md")):
+    for p in listed(SRC):
         meta, md = read(p)
         title, md = _title_of(md, p.stem)
         name = "index.html" if p.stem == "index" else f"{p.stem}.html"
@@ -328,7 +336,7 @@ def collect() -> list[Page]:
                       printable=False))
     # How do I
     guides = {g.stem for g in (SRC / "guides").glob("*.md")}
-    for p in sorted((SRC / "how-do-i").glob("*.md")):
+    for p in listed(SRC / "how-do-i"):
         if p.stem in guides:   # an older copy of a page that became a Guide (D777): the Guide is the page
             print(f"  left out {p.relative_to(ROOT)}: it is now docs/site/guides/{p.name} (delete the old copy)")
             continue
@@ -344,7 +352,7 @@ def collect() -> list[Page]:
     # around phelosphy of project ADM, meta model..."; 16:51: "a whole section for developers... another section for
     # platform developers")
     for folder, name, intro in READING:
-        for p in sorted((SRC / folder).glob("*.md")):
+        for p in listed(SRC / folder):
             meta, md = read(p)
             title, md = _title_of(md, p.stem)
             pages.append(Page(f"{folder}/{p.stem}.html", meta.get("title", title), md, f"{folder}/index.html",
@@ -352,7 +360,7 @@ def collect() -> list[Page]:
         pages.append(Page(f"{folder}/index.html", name, intro, f"{folder}/index.html", printable=False))
     # Guides: a topic from start to end, its tasks linked to their How do I pages (owner, 18 Nov 2026, 14:12: "Each is
     # simple one task only", "and then other pages as discussed")
-    for p in sorted((SRC / "guides").glob("*.md")):
+    for p in listed(SRC / "guides"):
         meta, md = read(p)
         title, md = _title_of(md, p.stem)
         pages.append(Page(f"guides/{p.stem}.html", meta.get("title", title), md, "guides/index.html",
@@ -360,7 +368,7 @@ def collect() -> list[Page]:
     pages.append(Page("guides/index.html", "Guides", "A topic from start to end: how its tasks fit together, each task "
                       "with its own How do I page.", "guides/index.html", printable=False))
     # Install and run: the setup guides
-    for p in sorted((ROOT / "docs" / "guides").glob("*.md")):
+    for p in listed(ROOT / "docs" / "guides"):
         md = p.read_text(encoding="utf-8")
         title, md = _title_of(md, p.stem)
         out = "install/index.html" if p.stem == "README" else f"install/{p.stem}.html"
@@ -686,8 +694,9 @@ def build(write: bool = True, made: dict | None = None) -> list[str]:
             for s in p.screens:
                 if not re.fullmatch(r"(#/|/)[A-Za-z0-9_\-/{}?=&%.]*", s):
                     problems.append(f"{p.source}: a screen is an address in EA Explorer (#/... or /...): {s}")
-    pictures: dict[str, bytes] = {f"shots/{s.name}": s.read_bytes() for s in sorted(SHOTS.glob("*.png"))} if SHOTS.is_dir() else {}
+    pictures: dict[str, bytes] = {f"shots/{s.name}": s.read_bytes() for s in listed(SHOTS, "*.png")} if SHOTS.is_dir() else {}
     guides = printed_guides()
+    printed: dict[str, bytes] = {f"manuals/{g['file']}": (DOCUMENTS / g["file"]).read_bytes() for g in guides if g["bytes"]}
     files["manuals/manuals.json"] = json.dumps({"version": version(), "guides": [g for g in guides if g["bytes"]]}, indent=1)
     files["search.html"] = search_page()
     files["assets/search-index.js"] = search_index(pages)
@@ -696,6 +705,7 @@ def build(write: bool = True, made: dict | None = None) -> list[str]:
     if made is not None:
         made.update(files)
         made.update(pictures)
+        made.update(printed)   # the PDFs are part of the site too (D799)
     if write:
         if SITE.is_dir():   # what an older build left at the top (before each release had its own folder)
             for old in SITE.iterdir():
@@ -713,9 +723,9 @@ def build(write: bool = True, made: dict | None = None) -> list[str]:
         for name, data in pictures.items():
             (OUT / name).parent.mkdir(parents=True, exist_ok=True)
             (OUT / name).write_bytes(data)
-        for g in guides:   # the printed guides, from documents/ (D785)
-            if g["bytes"]:
-                shutil.copyfile(DOCUMENTS / g["file"], OUT / "manuals" / g["file"])
+        for name, data in printed.items():   # the printed guides, from documents/ (D785)
+            (OUT / name).parent.mkdir(parents=True, exist_ok=True)
+            (OUT / name).write_bytes(data)
         SHOTS.mkdir(parents=True, exist_ok=True)
         (SHOTS / "screens.json").write_text(screens_list(pages), encoding="utf-8")
         (OUT / "README.txt").write_text(

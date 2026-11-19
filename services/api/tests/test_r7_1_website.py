@@ -331,3 +331,45 @@ def test_every_report_has_a_page_made_from_the_catalogue():
         assert "screen:" not in md and "## How to use it" in md and "## How to read it" in md and "**In TOGAF terms:**" in md
     _problems, made = _built()
     assert "reports/index.html" in made and "reports/report-sr-01.html" in made
+
+
+def test_the_site_lists_files_in_the_same_order_on_every_machine():
+    """D798: sorting Path objects is case-blind on Windows, so README.md moved after backups.md
+    there and the search index built on the laptop differed from the test runner's."""
+    from pathlib import PureWindowsPath
+
+    class WindowsFolder:
+        def glob(self, pattern):
+            return [PureWindowsPath(f"C:/g/{n}") for n in ("backups.md", "README.md", "catastrophe.md")]
+
+    # Before the fix: plain sorted() on Windows paths puts backups.md first.
+    assert sorted(WindowsFolder().glob("*.md"))[0].name == "backups.md"
+    # After: ordered by plain name, as on Linux.
+    assert [p.name for p in W.listed(WindowsFolder())] == ["README.md", "backups.md", "catastrophe.md"]
+
+
+def test_the_site_builder_never_sorts_a_raw_folder_listing():
+    """Every listing goes through listed(), so no new one can bring the Windows order back."""
+    text = (REPO / "tools/build_website.py").read_text(encoding="utf-8")
+    text = text.replace("sorted(folder.glob(pattern), key=lambda f: f.name)", "")  # listed() itself
+    assert not re.search(r"sorted\(\s*\(?[\w. /\"]+\)?\.glob\(", text), "use listed(folder, pattern)"
+
+
+def test_the_printed_guides_copied_into_the_site_count_as_made(tmp_path, monkeypatch):
+    """D799: the build copied documents/*.pdf into the site's manuals/ but left them out of what it made, so the
+    up-to-date check called all 25 PDFs left over. Now each PDF is part of the build, byte for byte."""
+    guide = W.printed_guides()[0]["file"] if W.printed_guides() else "EA-Explorer-01-overview.pdf"
+    (tmp_path / guide).write_bytes(b"%PDF-1.4 test")
+    monkeypatch.setattr(W, "DOCUMENTS", tmp_path)
+    made: dict = {}
+    assert W.build(write=False, made=made) == []
+    assert made.get(f"manuals/{guide}") == b"%PDF-1.4 test"
+    listed_json = __import__("json").loads(made["manuals/manuals.json"])
+    assert [g["file"] for g in listed_json["guides"]] == [guide]
+
+
+def test_the_site_without_printed_guides_makes_no_pdf(tmp_path, monkeypatch):
+    monkeypatch.setattr(W, "DOCUMENTS", tmp_path)
+    made: dict = {}
+    W.build(write=False, made=made)
+    assert not [n for n in made if n.endswith(".pdf")]

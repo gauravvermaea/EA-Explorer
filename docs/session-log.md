@@ -226,3 +226,19 @@ source, and the pictures themselves read one by one and measured).
   read every document through MCP, read only; NOT FOR AI USE never served. To discuss before building.
 - 08:59 owner: documents and PDFs to everyone (D797); R9.3 updated. Next question: how the documents reach the API.
 - 08:59 owner: "Release 9 is fine" for R9.3.
+
+### 09:10 Last dev check failure: search index order (D798)
+- Owner's 08:59 dev check: lint ok, documents ok, one test failed: assets/search-index.js out of date.
+- Cause: sorting path objects is case-blind on Windows, so README.md (Install and run) moved after backups.md
+  when the laptop built the site. Fixed with listed() in tools/build_website.py; two new tests (before and after).
+- Owner: eax site build, then eax dev check (should be all green).
+
+### 16:16 Dev check after D798: one failure left, the PDFs (D799)
+- Owner's 16:13 dev check: lint ok, documents ok; 2,160 passed, 1 failed: the website test listed the 25 printed
+  guide PDFs as left over. The search index now matched (D798 worked).
+- Cause: the builder copied the PDFs into the site but did not count them as made. Fixed; two new tests (the first
+  fails on the old builder). Owner: eax site build, then eax dev check.
+
+### 16:49 Clean baseline
+- Owner's dev check 16:48: lint ok, tests ok, documents ok (work/tests/dev-check-20261119-164842.log).
+- Next: eax clean-restart --wait-all, eax test full, eax test sonar; then every Sonar issue fixed in one pass.

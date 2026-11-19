@@ -4,9 +4,9 @@ The state of the work, for whoever picks it up next: a person or another AI with
 13 Nov 2026: "what happens if I need another ai to work on this"). **Updated at the end of every working session.**
 Read [AGENTS.md](../AGENTS.md) first, run `eax dev check`, then read this.
 
-Last updated: 19 Nov 2026, 00:xx. Release 7.9 accepted and closed as 7.9.0 (owner, 00:01: "ok lets release 7.9";
-D791; migration 0109; releases/7.9.0.md). Now: Release 8 in build (D792): `eax test sonar` built; next
-the owner's baseline test run and first scan, then the fixes. The evening's working notes: docs/session-log.md.
+Last updated: 19 Nov 2026, 16:50. Release 7.9 closed as 7.9.0 (D791). Now: Release 8 in build (D792). The dev
+check baseline is clean (16:48: lint, tests and documents all ok, after D795, D798 and D799); next the owner's clean
+restart, `eax test full` and the first `eax test sonar`, then the fixes. Working notes: docs/session-log.md.
 
 ## How the owner works
 
@@ -59,9 +59,14 @@ EAX-AREA-NNN, each with meaning, cause and what to do; eax/errors.py reads it):
 
 Release 8 (D792). Built: `eax test sonar` (eaxcli/sonar.py; eax/testing/sonar.py in the test runner; sonarqube and
 sonar-scanner in docker-compose.yml's test profile; sonar-project.properties; eax/testing/sonar_accepted.json;
-tests/test_r8_sonar.py). Next: the owner runs `eax dev check`, `eax test full` (the baseline) and `eax test sonar`;
+tests/test_r8_sonar.py). Sonar and the other test containers are removed in normal running (D793). `eax dev check`
+runs ruff and pytest in the test runner when they are not installed (D794); it is all green (19 Nov, 16:48), after the
+baseline repair (D795) and two website-builder fixes (D798 file order, D799 the PDFs). Next: the owner runs
+`eax clean-restart --wait-all`, `eax test full` (the baseline) and `eax test sonar`;
 the AI reads work/tests/sonar-<time>/issues.json and fixes everything in one pass, a test before and after for each
 fix; then every test and the scan again. Still to discuss before their turn: R8.1 coverage, R8.2 attacks, R8.3 Jenkins.
+R9.3 (MCP reads every document and printed guide, to everyone, D796, D797) waits for one answer: how the documents
+reach the API (built into its image, or read from the website the web container serves).
 
 ## Next
 
@@ -71,7 +76,7 @@ theory, D788). Small items: docs/todo.md › Later: carried out of Release 7.
 
 ## Open questions
 
-None.
+- R9.3: how the documents reach the API (above); asked when Release 9 comes up.
 
 ## The laptop and GitHub
 
