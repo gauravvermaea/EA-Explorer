@@ -295,7 +295,7 @@ def test_build_command_in_every_form():
     assert '$RestArgs -contains "--build"' in ps
     helptext = (REPO / "eaxcli/help.txt").read_text()
     # --build still works for scripts but is no longer shown (R2.0.1, D592): the help shows smoke, full and clean
-    assert "### test [smoke|full|jobs|mcp|reports|security|performance|backup|backup-restore|restore|failed [run] [--warnings]|watch [run] [--log|--browser]|stop [run]|api <method> <path>|delete <run|all> [--older-than DAYS]|clean] [--yes]" in helptext and "$ {eax} test full" in helptext and "$ {eax} test clean" in helptext
+    assert "### test [smoke|full|jobs|mcp|reports|security|performance|sonar [--keep|--reset]|backup|backup-restore|restore|failed [run] [--warnings]|watch [run] [--log|--browser]|stop [run]|api <method> <path>|delete <run|all> [--older-than DAYS]|clean] [--yes]" in helptext and "$ {eax} test full" in helptext and "$ {eax} test clean" in helptext
     sys.path.insert(0, str(REPO))
     from eaxcli import commands as C
     assert C.check_argv(["test", "--build"]) == ["test", "--build"]

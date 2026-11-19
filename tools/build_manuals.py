@@ -238,6 +238,7 @@ class Guide:
             self.chapters.append({"title": ch["title"], "sections": secs})
 
     def source(self, src: str) -> list[dict]:
+        """The sections one source of a chapter gives (page:, new:, howdoi: or help:), each a title and its HTML."""
         kind, _, what = src.partition(":")
         if kind in ("page", "new"):
             path, _, heads = what.partition("#")
@@ -334,6 +335,7 @@ application under Documentation, where it is kept current.</p></section>''',
         return doc if markers else re.sub(r'<span class="mark">zzqm [^<]* zzqm</span>', "", doc)
 
     def cover_html(self) -> str:
+        """The guide's cover page: its number of how many, title, audience, purpose and the version it is for."""
         s = self.spec
         num = s["id"].split("-")[0]
         total = len(specs_listed())            # as many as manuals.json lists (24 at Release 7, 25 from 7.9, D790)

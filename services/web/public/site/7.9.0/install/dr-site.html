@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A DR site · EA Explorer</title>
+<meta name="description" content="A DR site">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html" class="here">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>A DR site</h1>
+    <p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    
+    
+    
+    <p>A second site kept up to date, ready to take over.</p>
+<p>On screen: System Admin &gt; Setup &gt; A DR site, where you fill in your values and get every command ready to copy. On the machine: <code>eax setup dr-site</code>. In Jenkins: the <code>setup</code> pipeline with <code>dr-site</code>.</p>
+<h2 id="steps">Steps</h2>
+<h3 id="1-the-dr-site">1. The DR site</h3>
+<p>A server (the server guide) with the same release.</p>
+<h3 id="2-a-pairing-key-on-the-dr-site">2. A pairing key on the DR site</h3>
+<p>System Admin &gt; Site pairings &gt; Make a key.</p>
+<h3 id="3-pair-from-the-primary">3. Pair from the primary</h3>
+<p>System Admin &gt; Site pairings &gt; Pair with a site: DR sync.</p>
+<h3 id="4-accept-on-the-dr-site">4. Accept on the DR site</h3>
+<p>It becomes read only, kept up to date every few minutes.</p>
+<h3 id="5-rehearse">5. Rehearse</h3>
+<p>The restore drill, now and then.</p>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: install/dr-site.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

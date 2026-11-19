@@ -18,11 +18,12 @@ import pytest
 
 REPO = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO))
-from eax import __version__  # noqa: E402
-from eax import settings_transfer as st  # noqa: E402
 from eaxcli import commands as C  # noqa: E402
 from eaxcli import jenkins as J  # noqa: E402
 from eaxcli import settings_cli as cli  # noqa: E402
+
+from eax import __version__  # noqa: E402
+from eax import settings_transfer as st  # noqa: E402
 
 
 def _file(parts: dict, release: str = __version__) -> dict:

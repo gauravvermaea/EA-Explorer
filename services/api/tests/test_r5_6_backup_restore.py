@@ -323,9 +323,9 @@ def test_the_api_side_says_what_is_there_and_what_differs():
 # ---------------------------------------------------------------- how eax reaches it, and the old suite gone
 def test_eax_runs_it_in_every_form_and_the_old_suite_is_gone():
     sh = (REPO / "eax.sh").read_text()
-    assert '*" backup-restore "*|*" restore "*|*" full "*) exec "$BASH" ./eaxpy.sh "$@"' in sh
+    assert '*" backup-restore "*|*" restore "*|*" full "*|*" sonar "*) exec "$BASH" ./eaxpy.sh "$@"' in sh   # sonar: R8, D792
     ps1 = (REPO / "eax.ps1").read_text()
-    assert '$RestArgs -contains "backup-restore" -or $RestArgs -contains "restore" -or $RestArgs -contains "full"' in ps1
+    assert '$RestArgs -contains "backup-restore" -or $RestArgs -contains "restore" -or $RestArgs -contains "full" -or $RestArgs -contains "sonar"' in ps1
     main = (REPO / "eaxcli/main.py").read_text()
     assert 'rest[:1] in (["backup-restore"], ["restore"])' in main and 'backup_restore.main([])' in main
     assert not (REPO / "services/api/eax/testing/restore_check.py").exists()

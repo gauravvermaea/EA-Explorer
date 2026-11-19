@@ -71,7 +71,8 @@ def test_the_bench_takes_every_option_of_eax_test():
     help_txt = (REPO / "eaxcli" / "help.txt").read_text(encoding="utf-8")
     line = next(x for x in help_txt.splitlines() if x.startswith("### test "))
     # building the runner image is inside only; so is repeating a run's failed checks (R2.36: failed [run] --warnings)
-    test_opts = set(__import__("re").findall(r"--[a-z-]+", line)) - {"--build", "--warnings", "--older-than", "--log", "--browser"}   # delete: inside only (R2.43); watch --log (R3.2)
+    test_opts = set(__import__("re").findall(r"--[a-z-]+", line)) - {"--build", "--warnings", "--older-than", "--log", "--browser",
+                                                                     "--keep", "--reset"}   # delete: inside only (R2.43); watch --log (R3.2); sonar --keep/--reset: the machine's own SonarQube (R8)
     bench_opts = {o for a in cli.parser()._subparsers._group_actions[0].choices["run"]._actions for o in a.option_strings}
     assert test_opts <= bench_opts, test_opts - bench_opts
 

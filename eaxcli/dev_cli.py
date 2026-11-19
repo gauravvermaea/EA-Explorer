@@ -11,11 +11,15 @@ started: it runs what CI runs and the documents' cross-checks, and says what is 
   4. web         (--web) the screens build (npm run build in services/web)
 
 What it needs (it says so when one is missing, and never installs it): Python 3.12 with services/api's
-requirements-dev.txt, and Node 22 for --web.
+requirements-dev.txt, and Node 22 for --web. When this computer's Python has no ruff or pytest (eax's own Python in
+work/tools has neither), lint and tests run in the test runner instead: its image has requirements-dev.txt, Docker
+runs it with this folder mounted, nothing is installed here (owner's laptop, 19 Nov 2026, 06:41: "No module named
+ruff", "No module named pytest"; D794).
 """
 
 from __future__ import annotations
 
+import importlib.util
 import re
 import shutil
 import subprocess
@@ -26,14 +30,36 @@ ROOT = Path(__file__).resolve().parents[1]
 API = ROOT / "services" / "api"
 
 
+LOG: list[str] = []      # everything this check printed, saved to work/tests/dev-check-<time>.log (D794)
+
+
+def say(text: str = "") -> None:
+    """Prints a line and keeps it for the log."""
+    print(text, flush=True)
+    LOG.append(text)
+
+
 def _run(title: str, cmd: list[str], cwd: Path) -> tuple[str, bool, str]:
-    """Runs one step in this terminal; (title, passed, why not)."""
-    print(f"\n== {title}: {' '.join(cmd)}", flush=True)
+    """Runs one step in this terminal, its output kept for the log; (title, passed, why not)."""
+    say(f"\n== {title}: {' '.join(cmd)}")
     try:
-        r = subprocess.run(cmd, cwd=cwd)
+        p = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                             encoding="utf-8", errors="replace")
     except FileNotFoundError:
         return title, False, f"{cmd[0]} is not on this machine (see eax help dev)"
-    return title, r.returncode == 0, "" if r.returncode == 0 else f"exit {r.returncode}"
+    for line in p.stdout:
+        say(line.rstrip("\n"))
+    code = p.wait()
+    return title, code == 0, "" if code == 0 else f"exit {code}"
+
+
+def save_log(root: Path = ROOT, now: float | None = None) -> Path:
+    """The whole check, in work/tests/dev-check-<date>-<time>.log (the baseline before and after a change)."""
+    import time
+    out = root / "work" / "tests" / f"dev-check-{time.strftime('%Y%m%d-%H%M%S', time.localtime(now))}.log"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text("\n".join(LOG) + "\n", encoding="utf-8")
+    return out
 
 
 def documents(root: Path = ROOT) -> list[str]:
@@ -59,26 +85,65 @@ def documents(root: Path = ROOT) -> list[str]:
     return out
 
 
+def has_tools() -> bool:
+    """Whether this computer's Python can lint and test (ruff and pytest there)."""
+    return all(importlib.util.find_spec(m) is not None for m in ("ruff", "pytest"))
+
+
+def in_runner(args: list[str], root: Path = ROOT) -> list[str]:
+    """docker compose arguments that run python <args> in the test runner, in services/api of this folder (mounted at
+    /repo, so the code checked is the code here, not the image's copy)."""
+    repo = Path(root).resolve().as_posix()
+    return ["--profile", "test", "run", "--rm", "--no-deps", "-v", f"{repo}:/repo", "-w", "/repo/services/api",
+            "--entrypoint", "python", "testrunner", *args]
+
+
+def commands(quick: bool, local: bool, py: str = sys.executable, compose_args=None) -> list[tuple[str, list[str], Path]]:
+    """The lint and test steps: here when this Python has the tools, else in the test runner (D794)."""
+    lint = ["-m", "ruff", "check", "eax", "tests", "../ops", "../../eaxcli", "../../testbench", "migrations"]
+    # every test file collected even when one cannot be (owner's laptop, 07:09: one stale import stopped them all)
+    tests = ["-m", "pytest", "-q", "-p", "no:randomly", "--continue-on-collection-errors", "-rfE"] + (["-x"] if quick else [])
+    if local:
+        return [("lint", [py, *lint], API), ("tests", [py, *tests], API)]
+    # compose_args gives the whole command, docker compose included (owner's laptop, 06:45: "docker docker" refused)
+    return [("lint", compose_args(in_runner([*lint, "--no-cache"])), ROOT),
+            ("tests", compose_args(in_runner([*tests, "-p", "no:cacheprovider"])), ROOT)]
+
+
 def main(rest: list[str]) -> int:
     """eax dev check: lint, tests, the documents and (--web) the screens; 1 when any of them failed."""
     if not rest or rest[0] != "check":
         print(__doc__)
         return 2
     quick, web = "--quick" in rest, "--web" in rest
-    py = sys.executable
-    results = [_run("lint", [py, "-m", "ruff", "check", "eax", "tests", "../ops", "../../eaxcli", "../../testbench", "migrations"], API)]
-    tests = [py, "-m", "pytest", "-q", "-p", "no:randomly"] + (["-x"] if quick else [])
-    results.append(_run("tests", tests, API))
-    print("\n== documents", flush=True)
+    local = has_tools()
+    results = []
+    if local:
+        steps = commands(quick, True)
+    else:
+        say("This computer's Python has no ruff or pytest: lint and tests run in the test runner (Docker), with this "
+              "folder mounted; nothing is installed here.")
+        try:
+            from .core import compose, compose_args
+            compose(["--profile", "test", "build", "testrunner"])
+            steps = commands(quick, False, compose_args=compose_args)
+        except Exception as exc:  # noqa: BLE001 - no config file or no Docker: said, and the documents still checked
+            steps = []
+            results += [("lint", False, f"no ruff here and the test runner could not start: {exc}"),
+                        ("tests", False, "no pytest here and the test runner could not start (eax up first?)")]
+    for title, cmd, cwd in steps:
+        results.append(_run(title, cmd, cwd))
+    say("\n== documents")
     probs = documents()
     for p in probs:
-        print(f"  {p}")
+        say(f"  {p}")
     results.append(("documents", not probs, f"{len(probs)} problem(s)" if probs else ""))
     if web:
         npm = shutil.which("npm")
         results.append(_run("web", [npm or "npm", "run", "build"], ROOT / "services" / "web"))
-    print("\nSummary:")
+    say("\nSummary:")
     for title, ok, why in results:
-        print(f"  {'ok    ' if ok else 'FAILED'} {title}" + (f": {why}" if why else ""))
-    print("Next: docs/handover.md says what is in progress and what comes next.")
+        say(f"  {'ok    ' if ok else 'FAILED'} {title}" + (f": {why}" if why else ""))
+    say(f"Saved: {save_log().relative_to(ROOT)}")
+    say("Next: docs/handover.md says what is in progress and what comes next.")
     return 0 if all(ok for _t, ok, _w in results) else 1

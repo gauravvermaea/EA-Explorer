@@ -108,6 +108,9 @@ jobs:
       - name: Short load test (nightly)
         if: github.event_name == 'schedule'
         run: $BENCH load --i-own-this --users 20 --minutes 2 --out testbench/reports/load
+      - name: The performance test (nightly, D695; never part of the full test, R5.29)
+        if: github.event_name == 'schedule'
+        run: ./eax.sh test performance --size small --users 20 --minutes 2
       - name: Upgrade from the previous tag (nightly)
         if: github.event_name == 'schedule'
         run: |
@@ -126,6 +129,41 @@ jobs:
         if: always()
         run: |
           for f in testbench/reports/*/junit.xml; do [ -f "$f" ] && echo "$f: $(grep -o 'tests=\"[0-9]*\"' "$f" | head -1)"; done || true
+
+  security:
+    # the security scans of the code, nightly (R5.17, D698): bandit and the secrets patterns over the whole repository
+    # (eax.testing.codescan, which fails on a high or critical finding not accepted in security_accepted.json), the
+    # Python dependencies' known vulnerabilities (pip-audit) and the screens' (npm audit). The running installation's
+    # scans (ZAP, Trivy, the attacks) are the self-test's security suite, every Sunday and in eax test full.
+    name: Security - code, secrets and dependencies
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: The scanners (the versions of the test runner, services/api/Dockerfile.test)
+        working-directory: services/api
+        run: pip install -r requirements-dev.txt "pip-audit==2.7.3" "bandit==1.7.10" "pip-licenses==5.0.0"
+      - name: Code and secrets (bandit, our patterns, licences)
+        working-directory: services/api
+        run: python -m eax.testing.codescan "$GITHUB_WORKSPACE" "$RUNNER_TEMP/security"
+      - name: Python dependencies (pip-audit)
+        working-directory: services/api
+        run: pip-audit -r requirements.txt
+      - name: The screens' dependencies (npm audit)
+        working-directory: services/web
+        run: npm install && npm audit --audit-level=high
+      - name: Keep the reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports
+          path: ${{ runner.temp }}/security
 
   plugin:
     name: draw.io plugin - syntax

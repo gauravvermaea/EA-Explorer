@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Error codes · EA Explorer</title>
+<meta name="description" content="Every error code EA Explorer gives, what it means, its usual cause and what to do.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../guides/index.html" class="here">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Error codes</h1>
+    <p class="who">For: System Admin</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">Every error code EA Explorer gives, what it means, its usual cause and what to do.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-do-this">Why do this</a></li><li><a href="#where-you-see-the-codes">Where you see the codes</a></li><li><a href="#each-task-one-page">Each task, one page</a></li><li><a href="#the-codes">The codes</a></li></ul></nav>
+    <h2 id="why-do-this">Why do this</h2>
+<p>When something goes wrong, EA Explorer says so with a code of the form <code>EAX-AREA-NNN</code>, for example <code>EAX-AUTH-001</code>. The area says which part it is about; the number tells problems in one area apart. A code never changes its meaning, so you can look it up here, search the logs for it and quote it when you ask for help. See <a href="../concepts/running-the-installation.html">Running the installation</a>.</p>
+<p><strong>In TOGAF terms:</strong> Outside the method: this keeps the tool that holds the Architecture Repository running. See <a href="../concepts/ea-explorer-and-togaf.html">EA Explorer and the TOGAF Standard</a>.</p>
+<p><strong>The goal:</strong> For any problem, you know what it means and what to do next.</p>
+<blockquote class="before"><p><strong>Before you start</strong> Anyone can read this guide; most of what it asks you to do needs the Super Admin or IT Admin role, or the machine EA Explorer runs on.</p></blockquote>
+<h2 id="where-you-see-the-codes">Where you see the codes</h2>
+<ul><li>**<code>eax status</code>** on the machine: after the containers and the disks, every problem now with its code and what to do. <code>eax status problems</code> lists the problems only; <code>eax errors &lt;code&gt;</code> explains one code.</li><li><strong>System Admin › Running › Health</strong>: each part that is not up shows its code and what to do.</li><li><strong>System Admin › Running › Alerts</strong>: each open alert shows its code and what to do; its notification and email name the code too.</li><li><strong>The screens</strong>: an error message ends with its code in brackets.</li><li><strong>The API</strong>: every error answer has <code>error_code</code> and <code>to_do</code> beside <code>message</code>, and the header <code>X-EAX-Error-Code</code>.</li><li><strong>The logs</strong>: the API's log lines about a problem carry <code>error_code</code>, so <code>eax logs api</code> and System Admin › Running › Logs can be searched by code.</li></ul>
+<p>When the code is <code>EAX-API-500</code>, the message also gives a request id: <code>eax logs api</code> shows what happened under that id; give the id when you report the problem.</p>
+<h2 id="each-task-one-page">Each task, one page</h2>
+<ol><li><a href="../how-do-i/find-what-an-error-code-means.html">Find what an error code means</a></li><li><a href="../how-do-i/see-every-problem-from-the-machine.html">See every problem from the machine</a></li><li><a href="../how-do-i/see-the-health-of-every-part.html">See the health of every part</a></li><li><a href="../how-do-i/read-the-logs.html">Read the logs</a></li></ol>
+<h2 id="the-codes">The codes</h2>
+<p>Each area below lists its codes in order. Do what a code says, in order; if the problem stays, <code>eax diag</code> saves a report to send with the code.</p>
+<h3 id="docker-and-the-containers-stack">Docker and the containers (STACK)</h3>
+<p><strong>EAX-STACK-001: Container not running.</strong> A container EA Explorer needs has stopped.</p>
+<p>Usual cause: It failed, was stopped, or ran out of memory.</p>
+<p>What to do: Run eax logs &lt;container&gt; to see why; then eax up.</p>
+<p><strong>EAX-STACK-002: Container unhealthy.</strong> A container is running but its own health check fails.</p>
+<p>Usual cause: It is starting slowly or cannot reach what it needs.</p>
+<p>What to do: Wait a minute; if it stays, run eax logs &lt;container&gt;.</p>
+<p><strong>EAX-STACK-003: Docker not answering.</strong> Docker's engine does not answer.</p>
+<p>Usual cause: Docker Desktop is not running.</p>
+<p>What to do: Start Docker Desktop, wait until it says it is running, then run eax up.</p>
+<h3 id="the-api-s-answers-api">The API's answers (API)</h3>
+<p><strong>EAX-API-001: API not answering.</strong> The API container does not answer.</p>
+<p>Usual cause: It stopped, is starting, or failed to start.</p>
+<p>What to do: Run eax status, then eax logs api. Start it again with eax up.</p>
+<p><strong>EAX-API-101: A value is not valid.</strong> The database could not take a value as given.</p>
+<p>Usual cause: Not an id, not a date, or the wrong kind of value.</p>
+<p>What to do: Read the message: it names the value. Correct it and send again.</p>
+<p><strong>EAX-API-102: Change refused.</strong> The change cannot be made as asked.</p>
+<p>Usual cause: It breaks a rule of the model, the metamodel or the request.</p>
+<p>What to do: Read the message: it says which rule. Change the request to keep it.</p>
+<p><strong>EAX-API-400: Request not valid.</strong> The API could not take the request as sent.</p>
+<p>Usual cause: A value is missing, of the wrong kind or not allowed.</p>
+<p>What to do: Read the message: it names the value. Correct it and send again.</p>
+<p><strong>EAX-API-401: Not signed in.</strong> The request carried no valid sign-in.</p>
+<p>Usual cause: The session ended, or the token or API key is wrong or expired.</p>
+<p>What to do: Sign in again. For a machine, check its API key under System Admin &gt; Machine access.</p>
+<p><strong>EAX-API-403: Not allowed.</strong> The person or machine is signed in but its roles do not allow this.</p>
+<p>Usual cause: A role is missing, or the account is view only.</p>
+<p>What to do: Ask a Super Admin to give the role needed (System Admin &gt; Users and roles), or use an account that has it.</p>
+<p><strong>EAX-API-404: Not found.</strong> What was asked for is not there, or the person may not see it.</p>
+<p>Usual cause: A wrong address or id, something deleted, or no right to read it.</p>
+<p>What to do: Check the address and id. If it should be there, check the person's access to its model or project.</p>
+<p><strong>EAX-API-405: Method not allowed.</strong> The address does not take this kind of request.</p>
+<p>Usual cause: A GET sent where a POST is needed, or the other way round.</p>
+<p>What to do: Check the method in the API reference (Documentation &gt; API (Swagger)).</p>
+<p><strong>EAX-API-409: Conflict.</strong> The change clashes with what is there now.</p>
+<p>Usual cause: Someone changed it first, or the name is already taken.</p>
+<p>What to do: Load it again, look at what changed and make the change again.</p>
+<p><strong>EAX-API-413: Upload too large.</strong> The upload is bigger than the largest allowed.</p>
+<p>Usual cause: The file is over the limit set in System settings.</p>
+<p>What to do: Make the file smaller, or raise the largest upload under System Admin &gt; System settings.</p>
+<p><strong>EAX-API-422: Values not valid.</strong> The request's values did not pass the checks.</p>
+<p>Usual cause: A field is missing or has a value it cannot take.</p>
+<p>What to do: Read the message and the errors it lists; correct each field and send again.</p>
+<p><strong>EAX-API-428: Needs your yes first.</strong> This would put the maintenance page up, so it asks first.</p>
+<p>Usual cause: A restore, update or similar step.</p>
+<p>What to do: Accept the warning on the screen, or send the request again with accept_maintenance set to true.</p>
+<p><strong>EAX-API-429: Too many requests.</strong> Too many requests came in a short time.</p>
+<p>Usual cause: A script or tool calling in a tight loop.</p>
+<p>What to do: Wait a minute and slow the caller down.</p>
+<p><strong>EAX-API-500: Server error.</strong> Something went wrong inside the API.</p>
+<p>Usual cause: A fault in EA Explorer, or a service it needs is not answering.</p>
+<p>What to do: Run eax status. Then eax logs api and look for the request id the message gives; report it with that id.</p>
+<p><strong>EAX-API-502: Service behind the front door not answering.</strong> The front door could not reach the service behind it.</p>
+<p>Usual cause: That container stopped or is starting.</p>
+<p>What to do: Run eax status. If a container is not running, run eax up.</p>
+<p><strong>EAX-API-503: Not available right now.</strong> The service cannot answer now.</p>
+<p>Usual cause: It is starting, stopping or a part it needs is down.</p>
+<p>What to do: Wait a minute and try again. If it stays, run eax status.</p>
+<p><strong>EAX-API-504: The answer took too long.</strong> The front door gave up waiting.</p>
+<p>Usual cause: A slow query or a busy service.</p>
+<p>What to do: Try again. If it keeps happening, see System Admin &gt; Health and the tuning guide.</p>
+<h3 id="parts-switched-off-part">Parts switched off (PART)</h3>
+<p><strong>EAX-PART-001: Part switched off.</strong> This part of EA Explorer is switched off in this installation.</p>
+<p>Usual cause: A Super Admin switched it off.</p>
+<p>What to do: A Super Admin switches it on under System Admin &gt; System settings. Its data is kept.</p>
+<h3 id="maintenance-mnt">Maintenance (MNT)</h3>
+<p><strong>EAX-MNT-001: Read only during maintenance.</strong> Nothing can be changed while a restore or an update runs.</p>
+<p>Usual cause: A restore or update was started.</p>
+<p>What to do: Wait for it to finish (System Admin &gt; Backups shows progress). Reading still works.</p>
+<h3 id="disaster-recovery-dr">Disaster recovery (DR)</h3>
+<p><strong>EAX-DR-001: Read only: DR copy.</strong> This installation is the DR copy of another and takes no changes.</p>
+<p>Usual cause: A DR pairing holds.</p>
+<p>What to do: Make changes on the main site. To take over, a Super Admin stops the pairing (System Admin &gt; Site pairings).</p>
+<h3 id="the-database-db">The database (DB)</h3>
+<p><strong>EAX-DB-001: Database down.</strong> The database does not answer.</p>
+<p>Usual cause: The db container stopped, is full or is starting.</p>
+<p>What to do: Run eax status. If db is not running, run eax up; then eax logs db. Check the disk is not full.</p>
+<p><strong>EAX-DB-002: Database and API versions differ.</strong> The database's version is not the API's.</p>
+<p>Usual cause: An update did not finish, or a backup from another version was restored.</p>
+<p>What to do: Run eax up again so the migrations run. See the upgrade guide if it stays.</p>
+<p><strong>EAX-DB-003: Database connections nearly used up.</strong> The database is near its connection limit.</p>
+<p>Usual cause: Too many API servers, or connections left open.</p>
+<p>What to do: See System Admin &gt; Databases; lower EAX_API_SERVERS or raise the limit (tuning guide).</p>
+<p><strong>EAX-DB-004: Long open transaction.</strong> A transaction has been open a long time and can block others.</p>
+<p>Usual cause: A stuck job or a session left open.</p>
+<p>What to do: See System Admin &gt; Databases; end the session or job holding it.</p>
+<p><strong>EAX-DB-005: Database maintenance findings.</strong> The last database check found things to fix.</p>
+<p>Usual cause: Bloat, missing statistics or similar.</p>
+<p>What to do: Open System Admin &gt; Database maintenance and follow each finding.</p>
+<p><strong>EAX-DB-006: Database integrity findings.</strong> The integrity check found data that is not right.</p>
+<p>Usual cause: An interrupted change or a restore.</p>
+<p>What to do: Open System Admin &gt; Database maintenance, its integrity check, and repair each finding.</p>
+<h3 id="background-jobs-job">Background jobs (JOB)</h3>
+<p><strong>EAX-JOB-001: Job runner not working.</strong> Background jobs cannot run.</p>
+<p>Usual cause: The job tables are missing or the database is down.</p>
+<p>What to do: Run eax status and eax logs api. Run eax up to start it again.</p>
+<p><strong>EAX-JOB-002: Jobs waiting too long or failed.</strong> Jobs wait too long, or some failed.</p>
+<p>Usual cause: The job runner stopped, or a job hit an error.</p>
+<p>What to do: Open System Admin &gt; Jobs: look at the failed or waiting jobs, run again or cancel them.</p>
+<p><strong>EAX-JOB-003: Jobs stuck.</strong> Background jobs are waiting or running too long.</p>
+<p>Usual cause: The job runner stopped or a job hangs.</p>
+<p>What to do: Open System Admin &gt; Jobs; cancel the stuck ones and check eax logs api.</p>
+<p><strong>EAX-JOB-004: Discovery overdue.</strong> Discovery projects whose run is overdue.</p>
+<p>Usual cause: Their AI has not run them.</p>
+<p>What to do: Open AI (MCP) &gt; Enterprise discovery and run them, or change their schedule.</p>
+<h3 id="sign-in-auth">Sign-in (AUTH)</h3>
+<p><strong>EAX-AUTH-001: Sign-in down.</strong> Keycloak does not answer, so nobody can sign in.</p>
+<p>Usual cause: The keycloak container stopped or is starting.</p>
+<p>What to do: Run eax status and eax logs keycloak; run eax up. To get in meanwhile, use the break-glass account.</p>
+<h3 id="the-break-glass-account-brk">The break-glass account (BRK)</h3>
+<p><strong>EAX-BRK-001: Break-glass account used.</strong> The emergency account was used and is no longer sealed.</p>
+<p>Usual cause: Someone signed in with it.</p>
+<p>What to do: Check the audit log for what was done, change EAX_BREAK_GLASS_PASSWORD in the config file and run eax up.</p>
+<p><strong>EAX-BRK-002: Break-glass state unreadable.</strong> The break-glass account's state could not be read.</p>
+<p>Usual cause: The database is down or not migrated.</p>
+<p>What to do: Run eax status; fix the database first.</p>
+<h3 id="the-web-screens-web">The web screens (WEB)</h3>
+<p><strong>EAX-WEB-001: Web screens down.</strong> The web container does not answer.</p>
+<p>Usual cause: It stopped or is starting.</p>
+<p>What to do: Run eax status and eax logs web; run eax up.</p>
+<p><strong>EAX-WEB-002: Many server errors.</strong> Many calls ended in a server error in the last hour.</p>
+<p>Usual cause: A fault or a service down.</p>
+<p>What to do: Run eax status; then System Admin &gt; Logs, web log filtered to 5xx, for the calls and their request ids.</p>
+<h3 id="the-front-door-proxy">The front door (PROXY)</h3>
+<p><strong>EAX-PROXY-001: Front door down.</strong> The proxy that every browser goes through does not answer.</p>
+<p>Usual cause: The proxy container stopped, or its certificate or settings are wrong.</p>
+<p>What to do: Run eax status and eax logs proxy; run eax up. Check the certificate files if it will not start.</p>
+<h3 id="reports-rpt">Reports (RPT)</h3>
+<p><strong>EAX-RPT-001: Reports down.</strong> Apache Superset does not answer.</p>
+<p>Usual cause: The reports container stopped or is starting.</p>
+<p>What to do: Run eax status and eax logs reports; run eax up.</p>
+<h3 id="documents-doc">Documents (DOC)</h3>
+<p><strong>EAX-DOC-001: Documents down.</strong> Mayan EDMS does not answer.</p>
+<p>Usual cause: The dms container stopped or is starting.</p>
+<p>What to do: Run eax status and eax logs dms; run eax up.</p>
+<p><strong>EAX-DOC-002: Document queue down.</strong> Valkey, the documents' queue, does not answer or refuses the password.</p>
+<p>Usual cause: The dms-broker container stopped, or its password changed.</p>
+<p>What to do: Run eax status and eax logs dms-broker; run eax up.</p>
+<h3 id="diagrams-draw">Diagrams (DRAW)</h3>
+<p><strong>EAX-DRAW-001: Diagrams down.</strong> draw.io does not answer.</p>
+<p>Usual cause: The drawio container stopped or is starting.</p>
+<p>What to do: Run eax status and eax logs drawio; run eax up.</p>
+<h3 id="the-library-lib">The library (LIB)</h3>
+<p><strong>EAX-LIB-001: Library down.</strong> The library service does not answer.</p>
+<p>Usual cause: The library container stopped or is starting.</p>
+<p>What to do: Run eax status and eax logs library; run eax up.</p>
+<h3 id="drawn-views-view">Drawn views (VIEW)</h3>
+<p><strong>EAX-VIEW-001: Drawn views down.</strong> The views service does not answer.</p>
+<p>Usual cause: The views container stopped or is starting.</p>
+<p>What to do: Run eax status and eax logs views; run eax up.</p>
+<h3 id="operations-ops">Operations (OPS)</h3>
+<p><strong>EAX-OPS-001: Operations down.</strong> The operations part does not answer or cannot reach its schema.</p>
+<p>Usual cause: Its container or the database is down.</p>
+<p>What to do: Run eax status and eax logs api; run eax up.</p>
+<h3 id="personal-data-pdata">Personal data (PDATA)</h3>
+<p><strong>EAX-PDATA-001: Personal data not available.</strong> People's personal data (pins, settings) cannot be read now.</p>
+<p>Usual cause: Its service or schema cannot be reached.</p>
+<p>What to do: Run eax status and eax logs api; run eax up. The rest of EA Explorer still works.</p>
+<h3 id="the-mcp-server-mcp">The MCP server (MCP)</h3>
+<p><strong>EAX-MCP-001: MCP server down.</strong> AI tools cannot reach EA Explorer.</p>
+<p>Usual cause: The MCP server inside the api container is not answering.</p>
+<p>What to do: Run eax logs api; run eax up. Check EAX_MCP_ENABLED in the config file.</p>
+<h3 id="backups-bak">Backups (BAK)</h3>
+<p><strong>EAX-BAK-001: Nightly backup switched off.</strong> No backup is made each night.</p>
+<p>Usual cause: Someone switched the schedule off.</p>
+<p>What to do: Switch it on under System Admin &gt; Backups.</p>
+<p><strong>EAX-BAK-002: Backups folder not mounted.</strong> The API cannot see the backups folder.</p>
+<p>Usual cause: The folder in the config file is missing or not shared with Docker.</p>
+<p>What to do: Check the backups folder setting in the config file exists, then run eax up.</p>
+<p><strong>EAX-BAK-003: No backup yet.</strong> There is no finished backup to restore from.</p>
+<p>Usual cause: None has run yet, or every one failed.</p>
+<p>What to do: Run eax backup now, then check eax backups lists it.</p>
+<p><strong>EAX-BAK-004: Newest backup too old.</strong> The newest backup is older than the limit.</p>
+<p>Usual cause: The nightly backup failed or did not run.</p>
+<p>What to do: Run eax backup now; then look at why the nightly one failed (System Admin &gt; Backups shows each run and why it failed).</p>
+<h3 id="disk-space-disk">Disk space (DISK)</h3>
+<p><strong>EAX-DISK-001: Disk filling up.</strong> A disk the installation uses is nearly full.</p>
+<p>Usual cause: Backups, logs or documents growing.</p>
+<p>What to do: Run eax footprint; remove old backups (eax backups) and back up and clean the logs (eax logs backup).</p>
+<h3 id="memory-mem">Memory (MEM)</h3>
+<p><strong>EAX-MEM-001: Container near its memory limit.</strong> A container is near its memory limit and may be stopped.</p>
+<p>Usual cause: Load, or a limit set too low.</p>
+<p>What to do: See System Admin &gt; Footprint; raise the container's limit (see the tuning guide) and run eax up.</p>
+<h3 id="certificates-cert">Certificates (CERT)</h3>
+<p><strong>EAX-CERT-001: Certificate ending.</strong> The front door's certificate ends soon.</p>
+<p>Usual cause: It was not renewed.</p>
+<p>What to do: Renew it (System Admin &gt; Secrets: passwords, keys and certificates) or replace the files, then run eax up.</p>
+<h3 id="secrets-and-security-sec">Secrets and security (SEC)</h3>
+<p><strong>EAX-SEC-001: Secret needs a person.</strong> A password, key or certificate is due or overdue.</p>
+<p>Usual cause: It does not rotate by itself, or its rotation failed.</p>
+<p>What to do: Open System Admin &gt; Secrets and rotate the ones listed.</p>
+<p><strong>EAX-SEC-002: Security findings.</strong> The last security gate found high or critical findings.</p>
+<p>Usual cause: A dependency or setting with a known weakness.</p>
+<p>What to do: Open the last security test run (System Admin &gt; Self-test) and fix or accept each finding.</p>
+<h3 id="self-tests-test">Self-tests (TEST)</h3>
+<p><strong>EAX-TEST-001: Self-test failed.</strong> The last self-test had failed checks.</p>
+<p>Usual cause: Something is broken, or the test hit a change.</p>
+<p>What to do: Open System Admin &gt; Self-test, look at the failed checks and fix them.</p>
+<h3 id="alerts-alrt">Alerts (ALRT)</h3>
+<p><strong>EAX-ALRT-001: A custom check is over its level.</strong> A check an admin added is over its warning or critical level.</p>
+<p>Usual cause: Whatever that check measures.</p>
+<p>What to do: Open System Admin &gt; Alerts to see the check and its message.</p>
+<p><strong>EAX-ALRT-002: Health could not be checked.</strong> The service health could not be read at all.</p>
+<p>Usual cause: The API is failing.</p>
+<p>What to do: Run eax status and eax logs api.</p>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: guides/error-codes.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

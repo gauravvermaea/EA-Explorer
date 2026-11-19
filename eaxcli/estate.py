@@ -35,6 +35,7 @@ LOGICAL = [  # id, name, what it does, group
     ("backup", "Backup service", "dumps and restores every database and file set", "Operations"),
     ("testrunner", "Test runner", "the self-test: API, browser, database, security, backups", "Operations"),
     ("k6", "Load test (k6)", "the benchmark's people at once (R5.18), started by the helper", "Operations"),
+    ("sonarqube", "Code scan (SonarQube)", "the code quality scan, eax test sonar (Release 8), on demand", "Operations"),
     ("db", "PostgreSQL", "one database: the repository and its schemas (tests, operations, archive, personal, library_models, D630)", "Data"),
     ("files", "Files and folders", "documents, imports, exports, backups, logs, persist/", "Data"),
 ]
@@ -47,6 +48,7 @@ FLOWS = [  # from, to, what
     ("reports", "db", "report views"), ("dms", "db", "SQL"), ("keycloak", "db", "SQL"), ("library", "db", "SQL"),
     ("views", "db", "SQL"), ("ops", "backup", "backups"), ("backup", "db", "dump, restore"), ("backup", "files", "archive"),
     ("ops", "testrunner", "runs"), ("testrunner", "proxy", "tests as people do"), ("ops", "k6", "runs"), ("k6", "proxy", "many people at once"), ("dms", "files", "documents"),
+    ("eax", "sonarqube", "eax test sonar"), ("testrunner", "sonarqube", "reads the issues"),
     ("proxy", "files", "web log (R5.6)"), ("ops", "files", "container logs"),
 ]
 # the containers of docker-compose.yml that are not drawn on their own, and why (R5.8: every other one must be in
@@ -56,6 +58,7 @@ NOT_DRAWN = {
     "reports-init": "one-shot: Reports' database and its sign-in, part of Reports",
     "dms-broker": "Documents' message broker, part of Documents",
     "testrunner-service": "the test runner kept running for the web, part of the Test runner",
+    "sonar-scanner": "reads the code for SonarQube during eax test sonar, part of the Code scan",
 }
 # what a compose profile means, said beside the container (the rest: started on demand)
 PROFILE_SAYS: dict[str, str] = {}

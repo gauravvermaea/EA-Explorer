@@ -38,6 +38,8 @@ export const PURPOSE = {
   testrunner: "The self-test, started when a test runs",
   k6: "The load test's many people at once, started by the performance suite (R5.18)",
   "testrunner-service": "The self-test runner that waits for runs on a managed platform",
+  sonarqube: "SonarQube: the code quality scan, started by eax test sonar and removed when it ends (Release 8)",
+  "sonar-scanner": "The SonarQube scanner: reads the code for eax test sonar, then stops (Release 8)",
 };
 // only current and relevant containers unless asked (owner, 13 Nov 2026: "Dead are not unless asked for"): running or
 // starting ones, and any that stopped with an error (a problem to see); a set-up step that finished, a switched-off

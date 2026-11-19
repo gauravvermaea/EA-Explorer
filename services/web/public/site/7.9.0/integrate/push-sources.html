@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Push sources and the Python kit · EA Explorer</title>
+<meta name="description" content="Send records over REST from any language; the Python kit shows the call with pandas.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html" class="here">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Push sources and the Python kit</h1>
+    <p class="who">For: Developers</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">Send records over REST from any language; the Python kit shows the call with pandas.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-push">Why push</a></li><li><a href="#the-call">The call</a></li><li><a href="#signing-in">Signing in</a></li><li><a href="#the-python-kit">The Python kit</a></li><li><a href="#read-next">Read next</a></li></ul></nav>
+    <h2 id="why-push">Why push</h2>
+<p>When your connector can make an HTTP call, pushing is the most direct way in: no files, no folders, an answer at once. What you push still arrives as a delivery for review.</p>
+<h2 id="the-call">The call</h2>
+<p>A push source is set up on the model's <strong>Discovery</strong> tab. Its address takes your records:</p>
+<pre class="code"><code>POST /api/v1/import-sources/&lt;source&gt;/push
+Content-Type: application/json
+
+{&quot;applications&quot;: [{&quot;name&quot;: &quot;Claims portal&quot;, &quot;lifecycle_status&quot;: &quot;Live&quot;}],
+ &quot;servers&quot;:      [{&quot;name&quot;: &quot;srv-claims-01&quot;, &quot;hosts&quot;: &quot;Claims portal&quot;}]}</code></pre>
+<p>Each key is a set (an entity type, mapped on the source's panel); related sets sent together let their links become relationships. <code>{&quot;value&quot;: [...], &quot;set&quot;: &quot;&lt;set&gt;&quot;}</code> sends one set.</p>
+<h2 id="signing-in">Signing in</h2>
+<p>The model's service account, or anyone who may load into the model, with any of: a personal token or a service account's API key as <code>Authorization: Bearer ...</code>; a user name and password as HTTP Basic; a client certificate on the machine-access port (9443). See <a href="../integrate/authentication-for-integrations.html">Signing in as a system</a>.</p>
+<h2 id="the-python-kit">The Python kit</h2>
+<p>The push source's panel has <strong>Push with Python</strong> and <strong>Download the Python kit</strong>: <code>push_to_eax.py</code> (reads the CSV files in a folder with pandas and sends them in one call; <code>push_dataframe(url, df, username, password)</code> sends one DataFrame), <code>requirements.txt</code>, a <code>README.md</code> with the command for this source, and sample CSVs for every type with a relationship column the metamodel allows. The script has no checks on purpose: it shows the call for you to build on. See <a href="../how-do-i/push-data-with-python.html">Push data with Python</a>.</p>
+<h2 id="read-next">Read next</h2>
+<ul><li><a href="../integrate/build-a-connector.html">Build a connector</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: integrate/push-sources.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

@@ -104,7 +104,8 @@ def test_eax_status_says_each_container_problem_with_its_code():
                          '[{"Service":"setup","State":"exited","Status":"Exited (0)","ExitCode":0},'
                          '{"Service":"web","State":"running","Status":"Up 2 hours (unhealthy)"},'
                          '{"Service":"api","State":"running","Status":"Up 2 hours (healthy)"},'
-                         '{"Service":"drawio","State":"exited","Status":"Exited (0)","ExitCode":0}]'])
+                         '{"Service":"drawio","State":"exited","Status":"Exited (0)","ExitCode":0},'
+                         '{"Service":"testrunner","State":"exited","Status":"Exited (1) 13 hours ago","ExitCode":1}]'])
     got = {p["what"]: p for p in P.container_problems(rows, switched_off={"drawio"})}
     assert set(got) == {"container keycloak", "container web"}
     assert got["container keycloak"]["code"] == "EAX-AUTH-001"

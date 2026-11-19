@@ -72,6 +72,10 @@ def _results(monkeypatch, tmp_path, mode, db, deployment="laptop", certs=True, d
     monkeypatch.setenv("EAX_AUTH_MODE", mode)
     monkeypatch.setenv("EAX_DB_PASSWORD", "right")
     monkeypatch.setenv("EAX_DEPLOYMENT", deployment)
+    # only what the test gives: the test runner's own (a laptop's defaults) left out (the owner's laptop, 19 Nov 2026:
+    # EAX_DB_MIGRATOR_PASSWORD came in from the runner)
+    for k in ("EAX_DB_SUPERUSER_PASSWORD", "EAX_DB_MIGRATOR_PASSWORD"):
+        monkeypatch.delenv(k, raising=False)
     for k, v in (extra_env or {}).items():
         monkeypatch.setenv(k, v)
     if mode == "password":

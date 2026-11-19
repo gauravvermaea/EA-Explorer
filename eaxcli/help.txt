@@ -187,7 +187,8 @@ $ {eax} jobs slots 6 2
 > The first thing to run before changing EA Explorer: lint, tests and the documents' cross-checks.
 For a developer (or another AI) taking the work over (R5.16): ruff, pytest in services/api (--quick: stops at the first
 failure), the decisions numbered once each, help.txt ASCII, and the handover documents there; --web also
-builds the screens. Nothing is installed or started; it says what is missing. Then read docs/handover.md.
+builds the screens. Nothing is installed; without ruff or pytest on this computer, lint and tests run in the test
+runner (Docker) on this folder. Then read docs/handover.md.
 $ {eax} dev check
 $ {eax} dev check --quick --web
 
@@ -395,7 +396,7 @@ $ {eax} import --all
 > Checks that Docker is running and the config and compose files are valid. Starts nothing.
 $ {eax} check
 
-### test [smoke|full|jobs|mcp|reports|security|performance|backup|backup-restore|restore|failed [run] [--warnings]|watch [run] [--log|--browser]|stop [run]|api <method> <path>|delete <run|all> [--older-than DAYS]|clean] [--yes]
+### test [smoke|full|jobs|mcp|reports|security|performance|sonar [--keep|--reset]|backup|backup-restore|restore|failed [run] [--warnings]|watch [run] [--log|--browser]|stop [run]|api <method> <path>|delete <run|all> [--older-than DAYS]|clean] [--yes]
 > Test this installation: smoke or full; only what failed last time; or delete the test data.
 The same two tests as System Admin > Tools > Self-test (owner, 12 Nov 2026, D592: "Smoke or Full. Not too many
 options"); a run started in either place shows in both. Each run first removes any test data earlier runs left
@@ -411,6 +412,11 @@ and IT Admins.
   security  only the security suite (part of full, R5.17): the front door's headers, the dependencies, the code and
           secrets scans, the attacks of Release 3, ZAP signed in and not, Trivy; a high or critical finding not
           accepted (eax/testing/security_accepted.json) fails it. It also runs by itself every Sunday at 03:20.
+  sonar   the whole repository scanned by SonarQube (Release 8): the newest SonarQube and its default rules, in the
+          test profile, started for the scan and removed after it (--keep leaves it running, --reset starts it
+          afresh). The report: work/tests/sonar-<time>/report.md, every issue by file and line. Fails when an issue
+          is not accepted in writing (services/api/eax/testing/sonar_accepted.json). Run every test before and
+          after fixing what it finds.
   performance  the benchmark (only when asked for, never in full, R5.29): the test model filled to --size small|medium|large, every read that
           matters timed, then k6 with --users N people for --minutes M; slower than the last release's baseline by
           more than 10%, errors, or a container over its memory limit fail it.

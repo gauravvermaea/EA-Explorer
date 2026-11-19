@@ -1,4 +1,4 @@
-# What EA Explorer does today (version 5.7.0)
+# What EA Explorer does today (version 7.9.0)
 
 One page for anyone weighing EA Explorer up: what is **built and in the box today**, area by area, and what is still
 **planned**, with its build phase. "Planned" adds to what is already there; it does not mean an area is missing.
@@ -16,6 +16,17 @@ Every phase in detail: [build-phases.md](build-phases.md). Decisions: [decisions
 | Documents and libraries | Document management (Mayan EDMS) inside projects, the reference library, the enterprise and project libraries with search |
 | Integration | A REST API (OpenAPI), signed webhooks, Excel and CSV in and out with mappings, model packages, the MCP server; discovery: OData feeds read, pushes taken and documents read by AI, proposed as deliveries to review (Release 3, in progress) |
 | Operations | One command (`eax`, full screen or numbered menu) and a console, start-up in two tiers, health, tagged backups and restores, every service switchable, a file explorer in every container |
+
+## New in Release 7.9 (7.9.0, released 19 Nov 2026)
+
+Every problem has an **error code** (`EAX-AREA-NNN`) with what it means and what to do: in the API's answers, the logs,
+System Admin's health and alerts, the screens' error messages and `eax status`; `eax errors <code>` explains one, and
+Jenkins answers it too. The **error code guide** is on the website and printed guide 25.
+
+## New in Release 7 (7.0.0, released 18 Nov 2026)
+
+The documentation: the website with its How do I pages and guides, opened from the app, and **25 printed guides** as
+PDFs (cover, purpose, contents) in the repository's documents folder, on the website and under Documentation.
 
 ## New in Release 5.6 (5.6.0, released 16 Nov 2026)
 

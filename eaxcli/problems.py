@@ -11,6 +11,9 @@ from .core import ROOT, compose_out, docker_ok, heading, ok, say
 
 LIST = ROOT / "services" / "api" / "eax" / "errors.json"
 ONE_SHOT = {"setup", "reports-init"}          # containers that run once and stop when done
+# the self-test's own containers (the test profile): they run for a test and stop, whatever its result; a finished one is
+# not a problem of the installation (the owner's laptop, 18 Nov 2026, 23:40: testrunner "Exited (1) 13 hours ago")
+TEST_ONLY = ("testrunner", "k6", "sonar")       # sonarqube and sonar-scanner: the code scan (Release 8)
 
 
 def _errors() -> list[dict]:
@@ -53,6 +56,8 @@ def container_problems(rows: list[dict], switched_off: set[str] = frozenset()) -
         if service in switched_off:
             continue
         if service in ONE_SHOT and state == "exited" and r.get("ExitCode") in (0, None):
+            continue
+        if service.startswith(TEST_ONLY) and state == "exited":
             continue
         if state == "running" and "unhealthy" not in status:
             continue

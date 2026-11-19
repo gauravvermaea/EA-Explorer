@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Integrating with EA Explorer: the map · EA Explorer</title>
+<meta name="description" content="Every way data gets into and out of EA Explorer, which to choose, and the rules they all share.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html" class="here">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Integrating with EA Explorer: the map</h1>
+    <p class="who">For: Developers</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">Every way data gets into and out of EA Explorer, which to choose, and the rules they all share.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-integrate">Why integrate</a></li><li><a href="#the-principle-ea-explorer-publishes-you-connect">The principle: EA Explorer publishes, you connect</a></li><li><a href="#the-ways-in">The ways in</a></li><li><a href="#the-ways-out">The ways out</a></li><li><a href="#the-rules-every-integration-shares">The rules every integration shares</a></li><li><a href="#read-next">Read next</a></li></ul></nav>
+    <h2 id="why-integrate">Why integrate</h2>
+<p>An architecture repository is only as current as its sources. The facts it needs (applications, servers, teams, contracts, costs) already live in other systems: a configuration database, a service management tool, HR, finance. A good integration brings them in on a schedule so architects work on judgement rather than retyping, and takes the architecture back out to the reports and tools where decisions are made. See <a href="../concepts/bringing-data-in-and-out.html">Data in and out: integration</a>.</p>
+<h2 id="the-principle-ea-explorer-publishes-you-connect">The principle: EA Explorer publishes, you connect</h2>
+<p>EA Explorer is not an ETL tool and does not ship vendor-specific connectors. Instead it <strong>publishes stable formats and interfaces</strong>, and a connector is whatever reads your source and writes one of them. That keeps EA Explorer simple and lets you use the tools you already have: a Python script, your integration platform, a scheduled export.</p>
+<h2 id="the-ways-in">The ways in</h2>
+<div class="table"><table><thead><tr><th>Way</th><th>Best when</th><th>Page</th></tr></thead><tbody><tr><td>Excel or CSV in the published format</td><td>A person or a nightly export produces a file</td><td><a href="../integrate/import-formats.html">The published import formats</a></td></tr><tr><td>A delivery folder</td><td>The source can drop a file somewhere; no API work</td><td><a href="../integrate/deliveries.html">Deliveries: the folder way in</a></td></tr><tr><td>A push source (REST)</td><td>Your connector can make an HTTP call, from Python or anything else</td><td><a href="../integrate/push-sources.html">Push sources and the Python kit</a></td></tr><tr><td>An OData source EA Explorer reads</td><td>The source already publishes OData</td><td><a href="../integrate/odata-sources.html">OData sources EA Explorer reads</a></td></tr><tr><td>Documents read by AI</td><td>The knowledge is in documents</td><td><a href="../how-do-i/discover-the-enterprise-with-ai.html">Discover the enterprise with AI</a></td></tr><tr><td>The REST API directly</td><td>You need full control, including reads</td><td><a href="../integrate/rest-api.html">The REST API</a></td></tr></tbody></table></div>
+<h2 id="the-ways-out">The ways out</h2>
+<div class="table"><table><thead><tr><th>Way</th><th>Best when</th><th>Page</th></tr></thead><tbody><tr><td>OData feeds</td><td>Power BI, Excel or any OData client should read live</td><td><a href="../integrate/odata-feeds.html">OData feeds EA Explorer publishes</a></td></tr><tr><td>Reports on the feeds</td><td>You build your own dashboards</td><td><a href="../integrate/build-reports-on-odata.html">Build your own reports on the feeds</a></td></tr><tr><td>Webhooks</td><td>Another system must react when something happens</td><td><a href="../integrate/webhooks.html">Webhooks</a></td></tr><tr><td>The REST API</td><td>Scripts and systems read what they need</td><td><a href="../integrate/rest-api.html">The REST API</a></td></tr><tr><td>MCP</td><td>An AI agent works with the repository</td><td><a href="../integrate/mcp-for-developers.html">MCP for developers</a></td></tr></tbody></table></div>
+<h2 id="the-rules-every-integration-shares">The rules every integration shares</h2>
+<ul><li><strong>Everything coming in is reviewed</strong> before it counts: new, changed, kept and problem rows, accepted or declined by a person. A connector cannot quietly change a model.</li><li><strong>Rows are matched by type and name</strong>, so a connector needs no EA Explorer ids. A delivery never deletes.</li><li><strong>Every caller signs in</strong> with its own identity and only the rights it needs: see <a href="../integrate/authentication-for-integrations.html">Signing in as a system</a>.</li><li><strong>Secrets never sit in the database</strong>: a source's sign-in is the name of a setting (<code>EAX_SOURCE_...</code>).</li></ul>
+<h2 id="read-next">Read next</h2>
+<ul><li><a href="../integrate/build-a-connector.html">Build a connector</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: integrate/overview.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

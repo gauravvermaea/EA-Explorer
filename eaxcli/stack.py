@@ -171,6 +171,27 @@ def up(names: list[str], wait_everything: bool, no_throw: bool = False) -> int:
     return 0
 
 
+# Containers that are not part of running EA Explorer (owner, 19 Nov 2026, 05:45: "ensure sonar and other non essential
+# containers do not come up during regular operations"): SonarQube and its scanner (eax test sonar), k6 (the load test),
+# the platform's always-on test runner (only for a managed platform) and a test run that has finished. A container of a
+# profile that is not switched on is left alone by compose's own down and, with a restart policy, comes back whenever
+# Docker starts; so up and down remove them (their data volumes kept). A running test is never stopped. In step with
+# eax.ps1's Remove-Extras and eax.sh's remove_extras (D331).
+EXTRA_CONTAINERS = ("sonarqube", "sonar-scanner", "k6", "testrunner-service")
+ALL_PROFILES = ["--profile", "test", "--profile", "platform"]
+
+
+def extras_to_remove(test_running: bool) -> list[str]:
+    """The containers up and down remove: the extras, and the test runner when no test is running."""
+    return [*EXTRA_CONTAINERS, *([] if test_running else ["testrunner"])]
+
+
+def remove_extras() -> None:
+    """Removes the containers that are not part of running EA Explorer."""
+    running = bool(compose_out([*ALL_PROFILES, "ps", "--status", "running", "-q", "testrunner"]))
+    compose([*ALL_PROFILES, "rm", "-s", "-f", *extras_to_remove(running)], no_throw=True, quiet=True)
+
+
 def later() -> None:
     """start-later: the rest without touching the core, then the switched-off ones created (not started)."""
     t = tiers()
@@ -180,6 +201,7 @@ def later() -> None:
     if t["off"]:
         compose(["create", "--build", *t["off"]], no_throw=True)
         compose(["stop", *t["off"]], no_throw=True, quiet=True)
+    remove_extras()        # nothing that is not part of running EA Explorer (test, scan and platform containers)
     say("Everything is started.")
 
 

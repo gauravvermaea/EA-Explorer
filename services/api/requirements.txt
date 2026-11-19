@@ -26,3 +26,6 @@ defusedxml>=0.7,<0.8
 coverage>=7.6,<8
 # a git repository as one more place for packages (Release 6.5, D749): pure Python git, no git program in the image
 dulwich>=0.22,<1
+# the AI's report as a Word project document (mcp_more.docx_from_markdown); missing until 19 Nov 2026, so the tool
+# failed with "No module named 'docx'" (found by tests/test_mcp_ops.py in the test runner)
+python-docx>=1.1,<2

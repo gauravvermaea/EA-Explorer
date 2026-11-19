@@ -101,6 +101,7 @@ def page() -> str:
 
 
 def main(argv: list[str]) -> int:
+    """Writes the guide from the list, or with --check says whether it is out of step (exit 1 when it is)."""
     text = page()
     if "--check" in argv:
         same = PAGE.is_file() and PAGE.read_text(encoding="utf-8") == text

@@ -229,3 +229,13 @@ def test_the_written_guides_are_made_from_the_list():
     """docs/guides/<guide>.md is eaxcli/setup.py's markdown(): change the list, then write the files again."""
     for g in S.GUIDES:
         assert (REPO / "docs/guides" / f"{g['id']}.md").read_text(encoding="utf-8") == S.markdown(g["id"]), g["id"]
+
+
+def test_a_check_on_a_machine_without_docker_says_so(monkeypatch):
+    """The owner's dev check, 19 Nov 2026: the rebuild guide's check ran docker where there is none and crashed
+    (FileNotFoundError); it says Docker is missing instead."""
+    def no_docker(*a, **k):
+        raise FileNotFoundError(2, "No such file or directory", "docker")
+    monkeypatch.setattr(S.subprocess, "run", no_docker)
+    ok, words = S.check("docker")
+    assert ok is False and "docker is not on this machine" in words

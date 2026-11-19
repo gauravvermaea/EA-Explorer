@@ -434,6 +434,19 @@ function Invoke-Up([string[]]$Names, [switch]$NoThrow) {
     }
     return 0
 }
+# Containers that are not part of running EA Explorer (owner, 19 Nov 2026, 05:45: "ensure sonar and other non essential
+# containers do not come up during regular operations"): SonarQube and its scanner (eax test sonar), k6 (the load test),
+# the platform's always-on test runner (only for a managed platform, profile "platform") and a test run that has finished.
+# A container of a profile that is not switched on is left alone by compose's own down and, with a restart policy,
+# comes back whenever Docker starts; so up and down remove them (their data volumes kept). A running test is never stopped.
+$ExtraContainers = @("sonarqube", "sonar-scanner", "k6", "testrunner-service")
+function Remove-Extras {
+    $all = @("--profile", "test", "--profile", "platform")
+    $names = @($ExtraContainers)
+    $running = @(Invoke-Quiet docker @(Get-ComposeArgs ($all + @("ps", "--status", "running", "-q", "testrunner"))) | Where-Object { $_ })
+    if ($running.Count -eq 0) { $names += "testrunner" }
+    Invoke-Compose ($all + @("rm", "-s", "-f") + $names) -NoThrow -Quiet | Out-Null
+}
 # start-later: the second tier (run by Start-Later): the rest without touching the core, then the switched-off ones created
 function Invoke-Later {
     $t = Get-Tiers
@@ -445,6 +458,7 @@ function Invoke-Later {
         Invoke-Compose (@("create", "--build") + $t.Off) -NoThrow | Out-Null
         Invoke-Compose (@("stop") + $t.Off) -NoThrow -Quiet | Out-Null
     }
+    Remove-Extras      # nothing that is not part of running EA Explorer (test, scan and platform containers)
     Write-Log "Everything is started."
 }
 # the file systems after the containers (owner, 8 Nov 2026): Docker's disk and the work and backups folders, read by
@@ -1025,7 +1039,7 @@ if ($Command -eq "menu") {   # the numbered menu (R2.29): one Python program for
     & (Join-Path $PSScriptRoot "eaxpy.ps1") menu
     exit $LASTEXITCODE
 }
-if (($Command -in @("init", "certs", "deploy", "secrets", "packs", "schedule", "persist", "folders", "allow", "drill", "dr-pack", "sign", "verify", "db", "ticket", "jobs", "optimise", "estimate", "dev", "jenkins", "setup", "access", "hostname", "settings", "site", "errors")) -or ($Command -eq "logs" -and $RestArgs.Count -gt 0 -and $RestArgs[0] -in @("backup", "clean")) -or ($Command -eq "test" -and ($RestArgs -contains "--reset-survival" -or $RestArgs -contains "backup-restore" -or $RestArgs -contains "restore" -or $RestArgs -contains "full"))) {   # packs (D546); schedule (D559); test --reset-survival (D561); test backup-restore, restore, full (R5.6-B1)
+if (($Command -in @("init", "certs", "deploy", "secrets", "packs", "schedule", "persist", "folders", "allow", "drill", "dr-pack", "sign", "verify", "db", "ticket", "jobs", "optimise", "estimate", "dev", "jenkins", "setup", "access", "hostname", "settings", "site", "errors")) -or ($Command -eq "logs" -and $RestArgs.Count -gt 0 -and $RestArgs[0] -in @("backup", "clean")) -or ($Command -eq "test" -and ($RestArgs -contains "--reset-survival" -or $RestArgs -contains "backup-restore" -or $RestArgs -contains "restore" -or $RestArgs -contains "full" -or $RestArgs -contains "sonar"))) {   # packs (D546); schedule (D559); test --reset-survival (D561); test backup-restore, restore, full (R5.6-B1)
     # phase 36 (D498, D504): one Python program for every form (D500); eaxpy.ps1 fetches uv and Python into work\tools
     & (Join-Path $PSScriptRoot "eaxpy.ps1") $Command @RestArgs
     exit $LASTEXITCODE
@@ -1088,7 +1102,7 @@ try {
             $global:LASTEXITCODE = 0
         }
         "logs"    { Invoke-Compose (@("logs", "-f", "--tail=100") + $RestArgs) -NoThrow | Out-Null }
-        "down"    { Invoke-Compose @("down") | Out-Null }
+        "down"    { Invoke-Compose @("down") | Out-Null; Remove-Extras }
         "backup"  { if (-not (Test-ServiceOn "backups")) { throw "Backups are switched off: .\eax service backups on" }
                     Start-BackupHelpers
                     Invoke-Interactive @("ops", "python3", "/app/ops.py", "backup") $RestArgs }

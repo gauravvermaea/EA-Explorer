@@ -137,6 +137,9 @@ volumes:
   eax-kc-import:     # the Keycloak realm rendered by the setup service
   eax-superset-home:
   eax-certs:         # certificate mode's authority and certificates (R6-C1): used only with deploy/compose/auth
+  eax-sonar-data:        # SonarQube's own database and index (Release 8): the test profile only
+  eax-sonar-extensions:
+  eax-sonar-cache:       # the scanner's downloaded analysers
 
 services:
 
@@ -384,6 +387,37 @@ services:
     image: ${EAX_IMAGE_K6:-grafana/k6:0.54.0}
     entrypoint: ["k6", "version"]
     networks: [frontend]
+    <<: *logging
+
+  # SonarQube (Release 8, R8; D740, D792): the code quality scan, in the test profile only, never running otherwise.
+  # eax test sonar starts it, the scanner below sends it the repository, the test runner reads the issues into
+  # work/tests/sonar-<time>/, and then it is removed (its data kept in its volumes, so the next scan starts faster).
+  # The newest Community Build with its default rules (owner, 19 Nov 2026, 00:07: "Newest + Sonar way"), pulled before
+  # each scan (the last one pulled when offline); on the internal network only, no port, telemetry off.
+  sonarqube:
+    profiles: ["test"]
+    image: ${EAX_IMAGE_SONARQUBE:-sonarqube:community}
+    environment:
+      SONAR_TELEMETRY_ENABLE: "false"
+      SONAR_SEARCH_JAVAADDITIONALOPTS: "-Dnode.store.allow_mmap=false"   # no vm.max_map_count needed (Docker Desktop)
+    volumes:
+      - eax-sonar-data:/opt/sonarqube/data
+      - eax-sonar-extensions:/opt/sonarqube/extensions
+    networks: [backend]
+    <<: *logging
+
+  # The SonarQube scanner (Release 8): reads the repository (read only; what is scanned is in sonar-project.properties)
+  # and sends it to SonarQube; run once per scan by eax test sonar and removed.
+  sonar-scanner:
+    profiles: ["test"]
+    image: ${EAX_IMAGE_SONAR_SCANNER:-sonarsource/sonar-scanner-cli:latest}
+    environment:
+      SONAR_HOST_URL: http://sonarqube:9000
+      SONAR_SCANNER_OPTS: "-Dsonar.working.directory=/tmp/scannerwork"
+    volumes:
+      - ./:/usr/src:ro
+      - eax-sonar-cache:/opt/sonar-scanner/.sonar/cache
+    networks: [backend]
     <<: *logging
 
   # The test runner as an always-on service (R2.44, D635): on a container platform with no Docker socket

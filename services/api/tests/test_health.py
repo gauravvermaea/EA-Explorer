@@ -96,6 +96,11 @@ def test_backup_age(tmp_path, monkeypatch):
 
 
 def test_mcp_off(monkeypatch):
+    # only the old switch says off: no config file and no EAX_SERVICE_MCP (the test runner has both, set on, and the
+    # new name rightly wins; the owner's laptop, 19 Nov 2026: "down" there)
+    from eax import services
+    monkeypatch.setattr(services, "FILES", [])
+    monkeypatch.delenv("EAX_SERVICE_MCP", raising=False)
     monkeypatch.setenv("EAX_MCP_ENABLED", "false")
     assert health.check_mcp()["status"] == "off"
 

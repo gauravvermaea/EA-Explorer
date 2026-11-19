@@ -300,7 +300,11 @@ def files() -> dict[str, tuple[bytes, str, list[str]]]:
 
 def canonical(name: str, data: bytes) -> bytes:
     """What must stay the same: for a PNG only its picture (IHDR, IDAT, IEND), since some file stores add provenance
-    chunks to PNG files they keep; every other file byte for byte."""
+    chunks to PNG files they keep; for a workbook its sheets and every cell's value, since another openpyxl writes the
+    same workbook with other bytes (the test runner's, on the owner's laptop, 19 Nov 2026); every other file byte for
+    byte."""
+    if name.endswith(".xlsx") and data.startswith(b"PK"):
+        return _workbook_values(data)
     if not name.endswith(".png") or not data.startswith(b"\x89PNG"):
         return data
     out, i = bytearray(data[:8]), 8
@@ -311,6 +315,19 @@ def canonical(name: str, data: bytes) -> bytes:
             out += data[i:i + 12 + n]
         i += 12 + n
     return bytes(out)
+
+
+def _workbook_values(data: bytes) -> bytes:
+    """A workbook as its sheets' names and every cell's value, in order (what a load reads from it)."""
+    import io
+    import json as _json
+
+    from openpyxl import load_workbook
+    wb = load_workbook(io.BytesIO(data), read_only=True)
+    out = {ws.title: [[None if c is None else str(c) for c in row] for row in ws.iter_rows(values_only=True)]
+           for ws in wb.worksheets}
+    wb.close()
+    return _json.dumps(out, sort_keys=False, ensure_ascii=True).encode()
 
 
 def manifest(built: dict[str, tuple[bytes, str, list[str]]]) -> dict:

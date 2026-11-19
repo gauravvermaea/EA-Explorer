@@ -466,7 +466,7 @@ def dispatch(command: str, rest: list[str], wait_all: bool) -> None:
         _core.heading(f"EA Explorer {_core.release()}, build {_core.build_id()}")
         _core.say_status_lines(_core.compose_out(["ps", "-a"]))    # each container in its state's colour (R2.10)
         stack.show_filesystems()
-        from . import problems                                    # every problem with its code and what to do (R7.9)
+        from . import problems  # every problem with its code and what to do (R7.9)
         problems.show(set(stack.off_containers()))
     elif command == "logs" and rest[:1] in (["backup"], ["clean"]):   # back up and clean the logs (R2.30)
         from . import logs_cli
@@ -475,6 +475,7 @@ def dispatch(command: str, rest: list[str], wait_all: bool) -> None:
         attached(compose_args(["logs", "-f", "--tail=100", *rest]))
     elif command == "down":
         compose(["down"])
+        stack.remove_extras()        # the test, scan and platform containers too (owner, 19 Nov 2026, 05:45)
     elif command == "backup":
         need_backups()
         stack.backup_helpers()
@@ -519,6 +520,9 @@ def dispatch(command: str, rest: list[str], wait_all: bool) -> None:
             "Chromium, scanners.")
         compose(["--profile", "test", "build", "testrunner"])
         say("The test runner is built.")
+    elif command == "test" and rest[:1] == ["sonar"]:   # the SonarQube scan of the whole repository (Release 8, D792)
+        from . import sonar
+        sonar.main(rest[1:])
     elif command == "test" and rest[:1] == ["clean"]:   # delete every test run's data, for good (R2.0.1, D593)
         stack.interactive(["api", "python", "-m", "eax.testing.cli", "clean", "all"], rest[1:])
     elif command == "test" and rest[:1] == ["delete"]:  # delete test results for good (R2.43)

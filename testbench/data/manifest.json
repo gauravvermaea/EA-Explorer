@@ -26,7 +26,7 @@
         "api: import-sources writes"
       ],
       "bytes": 23201,
-      "sha256": "4ef5f1301f7f6c184e4736a1b9c3a51f9a3b9f484f2b7a92b1c77a7bac76d039"
+      "sha256": "bcc586e9abe0611da9150cba51c900234c27505f34a9a239706678e4255f2708"
     },
     "deliveries/values-win.xlsx": {
       "what": "The good delivery again with changed values, for a source whose values win",
@@ -34,7 +34,7 @@
         "ui: deliveries journey (values win)"
       ],
       "bytes": 23284,
-      "sha256": "a16eb3efa982e82fa308f3dae2b726b8d3fa23c8200ada806cf810eac85877f8"
+      "sha256": "7cdcfefe238668c908cb2284cfa893a26269d8386a4d5ac26c40511e1389fa63"
     },
     "deliveries/with-errors.xlsx": {
       "what": "A delivery with problems: a row with no name, an unknown pick-list value, a delete (never done by a delivery) and a relationship to an unknown entity",
@@ -42,7 +42,7 @@
         "ui: deliveries journey (problems shown)"
       ],
       "bytes": 22951,
-      "sha256": "c746130ff19845a279a1a234cdcf6a3f59ed744f716c6b7d191e3098f7c6711c"
+      "sha256": "50cfd38db18448faee4268896bd81a31e5d079d0235daaa5088df0a3b1aa648f"
     },
     "entities/attributes.json": {
       "what": "Attribute definitions (the metamodel workbook's, as JSON)",
@@ -84,7 +84,7 @@
         "api: metamodel workbook preview"
       ],
       "bytes": 33397,
-      "sha256": "30769f187f6c32f91a3cdd45fb344d9f59627f5a053f1afd29590fbc3cd65cbb"
+      "sha256": "c98e8ba3cca713304789c8bce7a13fce42e9352818519a5f334618c83f9c76bf"
     },
     "surveys/survey.json": {
       "what": "A survey definition: five questions, each kind once, one condition",

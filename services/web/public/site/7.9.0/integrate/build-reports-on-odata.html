@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build your own reports on the feeds · EA Explorer</title>
+<meta name="description" content="Dashboards in your organisation&#x27;s own tools, on the live model: the approach, joining tables, refreshing.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html" class="here">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Build your own reports on the feeds</h1>
+    <p class="who">For: Developers, Practising architects, Executives</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">Dashboards in your organisation&#x27;s own tools, on the live model: the approach, joining tables, refreshing.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-your-own-reports">Why your own reports</a></li><li><a href="#the-approach">The approach</a></li><li><a href="#ideas-that-work-well">Ideas that work well</a></li><li><a href="#read-next">Read next</a></li></ul></nav>
+    <h2 id="why-your-own-reports">Why your own reports</h2>
+<p>EA Explorer has 30 standard reports and a report designer. Your organisation may still want the architecture in the tools it already uses, beside finance, risk or service data: a board pack in Power BI, a capability heat map in Excel, a portfolio view in your data warehouse.</p>
+<h2 id="the-approach">The approach</h2>
+<ol><li>Read the model's OData feed in your tool (<a href="../integrate/odata-feeds.html">OData feeds EA Explorer publishes</a>).</li><li>Load the entity tables you need and the relationships table; join by the entity ids.</li><li>Build measures on attributes (cost, lifecycle dates, maturity) and filter by type, tag or level.</li><li>Set the refresh with a service account's key, so it does not depend on one person.</li><li>Publish in your tool as usual; EA Explorer's roles still decide what the feed shows.</li></ol>
+<h2 id="ideas-that-work-well">Ideas that work well</h2>
+<ul><li>Applications by lifecycle status and end-of-support date, coloured by risk.</li><li>Capabilities with the cost of the applications that serve them.</li><li>Projects from the governance feed: decisions waiting, dispensations expiring.</li><li>KPIs over time, from the KPI history.</li></ul>
+<h2 id="read-next">Read next</h2>
+<ul><li><a href="../concepts/views-and-reports.html">Views, reports and KPIs</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: integrate/build-reports-on-odata.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

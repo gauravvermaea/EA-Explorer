@@ -1,0 +1,4 @@
+{
+  "about": "SonarQube issues and security hotspots accepted in writing (Release 8, D740, D792): each one only with the owner's approval, when fixing it would change what anyone sees or does. rule: SonarQube's rule key (python:S1192); file: the file, from the repository's top folder (wildcards allowed); line: only that line (optional); reason: why it stays; by: the owner's approval (date and words). eax test sonar fails on any issue not listed here.",
+  "accepted": []
+}

@@ -432,6 +432,16 @@ wait_all() {
   done
   echo "Not everything was up after 30 minutes (see above); EA Explorer is usable, the rest may still come."
 }
+# Containers that are not part of running EA Explorer (owner, 19 Nov 2026, 05:45): SonarQube and its scanner, k6, the
+# platform's always-on test runner and a test run that has finished; up and down remove them (a running test is never
+# stopped). Kept in step with eax.ps1's Remove-Extras and eaxcli/stack.py's remove_extras (D331).
+EXTRA_CONTAINERS="sonarqube sonar-scanner k6 testrunner-service"
+remove_extras() {
+  local names="$EXTRA_CONTAINERS"
+  [ -z "$(compose --profile test ps --status running -q testrunner 2>/dev/null)" ] && names="$names testrunner"
+  # shellcheck disable=SC2086
+  compose --profile test --profile platform rm -s -f $names >/dev/null 2>&1 || true
+}
 # start-later: the second tier, the rest without touching the core, then the switched-off ones created
 start_later() {
   tiers
@@ -446,6 +456,7 @@ start_later() {
     # shellcheck disable=SC2086
     compose stop $OFF >/dev/null 2>&1 || true
   fi
+  remove_extras      # nothing that is not part of running EA Explorer (test, scan and platform containers)
   echo "Everything is started."
 }
 up_services() {
@@ -773,6 +784,7 @@ unknown_command() {
       }
       return p[lb]
     }
+    { sub(/\r$/, "") }   # help.txt with Windows line ends (a checkout on Windows): no CR in a command name
     /^### / { split(substr($2, 1), nm, "|"); for (k in nm) seen[nm[k]] = 1 }
     END {
       most = (length(word) <= 3) ? 1 : 2; n = 0
@@ -790,7 +802,7 @@ unknown_command() {
 # ------------------------------------------------------------------ commands
 # eax test --reset-survival: settings outlive a real reset (D561); eax test backup-restore, restore and full: the backup
 # and restore test runs one command after another from eax itself (R5.6-B1): one Python program for every form
-if [ "$CMD" = "test" ]; then case " $* " in *" --reset-survival "*|*" backup-restore "*|*" restore "*|*" full "*) exec "$BASH" ./eaxpy.sh "$@" ;; esac; fi
+if [ "$CMD" = "test" ]; then case " $* " in *" --reset-survival "*|*" backup-restore "*|*" restore "*|*" full "*|*" sonar "*) exec "$BASH" ./eaxpy.sh "$@" ;; esac; fi
 case "$CMD" in
   help|-h|--help|/\?) show_help "${2:-}" "${3:-}"; exit $? ;;
   document)       shift; document "$@"; exit 0 ;;
@@ -891,7 +903,7 @@ case "$CMD" in
            printf '%s\n' "$_ps" | colour_status; show_filesystems
            "$BASH" ./eaxpy.sh status problems || true ;;   # every problem with its error code and what to do (R7.9, D787)
   logs)    shift; compose logs -f --tail=100 "$@" || true ;;
-  down)    run_compose down ;;
+  down)    run_compose down; remove_extras ;;
   backup)  service_on backups || { err "backups are switched off: ./eax.sh service backups on"; exit 1; }
            shift; backup_helpers; compose exec ops python3 /app/ops.py backup "$@" ;;
   backups) shift; backup_helpers; compose exec ops python3 /app/ops.py list "$@" ;;

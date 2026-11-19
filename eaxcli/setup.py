@@ -240,7 +240,15 @@ def listing() -> list[dict]:
 
 # ---------------------------------------------------------------- checks that a step worked (on this machine)
 def check(name: str) -> tuple[bool, str]:
-    """A step's check: whether it worked, in words."""
+    """A step's check: whether it worked, in words (a program missing on this machine is said, never a crash)."""
+    try:
+        return _check(name)
+    except FileNotFoundError as exc:      # no docker here (a machine without it, or the test runner, 19 Nov 2026)
+        return False, f"{os.path.basename(str(exc.filename or 'docker'))} is not on this machine: install Docker first"
+
+
+def _check(name: str) -> tuple[bool, str]:
+    """check(), the program's absence aside."""
     if name == "docker":
         p = subprocess.run(["docker", "info", "--format", "{{.ServerVersion}}"], capture_output=True, text=True, check=False)
         return (p.returncode == 0, f"Docker {p.stdout.strip()}" if p.returncode == 0 else "Docker does not answer: start it")

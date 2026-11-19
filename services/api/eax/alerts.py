@@ -477,7 +477,7 @@ def overview(conn) -> dict:
     and the email settings without the password."""
     rows = [dict(r) for r in conn.execute(text("SELECT * FROM core.alert_checks ORDER BY check_key")).mappings()]
     rows.sort(key=lambda r: (-RANK.get(r["state"], 0), r["check_key"]))
-    from . import errors            # Release 7.9 (D787): each open alert with its code and what to do
+    from . import errors  # Release 7.9 (D787): each open alert with its code and what to do
     for r in rows:
         if r["state"] in (WARNING, CRITICAL):
             errors.stamp(r, errors.for_alert(r["check_key"], r.get("message") or "", r["state"]))

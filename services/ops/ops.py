@@ -1376,6 +1376,10 @@ NOT_NEEDED = {  # named volume: why it is not in a backup
                      "(the people and roles are in Keycloak's database)",
     "eax-certs": "certificate mode's authority and certificates (R6-C1): never in a backup or a DR pack, so a stolen "
                  "backup holds no way in; a restored or DR copy makes its own at its first start (R6-D1)",
+    # the code scan's own data (Release 8, D792): made again by the next eax test sonar, nothing of EA Explorer in it
+    "eax-sonar-data": "SonarQube's own database and index for eax test sonar; the next scan makes it again",
+    "eax-sonar-extensions": "SonarQube's plugins, downloaded again by the next eax test sonar when missing",
+    "eax-sonar-cache": "the SonarQube scanner's downloaded analysers, fetched again by the next scan",
 }
 RESTORE_WHAT = {   # what a restore puts back: config file, databases (None: every one), file sets
     "full": {"config": True, "dbs": None, "files": ["documents", "tls", "reports", "imports", "exports", "persist"],

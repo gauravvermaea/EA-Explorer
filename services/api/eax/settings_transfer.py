@@ -37,8 +37,9 @@ import re
 import secrets as _random
 import sys
 import urllib.request
+from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import Any, Callable
+from typing import Any
 
 from sqlalchemy import text
 

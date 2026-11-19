@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deliveries: the folder way in · EA Explorer</title>
+<meta name="description" content="A source drops a file in a folder; EA Explorer picks it up, checks it and waits for a person to accept it.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html" class="here">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Deliveries: the folder way in</h1>
+    <p class="who">For: Developers, Model Admin</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">A source drops a file in a folder; EA Explorer picks it up, checks it and waits for a person to accept it.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-a-folder">Why a folder</a></li><li><a href="#how-it-works">How it works</a></li><li><a href="#tips">Tips</a></li><li><a href="#read-next">Read next</a></li></ul></nav>
+    <h2 id="why-a-folder">Why a folder</h2>
+<p>The simplest integration needs no API at all: the source writes a file into a folder on a schedule. Most systems can export a file; most integration tools can copy one. EA Explorer watches the folder.</p>
+<h2 id="how-it-works">How it works</h2>
+<ol><li>A Model Admin sets up an <strong>import source</strong> on the model: its name, its folder, whether its values win over people's, and who is told (<a href="../how-do-i/set-up-a-delivery-source.html">Set up a delivery source</a>).</li><li>Your connector writes a file in a published format into that folder (<a href="../integrate/import-formats.html">The published import formats</a>).</li><li>EA Explorer picks it up and makes a <strong>delivery</strong>: new, changed, kept, unchanged and problem rows.</li><li>A Committer, Model Sub Admin or Model Admin <strong>accepts</strong> it (committed as their load) or <strong>declines</strong> it with the reason (<a href="../how-do-i/accept-a-delivery.html">Accept a delivery</a>, <a href="../how-do-i/decline-a-delivery.html">Decline a delivery</a>).</li></ol>
+<p>From the machine, <code>eax import</code> lists and works with deliveries waiting in the import folder.</p>
+<h2 id="tips">Tips</h2>
+<ul><li>Write the file under a temporary name and rename it when complete, so a half-written file is never read.</li><li>One file per source per run; send the full set the source is the authority for.</li><li>Problem rows do not stop the rest; they can be corrected on screen (<a href="../how-do-i/correct-a-row-that-failed-to-load.html">Correct a row that failed to load</a>).</li></ul>
+<h2 id="read-next">Read next</h2>
+<ul><li><a href="../integrate/push-sources.html">Push sources and the Python kit</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: integrate/deliveries.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

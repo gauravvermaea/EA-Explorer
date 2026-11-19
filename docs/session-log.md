@@ -189,3 +189,40 @@ source, and the pictures themselves read one by one and measured).
   (Release 7.9 row; R7.9, E1, E2 accepted), D791, handover.
 - The owner runs: `.\eax up` (migration 0109), `.\eax site pdfs` (covers say 7.9.0), `.\eax up` again, then git.
 - Next: Release 8, one question at a time.
+
+### 00:06 to 00:30 Release 8 begun: the SonarQube scanner (D792)
+- Owner: "build Release 8"; answers: newest SonarQube + Sonar way; fixes all at once; every fix tested before and after
+  (run tests, scan, fix, test, nothing broken).
+- Built: `eax test sonar [--keep|--reset]` in every form (eaxcli/sonar.py, main.py, eax.ps1, eax.sh, help.txt,
+  commands.py), eax/testing/sonar.py (prepare, report), sonarqube and sonar-scanner in the test profile,
+  sonar-project.properties, sonar_accepted.json, ContainerConsole purposes, eax status ignores them.
+- Tests: tests/test_r8_sonar.py (10, all pass here with a stand-in SonarQube).
+- The owner runs: `.\eax dev check`, `.\eax test full` (baseline), `.\eax test sonar`; then the AI fixes from
+  work/tests/sonar-<time>/issues.json.
+
+### 05:45 Non-essential containers kept down (D793)
+- Owner: sonar and other non-essential containers must not come up in regular operation. Found: testrunner-service
+  (platform profile) running on the laptop (started 13 h before; its restart policy brings it back with Docker), and
+  an exited testrunner. Now eax up (end of start-later) and eax down remove sonarqube, sonar-scanner, k6,
+  testrunner-service, and testrunner unless a test is running; all three forms. Test: test_r8_no_extras_running.py.
+
+### 06:40 Clean restart instead of a backup; dev check in the test runner (D794)
+- Owner: a clean restart (no backup). eax test sonar now starts SonarQube afresh by itself when its admin password's
+  copy went with work/ (exit 3 from prepare, then reset and retry).
+- eax dev check on the laptop: no ruff, no pytest in eax's Python. Now lint and tests run in the test runner with the
+  repository mounted when they are missing here (eaxcli/dev_cli.py; test_r8_dev_check_in_runner.py).
+
+### 07:09 to 08:40 The baseline (dev check) and its repair (D795)
+- dev check now runs in the test runner (D794), collects every test file and saves work/tests/dev-check-<time>.log.
+- Baseline 07:54: 25 failed, 1 file not loading, 6 lint; 2,133 passed. Owner: fix them all first (08:01).
+- Fixed (see D795): scan volumes, estate, command-text tests, docstrings, capabilities 7.9.0, lint; old viewpoint files
+  removed (owner runs git rm); eax.sh CR; CI security job and nightly performance; issue/PR templates; python-docx
+  (a real fault: the Word report); setup check without Docker; two tests isolated; test bench workbooks by value.
+- Checked here on a clone of the repository with the changes: ruff clean; every test that can run without the
+  database packages passes, but for the two website tests that need eax site build.
+
+### 08:31 Story R9.3: MCP reads all the documentation (D796)
+- Owner: "Add a story for MCP to have access to all the docs". Added as R9.3 (Release 9, learning): list, search and
+  read every document through MCP, read only; NOT FOR AI USE never served. To discuss before building.
+- 08:59 owner: documents and PDFs to everyone (D797); R9.3 updated. Next question: how the documents reach the API.
+- 08:59 owner: "Release 9 is fine" for R9.3.

@@ -5,8 +5,8 @@ The state of the work, for whoever picks it up next: a person or another AI with
 Read [AGENTS.md](../AGENTS.md) first, run `eax dev check`, then read this.
 
 Last updated: 19 Nov 2026, 00:xx. Release 7.9 accepted and closed as 7.9.0 (owner, 00:01: "ok lets release 7.9";
-D791; migration 0109; releases/7.9.0.md). Now: no release in build. Next: Release 8, discussed one question at a
-time before it is built. The evening's working notes: docs/session-log.md.
+D791; migration 0109; releases/7.9.0.md). Now: Release 8 in build (D792): `eax test sonar` built; next
+the owner's baseline test run and first scan, then the fixes. The evening's working notes: docs/session-log.md.
 
 ## How the owner works
 
@@ -57,7 +57,11 @@ EAX-AREA-NNN, each with meaning, cause and what to do; eax/errors.py reads it):
 
 ## In progress
 
-Nothing.
+Release 8 (D792). Built: `eax test sonar` (eaxcli/sonar.py; eax/testing/sonar.py in the test runner; sonarqube and
+sonar-scanner in docker-compose.yml's test profile; sonar-project.properties; eax/testing/sonar_accepted.json;
+tests/test_r8_sonar.py). Next: the owner runs `eax dev check`, `eax test full` (the baseline) and `eax test sonar`;
+the AI reads work/tests/sonar-<time>/issues.json and fixes everything in one pass, a test before and after for each
+fix; then every test and the scan again. Still to discuss before their turn: R8.1 coverage, R8.2 attacks, R8.3 Jenkins.
 
 ## Next
 

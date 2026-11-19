@@ -345,7 +345,7 @@ def check_all() -> dict:
     started = time.perf_counter()
     with ThreadPoolExecutor(max_workers=len(CHECKS)) as pool:
         services = list(pool.map(lambda f: f(), CHECKS))
-    from . import errors        # Release 7.9 (D787): each check not up carries its code and what to do
+    from . import errors  # Release 7.9 (D787): each check not up carries its code and what to do
     for s in services:
         errors.stamp(s, errors.for_health(s))
     statuses = {s["status"] for s in services}

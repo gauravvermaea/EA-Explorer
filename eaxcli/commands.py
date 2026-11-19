@@ -145,8 +145,8 @@ def _params(args: str) -> list[dict]:
 PLACEHOLDERS = {"name", "tag", "run", "command", "source", "id", "words", "service", "n", "version"}
 # syntax lines too rich for the reader above: their fields written out
 OVERRIDES = {
-    "test": [{"key": "what", "type": "choice", "choices": ["smoke", "full", "backup", "failed", "delete", "clean"], "required": False,
-              "placeholder": "smoke|full|security|performance|backup|failed|delete|clean"},
+    "test": [{"key": "what", "type": "choice", "choices": ["smoke", "full", "backup", "failed", "delete", "clean", "sonar"], "required": False,
+              "placeholder": "smoke|full|security|performance|backup|failed|delete|clean|sonar"},
              {"key": "run", "type": "word", "required": False, "placeholder": "run (with failed: which run; the last if none)"},
              {"key": "--warnings", "type": "flag", "required": False},     # with failed: its warnings too (R2.36)
              {"key": "--older-than", "type": "flag-value", "flags": ["--older-than"], "required": False,
@@ -166,6 +166,7 @@ OVERRIDES = {
              {"key": "--clean", "type": "flag-value", "flags": ["--clean"], "required": False, "placeholder": "run|all"},
              {"key": "--yes", "type": "flag", "required": False},
              {"key": "--reset-survival", "type": "flag", "required": False},
+             {"key": "--keep/--reset", "type": "flags", "choices": ["--keep", "--reset"], "required": False},   # sonar (R8)
              {"key": "--confirm", "type": "flag-value", "flags": ["--confirm"], "required": False, "placeholder": "installation name"}],
 }
 

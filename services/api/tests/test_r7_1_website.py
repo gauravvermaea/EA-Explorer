@@ -154,7 +154,7 @@ def test_the_pictures_are_taken_by_opening_pages_only():
     cmd = site_cli.shots_command(["--missing"])
     assert cmd[:3] == ["--profile", "test", "run"] and cmd[-2:] == ["eax.testing.site_shots", "--missing"]
     assert any(a.endswith(":/site-src") for a in cmd)
-    for launcher, words in (("eax.ps1", '"settings", "site")'), ("eax.sh", "settings|site)")):
+    for launcher, words in (("eax.ps1", '"settings", "site", "errors")'), ("eax.sh", "settings|site|errors)")):   # errors: R7.9, D789
         assert words in (REPO / launcher).read_text(encoding="utf-8"), launcher
     assert "### site [build|check|shots|pdfs]" in (REPO / "eaxcli/help.txt").read_text(encoding="utf-8")
 
