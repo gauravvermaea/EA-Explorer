@@ -118,7 +118,9 @@ __HELP__
   function parse(text) {
     var doc = { intro: [], sections: [], internal: [], footer: [] }, where = "intro", cmd = null;
     text.split(/\r?\n/).forEach(function (raw) {
-      var line = raw.replace(/\s+$/, "");
+      var end = raw.length;                        // the spaces at the end taken off (D804: no slow regular expression)
+      while (end > 0 && /\s/.test(raw.charAt(end - 1))) end--;
+      var line = raw.slice(0, end);
       if (line.charAt(0) === ";") return;
       var m = /^\[(\w+)\] ?/.exec(line);
       if (m && TAGS[m[1]]) { if (!keep[m[1]]) return; line = line.slice(m[0].length); }

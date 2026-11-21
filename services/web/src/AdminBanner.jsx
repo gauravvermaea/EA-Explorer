@@ -19,7 +19,7 @@ export function AdminBanner() {
   useEffect(() => {
     let live = true;
     const load = () => apiFetch("/api/v1/banner").then((x) => { if (live) setB(x?.banner || null); }).catch(() => {});
-    load();
+    void load();
     const t = setInterval(load, 60 * 1000);           // starts and ends by itself
     return () => { live = false; clearInterval(t); };
   }, []);
@@ -52,20 +52,20 @@ export function BannerAdmin() {
     setForm({ text: b.text || "", link: b.link || "", link_text: b.link_text || "", level: b.level || "info",
       audience: b.audience || "everyone", dismissible: b.dismissible !== false, starts: b.starts || "", ends: b.ends || "" });
   }).catch((e) => setErr(e.message));
-  useEffect(() => { load(); }, []);
+  useEffect(() => { void load(); }, []);
   if (!can("system.operate")) return <p className="quiet">The banner is set by IT Admins and Super Admins.</p>;
   if (err && !data) return <p className="status bad">{err}</p>;
   if (!data || !form) return <p><span className="spinner" aria-hidden="true" /> Reading the banner…</p>;
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   async function save() {
     setBusy(true); setErr(""); setMsg("");
-    try { await apiFetch("/api/v1/admin/banner", { method: "PUT", body: JSON.stringify(form) }); setMsg("The banner is set."); load(); }
+    try { await apiFetch("/api/v1/admin/banner", { method: "PUT", body: JSON.stringify(form) }); setMsg("The banner is set."); void load(); }
     catch (e) { setErr(e.message); }
     setBusy(false);
   }
   async function clear() {
     setBusy(true); setErr(""); setMsg("");
-    try { await apiFetch("/api/v1/admin/banner", { method: "DELETE" }); setMsg("The banner is cleared: nothing is shown."); load(); }
+    try { await apiFetch("/api/v1/admin/banner", { method: "DELETE" }); setMsg("The banner is cleared: nothing is shown."); void load(); }
     catch (e) { setErr(e.message); }
     setBusy(false);
   }

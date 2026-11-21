@@ -22,13 +22,13 @@ export default function Sizing() {
     setD(x); setF((old) => old || { ...x.defaults, model_size: x.defaults.model_size, node_gb: 16, node_cores: 4, reports: true, documents: true,
       mcp: true, discovery: true, assumptions: { ...x.assumptions } });
   }).catch((e) => setErr(e.message));
-  useEffect(() => { load(); }, []);
+  useEffect(() => { void load(); }, []);
   if (!d || !f) return err ? <p className="status bad">{err}</p> : <p><span className="spinner" aria-hidden="true" /> Reading…</p>;
   async function go(save) {
     setErr(""); setMsg("");
     try {
       const out = await apiFetch("/api/v1/admin/sizing", { method: "POST", body: JSON.stringify({ ...f, save: save ? name : "" }) });
-      setR(out); if (save) { setMsg(`Saved as ${name}.`); load(); }
+      setR(out); if (save) { setMsg(`Saved as ${name}.`); void load(); }
     } catch (e) { setErr(e.message); }
   }
   const set = (k, v) => setF({ ...f, [k]: v });

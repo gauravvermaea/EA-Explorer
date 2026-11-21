@@ -20,7 +20,7 @@ import { Phases } from "./TestPhases";
 import { journey, makeFrame, sweep } from "./selfTestDriver.js";
 import { apiBlobUrl, apiDownload, apiFetch, can } from "./auth";
 import { Modal } from "./ModelOps";
-import { fmtDateTime } from "./fmt";
+import { fmtDateTime, byText } from "./fmt";
 import { trackTask } from "./tasks";
 
 const SUITES = [
@@ -84,7 +84,7 @@ function SecurityTrend({ onOpen }) {
   useEffect(() => { apiFetch("/api/v1/admin/tests/security").then(setD).catch((e) => setErr(e.message)); }, []);
   if (err) return <p className="status bad">{err}</p>;
   if (!d) return <p><span className="spinner" aria-hidden="true" /> Reading…</p>;
-  const kinds = [...new Set(d.trend.flatMap((t) => Object.keys(t.kinds)))].sort();
+  const kinds = [...new Set(d.trend.flatMap((t) => Object.keys(t.kinds)))].sort(byText);
   return (
     <div className="security-trend">
       <p className="quiet small">The security suite runs {d.weekly ? "every Sunday at 03:20 by itself (System settings), " : ""}nightly in CI and
@@ -155,7 +155,7 @@ export default function SelfTest() {
   const [err, setErr] = useState("");
   const [open, setOpen] = useState(null);
   const load = async () => { try { setData(await apiFetch("/api/v1/admin/tests")); setErr(""); } catch (e) { setErr(e.message); } };
-  useEffect(() => { load(); }, []);
+  useEffect(() => { void load(); }, []);
   const live = data?.runs?.find(open_);
   const building = !!data?.runner?.build?.busy;
   useEffect(() => {
@@ -163,8 +163,8 @@ export default function SelfTest() {
     const t = setInterval(load, 3000);
     return () => clearInterval(t);
   }, [live?.id, building]);
-  const built = () => { setTab("run"); load(); };
-  const repeated = () => { setOpen(null); setTab("run"); load(); };
+  const built = () => { setTab("run"); void load(); };
+  const repeated = () => { setOpen(null); setTab("run"); void load(); };
   if (!can("system.operate")) return <p className="status bad">The self-test is for Super Admins and IT Admins.</p>;
   return (
     <div className="self-test">
@@ -189,7 +189,7 @@ export default function SelfTest() {
       {tab === "performance" && <PerformanceTrend />}
       {tab === "fixtures" && <FixturesTab runs={data?.runs || []} />}
       {tab === "harness" && <ApiHarness />}
-      {open && <RunDetail id={open} busy={!!live} onRepeat={repeated} onClose={() => { setOpen(null); load(); }} />}
+      {open && <RunDetail id={open} busy={!!live} onRepeat={repeated} onClose={() => { setOpen(null); void load(); }} />}
       {watchRun !== null && (watchRun || live) && <TestWatch runId={watchRun || live.id} live
         onClose={() => { setWatchRun(null); window.location.hash = "#/admin/self-test"; }} />}
     </div>
@@ -337,8 +337,8 @@ function RunnerBuild({ id, onRetry, onBuilt }) {
         if (r.finished) { stop = true; if (r.ok) setTimeout(onBuilt, 2500); }
       } catch (e) { setErr(e.message); }
     };
-    tick();
-    const t = setInterval(() => { if (!stop) tick(); }, 2000);
+    void tick();
+    const t = setInterval(() => { if (!stop) void tick(); }, 2000);
     return () => { stop = true; clearInterval(t); };
   }, [id]);
   useEffect(() => { if (pre.current) pre.current.scrollTop = pre.current.scrollHeight; }, [log]);
@@ -385,7 +385,7 @@ function LiveRun({ runId, onChange, onOpen }) {
   const [watching, setWatching] = useState(false);
   const [msg, setMsg] = useState("");
   const load = () => apiFetch(`/api/v1/admin/tests/${runId}`).then(setD).catch((e) => setMsg(e.message));
-  useEffect(() => { load(); const t = setInterval(load, 2500); return () => clearInterval(t); }, [runId]);
+  useEffect(() => { void load(); const t = setInterval(load, 2500); return () => clearInterval(t); }, [runId]);
   useEffect(() => { if (d && !open_(d.run)) onChange(); }, [d?.run?.state]);
   if (!d) return <p>Loading...</p>;
   const r = d.run, t = d.tally;
@@ -468,7 +468,7 @@ function BrowserDriver({ runId, browser }) {
   useEffect(() => {
     if (started.current) return;
     started.current = true;
-    (async () => {
+    void (async () => {
       const name = browserName();
       const errors = [];
       const f = makeFrame(frame.current, browser.ticket, (e) => errors.push(e));
@@ -742,10 +742,10 @@ function FixturesTab({ runs }) {
   const [err, setErr] = useState("");
   const [dry, setDry] = useState(null);          // the dry run: what would go, nothing deleted (R2.11)
   const load = () => apiFetch(`/api/v1/admin/tests/fixtures${run ? `?run=${run}` : ""}`).then((x) => setRows(x.fixtures)).catch((e) => setErr(e.message));
-  useEffect(() => { load(); setSel(new Set()); }, [run]);
+  useEffect(() => { void load(); setSel(new Set()); }, [run]);
   useEffect(() => {
     if (!task || task.status === "done" || task.status === "failed") return undefined;
-    const t = setInterval(() => apiFetch(`/api/v1/tasks/${task.id}`).then((x) => { setTask(x); if (x.status === "done" || x.status === "failed") load(); }).catch(() => {}), 1500);
+    const t = setInterval(() => apiFetch(`/api/v1/tasks/${task.id}`).then((x) => { setTask(x); if (x.status === "done" || x.status === "failed") void load(); }).catch(() => {}), 1500);
     return () => clearInterval(t);
   }, [task?.id, task?.status]);
   if (!rows) return err ? <p className="status bad">{err}</p> : <p>Loading...</p>;

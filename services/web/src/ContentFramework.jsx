@@ -382,7 +382,7 @@ function DocLeaf({ p, d, phase, can, place, own }) {
     <li>
       {d.is_link ? "🔗" : "📄"} <a href={href} title="Open it in the project's documents">{d.title || d.file_name}</a>
       <span className="quiet small"> {d.state}{d.user_version ? ` · ${d.user_version}` : ""}{d.versions ? ` · v${d.versions}` : ""}</span>
-      {(d.own_areas || []).length > 0 && <> <span className="quiet small">{own ? "also in" : "also in"}</span> <AreaChips codes={d.own_areas} small /></>}
+      {(d.own_areas || []).length > 0 && <> <span className="quiet small">also in</span> <AreaChips codes={d.own_areas} small /></>}
       {can && <> <AreaPicker value={d.own_areas || []} label={(d.own_areas || []).length ? "Areas…" : "Also place it in…"}
         resetLabel={(d.own_areas || []).length ? "Under its document type only" : ""}
         onSave={(list) => place(`/api/v1/projects/${p.id}/documents/${d.id}/content-area`, list)} /></>}

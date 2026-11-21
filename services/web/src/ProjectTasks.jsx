@@ -167,7 +167,7 @@ function StatusesDialog({ url, data, onClose }) {
       {own.length ? <ul>{own.map((s) => <li key={s}>{s} <button className="linkish" aria-label={`Remove ${s}`}
         onClick={() => go(() => apiFetch(`${url}?name=${encodeURIComponent(s)}`, { method: "DELETE" }))}>✕</button></li>)}</ul>
         : <p className="quiet small">None of its own yet.</p>}
-      <form className="row-gap" onSubmit={(e) => { e.preventDefault(); if (name.trim()) go(() => apiFetch(url, { method: "POST", body: JSON.stringify({ name }) }).then(() => setName(""))); }}>
+      <form className="row-gap" onSubmit={(e) => { e.preventDefault(); if (name.trim()) void go(() => apiFetch(url, { method: "POST", body: JSON.stringify({ name }) }).then(() => setName(""))); }}>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="A new status, e.g. Waiting for input" aria-label="New status" maxLength={40} />
         <button type="submit" disabled={!name.trim()}>＋ Add</button>
       </form>

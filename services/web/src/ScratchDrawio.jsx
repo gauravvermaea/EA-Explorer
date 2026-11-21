@@ -43,7 +43,7 @@ function ScratchDrawio({ scratchKey, pic, reloadable }) {
   const st = useRef({ ready: false, loaded: false, setupSent: false, guard: true, exportWaiting: null, v: Date.now() });
   const may = !!model && !!m && mayDraw(model, m);
   const say = (text, ok = true) => setToast({ text, ok, at: Date.now() });
-  const post = useCallback((msg) => { frame.current?.contentWindow?.postMessage(JSON.stringify(msg), "*"); }, []);
+  const post = useCallback((msg) => { frame.current?.contentWindow?.postMessage(JSON.stringify(msg), window.location.origin); /* draw.io is served here (/drawio) */ }, []);
 
   useEffect(() => { document.title = `${pic.title} · draw.io · EA Explorer`; }, [pic.title]);
   useEffect(() => {
@@ -80,7 +80,7 @@ function ScratchDrawio({ scratchKey, pic, reloadable }) {
 
   useEffect(() => {
     function handle(ev) {
-      if (!frame.current || ev.source !== frame.current.contentWindow) return;
+      if (!frame.current || ev.source !== frame.current.contentWindow || ev.origin !== window.location.origin) return;
       let msg; try { msg = typeof ev.data === "string" ? JSON.parse(ev.data) : ev.data; } catch { return; }
       if (!msg || !msg.event) return;
       const s = st.current;

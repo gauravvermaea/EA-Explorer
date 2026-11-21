@@ -27,6 +27,32 @@ from .target import Client
 Sh = Callable[[list[str], Path], int]
 
 
+
+def down_revision(text: str) -> str | None:
+    """What follows "down_revision =" at the start of a line of a migration, to the end of its line; None when there is
+    none. String work giving the same answer as the regular expression it replaces (SonarQube python:S8786, D804)."""
+    n, p = len(text), 0
+    while p <= n:
+        if text.startswith("down_revision", p):
+            j = p + len("down_revision")
+            while j < n and text[j].isspace():
+                j += 1
+            if j < n and text[j] == "=":
+                v = j + 1
+                while v < n and text[v].isspace():
+                    v += 1
+                if v < n:
+                    end = text.find("\n", v)
+                    return text[v:] if end == -1 else text[v:end]
+                last = next((k for k in range(n - 1, j, -1) if text[k] != "\n"), -1)
+                if last != -1:
+                    return text[last]
+        nl = text.find("\n", p)
+        if nl == -1:
+            return None
+        p = nl + 1
+    return None
+
 def real_sh(argv: list[str], cwd: Path) -> int:
     """Runs a command, showing it first."""
     print("$ " + " ".join(str(a) for a in argv), flush=True)
@@ -52,11 +78,11 @@ def migration_head(folder: Path) -> str:
     for p in (folder / "services" / "api" / "migrations" / "versions").glob("*.py"):
         text = p.read_text(encoding="utf-8", errors="replace")
         r = re.search(r'^revision\s*=\s*["\']([^"\']+)', text, re.M)
-        d = re.search(r'^down_revision\s*=\s*(.+)$', text, re.M)
+        d = down_revision(text)
         if r:
             revs.add(r.group(1))
         if d:
-            downs.update(re.findall(r'["\']([^"\']+)["\']', d.group(1)))
+            downs.update(re.findall(r'["\']([^"\']+)["\']', d))
     heads = sorted(revs - downs)
     return heads[-1] if heads else ""
 

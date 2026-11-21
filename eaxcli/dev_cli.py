@@ -20,6 +20,7 @@ ruff", "No module named pytest"; D794).
 from __future__ import annotations
 
 import importlib.util
+import json
 import re
 import shutil
 import subprocess
@@ -98,16 +99,36 @@ def in_runner(args: list[str], root: Path = ROOT) -> list[str]:
             "--entrypoint", "python", "testrunner", *args]
 
 
+UNIT_COVERAGE = "work/tests/unit-coverage.json"     # the unit tests' coverage, which lines ran (R8.1, D807)
+
+
+def cover(where: str) -> list[str]:
+    """pytest --cov over the code the live run measures (pyproject's [tool.coverage.run]), its lines kept in a JSON report
+    (D807: eax test full joins it with the live run's)."""
+    return ["--cov", "--cov-report", f"json:{where}"]
+
+
+def unit_coverage(path: Path) -> str:
+    """The unit tests' share of lines from their JSON report, for the summary ("" when there is none)."""
+    try:
+        t = json.loads(path.read_text(encoding="utf-8")).get("totals") or {}
+        return f"{t['percent_covered']:.1f}% of {t['num_statements']} lines (unit tests; eax test full joins the live run's)"
+    except (OSError, ValueError, KeyError, TypeError):
+        return ""
+
+
 def commands(quick: bool, local: bool, py: str = sys.executable, compose_args=None) -> list[tuple[str, list[str], Path]]:
-    """The lint and test steps: here when this Python has the tools, else in the test runner (D794)."""
+    """The lint and test steps: here when this Python has the tools, else in the test runner (D794); the tests measured
+    (D807) when pytest-cov is there (always in the test runner)."""
     lint = ["-m", "ruff", "check", "eax", "tests", "../ops", "../../eaxcli", "../../testbench", "migrations"]
     # every test file collected even when one cannot be (owner's laptop, 07:09: one stale import stopped them all)
     tests = ["-m", "pytest", "-q", "-p", "no:randomly", "--continue-on-collection-errors", "-rfE"] + (["-x"] if quick else [])
     if local:
-        return [("lint", [py, *lint], API), ("tests", [py, *tests], API)]
+        measured = cover(str(ROOT / UNIT_COVERAGE)) if importlib.util.find_spec("pytest_cov") else []
+        return [("lint", [py, *lint], API), ("tests", [py, *tests, *measured], API)]
     # compose_args gives the whole command, docker compose included (owner's laptop, 06:45: "docker docker" refused)
     return [("lint", compose_args(in_runner([*lint, "--no-cache"])), ROOT),
-            ("tests", compose_args(in_runner([*tests, "-p", "no:cacheprovider"])), ROOT)]
+            ("tests", compose_args(in_runner([*tests, "-p", "no:cacheprovider", *cover(f"/repo/{UNIT_COVERAGE}")])), ROOT)]
 
 
 def main(rest: list[str]) -> int:
@@ -131,8 +152,12 @@ def main(rest: list[str]) -> int:
             steps = []
             results += [("lint", False, f"no ruff here and the test runner could not start: {exc}"),
                         ("tests", False, "no pytest here and the test runner could not start (eax up first?)")]
+    (ROOT / UNIT_COVERAGE).unlink(missing_ok=True)        # never last time's figure shown as this one's
     for title, cmd, cwd in steps:
         results.append(_run(title, cmd, cwd))
+    measured = unit_coverage(ROOT / UNIT_COVERAGE)
+    if measured and any(t == "tests" for t, _c, _w in steps):
+        results.append(("coverage", True, measured))
     say("\n== documents")
     probs = documents()
     for p in probs:

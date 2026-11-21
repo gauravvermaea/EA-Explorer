@@ -17,13 +17,13 @@ export default function DbMaintenance() {
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState("");
   const load = () => apiFetch("/api/v1/admin/db-maintenance").then((x) => { setD(x); if (!found && x.last_check) setFound(x.last_check); }).catch((e) => setErr(e.message));
-  useEffect(() => { load(); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { void load(); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
   if (!can("system.operate")) return <p className="quiet">Database maintenance is for IT Admins and Super Admins (Auditors see it).</p>;
   if (!d) return err ? <p className="status bad">{err}</p> : <p><span className="spinner" aria-hidden="true" /> Reading…</p>;
   const sup = can("settings.manage");
   async function post(what, body, done) {
     setBusy(what); setErr(""); setMsg("");
-    try { const r = await apiFetch(`/api/v1/admin/db-maintenance/${what}`, { method: "POST", body: JSON.stringify(body || {}) }); done(r); load(); }
+    try { const r = await apiFetch(`/api/v1/admin/db-maintenance/${what}`, { method: "POST", body: JSON.stringify(body || {}) }); done(r); void load(); }
     catch (e) { setErr(e.message); }
     setBusy("");
   }
@@ -36,7 +36,7 @@ export default function DbMaintenance() {
     try {
       const p = await apiFetch("/api/v1/admin/db-maintenance/compact-preview", { method: "POST", body: JSON.stringify({ database: f.database, table: f.target }) });
       if (!window.confirm(`${p.table} (${MB(p.bytes)}): about ${MB(p.about_to_win)} to win. ${p.warning} Compact it now?`)) return;
-      post("compact", { confirm: p.confirm }, (r) => setMsg(`Compacted ${r.table}: ${MB(r.won)} won.`));
+      void post("compact", { confirm: p.confirm }, (r) => setMsg(`Compacted ${r.table}: ${MB(r.won)} won.`));
     } catch (e) { setErr(e.message); }
   }
   const showLocks = () => apiFetch("/api/v1/admin/db-maintenance/locks").then((r) => setSessions(r.sessions)).catch((e) => setErr(e.message));
@@ -44,7 +44,7 @@ export default function DbMaintenance() {
     try {
       const p = await apiFetch("/api/v1/admin/db-maintenance/stop-preview", { method: "POST", body: JSON.stringify({ pid: s.pid, end }) });
       if (!window.confirm(`${p.action}: session ${p.pid} (${p.login}, ${p.state}) running ${p.query}?`)) return;
-      post("stop", { confirm: p.confirm }, (r) => { setMsg(r.done ? "Done." : "It had already ended."); showLocks(); });
+      void post("stop", { confirm: p.confirm }, (r) => { setMsg(r.done ? "Done." : "It had already ended."); void showLocks(); });
     } catch (e) { setErr(e.message); }
   }
   return (

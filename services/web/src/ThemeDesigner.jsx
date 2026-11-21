@@ -78,12 +78,12 @@ export default function ThemeDesigner({ themes, fonts: uploaded, onSaved }) {
   const [name, setName] = useState("");
   const [replace, setReplace] = useState("");
   const [msg, setMsg] = useState({ ok: true, text: "" });
-  useEffect(() => () => { endPreview(); }, []);
+  useEffect(() => () => { void endPreview(); }, []);
   useEffect(() => { if (t && base) previewCss(makeCss(base, t, fonts)); }, [t, base]);   // every change shows at once
 
   const start = async (slug) => {
     setFrom(slug); setMsg({ ok: true, text: "" });
-    if (!slug) { setT(null); setBase(""); endPreview(); return; }
+    if (!slug) { setT(null); setBase(""); void endPreview(); return; }
     try {
       const css = await apiText(`/api/v1/branding/themes/${encodeURIComponent(slug)}.css`);
       const theme = themes.find((x) => x.slug === slug);

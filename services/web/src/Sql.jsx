@@ -9,6 +9,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { apiDownload, apiFetch, keycloak, signedIn } from "./auth";
 import { config } from "./config";
 import SchemaDiagram from "./SchemaDiagram";
+import { byText } from "./fmt";
+import { trailingName } from "./textScan";
 
 const EXAMPLE = `-- Ctrl+Enter runs (the selection only, when there is one). Ctrl+Space completes a table or column name.
 SELECT name, kind_code, is_locked FROM core.models ORDER BY name;`;
@@ -116,8 +118,7 @@ function QueryTab({ tab, update, login, names, keep, setKeep }) {
   }
   function complete() {
     const t = box.current; const at = t.selectionStart;
-    const m = /[A-Za-z_][A-Za-z0-9_.]*$/.exec(tab.sql.slice(0, at));
-    const word = m ? m[0] : "";
+    const word = trailingName(tab.sql.slice(0, at));
     const items = names.filter((n) => n.toLowerCase().startsWith(word.toLowerCase().split(".").pop()) || n.toLowerCase().startsWith(word.toLowerCase())).slice(0, 12);
     setSuggest(items.length ? { word, start: at - word.length, items } : null);
   }
@@ -141,7 +142,7 @@ function QueryTab({ tab, update, login, names, keep, setKeep }) {
           onScroll={(e) => { const pre = e.target.previousSibling; pre.scrollTop = e.target.scrollTop; pre.scrollLeft = e.target.scrollLeft; }}
           onChange={(e) => { update({ sql: e.target.value }); setSuggest(null); }}
           onKeyDown={(e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); call("run"); }
+            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); void call("run"); }
             else if (e.ctrlKey && e.key === " ") { e.preventDefault(); complete(); }
             else if (e.key === "Escape") setSuggest(null);
           }} />
@@ -330,7 +331,7 @@ export default function Sql() {
     const out = new Set();
     for (const s of tree?.schemas || []) { out.add(s.name); for (const o of s.objects) { out.add(o.name); out.add(`${s.name}.${o.name}`); } }
     for (const cs of Object.values(cols)) for (const c of cs) out.add(c);
-    return [...out].sort();
+    return [...out].sort(byText);
   }, [tree, cols]);
 
   if (!signedIn()) {

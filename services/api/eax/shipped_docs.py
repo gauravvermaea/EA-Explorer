@@ -28,6 +28,17 @@ GROUPS = ["Getting started", "Using EA Explorer", "Administration and operations
           "Reference", "Release notes", "Design and decisions"]
 
 
+
+def _table_rule(line: str) -> bool:
+    """A Markdown table's rule line: spaces, maybe |, spaces, maybe :, then two or more -. String work giving the same
+    answer as the regular expression it replaces (SonarQube python:S8786, D804)."""
+    t = line.lstrip()
+    if t.startswith("|"):
+        t = t[1:].lstrip()
+    if t.startswith(":"):
+        t = t[1:]
+    return t.startswith("--")
+
 def root() -> Path:
     """Where the shipped documents are: EAX_SHIPPED_DOCS, else the container's /data/docs, else the repository itself."""
     # EAX_SHIPPED_DOCS, not EAX_DOCS_DIR: that one is the document store's volume in eaexplorer.env ("eax-docs",
@@ -257,11 +268,11 @@ def render(text: str) -> str:
             out.append("<pre><code>" + "\n".join(code) + "</code></pre>")
             i += 1
             continue
-        m = re.match(r"^(#{1,6})\s+(.*?)\s*#*\s*$", line)
+        m = re.match(r"^(#{1,6})\s+(\S.*|)$", line)     # D804: the closing #s taken off by string work
         if m:
             flush()
             n = len(m.group(1))
-            body = _inline(m.group(2))
+            body = _inline(m.group(2).rstrip().rstrip("#").rstrip())
             out.append(f'<h{n} id="{_anchor(body)}">{body}</h{n}>')
             i += 1
             continue
@@ -270,7 +281,7 @@ def render(text: str) -> str:
             out.append("<hr>")
             i += 1
             continue
-        if line.strip().startswith("|") and i + 1 < len(lines) and re.match(r"^\s*\|?\s*:?-{2,}", lines[i + 1]):
+        if line.strip().startswith("|") and i + 1 < len(lines) and _table_rule(lines[i + 1]):
             flush()
             head = _cells(line)
             i += 2
@@ -322,7 +333,7 @@ def _list(lines: list[str], i: int, out: list[str]) -> int:
 
     while i < len(lines):
         line = lines[i]
-        m = re.match(r"^(\s*)([-*+]|\d+[.)])\s+(.*)$", line)
+        m = re.match(r"^(\s*)([-*+]|\d+[.)])\s+(\S.*|)$", line)
         if m:
             indent, kind = len(m.group(1).replace("\t", "    ")), ("ol" if m.group(2)[0].isdigit() else "ul")
             close_item()

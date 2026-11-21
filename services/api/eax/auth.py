@@ -194,7 +194,49 @@ def _test_lock(user: User) -> None:
 
 
 _SECRET_KEY = re.compile(r"(PASSWORD|SECRET|TOKEN|_KEY$|PRIVATE|PASSPHRASE)", re.I)
-_SECRET_LINE = re.compile(r"^(\s*([A-Z0-9_]*(PASSWORD|SECRET|TOKEN|_KEY|PRIVATE|PASSPHRASE)[A-Z0-9_]*)\s*[=:]\s*)(.+)$", re.I | re.M)
+_NAME_CHAR = re.compile(r"[A-Z0-9_]", re.I)
+_SECRET_WORD = re.compile(r"PASSWORD|SECRET|TOKEN|_KEY|PRIVATE|PASSPHRASE", re.I)
+
+
+def _next_line(text: str, at: int) -> int:
+    """The first line start at or after `at` (len(text) + 1 when there is none)."""
+    if at == 0 or (at <= len(text) and text[at - 1] == "\n"):
+        return at
+    nl = text.find("\n", at)
+    return nl + 1 if nl != -1 else len(text) + 1
+
+
+def mask_secret_lines(text: str) -> str:
+    """Every line NAME=value or NAME: value whose name holds PASSWORD, SECRET, TOKEN, _KEY, PRIVATE or PASSPHRASE (any
+    case) with its value shown as "(set)". String work giving the same answers as the multi-line regular expression it
+    replaces, without its slow cases (SonarQube python:S8786, D804)."""
+    out, at, n, p = [], 0, len(text), 0
+    while p <= n:
+        w = p
+        while w < n and text[w].isspace():
+            w += 1
+        e = w
+        while e < n and _NAME_CHAR.match(text, e):
+            e += 1
+        j = e
+        while j < n and text[j].isspace():
+            j += 1
+        if e > w and _SECRET_WORD.search(text, w, e) and j < n and text[j] in "=:":
+            v = j + 1
+            while v < n and text[v].isspace():
+                v += 1
+            if v < n:                                    # a value: to the end of its line
+                end = text.find("\n", v)
+                end = n if end == -1 else end
+            else:                                        # only spaces after it: the last one that is not a line break
+                v = next((k for k in range(n - 1, j, -1) if text[k] != "\n"), -1)
+                end = v + 1
+            if v != -1:
+                out.append(text[at:v] + "(set)")
+                at, p = end, _next_line(text, end)
+                continue
+        p = _next_line(text, w + 1) if w < n else n + 1
+    return "".join(out) + text[at:]
 
 
 def _shown(value) -> str:
@@ -215,7 +257,7 @@ def hide_secrets(obj):
     if isinstance(obj, tuple):
         return tuple(hide_secrets(v) for v in obj)
     if isinstance(obj, str) and "=" in obj or isinstance(obj, str) and ":" in obj:
-        return _SECRET_LINE.sub(lambda m: m.group(1) + "(set)", obj)
+        return mask_secret_lines(obj)
     return obj
 
 

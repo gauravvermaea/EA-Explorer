@@ -15,7 +15,7 @@ import IterationControl from "./IterationControl";
 import { frozenNote, projectPhaseEnabled, readOnlyIn } from "./iterations";
 import { apiDownload, apiFetch, apiUpload, partOn, roles } from "./auth";
 import { openFile } from "./drawioScratch";
-import { fmtDate, fmtDateTime } from "./fmt";
+import { fmtDate, fmtDateTime, byText } from "./fmt";
 import { refreshAll, useApi } from "./ModelViews";
 import RichText from "./RichText";
 import { Field, Modal } from "./ModelOps";
@@ -691,7 +691,7 @@ function Wizard({ parent, editId, template, startAt }) {
           libraries: lib.libraries.filter((l) => l.shared && l.usable).map((l) => l.id) };
         return t ? applyTemplate(base, t, lib) : base;
       });
-      if (parent) deriveFrom(parent);
+      if (parent) void deriveFrom(parent);
     }
   }, [lib, live]); // eslint-disable-line react-hooks/exhaustive-deps
   async function deriveFrom(id) {
@@ -981,7 +981,7 @@ function RoleSlots({ d, set, models, tpl }) {
           </section>
         );
       })}
-      {picking && <PickModels d={d} set={(k, v) => set(k, place(v.map((m) => (m.role || !d.models.includes(m) ? m : m))))} models={models}
+      {picking && <PickModels d={d} set={(k, v) => set(k, place(v.map((m) => m)))} models={models}
         role={picking.role} how={picking.how} single={!picking.many} onClose={() => setPicking(null)} />}
       {making && <NewModel models={models} projectName={d.name} allowed={making.slot.starts.filter((x) => x !== "existing")}
         defaultStart={making.slot.default_start !== "existing" ? making.slot.default_start : null} defaultSource={sourceDefault}
@@ -1003,7 +1003,7 @@ function PickModels({ d, set, models, onClose, role, how, single }) {
   const have = new Set(d.models.map((m) => m.id || m.model));
   const [chosen, setChosen] = useState({});
   const pool = models.filter((m) => !have.has(m.id));
-  const opts = (k) => [...new Set(pool.map((m) => m[k]).filter(Boolean))].sort();
+  const opts = (k) => [...new Set(pool.map((m) => m[k]).filter(Boolean))].sort(byText);
   const statusOf = (m) => (m.frozen_at ? "frozen" : m.lifecycle === "archived" ? "archived" : m.is_draft ? "draft" : m.lock_level && m.lock_level !== "none" ? `locked (${m.lock_level})` : "active");
   const list = pool.filter((m) => (!q || `${m.name} ${m.description || ""}`.toLowerCase().includes(q.toLowerCase()))
     && (!f.origin || modelOrigin(m).key === f.origin) && (!f.metamodel || m.metamodel_name === f.metamodel)
@@ -1028,7 +1028,7 @@ function PickModels({ d, set, models, onClose, role, how, single }) {
         {sel("metamodel", "Metamodel", opts("metamodel_name").map((v) => [v, v]))}
         {sel("industry", "Industry", opts("industry").map((v) => [v, v]))}
         {sel("owner", "Owner", opts("owner").map((v) => [v, v]))}
-        {sel("status", "Status", [...new Set(pool.map(statusOf))].sort().map((v) => [v, v]))}
+        {sel("status", "Status", [...new Set(pool.map(statusOf))].sort(byText).map((v) => [v, v]))}
         <label className="small"><input type="checkbox" checked={f.archived} onChange={(e) => setF({ ...f, archived: e.target.checked })} /> archived too</label>
         <span className="small quiet">{list.length} of {pool.length}</span>
       </div>
@@ -1651,7 +1651,7 @@ function PhaseDocuments({ d, set, lib, phase, items, ownItems }) {
   const [q, setQ] = useState("");
   useEffect(() => { setFtype(""); setQ(""); }, [phase]);     // a filter chosen in one phase is not carried to the next
   const tType = (t) => fileType(t.file_name || t.name);
-  const phaseTypes = [...new Set(items.flatMap((i) => offeredTpl(d, lib, i).map(tType)).filter(Boolean))].sort();
+  const phaseTypes = [...new Set(items.flatMap((i) => offeredTpl(d, lib, i).map(tType)).filter(Boolean))].sort(byText);
   const hit = (i) => (!q.trim() || `${i.name} ${i.type || ""}`.toLowerCase().includes(q.trim().toLowerCase()))
     && (!ftype || offeredTpl(d, lib, i).some((t) => tType(t) === ftype));
   const added = items.filter((i) => d.picks[i.id] && hit(i));
@@ -2414,7 +2414,7 @@ function RepoTable({ p, codes, phase, compact = false }) {
     const kindOf = Object.fromEntries(p.items.map((i) => [i.id, i.kind]));
     return extra.documents.map((d) => ({ ...d, kind: byId[d.id]?.kind || d.kind || kindOf[d.item_id] || "Artifact", signoff: byId[d.id]?.signoff }));
   }, [p.documents, p.items, extra, show]);
-  const types = useMemo(() => [...new Set([...allDocs.map((d) => fileType(d.file_name)).filter(Boolean), ...(ftype ? [ftype] : [])])].sort(), [allDocs, ftype]);
+  const types = useMemo(() => [...new Set([...allDocs.map((d) => fileType(d.file_name)).filter(Boolean), ...(ftype ? [ftype] : [])])].sort(byText), [allDocs, ftype]);
   const tagList = useMemo(() => [...new Set([...allDocs.flatMap((d) => d.tags || []), ...(tag ? [tag] : [])])]
     .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())), [allDocs, tag]);
   const filtering = Boolean(tag || ftype);
@@ -2449,7 +2449,7 @@ function RepoTable({ p, codes, phase, compact = false }) {
       const f = inp.files[0];
       if (!f) return;
       const fd = new FormData(); fd.append("file", f);
-      act(() => apiUpload(`/api/v1/projects/${p.id}/documents/${d.id}/file`, fd));
+      void act(() => apiUpload(`/api/v1/projects/${p.id}/documents/${d.id}/file`, fd));
     };
     inp.click();
   }
@@ -2729,7 +2729,7 @@ function RepoTagsDialog({ p, onClose, onMsg }) {
                   return { message: `The documents as at ${t.name} are being zipped: the zip downloads when ready.` }; })}>⬇ Download as at this tag</button>
                 {data.may_revert && <button className="linkish" onClick={() => setAsk(t)}>↺ Bring the repository back to it…</button>}
                 {data.may_revert && <button className="linkish quiet" onClick={() => { if (window.confirm(`Remove the tag ${t.name}? The documents are not changed.`))
-                  run("", () => apiFetch(`/api/v1/projects/${p.id}/repo-tags/${t.id}`, { method: "DELETE" })); }}>Remove</button>}
+                  void run("", () => apiFetch(`/api/v1/projects/${p.id}/repo-tags/${t.id}`, { method: "DELETE" })); }}>Remove</button>}
               </td></tr>
           ))}</tbody>
         </table>
@@ -3506,7 +3506,7 @@ export function ProjectLibraryAdmin() {
       const f = inp.files[0];
       if (!f) return;
       const fd = new FormData(); fd.append("file", f);
-      act(() => apiUpload(`/api/v1/projects/library/templates/${t.id}/file`, fd));
+      void act(() => apiUpload(`/api/v1/projects/library/templates/${t.id}/file`, fd));
     };
     inp.click();
   }
@@ -3518,7 +3518,7 @@ export function ProjectLibraryAdmin() {
       const f = inp.files[0];
       if (!f) return;
       const fd = new FormData(); fd.append("file", f);
-      act(() => apiUpload(`/api/v1/projects/library/libraries/${togafLib.id}/zip`, fd));
+      void act(() => apiUpload(`/api/v1/projects/library/libraries/${togafLib.id}/zip`, fd));
     };
     inp.click();
   }
@@ -3707,7 +3707,7 @@ function ProjectTemplatesAdmin({ may }) {
             <label className="field">Description <textarea rows={2} value={edit.description} onChange={(e) => setEdit({ ...edit, description: e.target.value })} /></label>
             <label className="field">Its decisions (JSON: slots, purpose, depth, domains, phases or items, views, goals, primary, skip, finish)
               <textarea rows={14} className="mono" value={edit.text} onChange={(e) => setEdit({ ...edit, text: e.target.value })} /></label>
-            <div className="row-gap"><button className="primary" onClick={() => { try { save(edit, { spec: JSON.parse(edit.text) }); } catch (e) { setMsg(`Not JSON: ${e.message}`); } }}>Save</button>
+            <div className="row-gap"><button className="primary" onClick={() => { try { void save(edit, { spec: JSON.parse(edit.text) }); } catch (e) { setMsg(`Not JSON: ${e.message}`); } }}>Save</button>
               <button onClick={() => setEdit(null)}>Cancel</button></div>
           </div>
         </div>

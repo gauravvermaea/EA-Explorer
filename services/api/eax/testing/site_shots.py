@@ -51,6 +51,21 @@ MODEL = os.environ.get("EAX_SHOTS_MODEL", "Protea Insurance (demo estate)")
 PROJECT = os.environ.get("EAX_SHOTS_PROJECT", "Protea Claims Transformation 2028 (sample)")
 
 
+
+def without_last_brackets(name: str) -> str:
+    """A name without its closing "(...)" and the spaces around it ("Retail (sample)" -> "Retail"). String work giving the
+    same answer as the regular expression it replaces (SonarQube python:S8786, D804)."""
+    t = name.rstrip()
+    if not t.endswith(")"):
+        return name
+    k = t.rfind(")", 0, len(t) - 1)
+    i = t.find("(", k + 1, len(t) - 1)
+    if i == -1:
+        return name
+    while i > 0 and name[i - 1].isspace():
+        i -= 1
+    return name[:i]
+
 def args(argv: list[str]) -> dict:
     """--only a,b (those pages), --missing (only pictures not taken yet), --width and --height (the window)."""
     out = {"only": set(), "missing": False, "width": 1280, "height": 800}
@@ -178,7 +193,7 @@ def id_from(links: list[list[str]], name: str, kind: str) -> str:
         if m and m.group(1) not in not_ids:
             found.append((" ".join((words or "").split()).lower(), m.group(1)))
     want = name.lower()
-    short = re.sub(r"\s*\([^)]*\)\s*$", "", want)
+    short = without_last_brackets(want)
     for test in (lambda w: w == want, lambda w: w.startswith(want)):
         for words, ident in found:
             if test(words):

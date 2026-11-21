@@ -378,25 +378,24 @@ def search(q: str, limit: int = 50) -> list[dict]:
              ORDER BY m.name, e.name LIMIT :l"""), {"q": f"%{q.strip()}%", "l": int(limit)}).mappings()]
 
 
-def main(argv: list[str]) -> int:
+def main(argv: list[str]) -> None:
     """python -m eax.library_models move|back ID|status."""
     from .db import base_engine
     if argv[:1] == ["move"]:
         for line in move_all(lambda p, n: print(n)):
             print(line)
-        return 0
+        return
     if argv[:1] == ["back"] and len(argv) > 1:
         from .db import installer_engine
         with installer_engine().begin() as c:
             print(move_back(c, int(argv[1])))
-        return 0
+        return
     with base_engine().connect() as c:
         rows = c.execute(text("SELECT content_schema, count(*) FROM core.models WHERE kind_code = 'reference' AND NOT is_deleted "
                               "GROUP BY 1")).all()
     print("library models by where their content is:", dict(rows))
-    return 0
 
 
 if __name__ == "__main__":
     import sys
-    sys.exit(main(sys.argv[1:]))
+    main(sys.argv[1:])             # ending normally is exit code 0

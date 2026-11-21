@@ -36,10 +36,30 @@ MAX_RELATED = 4
 MAX_FILTERS = 10
 
 
+def _split_capitals(s: str) -> str:
+    """HTTPServer -> HTTP_Server: a _ before the last capital of a run of capitals that starts a word. String work giving
+    the same answer as the regular expression it replaces, without its slow cases (SonarQube python:S8786, D804)."""
+    out, i, n = [], 0, len(s)
+    while i < n:
+        j = i
+        while j < n and "A" <= s[j] <= "Z":
+            j += 1
+        if j - i >= 2 and j < n and "a" <= s[j] <= "z":
+            out.append(s[i:j - 1] + "_" + s[j - 1:j + 1])
+            i = j + 1
+        elif j > i:
+            out.append(s[i:j])
+            i = j
+        else:
+            out.append(s[i])
+            i += 1
+    return "".join(out)
+
+
 def snake(code: str) -> str:
     """rpt.snake(): the report name of a code (ApplicationComponent -> application_component)."""
     s = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", code or "")
-    s = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", s)
+    s = _split_capitals(s)
     return re.sub(r"[^a-z0-9]+", "_", s.lower()).strip("_")
 
 

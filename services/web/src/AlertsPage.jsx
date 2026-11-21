@@ -20,26 +20,26 @@ export default function AlertsPage() {
   const [msg, setMsg] = useState("");
   const [custom, setCustom] = useState({ key: "", name: "", kind: "url", target: "", warning: "1000", critical: "5000" });
   const load = () => apiFetch("/api/v1/admin/alerting").then(setD).catch((e) => setErr(e.message));
-  useEffect(() => { load(); const t = setInterval(load, 60000); return () => clearInterval(t); }, []);
+  useEffect(() => { void load(); const t = setInterval(load, 60000); return () => clearInterval(t); }, []);
   if (!can("system.operate")) return <p className="quiet">Alerts are seen by IT Admins, Auditors and Super Admins.</p>;
   if (!d) return err ? <p className="status bad">{err}</p> : <p><span className="spinner" aria-hidden="true" /> Reading the alerts…</p>;
   const sup = can("settings.manage");
   async function call(path, body, done) {
     setErr(""); setMsg("");
-    try { const r = await apiFetch(path, { method: "POST", body: JSON.stringify(body || {}) }); setMsg(done(r)); load(); }
+    try { const r = await apiFetch(path, { method: "POST", body: JSON.stringify(body || {}) }); setMsg(done(r)); void load(); }
     catch (e) { setErr(e.message); }
   }
-  const ack = (k) => { const note = window.prompt("Acknowledge: a note (what is being done)?", ""); if (note !== null) call(`/api/v1/admin/alerting/${encodeURIComponent(k)}/ack`, { note }, () => "Acknowledged: it stops repeating."); };
+  const ack = (k) => { const note = window.prompt("Acknowledge: a note (what is being done)?", ""); if (note !== null) void call(`/api/v1/admin/alerting/${encodeURIComponent(k)}/ack`, { note }, () => "Acknowledged: it stops repeating."); };
   const silence = (k) => {
     const m = window.prompt(k ? `Silence ${k} for how many minutes?` : "A planned downtime: silence every check for how many minutes?", "60");
     if (!m) return;
     const reason = window.prompt("Why?", k ? "" : "planned downtime") || "";
-    call("/api/v1/admin/alerting/silence", { key: k || "*", minutes: Number(m), reason }, (r) => `Silenced until ${fmtDateTime(r.until)}.`);
+    void call("/api/v1/admin/alerting/silence", { key: k || "*", minutes: Number(m), reason }, (r) => `Silenced until ${fmtDateTime(r.until)}.`);
   };
   const levels = (c) => {
     const w = window.prompt(`${c.what}: warning at (${c.unit})?`, String(c.warning)); if (w === null) return;
     const x = window.prompt(`${c.what}: critical at (${c.unit})?`, String(c.critical)); if (x === null) return;
-    call(`/api/v1/admin/alerting/${encodeURIComponent(c.key)}/config`, { warning: Number(w), critical: Number(x) }, () => "Saved.");
+    void call(`/api/v1/admin/alerting/${encodeURIComponent(c.key)}/config`, { warning: Number(w), critical: Number(x) }, () => "Saved.");
   };
   async function history() {
     try {

@@ -26,7 +26,7 @@ from .metamodel_edit import EditError
 
 FIELDS = ("guid AS id, name, url, note, source, deployment, health, health_detail, version, checked_at, created_by, "
           "created_at, modified_at")
-_URL = re.compile(r"^https?://[^\s/]+[^\s]*$")
+_URL = re.compile(r"^https?://[^\s/]\S*$")
 
 
 def _db(conn):

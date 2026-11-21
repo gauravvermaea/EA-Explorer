@@ -418,7 +418,7 @@ def tell(conn, report: dict) -> None:
                           body="; ".join(titles), link=LINK, actor="system", recipients=admins, needs_action=True)
 
 
-def main(argv: list[str]) -> int:
+def main(argv: list[str]) -> None:
     """python -m eax.optimise [report|last]: measure now (kept) or the newest report, printed."""
     from .db import get_engine
     with get_engine().begin() as conn:
@@ -426,7 +426,7 @@ def main(argv: list[str]) -> int:
             got = latest(conn, 1)
             if not got:
                 print("No report yet: eax optimise measures now.")
-                return 0
+                return
             r, rid = got[0]["report"], got[0]["id"]
         else:
             r = measure(conn)
@@ -435,9 +435,8 @@ def main(argv: list[str]) -> int:
         print(f"[{s['area']:8}] {s['title']}: {s['evidence']}" + (f" (saves {s['saves']})" if s["saves"] else "")
               + (f" [{people_text(s.get('people'))}]" if s.get("people") else ""))
     print(f"Report {rid}: {len(r['suggestions'])} suggestion(s). Apply them on System Admin > Optimisation (nothing is changed here).")
-    return 0
 
 
 if __name__ == "__main__":
     import sys
-    sys.exit(main(sys.argv[1:]))
+    main(sys.argv[1:])             # ending normally is exit code 0

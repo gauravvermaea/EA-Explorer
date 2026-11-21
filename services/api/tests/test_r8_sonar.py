@@ -50,7 +50,7 @@ def test_the_scan_covers_the_code_and_leaves_out_what_is_made_or_downloaded():
     assert props["sonar.projectKey"] == "ea-explorer" and props["sonar.sources"] == "."
     for out in ("**/node_modules/**", "work/**", "documents/**", "services/web/public/site/**", "services/api/tests/**"):
         assert out in props["sonar.exclusions"], out
-    assert props["sonar.tests"] == "services/api/tests"                       # tests read as tests, not twice
+    assert props["sonar.tests"] == "services/api/tests,services/web/tests,deploy/drawio/tests"   # D804: every test folder                       # tests read as tests, not twice
 
 
 def test_kind_and_severity_read_from_old_and_new_issues():
@@ -153,7 +153,7 @@ def test_eax_test_sonar_in_every_form_with_the_token_never_on_the_command_line()
     assert 'rest[:1] == ["sonar"]' in (ROOT / "eaxcli/main.py").read_text(encoding="utf-8")
     assert '$RestArgs -contains "sonar"' in (ROOT / "eax.ps1").read_text(encoding="utf-8")
     assert '*" sonar "*) exec "$BASH" ./eaxpy.sh' in (ROOT / "eax.sh").read_text(encoding="utf-8")
-    assert "sonar [--keep|--reset]" in (ROOT / "eaxcli/help.txt").read_text(encoding="utf-8")
+    assert "sonar [--keep|--open|--reset]" in (ROOT / "eaxcli/help.txt").read_text(encoding="utf-8")
     assert C.check_argv(["test", "sonar", "--keep"]) == ["test", "sonar", "--keep"]
     assert X.scanner_args()[-3:] == ["-e", "SONAR_TOKEN", "sonar-scanner"]       # the value comes from the environment
     assert X.runner(["prepare"])[-3:] == ["-m", "eax.testing.sonar", "prepare"]
@@ -186,3 +186,76 @@ def test_after_a_clean_restart_the_scan_starts_sonarqube_afresh_by_itself(tmp_pa
         sys.path.insert(0, str(ROOT))
     src = (ROOT / "eaxcli" / "sonar.py").read_text(encoding="utf-8")
     assert "if got == 3:" in src and "reset()" in src
+
+
+def test_sonar_open_shows_its_pages_on_this_computer_only_and_only_when_asked():
+    """D805 (owner, 19 Nov 2026, 21:27: "i want to turn on sonar to open and run"): eax test sonar --open leaves SonarQube
+    running with its own pages at http://localhost:9000, bound to 127.0.0.1, until eax down; without --open, no port."""
+    import yaml
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from eaxcli import commands as C
+    from eaxcli import sonar as X
+    extra = yaml.safe_load((ROOT / X.OPEN_FILE).read_text(encoding="utf-8"))
+    assert list(extra["services"]) == ["sonarqube"]                                  # only SonarQube gets a port
+    assert extra["services"]["sonarqube"]["ports"] == ["127.0.0.1:${EAX_SONAR_PORT:-9000}:9000"]   # this computer only
+    assert X.start_args([]) == ["--profile", "test", "up", "-d", "--no-deps", "sonarqube"]        # before: no port
+    assert X.start_args(["--open"])[:2] == ["-f", X.OPEN_FILE] and X.start_args(["--open"])[2:] == X.start_args([])
+    assert C.check_argv(["test", "sonar", "--open"]) == ["test", "sonar", "--open"]
+    assert X.open_address() in ("http://localhost:9000", f"http://localhost:{__import__('os').environ.get('EAX_SONAR_PORT')}")
+    src = (ROOT / "eaxcli/sonar.py").read_text(encoding="utf-8")
+    assert 'if "--keep" not in rest and "--open" not in rest:' in src                 # --open keeps it running
+    main = yaml.safe_load((ROOT / "docker-compose.yml").read_text(encoding="utf-8"))["services"]["sonarqube"]
+    assert "ports" not in main and main["profiles"] == ["test"]                       # the stack itself: still no port
+
+
+def test_eax_sonar_open_shows_the_last_scan_without_scanning_and_close_ends_it(monkeypatch):
+    """D805 (owner, 19 Nov 2026, 21:28: "i wanna only execute it not run a test"): eax sonar open starts SonarQube with its
+    pages on this computer only and waits for it; it scans nothing. eax sonar close removes it (its data kept)."""
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from eaxcli import sonar as X
+    from eaxcli.core import Failure
+    calls = []
+    monkeypatch.setattr(X, "docker_ok", lambda: True)
+    monkeypatch.setattr(X, "compose", lambda args, no_throw=False, quiet=False: calls.append(args) or 0)
+    monkeypatch.setattr(X, "heading", lambda *a, **k: None)
+    monkeypatch.setattr(X, "say", lambda *a, **k: None)
+    monkeypatch.setattr(X, "ok", lambda *a, **k: None)
+    monkeypatch.setattr(X, "published_port", lambda: "")                         # before (20 Nov): no port, yet "open"
+    with pytest.raises(Failure, match="no port"):
+        X.dashboard(["open"])
+    calls.clear()
+    monkeypatch.setattr(X, "published_port", lambda: "127.0.0.1:9000")           # after: open only with its port
+    assert X.dashboard(["open"]) == 0
+    assert calls[0] == ["--profile", "test", "build", "testrunner"]               # 20 Nov: an older runner had no "ready"
+    assert calls[1] == X.start_args(["--open"])                                   # with its port, on 127.0.0.1
+    assert calls[2] == X.runner(["ready"])                                        # waits; makes no token
+    assert not any("sonar-scanner" in c or "report" in c for c in calls)          # nothing scanned, no report
+    calls.clear()
+    assert X.dashboard(["close"]) == 0 and calls == [["--profile", "test", "rm", "-sf", "sonarqube"]]
+    with pytest.raises(Failure, match="eax sonar open"):
+        X.dashboard([])
+
+
+def test_ready_waits_and_sets_the_password_without_making_a_token(monkeypatch, capsys):
+    S = _s()
+    seen = []
+    monkeypatch.setattr(S, "wait_up", lambda **k: "26.11")
+    monkeypatch.setattr(S, "admin_password", lambda **k: seen.append("password") or "pw")
+    monkeypatch.setattr(S, "prepare", lambda **k: seen.append("token"))
+    assert S.main(["ready"]) == 0 and seen == ["password"] and "26.11 is ready" in capsys.readouterr().out
+
+
+def test_the_published_port_is_read_from_docker(monkeypatch):
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from eaxcli import sonar as X
+    monkeypatch.setattr(X, "project_name", lambda: "eaexplorer")
+    seen = []
+    monkeypatch.setattr(X, "capture", lambda args: seen.append(args) or (0, "127.0.0.1:9000\n"))
+    assert X.published_port() == "127.0.0.1:9000" and seen == [["docker", "port", "eaexplorer-sonarqube-1", "9000"]]
+    monkeypatch.setattr(X, "capture", lambda args: (0, ""))
+    assert X.published_port() == ""
+    monkeypatch.setattr(X, "capture", lambda args: (1, "Error: No such container"))
+    assert X.published_port() == ""

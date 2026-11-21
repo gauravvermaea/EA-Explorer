@@ -22,6 +22,8 @@ from collections.abc import Callable
 from . import help as help_
 from .core import EAX, ROOT, WINDOWS, heading, paint
 
+POWERSHELLS = {"powershell", "powershell.exe", "pwsh", "pwsh.exe"}    # what eax.ps1 may name as EAX_FORM_EXE
+
 Ask = Callable[[str], str]
 
 
@@ -171,6 +173,8 @@ def run(line: list[str]) -> int:
         return subprocess.call(["bash", str(ROOT / "eax.sh"), *line])
     if form == "ps1":
         exe = os.environ.get("EAX_FORM_EXE") or "powershell"
+        if re.split(r"[\\/]", exe)[-1].lower() not in POWERSHELLS:   # only PowerShell runs eax.ps1 (Semgrep, R8.2, D823)
+            exe = "powershell"
         return subprocess.call([exe, "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(ROOT / "eax.ps1"), *line])
     from . import main as main_
     return main_.main(line)

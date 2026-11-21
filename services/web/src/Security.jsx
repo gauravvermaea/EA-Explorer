@@ -102,20 +102,20 @@ function Mfa() {
   const [msg, setMsg] = useState("");
   const [who, setWho] = useState("");
   const load = () => apiFetch("/api/v1/admin/security/mfa").then(setD).catch((e) => setErr(e.message));
-  useEffect(() => { load(); }, []);
+  useEffect(() => { void load(); }, []);
   if (!can("system.operate")) return null;
   if (!d) return err ? <p className="status bad">{err}</p> : <p><span className="spinner" aria-hidden="true" /> Reading multi-factor sign-in…</p>;
   async function setMode(mode) {
     setErr(""); setMsg("");
     try {
       const r = await apiFetch("/api/v1/admin/settings", { method: "PUT", body: JSON.stringify({ mfa_mode: mode }) });
-      setMsg(r.note || "Saved."); load();
+      setMsg(r.note || "Saved."); void load();
     } catch (e) { setErr(e.message); }
   }
   async function reset() {
     setErr(""); setMsg("");
     try { const r = await apiFetch("/api/v1/admin/security/mfa/reset", { method: "POST", body: JSON.stringify({ username: who }) });
-      setMsg(`${r.username}: ${r.removed} authenticator removed; they set up a new one at their next sign-in.`); setWho(""); load(); }
+      setMsg(`${r.username}: ${r.removed} authenticator removed; they set up a new one at their next sign-in.`); setWho(""); void load(); }
     catch (e) { setErr(e.message); }
   }
   const words = { off: "Off: nobody is asked (anyone may add an authenticator app to their own account)",

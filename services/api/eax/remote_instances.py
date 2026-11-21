@@ -26,7 +26,7 @@ from . import personal as P
 from .metamodel_edit import EditError
 
 MODES = ("ask", "stored", "server_key")
-_URL = re.compile(r"^https?://[^\s/]+[^\s]*$")
+_URL = re.compile(r"^https?://[^\s/]\S*$")
 _HOST = re.compile(r"^[A-Za-z0-9._:-]{1,255}$")
 _USER = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
 FIELDS = "guid AS id, name, url, note, ssh_host, ssh_port, ssh_user, (ssh_key_enc IS NOT NULL) AS has_key, created_at, modified_at"

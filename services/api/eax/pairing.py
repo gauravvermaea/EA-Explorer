@@ -64,7 +64,7 @@ FIELDS = ("guid AS id, side, name, peer_url, peer_name, peer_guid, peer_pin, kin
           "last_sent_at, last_received_at, last_auto_at, last_error, note, created_by, created_at, modified_at")
 BATCH_FIELDS = ("b.guid AS id, b.direction, b.seq, b.status, b.items, b.size, b.attempts, b.reply, b.error, "
                 "b.notes, b.created_by, b.created_at, b.sent_at, b.committed_at, b.committed_by")
-_URL = re.compile(r"^https?://[^\s/]+[^\s]*$")
+_URL = re.compile(r"^https?://[^\s/]\S*$")
 
 
 class SyncUser:

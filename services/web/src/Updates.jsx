@@ -273,7 +273,7 @@ export function UpdateNotice() {
   useEffect(() => {
     let live = true;
     const load = () => apiFetch("/api/v1/operations/updates/notice").then((x) => { if (live) setN(x); }).catch(() => {});
-    load();
+    void load();
     const t = setInterval(load, 5 * 60 * 1000);
     return () => { live = false; clearInterval(t); };
   }, []);

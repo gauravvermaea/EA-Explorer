@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import { apiDownload, apiFetch, apiUpload } from "./auth";
 import { refreshAll, useApi } from "./ModelViews";
 import { Modal } from "./ModelOps";
-import { fmtDateTime } from "./fmt";
+import { fmtDateTime, byText } from "./fmt";
 
 export function TrackingSheets({ scope }) {
   const [open, setOpen] = useState(() => (window.location.hash.match(/[?&]sheet=([^&]+)/) || [])[1] || "");
@@ -103,7 +103,7 @@ function SheetEditor({ scope, sid, onBack }) {
     try { const r = await apiFetch(url, { method: "PUT", body: JSON.stringify(body) }); if (!quiet) setMsg({ ok: true, text: r.message }); refreshAll(); }
     catch (e) { setMsg({ ok: false, text: e.message }); }
   }
-  const values = (c) => [...new Set(data.rows.map((r) => r.cells[c] || ""))].filter(Boolean).sort().slice(0, 200);
+  const values = (c) => [...new Set(data.rows.map((r) => r.cells[c] || ""))].filter(Boolean).sort(byText).slice(0, 200);
   const filtered = rows.length !== data.rows.length;
   const tickAll = () => setTicked(rows.every((r) => ticked.has(r.id)) && rows.length ? new Set() : new Set(rows.map((r) => r.id)));
   return (
@@ -168,9 +168,9 @@ function SheetEditor({ scope, sid, onBack }) {
         </table>
       </div>
       {dlg === "upload" && <UploadInto url={url} columns={data.columns} onClose={(m) => { setDlg(""); if (m) { setMsg({ ok: true, text: m }); refreshAll(); } }} />}
-      {dlg === "column" && <Ask title="A new column" label="Its name" onClose={(v) => { setDlg(""); if (v) put({ columns: [...data.columns, v] }); }} />}
-      {dlg === "name" && <Ask title="Rename the sheet" label="Name" value={data.name} onClose={(v) => { setDlg(""); if (v) put({ name: v }); }} />}
-      {dlg.startsWith("col:") && <ColumnDialog col={dlg.slice(4)} columns={data.columns} onClose={(body) => { setDlg(""); if (body) put(body); }} />}
+      {dlg === "column" && <Ask title="A new column" label="Its name" onClose={(v) => { setDlg(""); if (v) void put({ columns: [...data.columns, v] }); }} />}
+      {dlg === "name" && <Ask title="Rename the sheet" label="Name" value={data.name} onClose={(v) => { setDlg(""); if (v) void put({ name: v }); }} />}
+      {dlg.startsWith("col:") && <ColumnDialog col={dlg.slice(4)} columns={data.columns} onClose={(body) => { setDlg(""); if (body) void put(body); }} />}
     </div>
   );
 }

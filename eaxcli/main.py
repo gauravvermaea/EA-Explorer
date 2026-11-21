@@ -120,6 +120,33 @@ def _paged(text: str) -> None:
                 return
 
 
+# ---------------------------------------------------------------- the full test's steps (D823)
+def dev_cli_main(args: list[str]) -> int:
+    """eax dev check, as the full test's first step (imported only when it runs)."""
+    from . import dev_cli
+    return dev_cli.main(args)
+
+
+def full_step(title: str, run) -> tuple[str, bool, str]:
+    """One step of the full test: (title, passed, why not); a step that breaks never stops the next one."""
+    say(f"\n=== the full test: {title}")
+    try:
+        code = run()
+    except Failure as exc:
+        return title, False, str(exc)
+    except Exception as exc:  # noqa: BLE001 - said, and the next step runs
+        return title, False, f"{type(exc).__name__}: {exc}"
+    return title, code in (0, None), "" if code in (0, None) else f"ended with {code}"
+
+
+def full_summary(steps: list[tuple[str, bool, str]]) -> int:
+    """Every step of the full test in one list at the end; 1 when any failed."""
+    say("\nThe full test, step by step:")
+    for title, passed, why in steps:
+        say(f"  {'ok    ' if passed else 'FAILED'} {title}" + (f": {why}" if why else ""))
+    return 0 if all(p for _t, p, _w in steps) else 1
+
+
 # ---------------------------------------------------------------- starting again (no log: the logs folder goes)
 def cleanup(options: list[str]) -> None:
     """eax clean: removes the stack (and its data with --all, asked first)."""
@@ -562,6 +589,16 @@ def dispatch(command: str, rest: list[str], wait_all: bool) -> None:
             # and restore test should not ask me anything"); it runs from eax itself, one command after another
             from . import backup_restore
             last = "full" in rest and "--ci" not in rest
+            # the full test from the command line does everything but the benchmark (owner, 21 Nov 2026, 13:06: "can dev
+            # check be part pf full test along with sonar this way one full test will do everything excpt performance
+            # ttest. Its ok if we can only do this from command line"; D823): the dev check first (its unit tests'
+            # coverage joins the run's own, D807), the self-test with the attack test, the backup and restore test,
+            # SonarQube last; --no-dev-check and --no-sonar leave one out
+            steps: list[tuple[str, bool, str]] = []
+            no_sonar = "--no-sonar" in rest
+            if last and "--no-dev-check" not in rest:
+                steps.append(full_step("dev check", lambda: dev_cli_main(["check"])))
+            rest = [a for a in rest if a not in ("--no-dev-check", "--no-sonar")]
             # always prepare the runner first (D584): seconds when it is current, rebuilt when the code or version changed
             say("Preparing the test runner... (the first time about 5 to 15 minutes; seconds when it is current)")
             compose(["--profile", "test", "build", "testrunner"])
@@ -572,10 +609,12 @@ def dispatch(command: str, rest: list[str], wait_all: bool) -> None:
             except Failure as exc:
                 failed = exc
             if last:
-                code = backup_restore.main([])
-                if failed:
-                    raise failed
-                return code
+                steps.append(("self-test", failed is None, str(failed or "")))
+                steps.append(full_step("backup and restore test", lambda: backup_restore.main([])))
+                if not no_sonar:
+                    from . import sonar as sonar_
+                    steps.append(full_step("SonarQube scan", lambda: sonar_.main([])))
+                return full_summary(steps)
             if failed:
                 raise failed
     elif command == "standby":          # the database standby (phase 36.3, D527; EAX_COMPOSE_EXTRA=standby)
@@ -710,6 +749,9 @@ def main(argv: list[str]) -> int:
         if command == "settings":               # the settings exported and imported (Release 6.7, D755)
             from . import settings_cli
             return settings_cli.main(rest)
+        if command == "sonar":                  # SonarQube's own pages, the last scan's results, nothing scanned (D805)
+            from . import sonar
+            return sonar.dashboard(rest)
         if command == "errors":                 # what an error code means and what to do (Release 7.9, D787)
             from . import problems
             return problems.errors_main(rest)

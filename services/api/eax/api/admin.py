@@ -4,6 +4,7 @@ restart of the whole system through the operations helper."""
 from __future__ import annotations
 
 import json
+import math
 import os
 import urllib.error
 import urllib.request
@@ -321,6 +322,8 @@ class Resources(MethodView):
         from .. import resources as rs
         try:
             days = float(request.args.get("days") or 1)
+            if not (math.isfinite(days) and days > 0):   # nan, inf or not a period (Semgrep's nan-injection, R8.2, D823)
+                raise ValueError("days: a number of days greater than 0.")
             start, end = rs.period(request.args.get("from"), request.args.get("to"), days)
         except (ValueError, EditError) as exc:
             abort(400, message=str(exc))

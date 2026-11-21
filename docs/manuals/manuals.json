@@ -1,5 +1,5 @@
 {
-  "_about": "The printed guides (Release 7, D783; the 25th, the error code guide, Release 7.9, D790): each made by tools/build_manuals.py from content already in the repository. A source is one of: page:<file> (a whole page; its title becomes a section), page:<file>#<Heading>|<Heading> (only those ## sections), howdoi:pages=<a>,<b> (those How do I pages, in that order), howdoi:group=<Group>[;role=<role>] (every How do I page of that group, for that role), help:sections=<Section>|<Section> or help:commands=<name>,<name> (the eax command's own help), new:<file> (content written for the guides, docs/manuals/new). Every guide gets a cover, About this guide (its purpose, who it is for, how to use it) and a table of contents.",
+  "_about": "The printed guides (Release 7, D783; the 25th, the error code guide, Release 7.9, D790; the 26th, security and performance testing, R8.2, D817): each made by tools/build_manuals.py from content already in the repository. A source is one of: page:<file> (a whole page; its title becomes a section), page:<file>#<Heading>|<Heading> (only those ## sections), howdoi:pages=<a>,<b> (those How do I pages, in that order), howdoi:group=<Group>[;role=<role>] (every How do I page of that group, for that role), help:sections=<Section>|<Section> or help:commands=<name>,<name> (the eax command's own help), new:<file> (content written for the guides, docs/manuals/new). Every guide gets a cover, About this guide (its purpose, who it is for, how to use it) and a table of contents.",
   "manuals": [
     {
       "id": "01-overview",
@@ -311,6 +311,17 @@
         {"title": "Finding a code and what it means", "sources": ["howdoi:pages=find-what-an-error-code-means,see-every-problem-from-the-machine", "help:commands=status,errors"]},
         {"title": "From Jenkins", "sources": ["new:docs/manuals/new/jenkins-in-ea-explorer.md#The environment's status and error codes"]},
         {"title": "Every code", "sources": ["page:docs/site/guides/error-codes.md"]}
+      ]
+    },
+    {
+      "id": "26-security-and-performance-testing",
+      "title": "Security and performance testing guide",
+      "audience": "Super Admins and IT Admins who test that EA Explorer is safe and quick, and developers who fix what they find",
+      "purpose": "The four tests that check EA Explorer is safe and quick: the security suite, the attack test that tries to break it with tools kept up to date, the SonarQube scan of the code, and the benchmark under load; how to run each, read its results, fix or accept a finding in writing, and run it again.",
+      "chapters": [
+        {"title": "Security and performance testing", "sources": ["page:docs/site/guides/test-security-and-performance.md"]},
+        {"title": "Running and watching a test", "sources": ["howdoi:pages=run-the-self-test,watch-a-self-test,clear-test-data"]},
+        {"title": "The commands", "sources": ["help:commands=test,sonar"]}
       ]
     }
   ]

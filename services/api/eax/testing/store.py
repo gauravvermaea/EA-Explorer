@@ -20,6 +20,55 @@ from sqlalchemy import text
 from . import FULL_SUITES, SUITES, WEB_SUITES
 
 
+def _item_end(s: str, q: int) -> int:
+    """Where one piece of an option's syntax that starts at q ends ([...], <...>, a capital on its own, --flag); -1 if none."""
+    n = len(s)
+    if q >= n:
+        return -1
+    if s[q] in "[<":
+        close = s.find("]" if s[q] == "[" else ">", q + 1)
+        return close + 1 if close != -1 else -1
+    if "A" <= s[q] <= "Z":
+        return q + 1 if q + 1 == n or not (s[q + 1].isalnum() or s[q + 1] == "_") else -1
+    if s.startswith("--", q) and q + 2 < n and not s[q + 2].isspace():
+        e = q + 2
+        while e < n and not s[e].isspace():
+            e += 1
+        return e
+    return -1
+
+
+def option_line(s: str) -> tuple[str, str]:
+    """An option line of the eax help: (its syntax: --flag and its [...], <...>, X or --other parts; what it does). String
+    work giving the same answer as the regular expression it replaces, without its slow cases (SonarQube python:S8786,
+    D804)."""
+    n = len(s)
+    if not (s.startswith("--") and n > 2 and not s[2].isspace()):
+        return s, ""
+    e = 2
+    while e < n and not s[e].isspace():
+        e += 1
+    ends = [e]
+    while True:
+        q = ends[-1]
+        while q < n and s[q].isspace():
+            q += 1
+        if q == ends[-1]:
+            break
+        nxt = _item_end(s, q)
+        if nxt == -1:
+            break
+        ends.append(nxt)
+    for end in reversed(ends):
+        if end == n:
+            return s, ""
+        if s[end].isspace():
+            q = end
+            while q < n and s[q].isspace():
+                q += 1
+            return s[:end], s[q:]
+    return s, ""
+
 def engine():
     """The tests database's engine (the repository's when it has no setting of its own)."""
     from ..databases import engine_for
@@ -88,7 +137,7 @@ def estimate_minutes(level: str, suites: list[str], watch: bool = False) -> tupl
     if level == "smoke":
         return (2, 5)
     lo, hi = 1, 2                                                   # its fixtures: models, a project, accounts
-    add = {"api": (3, 10), "ui": (2, 5), "db": (0, 1), "jobs": (0, 1), "mcp": (1, 3), "security": (5, 15), "reports": (5, 15), "performance": (5, 20), "backup": (3, 15), "restore": (20, 90)}
+    add = {"api": (3, 10), "ui": (2, 5), "db": (0, 1), "jobs": (0, 1), "mcp": (1, 3), "security": (5, 15), "reports": (5, 15), "performance": (5, 20), "attack": (60, 180), "backup": (3, 15), "restore": (20, 90)}
     for s in suites:
         lo, hi = lo + add[s][0], hi + add[s][1]
     if watch:
@@ -170,7 +219,8 @@ def command_line(run: dict[str, Any], eax: str = ".\\eax") -> str:
     elif run.get("level") == "detailed":
         bits.append("--detailed")
         # full: every suite, or every one the web runs; a full run from before the performance suite (R5.18) too
-        fulls = (set(SUITES), set(WEB_SUITES), set(SUITES) - {"performance"}, set(WEB_SUITES) - {"performance"})
+        fulls = (set(SUITES), set(WEB_SUITES), set(SUITES) - {"performance"}, set(WEB_SUITES) - {"performance"},
+                 set(SUITES) - {"performance", "attack"}, set(WEB_SUITES) - {"performance", "attack"})
         if suites and set(suites) not in fulls:
             bits += [f"--suite {x}" for x in suites]
     else:
@@ -300,7 +350,7 @@ def progress(conn, run: dict[str, Any], done: int) -> dict[str, Any]:
 
 
 PHASE_NAMES = {"api": "API", "ui": "Browser", "db": "Database", "jobs": "Jobs", "mcp": "MCP", "security": "Security", "reports": "Reports",
-               "performance": "Performance", "backup": "Backups", "restore": "Restore", "smoke": "Smoke"}
+               "performance": "Performance", "attack": "Attack", "backup": "Backups", "restore": "Restore", "smoke": "Smoke"}
 
 
 def phases(conn, run: dict[str, Any]) -> list[dict[str, Any]]:
@@ -468,9 +518,7 @@ def test_entry(help_text: str) -> dict:
             m = _re_choice.match(ln)
             out["options"].append({"flag": m.group(1), "what": m.group(2).strip()})
         elif ln.startswith("  --"):
-            import re as _re
-            m = _re.match(r"^(--\S+(?:\s+(?:\[[^\]]*\]|<[^>]*>|[A-Z]\b|--\S+))*)(?:\s+(.*))?$", ln.strip())
-            flag, what = (m.group(1), m.group(2) or "") if m else (ln.strip(), "")
+            flag, what = option_line(ln.strip())
             out["options"].append({"flag": flag.strip(), "what": what.strip()})
         elif ln.startswith("    ") and out["options"]:
             out["options"][-1]["what"] = (out["options"][-1]["what"] + " " + ln.strip()).strip()

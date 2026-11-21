@@ -180,8 +180,9 @@ export function SourcePanel({ id, model }) {
 }
 
 export function copyText(text, done) {
-  try { navigator.clipboard.writeText(text).then(() => done("Copied."), () => done("Select it and copy it by hand.")); }
-  catch { done("Select it and copy it by hand."); }
+  const clipboard = globalThis.navigator?.clipboard;      // none when the page is not https
+  if (typeof clipboard?.writeText !== "function") { done("Select it and copy it by hand."); return; }
+  void clipboard.writeText(text).then(() => done("Copied."), () => done("Select it and copy it by hand."));
 }
 
 // A push source's Python kit (D674): read the code here, copy it, or download everything as a zip.

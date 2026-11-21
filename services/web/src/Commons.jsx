@@ -291,7 +291,7 @@ function CommonPage({ id }) {
               <td className="num">{r.totals.common}</td><td className="num">{r.totals.in_all}</td><td className="num">{r.totals.elements}</td></tr>)}</tbody></table>)}
       </div>
       {dialog === "settings" && <SettingsDialog a={a} onClose={() => setDialog(null)} onRun={(settings) => {
-        setDialog(null); act("refresh", () => runTask(post(`/api/v1/commons/${a.id}/refresh`, { settings }), here), () => "Compared again with the new settings: notes and decisions kept.");
+        setDialog(null); void act("refresh", () => runTask(post(`/api/v1/commons/${a.id}/refresh`, { settings }), here), () => "Compared again with the new settings: notes and decisions kept.");
       }} />}
       {dialog === "model" && <MakeModelDialog a={a} items={sel} onClose={() => setDialog(null)} />}
       {dialog === "delete" && (

@@ -63,9 +63,10 @@ def config_values(path: Path) -> dict[str, str]:
     out: dict[str, str] = {}
     try:
         for line in path.read_text(encoding="utf-8").splitlines():
-            m = re.match(r"^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$", line)
-            if m:
-                out[m.group(1)] = m.group(2).strip("'\"")
+            name, eq, value = line.partition("=")      # NAME = value (D804: string work, not a regular expression)
+            name = name.strip()
+            if eq and name and not name.strip("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_"):
+                out[name] = value.strip().strip("'\"")
     except OSError:
         pass
     return out

@@ -7,6 +7,11 @@ select = ["E", "F", "W", "I", "B", "UP"]
 # long SQL and help strings read better unbroken; small lambdas are used as local key functions
 ignore = ["E501", "E731"]
 
+[tool.coverage.run]
+# the unit tests measured over the same code as the live run (eax/coverage_probe.py; R8.1, D807)
+source = ["eax"]
+omit = ["eax/testing/*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 # the eax package is found from services/api however pytest is started (CI runs plain `pytest`, which does not put the

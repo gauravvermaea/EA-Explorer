@@ -64,7 +64,7 @@ def docx_from_markdown(title: str, body: str) -> bytes:
             flush_table()
         if not line.strip():
             continue
-        m = re.match(r"^(#{1,4})\s+(.*)$", line)
+        m = re.match(r"^(#{1,4})\s+(\S.*|)$", line)
         if m:
             doc.add_heading(m.group(2).strip(), min(len(m.group(1)), 4))
         elif re.match(r"^\s*[-*]\s+", line):
@@ -103,7 +103,7 @@ async def save_report_document(project: str, title: str, markdown: str, confirm:
         with pj.connections(False) as pc:
             p = pj.project_row(pc, project)
             pw.need(pc, p, user, "contribute")
-        heads = re.findall(r"^#{1,4}\s+(.*)$", markdown, re.M)
+        heads = re.findall(r"^#{1,4}\s+(\S.*|)$", markdown, re.M)
         return {"project": p["name"], "file": _file_name(title), "size_kb": round(len(data) / 1024, 1), "headings": heads[:40],
                 "will": f"Keep {_file_name(title)} on {p['name']}'s Repository tab (an artifact), uploaded by you."}
 

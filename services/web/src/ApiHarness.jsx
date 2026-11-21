@@ -4,20 +4,10 @@
 // together (the self-test runs them too). Reads go anywhere; writes only into test data (the server refuses others).
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "./auth";
+import { filledPath, pathParams } from "./apiPaths";
 
 const ROLES = ["super-admin", "it-admin", "model-creator", "library-admin", "model-admin", "model-sub-admin", "committer",
   "architect", "history-viewer", "report-viewer", "no-role"];
-
-export function pathParams(path) {
-  return [...String(path || "").matchAll(/\{([^}]+)\}/g)].map((m) => m[1].split(":").pop());
-}
-
-export function filledPath(path, values) {
-  return String(path || "").replace(/\{([^}]+)\}/g, (all, name) => {
-    const v = values[name.split(":").pop()];
-    return v ? encodeURIComponent(v) : all;
-  });
-}
 
 export default function ApiHarness() {
   const [eps, setEps] = useState(null);
@@ -40,7 +30,7 @@ export default function ApiHarness() {
   const loadCases = () => apiFetch("/api/v1/admin/api-harness/cases").then((x) => setCases(x.cases || [])).catch(() => {});
   useEffect(() => {
     apiFetch("/api/v1/admin/api-harness/endpoints").then((x) => setEps(x.endpoints || [])).catch((e) => setErr(e.message));
-    loadCases();
+    void loadCases();
   }, []);
 
   const shown = useMemo(() => {
@@ -93,7 +83,7 @@ export default function ApiHarness() {
       await apiFetch("/api/v1/admin/api-harness/cases", { method: "POST", body: JSON.stringify({
         name: caseName, method: ep.method, path: ep.path, query, body: parsed, as: as === "me" ? "super-admin" : as,
         expect_status: expectStatus ? Number(expectStatus) : answer?.status }) });
-      loadCases();
+      void loadCases();
     } catch (e) { setErr(e.message); }
   }
   async function runCases(ids) {
@@ -104,7 +94,7 @@ export default function ApiHarness() {
     setBusy("");
   }
   async function deleteCase(c) {
-    try { await apiFetch(`/api/v1/admin/api-harness/cases/${c.id}`, { method: "DELETE" }); loadCases(); } catch (e) { setErr(e.message); }
+    try { await apiFetch(`/api/v1/admin/api-harness/cases/${c.id}`, { method: "DELETE" }); void loadCases(); } catch (e) { setErr(e.message); }
   }
 
   return (

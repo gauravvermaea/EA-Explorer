@@ -35,7 +35,7 @@ def _engine(database):
     return database.get_sqla_engine()
 
 
-def main() -> int:
+def main() -> None:
     from superset.app import create_app
 
     app = create_app()
@@ -49,7 +49,7 @@ def main() -> int:
         database = db.session.query(Database).filter_by(database_name=DATABASE).one_or_none()
         if database is None:
             print("EA Explorer WARNING: the report database connection is missing; reports not set up")
-            return 0
+            return
         with _engine(database) as engine, engine.connect() as conn:
             views = {r[0]: {c for c in r[1]} for r in conn.execute(text(
                 """SELECT table_name, array_agg(column_name::text) FROM information_schema.columns
@@ -107,12 +107,11 @@ def main() -> int:
         db.session.commit()
         print(f"EA Explorer: report datasets ready ({len(existing)} datasets, {added} added, {removed} removed); "
               f"model access on {len(rule.tables)} datasets")
-    return 0
 
 
 if __name__ == "__main__":
     try:
-        sys.exit(main())
+        main()                     # ending normally is exit code 0
     except Exception as exc:  # noqa: BLE001
         print(f"EA Explorer WARNING: report set-up failed: {exc}")
         sys.exit(0)

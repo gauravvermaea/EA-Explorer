@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security and performance testing · EA Explorer</title>
+<meta name="description" content="The security suite, the attack test, the SonarQube scan and the benchmark: what each checks, how to run it and how to read it.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../guides/index.html" class="here">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Security and performance testing</h1>
+    <p class="who">For: System Admin</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">The security suite, the attack test, the SonarQube scan and the benchmark: what each checks, how to run it and how to read it.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-do-this">Why do this</a></li><li><a href="#the-four-tests-at-a-glance">The four tests at a glance</a></li><li><a href="#the-security-suite">The security suite</a></li><li><a href="#the-attack-test">The attack test</a></li><li><a href="#the-sonarqube-scan">The SonarQube scan</a></li><li><a href="#the-benchmark">The benchmark</a></li><li><a href="#when-something-is-found">When something is found</a></li><li><a href="#each-task-one-page">Each task, one page</a></li></ul></nav>
+    <h2 id="why-do-this">Why do this</h2>
+<p>EA Explorer holds an organisation's architecture, so it must not let anyone read or change what they should not, and it must stay quick when many people use it. Four tests check this: the security suite, which is part of every full test; the attack test, which tries to break EA Explorer with tools made for that; the SonarQube scan of the code; and the benchmark, which times EA Explorer under load. Each one runs in its own test data and leaves the rest alone. See <a href="../concepts/running-the-installation.html">Running the installation</a>.</p>
+<p><strong>In TOGAF terms:</strong> Outside the method: this keeps the tool that holds the Architecture Repository safe and quick, so the architecture in it can be trusted. See <a href="../concepts/ea-explorer-and-togaf.html">EA Explorer and the TOGAF Standard</a>.</p>
+<p><strong>The goal:</strong> You know EA Explorer refuses what it should, has no known weakness left unanswered, and is as quick as the last release.</p>
+<blockquote class="before"><p><strong>Before you start</strong> These tests need the Super Admin or IT Admin role and the machine EA Explorer runs on. Run the attack test only on a laptop or a test installation: it attacks the installation it runs on.</p></blockquote>
+<h2 id="the-four-tests-at-a-glance">The four tests at a glance</h2>
+<div class="table"><table><thead><tr><th>Test</th><th>Command</th><th>How long</th><th>When it runs</th><th>What fails it</th></tr></thead><tbody><tr><td>Security suite</td><td><code>eax test security</code> (also part of <code>eax test full</code>)</td><td>about 10 to 20 minutes</td><td>every full test, and by itself every Sunday at 03:20</td><td>a high or critical finding not accepted in writing</td></tr><tr><td>Attack test</td><td><code>eax test attack</code> (also part of <code>eax test full</code> from the command line)</td><td>an hour or more</td><td>every full test from the command line, on a laptop or a test installation (<code>--no-attack</code> leaves it out), or on its own</td><td>a high or critical finding not accepted in writing</td></tr><tr><td>SonarQube scan</td><td><code>eax test sonar</code> (also the last step of <code>eax test full</code> from the command line)</td><td>depends on the machine; longest the first time</td><td>every full test from the command line (<code>--no-sonar</code> leaves it out), or on its own</td><td>an issue not accepted in writing</td></tr><tr><td>Benchmark</td><td><code>eax test performance</code></td><td>about 10 to 25 minutes</td><td>when you ask for it, and nightly in CI</td><td>slower than the last release by more than 10%, errors, or a container over its memory limit</td></tr></tbody></table></div>
+<p>From Jenkins, the attack test is <strong>eax-admin › Upkeep › attack-test</strong>, and every test is the <strong>eax › test</strong> pipeline with the test chosen in <strong>what</strong>.</p>
+<p><strong>One command for everything but the benchmark.</strong> From the command line, <code>eax test full</code> runs, in turn: <code>eax dev check</code> (lint, the unit tests and their coverage, the documents), the self-test with the security suite and the attack test, the backup and restore test, and the SonarQube scan. A step runs whatever the one before found, and a list of every step ends it. <code>--no-dev-check</code>, <code>--no-attack</code> and <code>--no-sonar</code> leave one out. From the Self-test page, Full runs the self-test only.</p>
+<p>Every run's report is in <code>work/tests/&lt;run&gt;/report.html</code>, and on System Admin › Tools › Self-test › History. The Security tab there shows the findings over time; the Performance tab shows the benchmark's times against the last release.</p>
+<h2 id="the-security-suite">The security suite</h2>
+<p>It checks the front door's security headers and cookies, that the passwords are files and not settings, how the services sign in to the database, the Python packages for known weaknesses (pip-audit), the code (bandit), secrets committed by mistake, and the packages' licences. Then it makes the attacks EA Explorer was reviewed against: a source pointed at the cloud's metadata address or at EA Explorer's own containers, a setting that leaks a secret, reading another model's or project's content, a header claiming to be someone else, an upload that is not what it says, and tokens no one signed (unsigned, long expired, with the signature or the claims changed, or rubbish). Last, the operations helper runs an OWASP ZAP scan of the front door, a ZAP scan of the API signed in as the run's Architect, and Trivy on every EA Explorer image.</p>
+<h2 id="the-attack-test">The attack test</h2>
+<p>The attack test is the security suite and more: tools built to break web applications, each brought up to date before it runs. Without a network it uses the last version pulled and says so in the report; a tool that is not there at all is left out, with a warning.</p>
+<div class="table"><table><thead><tr><th>Tool</th><th>Black box or white box</th><th>What it does</th></tr></thead><tbody><tr><td>OWASP ZAP full scan</td><td>black box</td><td>finds every page through the front door, then tries every active rule on each (injection, cross-site scripting, path traversal and the rest), as someone not signed in</td></tr><tr><td>Schemathesis</td><td>black box</td><td>reads EA Explorer's own API description and sends thousands of malformed and edge-case requests, signed in as the run's Architect; a server error, or an answer that breaks the description, is a finding</td></tr><tr><td>Nuclei</td><td>black box</td><td>its community's templates (misconfigurations, exposed panels, known weaknesses) against the ports of every container</td></tr><tr><td>Semgrep</td><td>white box</td><td>its maintained rule sets on the source: Python, JavaScript and React, Dockerfiles, secrets and the OWASP Top Ten</td></tr><tr><td>Gitleaks</td><td>white box</td><td>every secret that ever reached git, in the whole history</td></tr></tbody></table></div>
+<p><strong>What it may touch.</strong> The fuzzing reads anything in the run's own test data, and writes only to the run's own test models, project and elements. It never deletes, and never calls the admin, operations, backup, restore or download paths. Nuclei leaves out every template that could knock a service over. Only a laptop is attacked without asking; another installation must be marked as a test one with <code>EAX_ATTACK_ALLOWED=yes</code> in its config file, or the test refuses to start.</p>
+<p><strong>What you get.</strong> One result for the tools' versions, one result for each tool (how many findings it had, by severity), and the security gate's verdict across all of them. Each tool's own report stays in the run's folder:</p>
+<div class="table"><table><thead><tr><th>File</th><th>From</th></tr></thead><tbody><tr><td><code>attack-tools.json</code></td><td>each tool's image and version, and whether it was the newest</td></tr><tr><td><code>zap-full.json</code></td><td>the ZAP full scan</td></tr><tr><td><code>schemathesis/</code> and <code>schemathesis.log</code></td><td>the fuzzing</td></tr><tr><td><code>nuclei.jsonl</code></td><td>Nuclei, one finding a line</td></tr><tr><td><code>semgrep.json</code></td><td>Semgrep</td></tr><tr><td><code>gitleaks.json</code></td><td>Gitleaks (the secrets themselves are hidden)</td></tr></tbody></table></div>
+<h2 id="the-sonarqube-scan">The SonarQube scan</h2>
+<p><code>eax test sonar</code> scans the whole repository with SonarQube: bugs, vulnerabilities, security hotspots and code smells, at every severity. The report is <code>work/tests/sonar-&lt;time&gt;/report.md</code>, every issue by file and line. <code>eax sonar open</code> starts SonarQube with its own pages at http://localhost:9000 on this computer, to look at the last results without scanning again; <code>eax sonar close</code> stops it.</p>
+<h2 id="the-benchmark">The benchmark</h2>
+<p><code>eax test performance</code> fills the run's test model to a fixed size (<code>--size small</code>, <code>medium</code> or <code>large</code>), times every read that matters one person at a time, then runs k6 with many people at once (<code>--users</code>, for <code>--minutes</code>). Every container's memory and CPU is sampled while it runs. A run that passes becomes the baseline for the next release.</p>
+<h2 id="when-something-is-found">When something is found</h2>
+<ol><li>Open the run's report and find the finding: the tool, what it found and where.</li><li>Fix it, with a test that fails before the fix and passes after it. A fix must not change what people see or do.</li><li>If it cannot be fixed that way, or is not a real problem, it can be accepted in writing, only with the owner's approval: an entry in <code>services/api/eax/testing/security_accepted.json</code> (or <code>sonar_accepted.json</code> for SonarQube) with the finding's id, where it is, the reason, who agreed and a date after which it fails again.</li><li>Run the test again.</li></ol>
+<p>SQL built from text is accepted for good (D800), for bandit, SonarQube and Semgrep alike.</p>
+<h2 id="each-task-one-page">Each task, one page</h2>
+<ol><li><a href="../how-do-i/run-the-self-test.html">Run the self-test</a></li><li><a href="../how-do-i/watch-a-self-test.html">Watch a self-test as it runs</a></li><li><a href="../how-do-i/clear-test-data.html">Clear the self-test's data</a></li></ol>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: guides/test-security-and-performance.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

@@ -18,6 +18,7 @@ import { LinkList } from "./Links";
 import { RelationshipAttributes as LineAttributes } from "./RelAttributes";
 import { downloadDrawio, downloadPicturePng, downloadPictureSvg, drawioXml, saveBlob } from "./exporting";
 import { openInDrawio } from "./drawioScratch";
+import { replaceTags } from "./textScan";
 
 const go = (path) => { window.location.hash = path; };
 // the views themselves are the views service's (D405): list, open, save, versions, rename, delete; what needs the model's
@@ -319,7 +320,7 @@ export function DrawnViewPage({ model, m, view, full = false }) {
   const committer = !!pend?.may_commit;                     // makes and changes entities from the drawing (D413)
 
   const say = (text, ok = true) => setToast({ text, ok, at: Date.now() });
-  const post = useCallback((msg) => { frame.current?.contentWindow?.postMessage(JSON.stringify(msg), "*"); }, []);
+  const post = useCallback((msg) => { frame.current?.contentWindow?.postMessage(JSON.stringify(msg), window.location.origin); /* draw.io is served here (/drawio) */ }, []);
 
   // the view and the plugin's setup
   useEffect(() => {
@@ -377,7 +378,7 @@ export function DrawnViewPage({ model, m, view, full = false }) {
   // ---------------------------------------------------------------- what the plugin and draw.io say
   useEffect(() => {
     async function handle(ev) {
-      if (!frame.current || ev.source !== frame.current.contentWindow) return;
+      if (!frame.current || ev.source !== frame.current.contentWindow || ev.origin !== window.location.origin) return;
       let msg; try { msg = typeof ev.data === "string" ? JSON.parse(ev.data) : ev.data; } catch { return; }
       if (!msg || !msg.event) return;
       const s = st.current;
@@ -387,7 +388,7 @@ export function DrawnViewPage({ model, m, view, full = false }) {
         case "load": s.loaded = true; trySetup(); break;
         case "eax-ready": s.ready = true; trySetup(); break;
         case "autosave": s.xml = msg.xml; break;
-        case "save": s.xml = msg.xml; saveXml(msg.xml); break;
+        case "save": s.xml = msg.xml; void saveXml(msg.xml); break;
         case "export": if (s.exportWaiting) { const f = s.exportWaiting; s.exportWaiting = null; f(msg.data); } break;
         case "eax-setup-done": {
           s.settleUntil = Date.now() + 2000; setDirty(false);
@@ -396,8 +397,8 @@ export function DrawnViewPage({ model, m, view, full = false }) {
           if (Object.keys(show).length) post({ eax: "palettes", show });
           post({ eax: "stencil-size", size: stencilSize() });
           post({ eax: "line-labels", attrs: layout.lineAttrs !== false });
-          checkPending();
-          if (!old) resync(true);         // the model as it is now (D413): names, new relationships, deletions, commits
+          void checkPending();
+          if (!old) void resync(true);         // the model as it is now (D413): names, new relationships, deletions, commits
           break;
         }
         case "eax-changed":           // restyling what the file holds, just after setup, is not a change of the person's
@@ -408,12 +409,12 @@ export function DrawnViewPage({ model, m, view, full = false }) {
         case "eax-refused": say(msg.reason, false); break;
         case "eax-placed": setDirty(true); break;
         case "eax-bound": setDirty(true); setPanel((p) => ({ ...p, bindTo: null })); setDetails((d) => { const n = { ...d }; delete n[msg.entity]; return n; }); break;
-        case "eax-relationship": relationshipDrawn(msg); break;
+        case "eax-relationship": void relationshipDrawn(msg); break;
         case "eax-undo-note": say(msg.text); break;
-        case "eax-undo-back": resync(false, true); break;      // an object back by redo or undo: its lines drawn again
+        case "eax-undo-back": void resync(false, true); break;      // an object back by redo or undo: its lines drawn again
         case "eax-add-relationship": setDlg({ kind: "add-rel", ...msg }); break;
-        case "eax-junction-new": makeJunction(msg); break;
-        case "eax-nest": nest(msg); break;
+        case "eax-junction-new": void makeJunction(msg); break;
+        case "eax-nest": void nest(msg); break;
         case "eax-choose":            // right-click Choose instance / Change instance: the properties panel's chooser
           setSelected((x) => ({ ...(x && x.cell === msg.cell ? x : { cell: msg.cell, type: msg.type, placeholder: true }), choosing: Date.now() }));
           break;
@@ -433,9 +434,9 @@ export function DrawnViewPage({ model, m, view, full = false }) {
           break;
         }
         case "eax-line-deleted": setDlg({ kind: "line-del", rel: msg.relationship }); break;
-        case "eax-rel-rename": renameLine(msg); break;
+        case "eax-rel-rename": void renameLine(msg); break;
         case "eax-dropped": setDlg({ kind: "drop", ...msg }); break;
-        case "eax-waiting-line": makeWaiting(msg); break;
+        case "eax-waiting-line": void makeWaiting(msg); break;
         case "eax-related-added": if (!msg.already) setDirty(true); break;
         case "eax-stencil-width": changeLayout({ stencilWidth: msg.width }); break;
         case "eax-canvas-click": setStencilOver(false); setBottomOver(false); break;
@@ -545,7 +546,7 @@ export function DrawnViewPage({ model, m, view, full = false }) {
       s.mark = a.marker || s.mark;
     }).catch(() => {});
     st.current.mineChanged = () => look(true);     // the person's own changes from the view are no news to them
-    look(true);
+    void look(true);
     const t = setInterval(() => look(), 30000);
     const onFocus = () => look();
     window.addEventListener("focus", onFocus);
@@ -570,7 +571,7 @@ export function DrawnViewPage({ model, m, view, full = false }) {
     const r = out?.result || out || {};
     if ("name" in data) post({ eax: "rel-name", id, name: data.name || "" });
     if (r.values) post({ eax: "rel-values", values: { [id]: r.values } });
-    else resync(false, true);
+    else void resync(false, true);
     setDirty(true);
     return r;
   }
@@ -618,8 +619,8 @@ export function DrawnViewPage({ model, m, view, full = false }) {
     const entity = { id: e.id, name: e.name, type: code };
     if (panel.bindTo) {
       if (panel.type && code !== panel.type) { say(`The placeholder is a ${setup.types[panel.type]?.name}; choose one of those.`, false); return; }
-      realise(panel.bindTo, entity);
-    } else place(entity);
+      void realise(panel.bindTo, entity);
+    } else void place(entity);
   }
 
   async function exportAs(format, asShown) {
@@ -715,7 +716,7 @@ export function DrawnViewPage({ model, m, view, full = false }) {
         <div className="drawn-tabs" role="tablist">
           {BOTTOM_TABS.filter(([k]) => tabShown(k)).map(([k, l]) => (
             <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "on" : undefined}
-              onClick={() => { setTab(k); if (k === "unc") checkPending(); }}>{tabLabel(k, l)}</button>))}
+              onClick={() => { setTab(k); if (k === "unc") void checkPending(); }}>{tabLabel(k, l)}</button>))}
           <span className="er-spacer" />
           <button className={`drawn-pin${layout.bottom ? "" : " off"}`} aria-label={layout.bottom ? "Unpin the panel" : "Pin the panel"}
             title={layout.bottom ? "Unpin: fold the panel away to give the drawing the space" : "Pin: keep the panel open below the drawing"}
@@ -750,7 +751,7 @@ export function DrawnViewPage({ model, m, view, full = false }) {
             {sel ? <Properties model={model} sel={sel} setup={setup} entities={entities} readOnly={readOnly} details={details}
               setDetails={setDetails} onView={boundIds(st.current.xml)} committer={committer} onChoose={(e) => {
                 const code = typeByName[e.entity_type];
-                realise(sel.cell, { id: e.id, name: e.name, type: code });
+                void realise(sel.cell, { id: e.id, name: e.name, type: code });
               }} onSelectEntity={(id) => post({ eax: "select", entity: id })} onTab={setTab}
               onType={(code) => { post({ eax: "placeholder-type", cell: sel.cell, type: code }); setSelected((x) => ({ ...x, type: code })); }}
               onEdit={(e) => setDlg({ kind: "edit", e })} onCreate={(code) => setDlg({ kind: "create", code, cell: sel.cell })}
@@ -766,7 +767,7 @@ export function DrawnViewPage({ model, m, view, full = false }) {
             xml={st.current.xml} onAdd={addRelated} onSelectEntity={(id) => post({ eax: "select", entity: id })} />}
           {tab === "allowed" && <AllowedTab sel={sel} setup={setup} readOnly={readOnly} onAdd={addAllowed} />}
           {tab === "unc" && !readOnly && <UncommittedPanel model={model} m={m} pend={pend} say={say} view={info.name} refresh={checkPending}
-            onCommitted={() => { refreshAll(); resync(); }} />}
+            onCommitted={() => { refreshAll(); void resync(); }} />}
         </div>
       </section>
     );
@@ -791,7 +792,7 @@ export function DrawnViewPage({ model, m, view, full = false }) {
           title="Placeholders are on the view only, never in the model, until realised">{placeholders} placeholder{placeholders === 1 ? "" : "s"} not realised</button>}
         <span className="er-spacer" />
         {!readOnly && <button className="primary" disabled={saving || phase !== "ready"} onClick={() => saveXml(st.current.xml)}>{saving ? "Saving..." : "Save"}</button>}
-        {!readOnly && <button className="drawn-commit" disabled={phase !== "ready"} onClick={() => { checkPending(); showTab("unc"); }}
+        {!readOnly && <button className="drawn-commit" disabled={phase !== "ready"} onClick={() => { void checkPending(); showTab("unc"); }}
           title={pend?.count ? "Your uncommitted changes in this model: edit, discard or commit them" : "Nothing of yours is waiting to be committed in this model"}>
           {uncommittedLabel(pend)}</button>}
         {old && mayDraw(model, m) && <button className="primary" onClick={async () => {
@@ -826,7 +827,7 @@ export function DrawnViewPage({ model, m, view, full = false }) {
         }}>Close</button>}
       </div>
       {changedBanner && !old && <div className="status warn drawn-banner">The model has changed since this view was opened or saved.
-        <button className="linkish" onClick={() => { setChangedBanner(false); resync(); }}>Resync</button> brings the view up to date.</div>}
+        <button className="linkish" onClick={() => { setChangedBanner(false); void resync(); }}>Resync</button> brings the view up to date.</div>}
       {note && <div className="status info drawn-banner drawn-note">{note} <span className="quiet">Save to keep it.</span>
         <button className="linkish" onClick={() => setNote(null)} aria-label="Dismiss">✕</button></div>}
       {conflict && <div className="status bad drawn-banner">{conflict.saved_by} saved version {conflict.version} at {fmtDateTime(conflict.saved_at)}, after you opened this view.
@@ -853,7 +854,7 @@ export function DrawnViewPage({ model, m, view, full = false }) {
               const r = frame.current.getBoundingClientRect();
               const ent = dragging; setDragging(null);
               const code = typeByName[ent.entity_type];
-              place({ id: ent.id, name: ent.name, type: code }, { x: e.clientX - r.left, y: e.clientY - r.top });
+              void place({ id: ent.id, name: ent.name, type: code }, { x: e.clientX - r.left, y: e.clientY - r.top });
             }} />}
             {phase !== "ready" && <div className="drawn-wait">Starting draw.io…</div>}
             {!layout.bottom && bottomOver && bottomPanel(true)}
@@ -872,19 +873,19 @@ export function DrawnViewPage({ model, m, view, full = false }) {
           </div>)}
       </div>
       {dlg?.kind === "edit" && <EntityFormDialog model={model} m={m} e={dlg.e} commit={{ view: info.name }} onClose={() => setDlg(null)}
-        onSaved={(out) => { say(`Saved and committed ${out.name || dlg.e.name}.`); setDetails({}); refreshAll(); resync(); checkPending(); st.current.mineChanged?.(); }} />}
+        onSaved={(out) => { say(`Saved and committed ${out.name || dlg.e.name}.`); setDetails({}); refreshAll(); void resync(); void checkPending(); st.current.mineChanged?.(); }} />}
       {dlg?.kind === "create" && <EntityFormDialog model={model} m={m} typeId={dlg.code} commit={{ view: info.name }} onClose={() => setDlg(null)}
-        onUseExisting={(x) => { realise(dlg.cell, { id: x.id, name: x.name, type: dlg.code }); say(`The shape shows ${x.name} (${x.display_id}), already in the model: nothing new was made.`); }}
+        onUseExisting={(x) => { void realise(dlg.cell, { id: x.id, name: x.name, type: dlg.code }); say(`The shape shows ${x.name} (${x.display_id}), already in the model: nothing new was made.`); }}
         onSaved={(out) => {
           const id = out.id || out.entity?.id;
-          if (id) realise(dlg.cell, { id, name: out.name, type: dlg.code });
-          say(`${out.name} is in the model now (committed), and the placeholder shows it.`); refreshAll(); checkPending(); st.current.mineChanged?.();
+          if (id) void realise(dlg.cell, { id, name: out.name, type: dlg.code });
+          say(`${out.name} is in the model now (committed), and the placeholder shows it.`); refreshAll(); void checkPending(); st.current.mineChanged?.();
         }} />}
       {dlg?.kind === "line-del" && <LineDeleteDialog model={model} rel={dlg.rel} view={info.name} may={!readOnly} say={say} post={post}
-        onDone={() => { setDlg(null); setSelected(null); checkPending(); }} />}
+        onDone={() => { setDlg(null); setSelected(null); void checkPending(); }} />}
       {dlg?.kind === "drop" && <DropDialog msg={dlg} setup={setup} entities={entities} committer={committer} onView={boundIds(st.current.xml)}
         onType={(code) => { post({ eax: "placeholder-type", cell: dlg.cell, type: code }); setDlg((d) => ({ ...d, type: code })); }}
-        onBind={(e, code) => { setDlg(null); realise(dlg.cell, { id: e.id, name: e.name, type: code }); }}
+        onBind={(e, code) => { setDlg(null); void realise(dlg.cell, { id: e.id, name: e.name, type: code }); }}
         onCreate={(code) => setDlg({ kind: "create", code, cell: dlg.cell })}
         onLeave={() => setDlg(null)} />}
       {dlg?.kind === "rel" && <RelationshipDialog model={model} setup={setup} msg={dlg} entities={entities} view={info.name}
@@ -934,7 +935,7 @@ export function objectsOn(xml) {
       const id = n.getAttribute("ea_id");
       if (!id || out.has(id)) return;
       const label = n.getAttribute("label") ?? n.getAttribute("value") ?? "";
-      const name = String(label).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").split(" : ")[0].trim() || id;
+      const name = replaceTags(String(label), " ").replace(/\s+/g, " ").split(" : ")[0].trim() || id;
       out.set(id, { id, name, type: n.getAttribute("ea_type") || "" });
     });
   } catch { /* not a drawing: nothing on it */ }
@@ -1625,7 +1626,7 @@ export function EntityIcon({ model, m, e }) {
       <span className="quiet">Icon on drawn views:</span>
       {url ? <img src={url} alt="" className="entity-icon" /> : <span className="quiet"> its type's</span>}
       {may && <label className="linkish"> {url ? "Replace" : "Upload one"}<input type="file" accept=".svg,.png,image/svg+xml,image/png" hidden
-        onChange={(ev) => { upload(ev.target.files[0]); ev.target.value = ""; }} /></label>}
+        onChange={(ev) => { void upload(ev.target.files[0]); ev.target.value = ""; }} /></label>}
       {may && url && <button className="linkish" onClick={remove}>Remove</button>}
       <span className="quiet"> (SVG or PNG, at most 64 KB)</span>
       {msg.text && <span className={`status ${msg.ok ? "ok" : "bad"}`}> {msg.text}</span>}

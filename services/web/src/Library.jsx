@@ -10,6 +10,7 @@ import { apiFetch, can, needsRole } from "./auth";
 import { CreateFromButton, DownloadButtons, libraryAction, UploadButton } from "./ModelOps";
 import { IndustryPackTiles } from "./IndustryPack";
 import { KINDS, KindMark, MarksLegend, StatusMarks } from "./ModelMarks";
+import { byText } from "./fmt";
 
 function Swatch({ colour }) {
   return <span className="swatch" style={{ background: `#${colour || "eee"}` }} />;
@@ -47,7 +48,7 @@ function groupsOf(models) {
   const groups = [{ title: "Root metamodels", hint: "The framework a model is built on", items: roots }];
   const byRoot = {};
   refs.forEach((r) => { (byRoot[r.built_on || "Other"] ||= []).push(r); });
-  Object.keys(byRoot).sort().forEach((root) => {
+  Object.keys(byRoot).sort(byText).forEach((root) => {
     groups.push({ title: `Reference models on ${root}`, hint: "Industry content, ready to start from", items: byRoot[root] });
   });
   return groups.filter((g) => g.items.length);

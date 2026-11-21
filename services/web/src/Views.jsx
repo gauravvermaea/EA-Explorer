@@ -19,6 +19,7 @@ import { Modal } from "./ModelOps";
 import { refreshAll, useApi } from "./ModelViews";
 import { DrawnViewsSection, PictureActions, mayDraw } from "./DrawnView";
 import { elementTypes } from "./elements.js";
+import { byText } from "./fmt";
 
 const EntityGraph = lazy(() => import("./EntityGraph"));
 const go = (path) => { window.location.hash = path; };
@@ -47,7 +48,7 @@ export function heatScale(items, attribute, valueOf) {
   }
   const known = ORDERED[attribute];
   const distinct = known ? known.filter((k) => values.includes(k)).concat([...new Set(values)].filter((v) => !known.includes(v)))
-    : [...new Set(values)].sort();
+    : [...new Set(values)].sort(byText);
   const map = Object.fromEntries(distinct.map((v, i) => [v, HEAT[distinct.length === 1 ? 3
     : Math.round((i / Math.max(1, distinct.length - 1)) * (HEAT.length - 1))]]));
   return { colour: (v) => map[v] || null, legend: distinct.slice(0, 12).map((v) => [v, map[v]]) };

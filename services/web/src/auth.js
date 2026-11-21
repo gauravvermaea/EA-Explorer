@@ -14,7 +14,8 @@ export const keycloak = new Keycloak({
 const BG_KEY = "eax-break-glass";
 let breakGlass = null;     // { token, until } when signed in with the break-glass account
 let me = null;             // /api/v1/me: roles, permissions, models
-export let keycloakReachable = true;
+let keycloakReachable = true;
+export const isKeycloakReachable = () => keycloakReachable;   // read when shown (D804: no exported let)
 // The self-test (phase 36.1, D529): screens opened with ?eaxselftest=<ticket>&eaxrole=<role> (the self-test's journeys,
 // headless or watched in an admin's browser) sign in with the running self-test's own token for that role instead of
 // Keycloak, kept in this page only, so the admin's own sign-in is never used.

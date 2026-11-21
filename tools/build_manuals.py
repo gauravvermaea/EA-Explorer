@@ -36,6 +36,20 @@ HOWDOI = ROOT / "docs" / "site" / "how-do-i"
 HELP = ROOT / "eaxcli" / "help.txt"
 
 
+
+def without_first_heading(md: str) -> str:
+    """The Markdown without the # or ## heading it opens with (through the end of that heading's line). String work giving
+    the same answer as the regular expression it replaces, without its slow cases (SonarQube python:S8786, D804)."""
+    hashes = 2 if md.startswith("##") else 1 if md.startswith("#") else 0
+    rest = md[hashes:]
+    w = len(rest) - len(rest.lstrip())
+    if not hashes or not w:
+        return md
+    nl = rest.find("\n", w) if w < len(rest) else -1
+    if nl == -1:
+        nl = rest.rfind("\n", 1, w)
+    return rest[nl + 1:] if nl != -1 else md
+
 def _website():
     """tools/build_website.py: its Markdown, front matter and version (one way of writing the pages, D776)."""
     spec = importlib.util.spec_from_file_location("build_website", ROOT / "tools" / "build_website.py")
@@ -87,7 +101,7 @@ def for_print(md: str, names: dict[str, str]) -> str:
     md = re.sub(r"\b([Ss]ince|[Aa]fter|[Ff]rom) (?:R\d+(?:\.\d+)*(?:-[A-Z]+\d*)?|phase \d[\d.]*),?\s+(\w)",
                 lambda m: m.group(2).upper() if m.group(1)[0].isupper() else m.group(2), md)
     # the site's own links to other pages ("Related", "Each task, one page" already lists the tasks that follow)
-    md = re.sub(r"(?ms)^##\s+Related\s*\n.*?(?=^#{1,2}\s|\Z)", "", md)
+    md = re.sub(r"(?ms)^##\s+Related\s*\n.*?(?=(?:^#{1,2}\s)|\Z)", "", md)
     return md
 
 
@@ -256,7 +270,7 @@ class Guide:
                     return []
                 if len(heads.split("|")) == 1:   # one section: it is the section's own title
                     title = heads.strip()
-                    md = re.sub(r"^#{1,2}\s+.*\n", "", md, count=1)
+                    md = without_first_heading(md)
             return [{"title": INTERNAL.sub("", title), "summary": meta.get("summary", ""),
                      "md": shift(for_print(md, self.names), 1), "kind": kind}]
         if kind == "howdoi":

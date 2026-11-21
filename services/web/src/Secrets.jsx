@@ -66,7 +66,7 @@ function RotationRun({ run, onDone }) {
         timer = setTimeout(tick, 3000);
       }
     };
-    tick();
+    void tick();
     return () => { live = false; clearTimeout(timer); };
   }, [run.id]);  // eslint-disable-line react-hooks/exhaustive-deps
   const lines = text.split("\n").filter((l) => l.trim() && !l.startsWith("$ ") && !l.startsWith("[finished"));
@@ -95,7 +95,7 @@ function RotateAllSchedule() {
   const [busy, setBusy] = useState(false);
   const load = () => apiFetch("/api/v1/admin/commands/schedules").then((r) => setList((r.schedules || [])
     .filter((s) => (s.argv || []).join(" ") === ALL_ARGV))).catch((e) => setSaid(e.message));
-  useEffect(() => { load(); }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { void load(); }, []);  // eslint-disable-line react-hooks/exhaustive-deps
   const run = async (argv) => {
     setBusy(true); setSaid("");
     try {
@@ -111,7 +111,7 @@ function RotateAllSchedule() {
       }
     } catch (e) { setSaid(e.message); }
     setBusy(false);
-    load();
+    void load();
   };
   const regular = (list || []).find((s) => s.id === "r6rotateall" && s.enabled);
   const once = (list || []).filter((s) => s.once_at && s.next);

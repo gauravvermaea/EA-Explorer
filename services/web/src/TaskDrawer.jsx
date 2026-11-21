@@ -133,12 +133,12 @@ function TaskHistory({ onOpen }) {
       setRows(more ? [...(rows || []), ...r.tasks] : r.tasks); setTotal(r.total);
     } catch (e) { setMsg(e.message); setRows([]); }
   }
-  useEffect(() => { load(); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { void load(); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
   async function del(body) {
     setMsg("");
     try {
       const r = await apiFetch("/api/v1/tasks", { method: "DELETE", body: JSON.stringify(body) });
-      setMsg(r.message); setPick(new Set()); setSure(false); load();
+      setMsg(r.message); setPick(new Set()); setSure(false); void load();
     } catch (e) { setMsg(e.message); }
   }
   if (!rows) return <p className="quiet">Loading…</p>;

@@ -188,3 +188,27 @@ def test_the_alt_letter_is_shown_on_the_bar():
     assert sm.bar_label("Status", "t") == ("Status", 1)
     assert sm.bar_label("Site", "a") == ("Site (a)", 6)
     assert sm.bar_label("Help", "") == ("Help", -1)
+
+
+def test_the_refresh_with_a_menu_open_writes_to_the_main_screen(monkeypatch):
+    """20 Nov 2026 (dev check): the 5-second refresh landed while a menu was open, looked for the containers table on the
+    menu and stopped the screen. Here a menu is opened first, then a refresh is delivered: the table is still filled."""
+    pytest.importorskip("textual")
+    from eaxcli import core
+    monkeypatch.setattr(core, "compose_out", lambda args: [])
+    seen = {}
+
+    async def drive():
+        app = screen.build_app("py", False, "./eaxpy.sh")
+        async with app.run_test(size=(120, 40)) as pilot:
+            await pilot.pause(0.3)
+            await pilot.press("f10")                      # a menu open
+            await pilot.pause(0.2)
+            seen["menu"] = type(app.screen).__name__
+            app.show([{"service": "api", "health": "healthy", "state": "running", "status": "Up", "colour": "green"}],
+                     [], "")                              # the refresh arriving now
+            await pilot.pause(0.2)
+            seen["rows"] = app.screen_stack[0].query_one("#containers").row_count
+    import asyncio
+    asyncio.run(drive())
+    assert seen["menu"] != "Screen" and seen["rows"] == 1

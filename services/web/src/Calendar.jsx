@@ -144,7 +144,7 @@ function SubscribeDialog({ cal, onClose }) {
   const [msg, setMsg] = useState("");
   const get = (renew) => apiFetch(`/api/v1/calendars/${cal}/feed`, { method: "POST", body: JSON.stringify({ renew }) })
     .then((r) => { setLink(`${window.location.origin}${r.path}`); setMsg(r.message); }).catch((e) => setMsg(e.message));
-  useEffect(() => { get(false); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { void get(false); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <Modal title="Subscribe to this calendar" onClose={onClose} actions={<><button onClick={() => get(true)}>Renew the link</button><button className="primary" onClick={onClose}>Done</button></>}>
       <p className="small">Your own private link: add it in Outlook (Add calendar › From internet), Google Calendar (Other calendars › From URL) or Apple

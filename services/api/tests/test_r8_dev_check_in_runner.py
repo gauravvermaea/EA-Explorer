@@ -20,7 +20,14 @@ def test_with_the_tools_here_lint_and_tests_run_here_as_before():
     steps = d.commands(quick=True, local=True, py="python")
     assert [s[0] for s in steps] == ["lint", "tests"]
     assert steps[0][1][:4] == ["python", "-m", "ruff", "check"] and steps[0][2] == d.API
-    assert steps[1][1][:6] == ["python", "-m", "pytest", "-q", "-p", "no:randomly"] and steps[1][1][-1] == "-x"
+    assert steps[1][1][:6] == ["python", "-m", "pytest", "-q", "-p", "no:randomly"] and "-x" in steps[1][1]
+    # measured (D807) only when pytest-cov is here, its flags after the rest (dev check, 21 Nov 2026: -x was no longer last)
+    import importlib.util
+    cov = d.cover(str(ROOT / d.UNIT_COVERAGE))
+    if importlib.util.find_spec("pytest_cov"):
+        assert steps[1][1][-len(cov):] == cov
+    else:
+        assert "--cov" not in steps[1][1] and steps[1][1][-1] == "-x"
 
 
 def test_without_them_lint_and_tests_run_in_the_test_runner_on_this_folder():

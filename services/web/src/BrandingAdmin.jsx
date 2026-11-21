@@ -14,7 +14,7 @@ export default function BrandingAdmin() {
   const [msg, setMsg] = useState({ ok: true, text: "" });
   const [add, setAdd] = useState({ name: "", css: "", replace: "" });
   useEffect(() => { if (data && !form) setForm({ theme: data.theme, personal: !!data.personal, product_name: data.product_name || "" }); }, [data, form]);
-  useEffect(() => () => { endPreview(); }, []);     // leaving the page unsaved: back to the theme in use
+  useEffect(() => () => { void endPreview(); }, []);     // leaving the page unsaved: back to the theme in use
   if (!b.loaded) return <p className="quiet">Loading…</p>;
   if (!data) return <p className="status bad">The branding could not be read.</p>;
   const say = (ok, text) => setMsg({ ok, text });
@@ -26,7 +26,7 @@ export default function BrandingAdmin() {
     const f = e.target.files?.[0]; e.target.value = "";
     if (!f) return;
     const fd = new FormData(); fd.append("file", f);
-    run(() => apiUpload(`/api/v1/admin/branding/${key}`, fd), key === "logo" ? "The logo is on every screen now." : "The browser tab's icon is set.");
+    void run(() => apiUpload(`/api/v1/admin/branding/${key}`, fd), key === "logo" ? "The logo is on every screen now." : "The browser tab's icon is set.");
   };
   const readFile = (e) => {
     const f = e.target.files?.[0]; e.target.value = "";
@@ -48,7 +48,7 @@ export default function BrandingAdmin() {
       {form && <table className="facts"><tbody>
         <tr><th>The organisation's theme</th><td>
           <select aria-label="The organisation's theme" value={form.theme}
-            onChange={(e) => { setForm({ ...form, theme: e.target.value }); previewTheme(e.target.value); }}>
+            onChange={(e) => { setForm({ ...form, theme: e.target.value }); void previewTheme(e.target.value); }}>
             {data.themes.map((t) => <option key={t.slug} value={t.slug}>{t.name}{t.built_in ? "" : " (added)"}</option>)}
           </select>
           {form.theme !== data.theme && <span className="small status"> Shown on this screen only: Save makes it the organisation's theme.</span>}
@@ -64,7 +64,7 @@ export default function BrandingAdmin() {
       <div className="row-gap" style={{ marginTop: 10 }}>
         <button className="primary" disabled={!changed} onClick={() => run(async () => { await apiFetch("/api/v1/admin/branding", { method: "PUT", body: JSON.stringify(form) }); await endPreview(); },
           "Saved: every screen uses it from the next page they open.")}>Save</button>
-        {changed && <button onClick={() => { setForm({ theme: data.theme, personal: !!data.personal, product_name: data.product_name || "" }); endPreview(); }}>Undo my edits</button>}
+        {changed && <button onClick={() => { setForm({ theme: data.theme, personal: !!data.personal, product_name: data.product_name || "" }); void endPreview(); }}>Undo my edits</button>}
       </div>
 
       <h2>Logo</h2>
@@ -96,13 +96,13 @@ export default function BrandingAdmin() {
           {data.themes.map((t) => (
             <tr key={t.slug}>
               <td>{t.name}{t.slug === data.theme && <span className="chip"> in use</span>}
-                {t.slug !== data.theme && <button className="linkish small" onClick={() => { setForm({ ...form, theme: t.slug }); previewTheme(t.slug); }}> try it</button>}</td>
+                {t.slug !== data.theme && <button className="linkish small" onClick={() => { setForm({ ...form, theme: t.slug }); void previewTheme(t.slug); }}> try it</button>}</td>
               <td>{t.built_in ? "ships with EA Explorer" : "added"}</td>
               <td className="small">{t.built_in ? "" : `${t.set_by || ""} ${t.set_at ? fmtDateTime(t.set_at) : ""}`}</td>
               <td className="row-gap">
                 <button className="small" onClick={() => apiDownload(`/api/v1/branding/themes/${t.slug}.css?download=1`, `${t.slug}.css`).catch((e) => say(false, e.message))}>Download CSS</button>
                 {!t.built_in && <button className="small" onClick={() => setAdd({ name: t.name, css: "", replace: t.slug })}>Replace…</button>}
-                {!t.built_in && <button className="small" onClick={() => { if (window.confirm(`Remove the theme ${t.name}?`)) run(() => apiFetch(`/api/v1/admin/branding/themes/${t.slug}`, { method: "DELETE" }), "Removed."); }}>Remove</button>}
+                {!t.built_in && <button className="small" onClick={() => { if (window.confirm(`Remove the theme ${t.name}?`)) void run(() => apiFetch(`/api/v1/admin/branding/themes/${t.slug}`, { method: "DELETE" }), "Removed."); }}>Remove</button>}
               </td>
             </tr>))}
         </tbody>

@@ -29,7 +29,7 @@ export default function BreakGlass() {
               <input type="password" autoFocus autoComplete="off" value={password} onChange={(e) => setPassword(e.target.value)} />
             </label>
             {error && <p className="status bad">{error}</p>}
-            <button className="danger" disabled={busy || !password}>Sign in with break-glass</button>
+            <button type="submit" className="danger" disabled={busy || !password}>Sign in with break-glass</button>
           </>
         )}
         <p className="small-note"><a href="#/">Back to normal sign-in</a></p>

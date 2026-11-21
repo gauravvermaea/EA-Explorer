@@ -34,7 +34,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
 import secrets
 import time
 import urllib.error
@@ -45,6 +44,19 @@ from datetime import UTC, datetime
 
 from .negative import send as _send_part
 
+
+def failed_count(line: str) -> str | None:
+    """The number written before the first "<n> failed" in a line, as written; None when there is none. String work giving
+    the same answer as the regular expression it replaces (SonarQube python:S8786, D804)."""
+    at = line.find(" failed")
+    while at != -1:
+        start = at
+        while start > 0 and line[start - 1].isdecimal():
+            start -= 1
+        if start < at:
+            return line[start:at]
+        at = line.find(" failed", at + 1)
+    return None
 
 def _send(base: str, method: str, path: str, token: str, raw: bytes | None) -> tuple[int, str]:
     return _send_part(base, method, path, token, raw, limit=None)   # parsed as JSON: the whole answer (R4.16)
@@ -538,8 +550,7 @@ def import_log(base: str, token: str, rec, send) -> None:
             f"HTTP {status}: no import line in Reports' last 5,000 log lines (started long ago, or still loading)")
         return
     last = said[-1].split("report dashboards imported:", 1)[1].strip()
-    m = re.search(r"(\d+) failed", last)
-    none_failed = bool(m) and m.group(1) == "0"
+    none_failed = failed_count(last) == "0"
     rec("the import at start-up says what it did", "passed" if none_failed else "failed", last[:200])
 
 

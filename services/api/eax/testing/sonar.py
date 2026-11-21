@@ -62,6 +62,21 @@ def call(method: str, path: str, params: dict | None = None, auth: tuple[str, st
     return json.loads(body) if body.strip() else {}
 
 
+def refused(exc: urllib.error.HTTPError) -> str:
+    """What SonarQube said when it refused a call: the call (without its token) and SonarQube's own messages, not a bare
+    "HTTP Error 400" (D803)."""
+    try:
+        body = exc.read().decode("utf-8", "replace")
+    except (OSError, AttributeError):
+        body = ""
+    try:
+        msgs = "; ".join(e.get("msg", "") for e in json.loads(body).get("errors", [])) or body.strip()
+    except ValueError:
+        msgs = body.strip()
+    where = urllib.parse.urlsplit(exc.geturl() or "").path or "?"
+    return f"SonarQube refused {where} with {exc.code}: {msgs[:500] or exc.reason or 'no reason given'}"
+
+
 def wait_up(minutes: float = 10, sleep=time.sleep, ask=call) -> str:
     """Waits until SonarQube says UP (its first start takes a few minutes); its version."""
     end = time.monotonic() + minutes * 60
@@ -225,8 +240,8 @@ def report(folder: str, ask=call, keep: Path = KEEP, results: Path = RESULTS) ->
     try:
         version = (keep / "version").read_text(encoding="utf-8").strip() if (keep / "version").is_file() else ""
         wait_analysis(token, ask=ask)
-        issues = pages("/api/issues/search", "issues", {"componentKeys": PROJECT, "resolved": "false"}, token, ask=ask)
-        hotspots = pages("/api/hotspots/search", "hotspots", {"projectKey": PROJECT, "status": "TO_REVIEW"}, token, ask=ask)
+        issues = pages("/api/issues/search", "issues", {"components": PROJECT, "resolved": "false"}, token, ask=ask)
+        hotspots = pages("/api/hotspots/search", "hotspots", {"project": PROJECT, "status": "TO_REVIEW"}, token, ask=ask)
     finally:
         try:
             pw = (keep / "admin").read_text(encoding="utf-8").strip()
@@ -254,6 +269,14 @@ def main(argv: list[str]) -> int:
     """prepare or report <folder>: 0 when done (and, for report, nothing to fix), 1 issues to fix, 2 an error, 3 the
     admin password lost (eax test sonar then starts SonarQube afresh)."""
     try:
+        if argv[:1] == ["ready"]:            # eax sonar open (D805): SonarQube up and its admin password ours, no token
+            try:
+                print(f"SonarQube {wait_up()} is ready.")
+                admin_password()
+            except PasswordLost as exc:
+                print(f"ERROR: {exc}")
+                return 3
+            return 0
         if argv[:1] == ["prepare"]:
             try:
                 print(f"SonarQube {prepare()} is ready.")
@@ -263,6 +286,9 @@ def main(argv: list[str]) -> int:
             return 0
         if argv[:1] == ["report"] and len(argv) > 1:
             return 0 if report(argv[1]) else 1
+    except urllib.error.HTTPError as exc:
+        print(f"ERROR: {refused(exc)}")
+        return 2
     except (SonarError, urllib.error.URLError, OSError, KeyError) as exc:
         print(f"ERROR: {exc}")
         return 2

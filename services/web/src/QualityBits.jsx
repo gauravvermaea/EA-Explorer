@@ -84,12 +84,12 @@ export function FieldQuality({ model, entity, code, q, typeCode, mayEdit, compac
     // eslint-disable-next-line no-alert
     const reason = window.prompt(`Why does ${code} not apply to this entity? ${admin ? "" : "A Model Admin approves it."}`, "");
     if (!reason) return;
-    act(() => ask(`/api/v1/models/${model}/quality/not-applicable`, { entity, item, reason }));
+    void act(() => ask(`/api/v1/models/${model}/quality/not-applicable`, { entity, item, reason }));
   }
   function leaveOut() {
     // eslint-disable-next-line no-alert
     if (!window.confirm(`Leave ${code} out of data quality for every entity of this model (every type that has it)? It applies at once; the Super Admins are told.`)) return;
-    act(() => ask(`/api/v1/models/${model}/quality/leave-out`, { item, entity_type: "*" }));
+    void act(() => ask(`/api/v1/models/${model}/quality/leave-out`, { item, entity_type: "*" }));
   }
   const decide = (r, d) => act(() => ask(`/api/v1/models/${model}/quality/not-applicable/${r.id}/${d}`, {}));
   const missing = list.some((r) => r.kind === "missing") && !list.some((r) => r.kind === "not-applicable-rejected");
@@ -105,7 +105,7 @@ export function FieldQuality({ model, entity, code, q, typeCode, mayEdit, compac
       ))}
       {missing && !compact && (mayEdit || admin) && <span className="q-actions small">
         <button className="linkish" onClick={notApplicable} title="It does not apply to this entity: leave it out of its completeness (a Model Admin approves)">Not applicable here</button>
-        {admin && <> · <button className="linkish" onClick={leaveOut} title={`Leave it out of data quality for the whole model${typeCode ? "" : ""}`}>Leave out for this model</button></>}
+        {admin && <> · <button className="linkish" onClick={leaveOut} title="Leave it out of data quality for the whole model">Leave out for this model</button></>}
       </span>}
       {msg && <span className="small status warn"> {msg}</span>}
     </span>

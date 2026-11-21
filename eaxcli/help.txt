@@ -95,6 +95,15 @@ to do. The error guide lists every code. "problems" lists the problems only. Cha
 $ {eax} status
 $ {eax} status problems
 
+### sonar open|close
+> SonarQube's own pages with the last scan's results, on this computer only; nothing is scanned.
+open starts SonarQube with its pages at http://localhost:9000 (EAX_SONAR_PORT to change the port), reachable from
+this computer only, and waits until it is ready; sign in as admin, the password is in work/tests/sonar/admin. It
+shows the last scan; eax test sonar makes a new one. close removes SonarQube again (its data kept); eax down
+removes it too. Changes nothing of EA Explorer.
+$ {eax} sonar open
+$ {eax} sonar close
+
 ### errors [<code-or-words>...]
 > What an error code means, its usual cause and what to do; no words: every code.
 Every problem EA Explorer finds has a code EAX-AREA-NNN: in eax status, System Admin health and alerts, the
@@ -396,7 +405,7 @@ $ {eax} import --all
 > Checks that Docker is running and the config and compose files are valid. Starts nothing.
 $ {eax} check
 
-### test [smoke|full|jobs|mcp|reports|security|performance|sonar [--keep|--reset]|backup|backup-restore|restore|failed [run] [--warnings]|watch [run] [--log|--browser]|stop [run]|api <method> <path>|delete <run|all> [--older-than DAYS]|clean] [--yes]
+### test [smoke|full|jobs|mcp|reports|security|performance|attack|sonar [--keep|--open|--reset]|backup|backup-restore|restore|failed [run] [--warnings]|watch [run] [--log|--browser]|stop [run]|api <method> <path>|delete <run|all> [--older-than DAYS]|clean] [--yes]
 > Test this installation: smoke or full; only what failed last time; or delete the test data.
 The same two tests as System Admin > Tools > Self-test (owner, 12 Nov 2026, D592: "Smoke or Full. Not too many
 options"); a run started in either place shows in both. Each run first removes any test data earlier runs left
@@ -406,20 +415,34 @@ It prepares the test container first (seconds when it is current; the first time
 and IT Admins.
   smoke   (the default) a few minutes: every role signs in, every main area answers, every page opens and the key
           journeys run once.
-  full    everything: every API endpoint as every role (allowed and refused), the database checks, security, then
-          every page and every journey in a headless browser, the job queue, the reports, the backup checks, and last the
-          backup and restore test below (it asks nothing; --ci leaves it out).
+  full    everything but the benchmark (D823): first eax dev check (lint, the unit tests and their coverage, the
+          documents; --no-dev-check leaves it out), then every API endpoint as every role (allowed and refused), the
+          database checks, security, then
+          every page and every journey in a headless browser, the job queue, the reports, the backup checks, the attack
+          test below where it may run (a laptop, or EAX_ATTACK_ALLOWED=yes; --no-attack or --ci leaves it out, an hour
+          or two more), the backup and restore test below (it asks nothing; --ci leaves it out), and last the SonarQube
+          scan (eax test sonar; --no-sonar leaves it out). Each step runs whatever the one before found; a list of every
+          step ends it. With --ci only the self-test runs.
   security  only the security suite (part of full, R5.17): the front door's headers, the dependencies, the code and
           secrets scans, the attacks of Release 3, ZAP signed in and not, Trivy; a high or critical finding not
           accepted (eax/testing/security_accepted.json) fails it. It also runs by itself every Sunday at 03:20.
   sonar   the whole repository scanned by SonarQube (Release 8): the newest SonarQube and its default rules, in the
           test profile, started for the scan and removed after it (--keep leaves it running, --reset starts it
-          afresh). The report: work/tests/sonar-<time>/report.md, every issue by file and line. Fails when an issue
+          afresh, --open leaves it running with its own pages at http://localhost:9000 on this computer only until
+          eax down; sign in as admin, the password in work/tests/sonar/admin). The report:
+          work/tests/sonar-<time>/report.md, every issue by file and line. Fails when an issue
           is not accepted in writing (services/api/eax/testing/sonar_accepted.json). Run every test before and
           after fixing what it finds.
   performance  the benchmark (only when asked for, never in full, R5.29): the test model filled to --size small|medium|large, every read that
           matters timed, then k6 with --users N people for --minutes M; slower than the last release's baseline by
           more than 10%, errors, or a container over its memory limit fail it.
+  attack  the attack test (R8.2; part of full from the command line, D823): the security suite, then tools that try to break
+          EA Explorer, each pulled at its newest first (offline: the last one pulled, and the report says so): an OWASP
+          ZAP full scan of the front door, the API fuzzed by Schemathesis as the run's Architect inside its own test
+          data (never DELETE, admin, backup or download calls), Nuclei's templates against every container's ports,
+          Semgrep and Gitleaks on the source. An hour or more. A laptop only, or an installation marked as a test one
+          (EAX_ATTACK_ALLOWED=yes); a high or critical finding not accepted in writing fails it. The scanners' versions
+          are in the report (attack-tools.json).
   jobs    only the job queue (part of full, R5.46): the job runner takes jobs and the alert checks run (each finished
           in the last 10 minutes); no job stuck being worked on or waiting too long, none left by a job runner that
           stopped; every scheduled job runs one copy at a time; every job has a name in words; and Cancel, Move up and
@@ -474,6 +497,7 @@ The report: work/tests/<run>/report.html (and the Self-test page's History). The
 $ {eax} test
 $ {eax} test full
 $ {eax} test performance --size medium --users 50
+$ {eax} test attack
 $ {eax} test backup
 $ {eax} test backup-restore
 $ {eax} test api GET /api/v1/models --as architect

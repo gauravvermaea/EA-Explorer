@@ -11,6 +11,7 @@ COPY console.py /app/console.py
 COPY updates.py /app/updates.py
 COPY scaling.py /app/scaling.py
 COPY testruns.py /app/testruns.py
+COPY attackscans.py /app/attackscans.py
 COPY brtest.py /app/brtest.py
 COPY commandcentre.py /app/commandcentre.py
 COPY deploys.py /app/deploys.py

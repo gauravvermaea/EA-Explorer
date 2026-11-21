@@ -1,4 +1,341 @@
 {
   "about": "SonarQube issues and security hotspots accepted in writing (Release 8, D740, D792): each one only with the owner's approval, when fixing it would change what anyone sees or does. rule: SonarQube's rule key (python:S1192); file: the file, from the repository's top folder (wildcards allowed); line: only that line (optional); reason: why it stays; by: the owner's approval (date and words). eax test sonar fails on any issue not listed here.",
-  "accepted": []
+  "accepted": [
+    {
+      "rule": "python:S2077",
+      "file": "*",
+      "reason": "Formatting SQL queries (the same as bandit B608): accepted everywhere by the owner as the way EA Explorer builds its queries. Not a finding to fix.",
+      "by": "owner, 19 Nov 2026, 18:24: \"SQL built from text is ok with what we want to do, so ignore them all\" (D800)"
+    },
+    {
+      "rule": "Web:PageWithoutTitleCheck",
+      "file": "services/web/public/silent-check-sso.html",
+      "reason": "A page without a title: adding one changes the browser tab.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "Web:S5254",
+      "file": "deploy/drawio/tests/test-host.html",
+      "reason": "A page without a language tag: adding one changes what screen readers and browsers do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "Web:S5254",
+      "file": "services/web/public/silent-check-sso.html",
+      "reason": "A page without a language tag: adding one changes what screen readers and browsers do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "Web:S6850",
+      "file": "eaxcli/deploy.html",
+      "reason": "A heading without text: changing it changes the page.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S6845",
+      "file": "services/web/src/Deploy.jsx",
+      "reason": "A tabIndex on an element that is not a control: changing it changes the keyboard order.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S6845",
+      "file": "services/web/src/Grid.jsx",
+      "reason": "A tabIndex on an element that is not a control: changing it changes the keyboard order.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S6848",
+      "file": "services/web/src/DrawnView.jsx",
+      "reason": "A clickable element that is not a button (a row, a card, a chip): changing it changes how it looks and is used.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S6848",
+      "file": "services/web/src/EntityGraph.jsx",
+      "reason": "A clickable element that is not a button (a row, a card, a chip): changing it changes how it looks and is used.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S6848",
+      "file": "services/web/src/FileExplorer.jsx",
+      "reason": "A clickable element that is not a button (a row, a card, a chip): changing it changes how it looks and is used.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S6848",
+      "file": "services/web/src/Grid.jsx",
+      "reason": "A clickable element that is not a button (a row, a card, a chip): changing it changes how it looks and is used.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S6848",
+      "file": "services/web/src/Journeys.jsx",
+      "reason": "A clickable element that is not a button (a row, a card, a chip): changing it changes how it looks and is used.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S6848",
+      "file": "services/web/src/Kpis.jsx",
+      "reason": "A clickable element that is not a button (a row, a card, a chip): changing it changes how it looks and is used.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S6848",
+      "file": "services/web/src/MetamodelDiagram.jsx",
+      "reason": "A clickable element that is not a button (a row, a card, a chip): changing it changes how it looks and is used.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S6848",
+      "file": "services/web/src/ModelOps.jsx",
+      "reason": "A clickable element that is not a button (a row, a card, a chip): changing it changes how it looks and is used.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S6848",
+      "file": "services/web/src/QuickJump.jsx",
+      "reason": "A clickable element that is not a button (a row, a card, a chip): changing it changes how it looks and is used.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S6848",
+      "file": "services/web/src/StartupStatus.jsx",
+      "reason": "A clickable element that is not a button (a row, a card, a chip): changing it changes how it looks and is used.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S6852",
+      "file": "services/web/src/ActionsMenu.jsx",
+      "reason": "A menu that is not focusable by the keyboard: changing it changes how it is used.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S6852",
+      "file": "services/web/src/ArchitectureRepository.jsx",
+      "reason": "A menu that is not focusable by the keyboard: changing it changes how it is used.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S6853",
+      "file": "services/web/src/ImportWizards.jsx",
+      "reason": "A label whose text comes from its field: changing it changes what people see.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S6853",
+      "file": "services/web/src/KeyQuestions.jsx",
+      "reason": "A label whose text comes from its field: changing it changes what people see.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S6853",
+      "file": "services/web/src/MetamodelEditor.jsx",
+      "reason": "A label whose text comes from its field: changing it changes what people see.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S6853",
+      "file": "services/web/src/ModelGit.jsx",
+      "reason": "A label whose text comes from its field: changing it changes what people see.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S6853",
+      "file": "services/web/src/ModelOps.jsx",
+      "reason": "A label whose text comes from its field: changing it changes what people see.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/Admin.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/Backups.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/BreakGlass.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/Calendar.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/Canvas.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/ChangeLog.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/Changes.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/DataEntry.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/Deliveries.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/Documentation.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/DrawnView.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/GovernanceRecords.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/Grid.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/GridPages.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/GuidedWizards.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/ImportWizards.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/Journeys.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/Libraries.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/MachineAccess.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/ModelAdmin.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/ModelOps.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/Notifications.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/Principles.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/ProjectGovernance.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/ProjectTabs.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/Projects.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/References.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/Stakeholders.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/SystemWizards.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/TestRuns.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/TrackingSheets.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "javascript:S9379",
+      "file": "services/web/src/Versions.jsx",
+      "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
+      "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    }
+  ]
 }

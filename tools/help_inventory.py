@@ -31,10 +31,35 @@ CATALOGUE = SRC / "help" / "catalogue.json"
 _SKIP_TEXT = re.compile(r"^[\W\d_]*$|^.$")
 
 
+
+def without_stars(label: str) -> str:
+    """A label without its "(*)" and "*" marks and the spaces before them. String work giving the same answer as the
+    regular expression it replaces (SonarQube python:S8786, D804)."""
+    out, i, n = [], 0, len(label)
+    while i < n:
+        j = i
+        while j < n and label[j].isspace():
+            j += 1
+        if label.startswith("(*)", j):
+            i = j + 3
+        elif label.startswith("*", j):
+            i = j + 1
+        elif j > i:
+            out.append(label[i:j])
+            i = j
+        else:
+            out.append(label[i])
+            i += 1
+    return "".join(out)
+
 def norm(text: str) -> str:
     """One key form for a piece of screen text: spaces collapsed, trailing colons and ellipses dropped."""
     t = re.sub(r"\s+", " ", text).strip()
-    t = re.sub(r"(\s*[:…]|\.\.\.)$", "", t).strip()
+    if t.endswith((":", "…")):                     # D804: string work, not a regular expression with slow cases
+        t = t[:-1]
+    elif t.endswith("..."):
+        t = t[:-3]
+    t = t.strip()
     return t
 
 
@@ -179,7 +204,7 @@ def _pairs(text: str) -> list[str]:
     for m in re.finditer(r'\[\s*"([a-z0-9_-]+)"\s*,\s*("(?:[^"\\]|\\.)*"|`[^`]*`)', text):
         lab = _string_literals(m.group(2))
         if lab:
-            t = norm(re.sub(r"\s*\(\*\)|\s*\*", "", lab[0]))
+            t = norm(without_stars(lab[0]))
             if _keep(t) and not t[0].islower():
                 out.append(t)
     return out
@@ -203,7 +228,7 @@ def tabs() -> set[str]:
     for f in SRC.glob("*.jsx"):
         src = f.read_text(encoding="utf-8")
         # tab lists held in a variable: const tabs = [...], const TABS = [...], ...Tabs = [...]
-        for m in re.finditer(r"\b(?:tabs|TABS|[A-Z_]*TABS|[a-z]+Tabs)\s*=\s*\[", src):
+        for m in re.finditer(r"\b(?:tabs|[A-Z_]*TABS|[a-z]+Tabs)\s*=\s*\[", src):
             keys.update("tab:" + t for t in _pairs(_balanced(src, m.end() - 1)))
         # inline lists mapped straight into role="tab" elements
         for m in re.finditer(r"\{\s*\[\s*\[", src):

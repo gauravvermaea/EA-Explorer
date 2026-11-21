@@ -63,9 +63,10 @@ def industry_for(path: Path) -> str | None:
 
 def clean_name(name: str, industry: str) -> str:
     """'00 READ ME FIRST - what is in this set.pdf' -> 'Retail - read me first (what is in this set).pdf'."""
-    m = re.match(r"^\d+\s+READ ME FIRST\s*-\s*(.*)\.(\w+)$", name, re.IGNORECASE)
-    if m:
-        return f"{industry.replace('_', ' ')} - read me first ({m.group(1).strip()}).{m.group(2).lower()}"
+    m = re.match(r"^\d+\s+READ ME FIRST\s*-", name, re.IGNORECASE)   # D804: the rest by string work
+    stem, dot, ext = name[m.end():].rpartition(".") if m else ("", "", "")
+    if m and dot and ext and all(c.isalnum() or c == "_" for c in ext):
+        return f"{industry.replace('_', ' ')} - read me first ({stem.strip()}).{ext.lower()}"
     return re.sub(r"\s+", " ", name).strip()
 
 

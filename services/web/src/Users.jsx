@@ -141,7 +141,7 @@ function RoleMapping() {
             <option value="">Global role...</option>
             {(roles.data || []).filter((r) => r.scope !== "model").map((r) => <option key={r.code} value={r.code}>{r.name}</option>)}
           </select>
-          <button className="primary" disabled={!editable || !kc.trim() || !app}>Add</button>
+          <button type="submit" className="primary" disabled={!editable || !kc.trim() || !app}>Add</button>
         </form>
       )}
       {kcRoles.error && <p className="quiet small">Keycloak roles could not be listed ({kcRoles.error}); you can still type one.</p>}

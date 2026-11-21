@@ -32,7 +32,7 @@ NOTHING = "self-test-nothing"      # the id a write is called with when the test
 # R3.13 they are checked too, bounded: without a token (refused before anything is done), refused without a global role
 # when they are admin writes, and their GETs as every role reading only the start of the answer (call's size); only a
 # download or a live stream (STREAM) is read as the role without one alone, as making the file is the costly part.
-HEAVY = re.compile(r"/(backups?|restores?|export|download|package|packages|terminal|logs|sql|stats|files|repo-zip)(/|$)|\.(zip|xlsx|pdf|docx)$")
+HEAVY = re.compile(r"(?:/(backups?|restores?|export|download|package|packages|terminal|logs|sql|stats|files|repo-zip)(/|$))|(?:\.(zip|xlsx|pdf|docx)$)")
 STREAM = re.compile(r"/(download|package|repo-zip|export|terminal)(/|$)|/logs/read$|/files/content$|/files/download$|\.(zip|xlsx|pdf|docx)$")
 CONTENT = re.compile(r"/(entities|relationships|history|grid|content|changes|commits|data-entry|hierarchy|export)\b")
 WRITE = ("post", "put", "patch", "delete")
@@ -114,6 +114,7 @@ OWN_KEY = {
     "/api/v1/admin/scaling/load": "the operations helper's X-Ops-Token",
     "/api/v1/selftest/session": "a running self-test's ticket",
     "/api/v1/testbench/runs/{run_id}/session": "a test bench run's ticket",
+    "/api/v1/sync/status": "the DR pairing's key (Authorization: Pairing <key>), asked by the other site (D801)",
 }
 
 

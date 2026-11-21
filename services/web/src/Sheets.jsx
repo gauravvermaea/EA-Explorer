@@ -12,7 +12,7 @@ import { useEffect, useMemo, useState } from "react";
 import { apiDownload, apiFetch, apiUpload, canOn } from "./auth";
 import { refreshAll, useApi } from "./ModelViews";
 import { Modal } from "./ModelOps";
-import { fmtDateTime } from "./fmt";
+import { fmtDateTime, byText } from "./fmt";
 import { trackTask, useTask } from "./tasks";
 import DeliveriesTab, { DeliveryActions } from "./Deliveries";
 import DiscoveryTab from "./Discovery";
@@ -226,7 +226,7 @@ function LoadPage({ model, m, id }) {
           {l.status === "added" && <button className="linkish danger-text" onClick={() => {
             // eslint-disable-next-line no-alert
             if (window.confirm("Undo this load? Its uncommitted changes are discarded; committed ones are rolled back as a new commit.")) {
-              act(() => post(`/api/v1/loads/${id}/undo`, {}), (o) => o.message);
+              void act(() => post(`/api/v1/loads/${id}/undo`, {}), (o) => o.message);
             }
           }}>Undo the load</button>}
           {!["added", "declined"].includes(l.status) && !(delivery && l.status === "previewed") && <button className="linkish danger-text" onClick={() => act(() => post(`/api/v1/loads/${id}`, {}, "DELETE"), "")
@@ -366,7 +366,7 @@ function MapColumns({ model, load, onDone }) {
 
 // the fields of the chosen types: fixed fields and attributes, [code, label]
 function useFields(model, codes) {
-  const key = [...new Set(codes)].sort().join(",");
+  const key = [...new Set(codes)].sort(byText).join(",");
   const { data } = useApi(key ? `/api/v1/models/${model}/sheets/fields?types=${encodeURIComponent(key)}` : null);
   return useMemo(() => (code) => {
     const fixed = [["guid", "GUID"], ["display_id", "ID"], ["name", "Name"], ["description", "Description"], ["parent", "Parent ID"], ["tags", "Tags"], ["delete", "Delete"]];

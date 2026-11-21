@@ -15,7 +15,7 @@ function useQueue(every = 5000) {
   const [d, setD] = useState(null);
   const [err, setErr] = useState("");
   const load = () => apiFetch("/api/v1/jobs/queue").then((x) => { setD(x); setErr(""); }).catch((e) => setErr(e.message));
-  useEffect(() => { load(); const t = setInterval(load, every); return () => clearInterval(t); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { void load(); const t = setInterval(load, every); return () => clearInterval(t); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
   return [d, err, load];
 }
 
@@ -99,7 +99,7 @@ export function JobSlots({ compact = false }) {
   const [asked, setAsked] = useState(false);
   const load = () => apiFetch("/api/v1/jobs/slots").then((x) => { setD(x); setF((o) => o || { tasks: x.per_server.tasks, scheduled: x.per_server.scheduled }); })
     .catch((e) => setBad(e.message));
-  useEffect(() => { load(); }, []);
+  useEffect(() => { void load(); }, []);
   if (!can("system.operate")) return null;
   if (!d || !f) return bad ? <p className="status bad small">{bad}</p> : null;
   const per = Number(f.tasks || 0) + Number(f.scheduled || 0) + 1;
@@ -280,11 +280,11 @@ function Priorities() {
   const [msg, setMsg] = useState(null);
   const [open, setOpen] = useState(false);
   const load = () => apiFetch("/api/v1/jobs/priorities").then(setD).catch((e) => setMsg({ ok: false, text: e.message }));
-  useEffect(() => { if (open && !d) load(); }, [open]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (open && !d) void load(); }, [open]);   // eslint-disable-line react-hooks/exhaustive-deps
   const may = can("system.operate");
   async function setLevel(k, level) {
     try { const r = await apiFetch(`/api/v1/jobs/priorities/${encodeURIComponent(k.task)}`, { method: "PUT", body: JSON.stringify({ level }) });
-      setMsg({ ok: true, text: r.message }); load(); }
+      setMsg({ ok: true, text: r.message }); void load(); }
     catch (e) { setMsg({ ok: false, text: e.message }); }
   }
   const skipped = (d?.kinds || []).filter((k) => k.skipped_total);

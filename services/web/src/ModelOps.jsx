@@ -354,7 +354,7 @@ export function UploadWizard({ onClose, initialFile = null }) {
   const [error, setError] = useState("");
   const [showDiff, setShowDiff] = useState(false);
   // a package taken from git on a model's Import and export › Git (Release 6.5, D753): read as if chosen here
-  useEffect(() => { if (initialFile) analyse(initialFile); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (initialFile) void analyse(initialFile); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
 
   async function analyse(f) {
     setFile(f); setInfo(null); setError("");
@@ -572,7 +572,7 @@ export function FrameworkMoveDialog({ m, onClose }) {
       </>}>
       <div className="ed-form">
         <Field label="1. The root metamodel to move to" tip="For example a newer version of the framework. Its entity types are matched to this model's by code, then by name.">
-          <select value={target} onChange={(e) => { setTarget(e.target.value); setMap(null); look(e.target.value, null); }}>
+          <select value={target} onChange={(e) => { setTarget(e.target.value); setMap(null); void look(e.target.value, null); }}>
             <option value="">Choose...</option>
             {choices.map((r) => <option key={r.id} value={r.id}>{label(r)}</option>)}
           </select>
@@ -1132,7 +1132,7 @@ export function DraftPage({ id }) {
     f.text().then((t) => {
       let spec;
       try { spec = JSON.parse(t); } catch { setMsg("That file is not JSON (a metamodel document, eax-metamodel/1)."); return; }
-      call("edit", { action: "replace", spec }, "replace");
+      void call("edit", { action: "replace", spec }, "replace");
     });
   }
   const sectionName = (k) => SECTIONS.find(([c]) => c === k)?.[1] || k;

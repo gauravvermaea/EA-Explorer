@@ -53,6 +53,9 @@ kept for scripts and CI but no longer shown.
 | **Cross-browser** | every page and journey in each browser | `eax testbench … --browsers all` | CI nightly; testers | the test bench's report, by browser |
 | **Load test** | response times (p50, p95, p99), errors and throughput under N people | `eax testbench load --users 50 --minutes 5` (k6) | CI nightly (short); before a big roll-out | the test bench's report; thresholds in `testbench/thresholds.json` |
 | **Security scans** | headers and cookies, the front door, pip-audit, OWASP ZAP baseline, Trivy on the images | the self-test's security suite, or `eax testbench --suite security` | admins; CI | the reports' security section |
+| **Attack test** (R8.2) | the security suite, then tools that try to break EA Explorer, each brought up to date first: an OWASP ZAP full scan, API fuzzing (Schemathesis), Nuclei on every container's ports, Semgrep and Gitleaks on the source | `eax test attack`, and in `eax test full` from the command line (an hour or more; a laptop, or an installation with `EAX_ATTACK_ALLOWED=yes`; `--no-attack` leaves it out) | admins, before a release | the run's report; each tool's own report in its folder; [the security and performance testing guide](site/guides/test-security-and-performance.md) |
+| **SonarQube scan** (Release 8) | bugs, vulnerabilities, hotspots and code smells in the whole repository | `eax test sonar`; `eax sonar open` to look at the last results | developers | `work/tests/sonar-<time>/report.md` |
+| **Benchmark** (R5.18) | the test model filled, every read timed, then k6 with many people at once, against the last release | `eax test performance [--size S] [--users N] [--minutes M]` | admins; CI nightly | the run's report; Self-test › Performance |
 | **Reset-survival** | settings in `persist/` outlive a real reset (DELETES ALL DATA) | `eax test --reset-survival --confirm <name>`, or the test bench's `--reset-survival` | Super Admins, on a laptop or a test installation | Self-test page; `persist/test-results/` |
 
 ### CI: what runs when
@@ -176,6 +179,12 @@ eax test --report [run] [--xlsx]   save the report
 eax test --fixtures [run]    list fixtures
 eax test --clean <run|all> [--yes]   purge fixtures (asks you to type DELETE without --yes)
 eax test --build             optional: only (re)build the test runner image (every test does this first)
+eax test full                the dev check, the self-test with the attack test, the backup and restore test, SonarQube
+                             (everything but the benchmark; --no-dev-check, --no-attack, --no-sonar leave one out; D823)
+eax test security            the security suite alone (part of full)
+eax test attack              the attack test: the security suite and the tools that try to break EA Explorer (R8.2)
+eax test performance         the benchmark (never part of full)
+eax test sonar               the SonarQube scan of the repository
 ```
 
 `eax test` shows progress as it goes and exits non-zero when anything failed, so CI can use it (`--ci`).
@@ -187,7 +196,8 @@ eax test --build             optional: only (re)build the test runner image (eve
 | API | every endpoint in the OpenAPI description as every test role and with no role: allowed where it should be, refused where not, another model's content refused; **writes** area by area inside the fixtures (content, relationships, metamodel, surveys, the run's own token, a merge request) and the same writes refused to a role without the right (D577) |
 | UI | every page opens, renders, has a heading and F1 help; journeys that click, type and save, per role allowed and refused (Playwright, Chromium; or watched in your browser) |
 | Database | read-only: primary keys, the history guard on and every current version in the history, values stored as their attribute's type, pick-list values on their list, relationship attribute values within their mapping, drawn views bound only to their own model's entities, persist/ JSON valid, fixtures named after their run, indexes on foreign keys (a warning) |
-| Security | headers and cookies, the front door refusing unsigned calls, pip-audit, an OWASP ZAP baseline scan, Trivy on our images |
+| Security | headers and cookies, the front door refusing unsigned calls, pip-audit, the code and secrets scans, the attacks EA Explorer was reviewed against and forged or tampered tokens (R8.2), an OWASP ZAP baseline scan and a signed-in ZAP scan of the API, Trivy on our images |
+| Attack (on demand, R8.2) | the security suite, then an OWASP ZAP full scan, Schemathesis fuzzing the API as the run's Architect in its own test data (reads; writes only on the run's own things; never DELETE, admin, backup or download paths), Nuclei on every container's ports, Semgrep and Gitleaks on the source; each tool pulled at its newest first and its version in `attack-tools.json`; a high or critical finding not accepted in writing fails it |
 
 ## Settings survive a reset (D561)
 

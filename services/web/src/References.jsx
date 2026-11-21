@@ -115,7 +115,7 @@ export function ReferenceTab({ p }) {
   function newFolder() {
     // eslint-disable-next-line no-alert
     const name = window.prompt(`A new folder in ${rel(sel) || "Reference"}`, "");
-    if (name && name.trim()) act(() => apiFetch(`/api/v1/projects/${p.id}/reference/folders`, { method: "POST", body: JSON.stringify({ path: `${sel}/${name.trim()}` }) }))
+    if (name && name.trim()) void act(() => apiFetch(`/api/v1/projects/${p.id}/reference/folders`, { method: "POST", body: JSON.stringify({ path: `${sel}/${name.trim()}` }) }))
       .then(() => setSel(`${sel}/${name.trim()}`));
   }
   const depth = (f) => (f === REFERENCE ? 0 : rel(f).split("/").length);
@@ -155,7 +155,7 @@ export function ReferenceTab({ p }) {
                       {d.is_link && <button className="linkish" onClick={() => setDlg({ k: "link", d })}>Change</button>}
                       {" "}<button className="linkish bad-text" onClick={() => {
                         // eslint-disable-next-line no-alert
-                        if (window.confirm(`Delete ${d.file_name}? It can be restored from the repository with "Show deleted documents".`)) act(() => apiFetch(`/api/v1/projects/${p.id}/documents/${d.id}/delete`, { method: "POST", body: "{}" }));
+                        if (window.confirm(`Delete ${d.file_name}? It can be restored from the repository with "Show deleted documents".`)) void act(() => apiFetch(`/api/v1/projects/${p.id}/documents/${d.id}/delete`, { method: "POST", body: "{}" }));
                       }}>Delete</button></>}</td>
                   </tr>
                 ))}

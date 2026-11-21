@@ -371,9 +371,10 @@ def _projects_beside(conn):
         tx.rollback()
         pc.close()
         raise
-    if not tasks_mod.defer_commit(tx, pc):    # inside a task: it commits after the repository's work
-        tx.commit()
-        pc.close()
+    else:
+        if not tasks_mod.defer_commit(tx, pc):    # inside a task: it commits after the repository's work
+            tx.commit()
+            pc.close()
 
 
 def project_update(conn, t: dict, user) -> tuple[str, dict]:

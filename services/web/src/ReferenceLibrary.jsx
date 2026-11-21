@@ -53,7 +53,7 @@ function Library() {
           <button type="button" className="primary" onClick={() => setDlg({ k: "file" })}>⬆ Add documents</button>
           <button type="button" onClick={() => setDlg({ k: "link" })}>🔗 Add a link</button>
           <button type="button" onClick={() => { const n = window.prompt(`A new folder${folder ? ` in ${folder}` : ""}`, "");
-            if (n && n.trim()) act(() => apiFetch("/api/v1/reference-library/folders", { method: "POST", body: JSON.stringify({ path: folder ? `${folder}/${n.trim()}` : n.trim() }) })).then((r) => r && setFolder(r.path)); }}>＋ Folder</button>
+            if (n && n.trim()) void act(() => apiFetch("/api/v1/reference-library/folders", { method: "POST", body: JSON.stringify({ path: folder ? `${folder}/${n.trim()}` : n.trim() }) })).then((r) => r && setFolder(r.path)); }}>＋ Folder</button>
         </span>}
       </form>
       <div className="ref-layout">
@@ -162,7 +162,7 @@ function EntryPage({ id }) {
       if (!file) return;
       const note = window.prompt("What changed in this version? (optional)", "") || "";
       const fd = new FormData(); fd.append("file", file); fd.append("note", note);
-      act(() => apiUpload(`/api/v1/reference-library/${id}/versions`, fd));
+      void act(() => apiUpload(`/api/v1/reference-library/${id}/versions`, fd));
     };
     inp.click();
   }
@@ -178,7 +178,7 @@ function EntryPage({ id }) {
           {e.kind === "file" && <button onClick={newVersion}>⬆ New version</button>}
           <button onClick={() => setEdit({ title: e.title, description: e.description, source: e.source, tags: e.tags.join(", "), folder: e.folder, url: e.url })}>✎ Change</button>
           <button className="danger" onClick={() => { if (window.confirm(`Delete ${e.title} from the reference library? Its files go to the document store's trash.`))
-            act(() => apiFetch(`/api/v1/reference-library/${id}`, { method: "DELETE" })).then((r) => { if (r) window.location.hash = "#/reference-library"; }); }}>Delete</button></>}
+            void act(() => apiFetch(`/api/v1/reference-library/${id}`, { method: "DELETE" })).then((r) => { if (r) window.location.hash = "#/reference-library"; }); }}>Delete</button></>}
       </div>
       <table className="grid-table" style={{ marginTop: 12 }}><tbody>
         {e.kind === "link" && <tr><th>Address</th><td><a href={e.url} target="_blank" rel="noreferrer">{e.url}</a></td></tr>}

@@ -37,6 +37,31 @@ BUILT_IN = {"standard": "Standard (light)", "dark": "Dark", "high-contrast": "Hi
                                             "graphite", "navy", "sand")}}
 FILES = {"logo": 512 * 1024, "favicon": 128 * 1024}      # the logo and the browser tab's icon, and their largest size
 MAX_CSS = 128 * 1024
+_STYLE_OR_SCRIPT = re.compile(r"style|script", re.I)
+
+
+def html_in_css(css: str) -> int:
+    """Where the first piece of HTML is in a theme's CSS (< or > then style or script, maybe with a / and spaces;
+    </; <!--; -->), or -1. String work giving the same answer as the regular expression it replaces (D804)."""
+    n = len(css)
+    for p, ch in enumerate(css):
+        if ch == "-" and css.startswith("-->", p):
+            return p
+        if ch == "<" and (css.startswith("</", p) or css.startswith("<!--", p)):
+            return p
+        if ch in "<>":
+            q = p + 1
+            while q < n and css[q].isspace():
+                q += 1
+            if q < n and css[q] == "/":
+                q += 1
+                while q < n and css[q].isspace():
+                    q += 1
+            if _STYLE_OR_SCRIPT.match(css, q):
+                return p
+    return -1
+
+
 SLUG = re.compile(r"^[a-z0-9][a-z0-9-]{0,39}$")
 # what a theme may not hold: nothing that loads from elsewhere or runs, nothing that hides what it is (owner, 16 Nov:
 # "only the look: colours, fonts, spacing; nothing that loads from elsewhere or runs")
@@ -47,7 +72,7 @@ REFUSED = [
     (re.compile(r"@font-face", re.I), "@font-face (it loads a font; name fonts the computers already have)"),
     (re.compile(r"@namespace|@charset", re.I), "@namespace or @charset"),
     (re.compile(r"expression\s*\(|javascript:|vbscript:|behavior\s*:|-moz-binding", re.I), "something that runs"),
-    (re.compile(r"[<>]\s*/?\s*(style|script)|</|<!--|-->", re.I), "HTML in the CSS"),
+    (None, "HTML in the CSS"),          # html_in_css below (D804: was a regular expression with slow cases)
     (re.compile(r"\\"), "a backslash escape (write the characters as they are)"),
     (re.compile(r"[\x00-\x08\x0b\x0e-\x1f\x7f]"), "control characters"),
 ]
@@ -76,9 +101,9 @@ def check_css(css: Any) -> str:
         raise BrandingError(f"The CSS is larger than {MAX_CSS // 1024} KB.")
     found = []
     for rx, what in REFUSED:
-        m = rx.search(css)
-        if m:
-            found.append(f"line {css.count(chr(10), 0, m.start()) + 1}: {what}")
+        at = html_in_css(css) if rx is None else (m.start() if (m := rx.search(css)) else -1)
+        if at != -1:
+            found.append(f"line {css.count(chr(10), 0, at) + 1}: {what}")
     if found:
         raise BrandingError("The CSS may hold only looks (colours, fonts, spacing, corners). Take out: " + "; ".join(found) + ".")
     body = re.sub(r"/\*.*?\*/", "", css, flags=re.S)

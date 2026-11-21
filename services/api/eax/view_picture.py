@@ -370,7 +370,7 @@ def to_svg(d: dict) -> str:
 # ---------------------------------------------------------------- PNG (Pillow)
 def _flatten(d: str) -> list[list[tuple[float, float]]]:
     """An SVG path of absolute M, L, H, V, A, C and Z as polylines."""
-    toks = re.findall(r"[MLHVACZ]|-?\d*\.?\d+", d)
+    toks = re.findall(r"[MLHVACZ]|-?(?:\d+(?:\.\d+)?|\.\d+)", d)
     subs: list[list[tuple[float, float]]] = []
     cur, start, cmd, i = (0.0, 0.0), (0.0, 0.0), "", 0
 

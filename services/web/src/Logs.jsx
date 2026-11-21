@@ -11,7 +11,7 @@
 import { useEffect, useState } from "react";
 import { apiFetch, can } from "./auth";
 import { KeptLogs, OwnLogs } from "./ContainerConsole";
-import { fmtDateTime } from "./fmt";
+import { fmtDateTime, byText } from "./fmt";
 
 const TABS = [["containers", "Container logs"], ["web", "Web log"], ["own", "eax's own logs"], ["rolling", "Size and keeping"], ["delete", "Delete logs"]];
 
@@ -44,7 +44,7 @@ function Rolling() {
   const may = can("settings.manage");
   const load = () => apiFetch("/api/v1/admin/logs/rolling").then((x) => { setD(x); setF({ file_kb: x.file_kb, docker_kb: x.docker_kb, keep_days: x.keep_days }); })
     .catch((e) => setErr(e.message));
-  useEffect(() => { load(); }, []);
+  useEffect(() => { void load(); }, []);
   if (!d) return err ? <p className="status bad">{err}</p> : <p><span className="spinner" aria-hidden="true" /> Reading…</p>;
   async function save(e) {
     e.preventDefault();
@@ -71,7 +71,7 @@ function Rolling() {
       {d.set_by && <p className="small quiet">Last set by {d.set_by}{d.set_at ? ` on ${fmtDateTime(d.set_at)}` : ""}.</p>}
       {err && <p className="status bad" role="alert">{err}</p>}
       {msg && <p className="status ok">{msg}</p>}
-      {may ? <button className="primary" disabled={busy}>{busy ? "Saving…" : "Save"}</button> : <p className="small quiet">Only a Super Admin changes these.</p>}
+      {may ? <button type="submit" className="primary" disabled={busy}>{busy ? "Saving…" : "Save"}</button> : <p className="small quiet">Only a Super Admin changes these.</p>}
     </form>
   );
 }
@@ -102,7 +102,7 @@ function WebLog() {
   const [minutes, setMinutes] = useState("60");
   const [note, setNote] = useState("");
   useEffect(() => { apiFetch("/api/v1/admin/logs/web/files").then((x) => setFiles(x.files || [])).catch((e) => setErr(e.message)); }, []);
-  const days = [...new Set((files || []).map((x) => x.day))].sort().reverse();
+  const days = [...new Set((files || []).map((x) => x.day))].sort(byText).reverse();
   const day = f.day || days[0] || "";
   const query = (extra = {}) => new URLSearchParams({ ...f, day, page, ...extra }).toString();
   async function load() {
@@ -110,7 +110,7 @@ function WebLog() {
     setErr("");
     try { setData(await apiFetch(`/api/v1/admin/logs/web?${query()}`)); } catch (e) { setErr(e.message); }
   }
-  useEffect(() => { load(); }, [day, f.status, f.sort, page]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { void load(); }, [day, f.status, f.sort, page]);   // eslint-disable-line react-hooks/exhaustive-deps
   const set = (k, v) => { setF((x) => ({ ...x, [k]: v })); setPage(0); };
   async function csv() {
     try { const r = await apiFetch(`/api/v1/admin/logs/web/csv?${query()}`); saveText(r.name, r.csv); } catch (e) { setErr(e.message); }
@@ -122,7 +122,7 @@ function WebLog() {
     setNote("");
     try {
       const r = await apiFetch("/api/v1/admin/logs/web-debug", { method: "POST", body: JSON.stringify({ minutes: on ? Number(minutes) : 0 }) });
-      setNote(r.on ? `Web log debug is on until ${fmtDateTime(r.until)}.` : "Web log debug is off."); load();
+      setNote(r.on ? `Web log debug is on until ${fmtDateTime(r.until)}.` : "Web log debug is off."); void load();
     } catch (e) { setErr(e.message); }
   }
   if (files && !files.length) return <p className="quiet">No web log yet: the front door writes one line for every call to the API and MCP (logs/web).</p>;

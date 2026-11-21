@@ -14,6 +14,20 @@
       "reason": "Pillow inside the Reports (Superset 6.1.0) image: the fix (Pillow 13) needs Python 3.11 and the image is Python 3.10, so it cannot be installed (clean rebuild, 15 Nov 2026). Superset uses Pillow only for thumbnails and screenshots, both off here. To clear when Superset is upgraded; looked at again in the version review (R5.23, D699).",
       "until": "2027-02-01",
       "by": "R5.23"
+    },
+    {
+      "id": "bandit:B608",
+      "where": "",
+      "reason": "SQL built from text (bandit B608): accepted for good by the owner as the way EA Explorer builds its queries. Not a finding to fix.",
+      "until": "2099-12-31",
+      "by": "owner, 19 Nov 2026, 18:24: \"SQL built from text is ok with what we want to do, so ignore them all\" (D800)"
+    },
+    {
+      "id": "semgrep:*sql*",
+      "where": "",
+      "reason": "SQL built from text, as Semgrep's rules name it (the attack test, R8.2): accepted for good by the owner, as bandit B608 is. Not a finding to fix.",
+      "until": "2099-12-31",
+      "by": "owner, 19 Nov 2026, 18:24: \"SQL built from text is ok with what we want to do, so ignore them all\" (D800, D817)"
     }
   ]
 }

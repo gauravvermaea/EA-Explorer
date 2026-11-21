@@ -7,7 +7,7 @@ import PlatformNotice from "./PlatformNotice";
 import { useEffect, useRef, useState } from "react";
 import { StartupCell, StartupLine, TONE, WORD, containerStartup } from "./StartupStatus";
 import { apiFetch, can } from "./auth";
-import { fmtDateTime } from "./fmt";
+import { fmtDateTime, byText } from "./fmt";
 import { useApi } from "./ModelViews";
 import { JobSlots } from "./Jobs";
 
@@ -38,7 +38,7 @@ export const PURPOSE = {
   testrunner: "The self-test, started when a test runs",
   k6: "The load test's many people at once, started by the performance suite (R5.18)",
   "testrunner-service": "The self-test runner that waits for runs on a managed platform",
-  sonarqube: "SonarQube: the code quality scan, started by eax test sonar and removed when it ends (Release 8)",
+  sonarqube: "SonarQube: the code quality scan, started by eax test sonar and removed when it ends, or left open on this computer with --open until eax down (Release 8)",
   "sonar-scanner": "The SonarQube scanner: reads the code for eax test sonar, then stops (Release 8)",
 };
 // only current and relevant containers unless asked (owner, 13 Nov 2026: "Dead are not unless asked for"): running or
@@ -150,7 +150,7 @@ function Summary({ onPick, showAll = false }) {
     try { setH(await apiFetch("/api/v1/admin/services/health")); } catch (e) { setErr(e.message); }
     setBusy(false);
   }
-  useEffect(() => { load(); }, []);
+  useEffect(() => { void load(); }, []);
   const cs = (h?.containers || []).filter((c) => showAll || isCurrent(c));
   const run = cs.filter((c) => c.state === "running");
   const sum = (k) => run.reduce((a, c) => a + (c[k] || 0), 0);
@@ -329,7 +329,7 @@ function LastLines({ service }) {
     try { setData(await apiFetch(`/api/v1/admin/containers/${service}/logs?tail=${tail}`)); } catch (e) { setErr(e.message); }
     setBusy(false);
   }
-  useEffect(() => { load(); }, [tail]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { void load(); }, [tail]);   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {                        // live: new lines every 5 seconds, until paused (R2.31)
     if (!live) return undefined;
     const t = setInterval(load, 5000);
@@ -382,7 +382,7 @@ function ContainerPick({ all, pick, setPick }) {
     return () => document.removeEventListener("click", close);
   }, []);
   const toggle = (s) => {
-    const next = pick.includes(s) ? pick.filter((x) => x !== s) : [...pick, s].sort();
+    const next = pick.includes(s) ? pick.filter((x) => x !== s) : [...pick, s].sort(byText);
     if (next.length) setPick(next);
   };
   const shown = pick.length === 1 ? pick[0] : `${pick.length} containers: ${pick.join(", ")}`;
@@ -458,8 +458,8 @@ export function OwnLogs() {
 // backed up or cleaned (R2.30)
 export function KeptLogs({ service }) {
   const { data: files } = useApi("/api/v1/admin/logs/files");
-  const all = [...new Set((files?.files || []).map((f) => f.service))].sort();
-  const days = [...new Set((files?.files || []).map((f) => f.day))].sort().reverse();
+  const all = [...new Set((files?.files || []).map((f) => f.service))].sort(byText);
+  const days = [...new Set((files?.files || []).map((f) => f.day))].sort(byText).reverse();
   const [pick, setPick] = useState([service]);
   const [day, setDay] = useState("");
   const [level, setLevel] = useState("");
@@ -483,7 +483,7 @@ export function KeptLogs({ service }) {
       setData(d);
     } catch (e) { setErr(e.message); }
   }
-  useEffect(() => { load(); }, [theDay, pick.join(","), level, since, until, page]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { void load(); }, [theDay, pick.join(","), level, since, until, page]);   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!live) return undefined;
     const t = setInterval(() => load(null), 5000);
@@ -522,7 +522,7 @@ export function KeptLogs({ service }) {
           title="Only lines up to this time (empty: to the end of the day)" /></label>
         <input type="search" placeholder="Words or a request id" value={q} onChange={(e) => setQ(e.target.value)}
           title="Type words or a request id, then press Enter"
-          onKeyDown={(e) => { if (e.key === "Enter") { setPage(null); load(null); } }} />
+          onKeyDown={(e) => { if (e.key === "Enter") { setPage(null); void load(null); } }} />
         <label className="small" title="Show new lines every 5 seconds"><input type="checkbox" checked={live} onChange={(e) => setLive(e.target.checked)} /> Live</label>
         <button onClick={() => download(`${pick.join("+")}-${theDay}.log`, lines.map((l) => `${l.service} ${l.line}`))} disabled={!lines.length}>Download</button>
         <button onClick={() => keep("backup")}>Back up logs</button>

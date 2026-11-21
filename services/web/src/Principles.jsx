@@ -16,12 +16,13 @@ import { useMemo, useState } from "react";
 import { apiFetch } from "./auth";
 import { refreshAll, useApi } from "./ModelViews";
 import RichText from "./RichText";
+import { replaceTags } from "./textScan";
 import { Field, Modal } from "./ModelOps";
 
 const richOrPlain = (v) => (/^\s*</.test(v || "") ? <div className="rich-view" dangerouslySetInnerHTML={{ __html: v }} />
   : <div style={{ whiteSpace: "pre-line" }}>{v}</div>);
 const asHtml = (v) => (/^\s*</.test(v || "") ? v : v ? `<p>${v.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/\n/g, "<br>")}</p>` : "");
-const empty = (v) => !String(v || "").replace(/<[^>]*>/g, "").trim();
+const empty = (v) => !replaceTags(String(v || ""), "").trim();
 
 // where a principle comes from, as a short chip and its class
 function source(r, isBase) {
@@ -68,12 +69,12 @@ export function PrinciplesTab({ p }) {
   function remove(r) {
     // eslint-disable-next-line no-alert
     if (!window.confirm(`Take the principle ${r.name} out of the ${isBase ? "base" : "project"}?`)) return;
-    call(`/api/v1/projects/${p.id}/principles/${r.id}`, { method: "DELETE" });
+    void call(`/api/v1/projects/${p.id}/principles/${r.id}`, { method: "DELETE" });
   }
   function addArea() {
     // eslint-disable-next-line no-alert
     const n = window.prompt("The new area's name (e.g. Business, Security, Data, AI)");
-    if (n && n.trim()) call(`/api/v1/projects/${p.id}/principle-areas`, { method: "POST", body: JSON.stringify({ name: n }) });
+    if (n && n.trim()) void call(`/api/v1/projects/${p.id}/principle-areas`, { method: "POST", body: JSON.stringify({ name: n }) });
   }
   const jump = (r) => document.getElementById(`principle-${r.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
 

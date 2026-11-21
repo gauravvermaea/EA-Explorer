@@ -11,8 +11,8 @@ const T = JSON.parse(__ENV.THRESHOLDS || '{}');
 const TARGET = (__ENV.TARGET || '').replace(/\/$/, '');
 const TOKENS = (__ENV.TOKENS || '').split(',').filter((t) => t);
 const MODEL = __ENV.MODEL || '';
-const USERS = parseInt(__ENV.USERS || '20', 10);
-const MINUTES = parseFloat(__ENV.MINUTES || '2');
+const USERS = Number.parseInt(__ENV.USERS || '20', 10);
+const MINUTES = Number.parseFloat(__ENV.MINUTES || '2');
 const DATA = new SharedArray('searches', () => JSON.parse(open(__ENV.DATA || './data.json')).searches);
 
 export const options = {

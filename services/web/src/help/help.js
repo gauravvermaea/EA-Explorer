@@ -3,8 +3,9 @@
 // tools/help_inventory.py finds every key the screens need; services/api/tests/test_help_catalogue.py fails the
 // build when one has no entry. How to add help for a new screen: docs/help-catalogue.md.
 import catalogue from "./catalogue.json";
+import { textKey } from "../textScan";
 
-export const norm = (t) => String(t || "").replace(/\s+/g, " ").trim().replace(/(\s*[:…]|\.\.\.)$/, "").trim();
+export const norm = textKey;
 
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 // the keys with dynamic parts, by kind, as patterns; the one with the most fixed text wins

@@ -51,6 +51,19 @@ class Refused(ValueError):
     """A command or an option that may not run from the page (the reason is the message)."""
 
 
+
+_FLAGS = re.compile(r"(--[\w-]+)(?:\|(--[\w-]+))?(?=\s)")
+
+
+def flag_value(body: str) -> tuple[list[str], str] | None:
+    """--x <v>, --x a|b, --to|--from p:n: the flag or flags and the value after them (trimmed); None for anything else.
+    The same answers as the regular expression it replaces, without its slow cases (SonarQube python:S8786, D804)."""
+    m = _FLAGS.match(body)
+    rest = body[m.end():] if m else ""
+    if len(rest) < 2:
+        return None
+    return [f for f in m.groups() if f], rest.strip()
+
 def _first(names: list[str]) -> str:
     return names[0]
 
@@ -107,17 +120,16 @@ def _params(args: str) -> list[dict]:
             out.append({"key": "/".join(body.split("|")), "type": "flags", "choices": body.split("|"), "required": not opt})
         elif re.match(r"^--[\w-]+$", body):                         # [--x]
             out.append({"key": body, "type": "flag", "required": False})
-        elif m := re.match(r"^(--[\w-]+)(?:\|(--[\w-]+))?\s+(.+)$", body):   # [--x <v>] [--x a|b] [--to|--from p:n]
-            flags = [f for f in (m.group(1), m.group(2)) if f]
-            val = m.group(3).strip()
-            inner = re.match(r"^(.*?)(\s*\[--yes\])?$", val)
-            val = inner.group(1).strip()
+        elif fv := flag_value(body):                                  # [--x <v>] [--x a|b] [--to|--from p:n]
+            flags, val = fv
+            yes = val.endswith("[--yes]")
+            val = (val[:-len("[--yes]")] if yes else val).strip()
             p = {"key": flags[0], "type": "flag-value", "flags": flags, "required": False,
                  "placeholder": val.strip("<>")}
             if "|" in val and not val.startswith("<"):
                 p["choices"] = val.split("|")
             out.append(p)
-            if inner.group(2):
+            if yes:
                 out.append({"key": "--yes", "type": "flag", "required": False})
         elif "|" in body and not body.startswith("<"):               # [a|b] or a|b (a flag among them: its own field)
             words = body.split("|")
@@ -145,16 +157,16 @@ def _params(args: str) -> list[dict]:
 PLACEHOLDERS = {"name", "tag", "run", "command", "source", "id", "words", "service", "n", "version"}
 # syntax lines too rich for the reader above: their fields written out
 OVERRIDES = {
-    "test": [{"key": "what", "type": "choice", "choices": ["smoke", "full", "backup", "failed", "delete", "clean", "sonar"], "required": False,
-              "placeholder": "smoke|full|security|performance|backup|failed|delete|clean|sonar"},
+    "test": [{"key": "what", "type": "choice", "choices": ["smoke", "full", "backup", "failed", "delete", "clean", "sonar", "attack"], "required": False,
+              "placeholder": "smoke|full|security|performance|attack|backup|failed|delete|clean|sonar"},
              {"key": "run", "type": "word", "required": False, "placeholder": "run (with failed: which run; the last if none)"},
              {"key": "--warnings", "type": "flag", "required": False},     # with failed: its warnings too (R2.36)
              {"key": "--older-than", "type": "flag-value", "flags": ["--older-than"], "required": False,
               "placeholder": "days"},                                     # with delete: runs older than DAYS (R2.43)
              {"key": "--smoke/--detailed", "type": "flags", "choices": ["--smoke", "--detailed"], "required": False},
              {"key": "--suite", "type": "flag-value", "flags": ["--suite"], "required": False,
-              "placeholder": "api|ui|db|jobs|mcp|security|reports|performance|backup|all",
-              "choices": ["api", "ui", "db", "jobs", "mcp", "security", "reports", "performance", "backup", "all"]},
+              "placeholder": "api|ui|db|jobs|mcp|security|reports|performance|attack|backup|all",
+              "choices": ["api", "ui", "db", "jobs", "mcp", "security", "reports", "performance", "attack", "backup", "all"]},
              {"key": "--size", "type": "flag-value", "flags": ["--size"], "required": False, "placeholder": "small|medium|large",
               "choices": ["small", "medium", "large"]},                    # performance: the benchmark's data (R5.18)
              {"key": "--users", "type": "flag-value", "flags": ["--users"], "required": False, "placeholder": "people at once"},
@@ -166,7 +178,10 @@ OVERRIDES = {
              {"key": "--clean", "type": "flag-value", "flags": ["--clean"], "required": False, "placeholder": "run|all"},
              {"key": "--yes", "type": "flag", "required": False},
              {"key": "--reset-survival", "type": "flag", "required": False},
-             {"key": "--keep/--reset", "type": "flags", "choices": ["--keep", "--reset"], "required": False},   # sonar (R8)
+             {"key": "--no-attack", "type": "flag", "required": False},     # full without the attack test (D823)
+             {"key": "--no-dev-check", "type": "flag", "required": False},  # full without the dev check (D823)
+             {"key": "--no-sonar", "type": "flag", "required": False},      # full without the SonarQube scan (D823)
+             {"key": "--keep/--open/--reset", "type": "flags", "choices": ["--keep", "--open", "--reset"], "required": False},   # sonar (R8, D805)
              {"key": "--confirm", "type": "flag-value", "flags": ["--confirm"], "required": False, "placeholder": "installation name"}],
 }
 

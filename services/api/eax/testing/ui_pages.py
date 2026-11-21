@@ -42,7 +42,7 @@ SKIP_ROUTES = {
 TESTED_ALONE = {"#/break-glass"}
 MAX_PAGES = 400
 _UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", re.I)
-_LEAVE = re.compile(r"^#/break-glass\b|logout|sign-?out", re.I)
+_LEAVE = re.compile(r"(?:^#/break-glass\b)|logout|sign-?out", re.I)
 
 
 def seeds(ids: dict[str, str]) -> list[str]:
@@ -92,8 +92,16 @@ HELP_JS = """() => {
 }"""
 
 
+# the operations helper answering 502, 503 or 504 while it runs this very test (R12.2: the full test of 19 Nov 2026
+# failed the metamodel's Hierarchy page on "POST .../operations/deploys/questions: 503", the Deploy page's question
+# timing out while the helper was busy with the run): a warning, as the deploy check itself has it (run.deploy_page)
+HELPER_BUSY = re.compile(r"/api/v1/operations/\S*: (502|503|504)$")
+
+
 def judge(found: dict, errors: list[str], help_state: str) -> tuple[str, str]:
     """The outcome of one page from what the browser saw (also used by the unit tests)."""
+    busy = [e for e in errors if HELPER_BUSY.search(e)]
+    errors = [e for e in errors if e not in busy]
     bad = []
     if errors:
         bad.append("; ".join(errors[:5]))
@@ -103,6 +111,8 @@ def judge(found: dict, errors: list[str], help_state: str) -> tuple[str, str]:
         bad.append("no heading")
     if help_state != "ok":
         bad.append("F1 opened no help" if help_state == "closed" else "F1: no help for this screen")
+    if busy:
+        bad.append("the operations helper did not answer in time (it is running this test): " + "; ".join(busy[:3]))
     if not bad:
         return "passed", "renders, has a heading, F1 help"
     if errors or found.get("notFound"):
@@ -137,11 +147,13 @@ def sweep(page, open_route: Callable[[str], None], ids: dict[str, str], record: 
     ("page: <route>"). open_route(route) loads a route (the self-test's sign-in in the URL). Returns the counts.
     routes: these pages only, no links followed (a repeat of the failed pages, R2.36)."""
     errors: list[str] = []
+    mine: set[int] = set()            # the requests this page made: a late answer to the page before is not this one's (R12.2)
+    page.on("request", lambda q: mine.add(id(q)))
     page.on("pageerror", lambda e: errors.append(f"script error: {str(e)[:200]}"))
     page.on("console", lambda m: errors.append(f"blocked by the Content-Security-Policy: {m.text[:200]}")   # R3.12, D672
             if csp_blocked(m.type, m.text) else None)
     page.on("response", lambda r: errors.append(f"{r.request.method} {r.url.split('?')[0]}: {r.status}")
-            if "/api/" in r.url and r.status >= 500 else None)
+            if "/api/" in r.url and r.status >= 500 and id(r.request) in mine else None)
     only = routes is not None
     queue = [norm(s) for s in (routes if only else seeds(ids))]
     seen: set[str] = set(queue)
@@ -154,6 +166,7 @@ def sweep(page, open_route: Callable[[str], None], ids: dict[str, str], record: 
         route = queue.pop(0)
         t0 = time.time()
         errors.clear()
+        mine.clear()
         try:
             if loaded % 25 == 0:                                   # a fresh load now and then: nothing carries over
                 # R4.16: a page whose app died (a script error) and then failed took the next eleven with it: opening

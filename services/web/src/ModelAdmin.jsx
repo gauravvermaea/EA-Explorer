@@ -17,7 +17,7 @@ import {
 import { runTask } from "./tasks";
 import { MoveToArchiveDialog } from "./Archive";
 import { CollectWizard, LoadDataWizard, MigrationWizard, QualityWizard } from "./GuidedWizards";
-import { fmtDateTime } from "./fmt";
+import { fmtDateTime, byText } from "./fmt";
 import { MergeRequestsTab, SendForMergeWizard } from "./MergeBack";
 import PageNav from "./PageNav";
 import { MODEL_WIZARDS, wizardAsked } from "./wizardLists";
@@ -298,7 +298,7 @@ function Wizards({ m, only = null, onDone = null }) {
   function start(c) {
     if (c.go) { go(c.go); if (onDone) onDone(); return; }
     if (c.k === "spec") { apiDownload(`/api/v1/models/${m.id}/metamodel-spec`, `${m.name} metamodel.json`).then(() => onDone && onDone()).catch((e) => setOpen({ error: e.message })); return; }
-    if (c.k === "archive") { act(m.lifecycle === "archived" ? "reactivate" : "archive"); return; }
+    if (c.k === "archive") { void act(m.lifecycle === "archived" ? "reactivate" : "archive"); return; }
     if (c.k === "withdraw") { libraryAction(m, m.library_state === "withdrawn" ? "restore" : "withdraw").then(() => onDone && onDone()).catch((e) => setOpen({ error: e.message })); return; }
     setOpen(c.k);
   }
@@ -437,7 +437,7 @@ function MergeWizard({ target, source, freeze = false, onClose }) {
     ents.forEach((e) => { const t = c[e.entity_type] ||= { name: e.entity_type, create: 0, update: 0 }; t[e.action === "create" ? "create" : "update"] += 1; });
     return Object.values(c).sort((a, b) => a.name.localeCompare(b.name));
   }, [ents]);
-  const relTypes = useMemo(() => [...new Set(rels.map((r) => r.type))].sort(), [rels]);
+  const relTypes = useMemo(() => [...new Set(rels.map((r) => r.type))].sort(byText), [rels]);
   const meta = useMemo(() => Object.entries(plan?.metamodel_gaps || {}).flatMap(([k, v]) => (Array.isArray(v) ? v : [])
     .filter((x) => x.code).map((x) => ({ section: k, code: x.code, name: x.name || x.code }))), [plan]);
   const inType = (e) => !offTypes.has(e.entity_type);

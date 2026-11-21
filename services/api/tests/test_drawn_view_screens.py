@@ -128,7 +128,7 @@ def test_similar_names_while_creating_from_a_drawn_view():
         assert x in d, x
     v = _src("DrawnView.jsx")
     assert 'import { fuzzyFilter } from "./names"' in v and v.count("fuzzyFilter(") >= 3
-    assert "onUseExisting={(x) => { realise(dlg.cell" in v
+    assert "onUseExisting={(x) => { void realise(dlg.cell" in v
     n = _src("names.js")
     for x in ("export function closeness", "export function searchScore", "export function fuzzyFilter", "numbers(na) !== numbers(nb)"):
         assert x in n, x

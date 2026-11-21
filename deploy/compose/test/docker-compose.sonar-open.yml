@@ -1,0 +1,6 @@
+# eax test sonar --open (D805): SonarQube's own web pages, on this computer only (127.0.0.1), while it runs.
+# Added only for that command; SonarQube is still in the test profile and eax down removes it.
+services:
+  sonarqube:
+    ports:
+      - "127.0.0.1:${EAX_SONAR_PORT:-9000}:9000"

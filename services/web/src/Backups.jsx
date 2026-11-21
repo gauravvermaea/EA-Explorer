@@ -144,7 +144,7 @@ function WebNotProven({ gate, kind }) {
   const lines = kind === "app"
     ? [[".\\eax app-backup <tag>", "an application backup"], [".\\eax backups", "list them"]]
     : [[".\\eax backup <tag>", "an infrastructure backup"], [".\\eax restore <name|tag|latest> --what full|app|app+data|db|files", "a restore"]];
-  const copy = (t) => { try { navigator.clipboard.writeText(t); setCopied(t); } catch { /* select it by hand */ } };
+  const copy = (t) => { try { void navigator.clipboard.writeText(t); setCopied(t); } catch { /* select it by hand */ } };
   const tick = (on) => {
     gate.setOverride(on);
     if (on) apiFetch("/api/v1/admin/backups/override", { method: "POST", body: JSON.stringify({ why: gate.web?.why || "" }) }).catch(() => {});

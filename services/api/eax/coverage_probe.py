@@ -1,15 +1,19 @@
 """Code coverage of the API while it is tested (D642; owner, 13 Nov 2026: "In testing can we get code coverage? If so
 then build it").
 
-  EAX_COVERAGE=on      each API worker measures which lines of EA Explorer's own code run (coverage.py), from its start,
+  EAX_COVERAGE=on      each API worker, each job runner and the MCP server (D810) measures which lines of EA Explorer's
+                       own code run (coverage.py), from its start,
                        saved every 30 seconds into EAX_COVERAGE_DIR (default /tmp/eax-coverage, in the container)
   off (default)        nothing is measured; it costs nothing
 
 The self-test reads the report at its end (GET /api/v1/admin/coverage): the share of lines run, by file and by area, and
 keeps it in its run's folder (coverage.json and coverage.html) and as a result line. Measured since the API started, so
 after `eax clean-restart` and one full self-test it is that test's coverage. Measuring slows the API a little (about a
-fifth): on for test installations (the laptop template), off on servers. The unit tests' own coverage: pytest --cov
-(requirements-dev.txt; CI runs it).
+fifth): on for test installations (the laptop template), off on servers.
+
+The unit tests are measured too (R8.1, D807; owner, 20 Nov 2026: "Both combined"): eax dev check runs them with pytest
+--cov over the same code and keeps which lines ran in work/tests/unit-coverage.json; the self-test then joins the two,
+line by line (combine): a line counts when either the live run or the unit tests ran it. Goal: 90% (D802).
 """
 
 from __future__ import annotations
@@ -38,7 +42,9 @@ def folder() -> Path:
 
 
 def start() -> bool:
-    """In each worker before EA Explorer's modules are imported (eax/wsgi.py). True when measuring."""
+    """In each process before EA Explorer's modules are imported (eax/wsgi.py, eax/jobs.py for the job runners,
+    eax/mcp_server.py; D810: they had shown 0% for the job and MCP code the self-test runs). Once per process: True
+    when it started measuring here."""
     if not enabled() or _cov["c"] is not None:
         return False
     try:
@@ -78,25 +84,60 @@ def area_of(path: str) -> str:
 
 def summarise(files: dict) -> dict:
     """A coverage.py JSON report's files -> the totals, each area and the files least covered."""
-    rows, areas = [], {}
-    run = total = 0
+    rows = []
     for name, f in files.items():
         s = f.get("summary") or {}
         n, hit = int(s.get("num_statements") or 0), int(s.get("covered_lines") or 0)
         if not n:
             continue
         short = "eax/" + name.split("eax/", 1)[-1]
-        rows.append({"file": short, "lines": n, "run": hit, "percent": round(hit / n * 100, 1)})
-        a = areas.setdefault(area_of(short), {"area": area_of(short), "lines": 0, "run": 0})
-        a["lines"] += n
-        a["run"] += hit
-        run += hit
-        total += n
+        row = {"file": short, "lines": n, "run": hit, "percent": round(hit / n * 100, 1)}
+        if "executed_lines" in f:                               # which lines (D807): to join with the unit tests'
+            row["ran"] = sorted(f.get("executed_lines") or [])
+            row["statements"] = sorted(set(row["ran"]) | set(f.get("missing_lines") or []))
+        rows.append(row)
+    out = _totals(rows)
+    out.update(on=True, at=time.time())
+    return out
+
+
+def _totals(rows: list[dict]) -> dict:
+    areas: dict = {}
+    run = total = 0
+    for r in rows:
+        a = areas.setdefault(area_of(r["file"]), {"area": area_of(r["file"]), "lines": 0, "run": 0})
+        a["lines"] += r["lines"]
+        a["run"] += r["run"]
+        run += r["run"]
+        total += r["lines"]
     for a in areas.values():
         a["percent"] = round(a["run"] / a["lines"] * 100, 1) if a["lines"] else 0.0
     rows.sort(key=lambda r: (r["percent"], -r["lines"]))
-    return {"on": True, "percent": round(run / total * 100, 1) if total else 0.0, "lines": total, "run": run,
-            "areas": sorted(areas.values(), key=lambda a: a["percent"]), "files": rows, "at": time.time()}
+    return {"percent": round(run / total * 100, 1) if total else 0.0, "lines": total, "run": run,
+            "areas": sorted(areas.values(), key=lambda a: a["percent"]), "files": rows}
+
+
+def combine(live: dict, unit: dict) -> dict:
+    """The live run's coverage joined with the unit tests' (D807): for each file a line counts when either ran it. A file
+    is joined only when both measured the same version of it (the same statements); otherwise the live run's figure
+    stands and the file is named under "not_joined". Files only one of them measured are taken as they are."""
+    units = {r["file"]: r for r in unit.get("files") or []}
+    rows, joined, not_joined = [], 0, []
+    for r in live.get("files") or []:
+        u = units.pop(r["file"], None)
+        row = dict(r)
+        if u is not None and r.get("statements") and r.get("statements") == u.get("statements"):
+            ran = sorted(set(r.get("ran") or []) | set(u.get("ran") or []))
+            row.update(ran=ran, run=len(ran), percent=round(len(ran) / r["lines"] * 100, 1) if r["lines"] else 0.0)
+            joined += 1
+        elif u is not None:
+            not_joined.append(r["file"])
+        rows.append(row)
+    rows += [dict(u) for u in units.values()]          # code the live run never loaded but the unit tests did
+    out = _totals(rows)
+    out.update(on=True, at=time.time(), live=live.get("percent"), unit=unit.get("percent"), joined=joined,
+               not_joined=not_joined)
+    return out
 
 
 def report() -> dict:

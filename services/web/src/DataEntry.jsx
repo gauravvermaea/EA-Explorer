@@ -259,7 +259,7 @@ export function EntityFormDialog({ model, m, typeId, e, onClose, onSaved, commit
       <Modal title="Already in the model" onClose={() => setAskSame(null)}
         actions={<>
           <button className="ed-btn" onClick={() => { onUseExisting(askSame); onClose(); }}>Use the existing one</button>
-          <button className="ed-btn secondary" onClick={() => { setAskSame(null); save(false, true); }}>Create another</button>
+          <button className="ed-btn secondary" onClick={() => { setAskSame(null); void save(false, true); }}>Create another</button>
           <button className="ed-btn secondary" onClick={() => setAskSame(null)}>Back to the form</button></>}>
         <p className="similar-ask"><b>{askSame.name}</b> already exists as {aOrAn(askSame.type || form.entity_type.name)} ({askSame.display_id}). Use the existing one, or create another?</p>
         <p className="quiet small">Using it shows it on the drawing instead of making a new {form.entity_type.name}; nothing you typed in the form is saved.</p>
@@ -644,7 +644,7 @@ function EntryRow({ model, m, form, row, cols, access, onRelate, tq }) {
       <tr className="entry-editing">
         <td>{row.display_id || <span className="quiet">new</span>}</td>
         <td><input autoFocus value={edit.name} placeholder="Name *" onChange={(ev) => setEdit({ ...edit, name: ev.target.value })}
-          onKeyDown={(ev) => { if (ev.key === "Enter") save(); if (ev.key === "Escape") setEdit(null); }} /></td>
+          onKeyDown={(ev) => { if (ev.key === "Enter") void save(); if (ev.key === "Escape") setEdit(null); }} /></td>
         {tq && <td />}
         <td><input value={edit.description} onChange={(ev) => setEdit({ ...edit, description: ev.target.value })} /></td>
         {cols.map((a) => (

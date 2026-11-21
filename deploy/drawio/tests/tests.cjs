@@ -23,7 +23,7 @@ const SETUP = {
   entityIcons: { 'e-app': 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==' },
 };
 
-(async () => {
+void (async () => {
   const b = await chromium.launch();
   const p = await b.newPage({ viewport: { width: 1320, height: 880 } });
   const errs = []; p.on('pageerror', e => errs.push('host: ' + e.message));

@@ -159,13 +159,47 @@ def log_path() -> str:
 
 
 # ---------------------------------------------------------------- secrets kept out of logs
-_MASKS = [(re.compile(r"((?:PASSWORD|SECRET|_KEY|URLENC)[A-Z_]*\s*[:=]\s*).*$"), r"\1****"),
-          (re.compile(r"(redis://:)[^@]+@"), r"\1****@"),
+_KEYWORDS = ("PASSWORD", "SECRET", "_KEY", "URLENC")
+_UPPER = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZ_")
+
+
+def mask_assignment(line: str) -> str:
+    """NAME=value or NAME: value where the name holds PASSWORD, SECRET, _KEY or URLENC: the value as ****. String work
+    giving the same answers as the regular expression it replaces, without its slow cases (SonarQube python:S8786,
+    D804): the first such name whose value runs to the end of the line (or to its last line break)."""
+    n = len(line)
+    for p in range(n):
+        kw = next((k for k in _KEYWORDS if line.startswith(k, p)), None)
+        if not kw:
+            continue
+        j = p + len(kw)
+        while j < n and line[j] in _UPPER:
+            j += 1
+        while j < n and line[j].isspace():
+            j += 1
+        if j >= n or line[j] not in ":=":
+            continue
+        j += 1
+        w = j
+        while w < n and line[w].isspace():
+            w += 1
+        if w == n:
+            return line[:w] + "****"
+        nl = line.find("\n", w)
+        if nl == -1:
+            return line[:w] + "****"
+        if nl == n - 1:
+            return line[:w] + "****\n"
+    return line
+
+
+_MASKS = [(re.compile(r"(redis://:)[^@]+@"), r"\1****@"),
           (re.compile(r'("PASSWORD"\s*:\s*")[^"]*"'), r'\1****"')]
 
 
 def hide_secrets(line: str) -> str:
     """A line with passwords, tokens and keys masked."""
+    line = mask_assignment(line)
     for rx, rep in _MASKS:
         line = rx.sub(rep, line)
     return line

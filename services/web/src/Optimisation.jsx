@@ -15,12 +15,12 @@ export default function Optimisation() {
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState("");
   const load = () => apiFetch("/api/v1/admin/optimisation").then(setD).catch((e) => setErr(e.message));
-  useEffect(() => { load(); }, []);
+  useEffect(() => { void load(); }, []);
   if (!d) return err ? <p className="status bad">{err}</p> : <p><span className="spinner" aria-hidden="true" /> Reading…</p>;
   const rep = d.report;
   async function measure() {
     setBusy("measure"); setErr(""); setMsg("");
-    try { const r = await apiFetch("/api/v1/admin/optimisation", { method: "POST", body: "{}" }); setMsg(`${r.suggestions.length} suggestion(s).`); load(); }
+    try { const r = await apiFetch("/api/v1/admin/optimisation", { method: "POST", body: "{}" }); setMsg(`${r.suggestions.length} suggestion(s).`); void load(); }
     catch (e) { setErr(e.message); }
     setBusy("");
   }
@@ -30,7 +30,7 @@ export default function Optimisation() {
     setBusy(s.key); setErr(""); setMsg("");
     try {
       await apiFetch(`/api/v1/admin/optimisation/${rep.id}/apply`, { method: "POST", body: JSON.stringify({ key: s.key, choice: choice || "" }) });
-      setMsg(`Done: ${what}.`); load();
+      setMsg(`Done: ${what}.`); void load();
     } catch (e) { setErr(e.message); }
     setBusy("");
   }

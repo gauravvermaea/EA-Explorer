@@ -33,9 +33,9 @@ import threading
 import time
 
 H: dict = {}                                   # ops.py's globals: docker, containers, jobs, _in_background...
-SUITES = ("api", "ui", "db", "jobs", "mcp", "security", "reports", "performance", "backup", "restore")   # performance (R5.18); backup (R2.45), then restore (R3.8, the command line only)
+SUITES = ("api", "ui", "db", "jobs", "mcp", "security", "reports", "performance", "attack", "backup", "restore")   # performance (R5.18); attack (R8.2); backup (R2.45), then restore (R3.8, the command line only)
 # only when asked for by name, never in the full test (owner, 15 Nov 2026: "I dont want full test to run performance test"; R5.29)
-ON_DEMAND = ("performance",)
+ON_DEMAND = ("performance", "attack")            # by name only, never in the full test (R5.29, R8.2)
 FULL_SUITES = tuple(s for s in SUITES if s not in ON_DEMAND)
 ALIASES = {"backup-restore": "restore"}   # R5.6-B1: eax runs it itself (eaxcli/backup_restore.py); a run leaves it out
 ZAP_IMAGE = os.environ.get("EAX_IMAGE_ZAP", "ghcr.io/zaproxy/zaproxy:2.16.1")     # R5.17: 2.15.0 was out of date
@@ -423,19 +423,61 @@ def _start_runner(info: dict, name: str, folder: str, cmd: list[str]) -> str:
     return cid
 
 
-def _wait(cid: str, follow=None, limit: int = 7200) -> tuple[int, str]:
-    """Waits for the container to end; returns its exit code and output (and prints it as it comes with follow)."""
+def _wait(cid: str, follow=None, limit: int = 7200, to_file: str = "") -> tuple[int, str]:
+    """Waits for the container to end; returns its exit code and output (and prints it as it comes with follow). With
+    to_file every line is also written to that file as it comes (R12.1: the full test of 21 Nov 2026 stopped in the
+    reports suite and its output, kept only in memory until the end, was lost with the reason)."""
     out: list[str] = []
-    if follow:
-        p = subprocess.Popen(["docker", "logs", "-f", cid], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-        for line in p.stdout:                         # ends when the container stops
-            out.append(line)
-            follow(line.rstrip("\n"))
-        p.wait()
+    if follow or to_file:
+        keep = None
+        if to_file:
+            try:
+                keep = open(to_file, "a", encoding="utf-8")   # noqa: SIM115 - closed below, whatever happens
+            except OSError:
+                keep = None
+        try:
+            p = subprocess.Popen(["docker", "logs", "-f", cid], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            for line in p.stdout:                     # ends when the container stops
+                out.append(line)
+                if keep is not None:
+                    keep.write(line)
+                    keep.flush()
+                if follow:
+                    follow(line.rstrip("\n"))
+            p.wait()
+        finally:
+            if keep is not None:
+                keep.close()
     code = int((H["docker"]("wait", cid, timeout=limit) or "1").strip() or 1)
-    if not follow:
+    if not (follow or to_file):
         out.append(H["docker"]("logs", cid, timeout=120))
     return code, "".join(out)
+
+
+TOKEN_FILES = ("zap-auth.txt", "attack-auth.txt", "bench-tokens.txt")   # a run's test users' tokens for the helper's scans
+
+
+def forget_tokens(folder: str) -> None:
+    """The tokens left for the helper's scans deleted, however the run ended (R12.1: zap-auth.txt was left behind)."""
+    for name in TOKEN_FILES:
+        try:
+            os.remove(os.path.join(folder, name))
+        except OSError:
+            pass
+
+
+def helper_log(folder: str, say):
+    """`say` that also keeps each line, with its time, in the run's helper.log (R12.1)."""
+    path = os.path.join(folder, "helper.log")
+
+    def said(line: str) -> None:
+        try:
+            with open(path, "a", encoding="utf-8") as f:
+                f.write(time.strftime("%H:%M:%S ", time.gmtime()) + str(line) + "\n")
+        except OSError:
+            pass
+        say(line)
+    return said
 
 
 def scans_wanted(folder: str) -> dict | None:
@@ -585,6 +627,27 @@ def _mb(v: str) -> float:
     return float(m.group(1)) * {"B": 1 / 1048576, "KB": 1 / 1024, "kB": 1 / 1024, "MB": 1, "GB": 1024, "TB": 1048576}.get(unit, 1)
 
 
+def _attackscans():
+    """The attack test's scanners (R8.2, attackscans.py beside this file)."""
+    try:
+        import attackscans
+    except ImportError:                                # loaded by path (the tests): its neighbour by path too
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("attackscans", os.path.join(os.path.dirname(__file__), "attackscans.py"))
+        attackscans = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(attackscans)
+    return attackscans
+
+
+def attack_allowed() -> tuple[bool, str]:
+    """Whether this installation may be attacked (R8.2): a laptop, or one marked as a test installation."""
+    try:
+        values = H["_values"](H["_read_config"]())
+    except Exception:  # noqa: BLE001 - no config file: a laptop's defaults
+        values = {}
+    return _attackscans().allowed(values)
+
+
 def _trivy(hostdir: str, images: list[str], say) -> None:
     for image in images:
         short = re.sub(r"[^a-z0-9-]", "-", image.split("/")[-1].split(":")[0])
@@ -611,6 +674,13 @@ def run_sequence(level: str, suites: list[str], role: str = "", area: str = "", 
         current.update(busy=True, started=time.time(), run_id=run_id, level=level, suites=suites, by=by, stop="")
     folder = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime()) + (f"-run{run_id}" if run_id else "")
     beating = memory = None
+    if "attack" in suites:                            # never against a real installation (R8.2)
+        ok, why = attack_allowed()
+        if not ok:
+            with _lock:
+                current.update(busy=False, finished=time.time())
+            say(why)
+            return {"run_id": run_id, "folder": "", "code": 2, "error": why}
     project = H["project"]() or "eaexplorer"
     name = f"{project}-testrunner"
     try:
@@ -621,6 +691,7 @@ def run_sequence(level: str, suites: list[str], role: str = "", area: str = "", 
         os.makedirs(f"{WORK}/tests/{folder}", exist_ok=True)
         os.chmod(f"{WORK}/tests/{folder}", 0o777)
         current["folder"] = folder
+        say = helper_log(f"{WORK}/tests/{folder}", say)   # the helper's own lines kept on disk too (R12.1)
         beating = keep_beating(f"{WORK}/tests/{folder}")   # this run is being run, scans and collect included (R2.64)
         memory = memory_watch(folder, run_id, level, suites)  # every container's memory while it runs (R3.5-M1)
         cmd = ["run", "--level", level, "--suites", ",".join(suites), "--trigger", trigger, "--folder", folder]
@@ -642,21 +713,30 @@ def run_sequence(level: str, suites: list[str], role: str = "", area: str = "", 
             cmd += ["--repeat", str(int(repeat))] + (["--warnings"] if warnings else [])
         cid = _start_runner(info, name, folder, cmd)
         current["container"] = cid
-        code, out = _wait(cid, follow)
+        say(f"the test runner started ({cid[:12]}); its output: runner-output.log")
+        code, out = _wait(cid, follow, to_file=f"{WORK}/tests/{folder}/runner-output.log.part")
+        say(f"the test runner ended with exit {code}")
         m = re.search(r"RUN_ID=(\d+)", out)
         run_id = run_id or (int(m.group(1)) if m else 0)
         current["run_id"] = run_id
         with open(f"{WORK}/tests/{folder}/runner-output.log", "w", encoding="utf-8") as f:
             f.write(out)
+        try:                                           # the whole output is kept: the part written as it came goes
+            os.remove(f"{WORK}/tests/{folder}/runner-output.log.part")
+        except OSError:
+            pass
         H["docker"]("rm", "-f", cid, timeout=60)
         if current.get("stop") and run_id:
             _collect(info, name, folder, run_id, ["--stopped", current["stop"]])
         elif run_id and code == 0 and ("SCANS_NEXT" in out or (repeat is None and level == "detailed"
-                                                                and ("security" in suites or "performance" in suites))):
+                                                                and ("security" in suites or "performance" in suites
+                                                                     or "attack" in suites))):
             if os.path.exists(f"{WORK}/tests/{folder}/bench-plan.json"):   # the load test first, on a quiet system (R5.18)
                 _k6(info, folder, say)
             if "security" in suites or os.path.exists(f"{WORK}/tests/{folder}/scans.json"):
                 _security_scans(info, folder, say)
+            if "attack" in suites:                    # the attack test's scanners, each brought up to date first (R8.2)
+                _attackscans().run_all(H, info, folder, WORK, host_work(), say)
             code = _collect(info, name, folder, run_id, [], follow)
         elif not run_id:                              # nothing to repeat: no run was made, nor is its folder needed
             try:
@@ -675,6 +755,8 @@ def run_sequence(level: str, suites: list[str], role: str = "", area: str = "", 
                 pass
         return {"run_id": run_id, "folder": folder, "code": 1, "error": str(exc)}
     finally:
+        if current.get("folder") == folder:
+            forget_tokens(f"{WORK}/tests/{folder}")
         if beating is not None:
             beating.set()
         if memory is not None:
@@ -765,13 +847,14 @@ def _opt(args: list[str], flag: str) -> str:
 
 
 def cli(args: list[str]) -> int:
-    """ops.py test [smoke|full] [--version V] [--ci]   (R2.0.1, D592: two choices only; full = every suite, every page and
-    journey). The older forms (--smoke, --detailed, --suite S, --role R, --area A, --journey J, --pages-only) still work
+    """ops.py test [smoke|full] [--version V] [--ci] [--no-attack]   (R2.0.1, D592: two choices only; full = every suite,
+    every page and journey, and the attack test where it may run, D823). The older forms (--smoke, --detailed, --suite S, --role R, --area A, --journey J, --pages-only) still work
     for CI and scripts, but are no longer shown.
     ops.py test failed [N] [--warnings]: only the checks that failed in run N, or the newest finished run (R2.36, D605)."""
     if args[:1] == ["failed"]:
         return _cli_failed(args[1:])
-    if "full" in args:
+    full = "full" in args
+    if full:
         args = [a for a in args if a != "full"] + ["--detailed"]
     args = [a for a in args if a != "smoke"]
     level = "detailed" if "--detailed" in args else "smoke"
@@ -784,6 +867,19 @@ def cli(args: list[str]) -> int:
         print(exc)
         return 2
     role, area = _opt(args, "--role"), _opt(args, "--area")
+    # the full test from the command line has the attack test too, where it may run (owner, 21 Nov 2026, 13:03: "make
+    # attack part of full test suite from command line"; D823): a laptop, or an installation marked as a test one;
+    # never in CI (--ci) or when asked not to (--no-attack); elsewhere the full test runs as before and says so
+    if full and not picked and "--ci" not in args:
+        ok, why = attack_allowed()
+        if "--no-attack" in args:
+            print("The attack test is left out of this full test (--no-attack).", flush=True)
+        elif ok:
+            suites = [s for s in SUITES if s in suites or s == "attack"]
+        else:
+            print("The attack test is left out of this full test: " + why.split(":", 1)[0] + ".", flush=True)
+    if "attack" in suites and "security" not in suites:   # the attack test is the security suite and more (R8.2)
+        suites = [s for s in SUITES if s in suites or s == "security"]
     if "restore" in suites:     # the backup and restore test runs from eax itself, after this run (R5.6-B1)
         suites = [x for x in suites if x != "restore"]
         if not suites:
@@ -796,6 +892,12 @@ def cli(args: list[str]) -> int:
     if picked and level == "smoke":
         level = "detailed"                            # choosing suites means the detailed tests
     shown = "smoke test" if level == "smoke" else "full test" if set(FULL_SUITES) <= set(suites) else f"detailed ({', '.join(suites)})"
+    if "attack" in suites and set(FULL_SUITES) <= set(suites):
+        shown = ("full test, with the attack test (an hour or two more: ZAP full scan, API fuzzing, Nuclei, Semgrep "
+                 "and Gitleaks, each brought up to date first)")
+    elif "attack" in suites:
+        shown = ("the attack test (an hour or more: ZAP full scan, API fuzzing, Nuclei, Semgrep and Gitleaks, each "
+                 "brought up to date first, beside the security suite)")
     print(f"Self-test now: {shown}" + (f", role {role}" if role else "")
           + (f", area {area}" if area else "") + ". It removes test data left by earlier runs, starts its own test container, "
           "makes its own self_test_<id>_<n> models, project and accounts and tests in them; nothing else changes. The container "

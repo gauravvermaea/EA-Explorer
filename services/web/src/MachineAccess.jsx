@@ -8,6 +8,7 @@ import { apiFetch, can, currentUser } from "./auth";
 import { refreshAll, useApi } from "./ModelViews";
 import { Modal } from "./ModelOps";
 import { fmtDate, fmtDateTime } from "./fmt";
+import { trimDashes } from "./textScan";
 
 const STATES = { active: "Active", expiring: "Expires soon", expired: "Expired", revoked: "Revoked" };
 const LEVEL = { read: "read", "read-write": "read-write" };
@@ -315,7 +316,8 @@ function MakeServiceAccount({ meta, isSuper, onClose, onDone }) {
   const [description, setDescription] = useState("");
   const [roles, setRoles] = useState(["user"]);
   const [err, setErr] = useState("");
-  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+  const dashed = name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  const slug = trimDashes(dashed).slice(0, 40);
   const go = async () => {
     try {
       await apiFetch("/api/v1/machine-access/service-accounts", { method: "POST", body: JSON.stringify({ name, description, roles }) });

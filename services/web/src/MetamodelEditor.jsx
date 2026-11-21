@@ -13,7 +13,7 @@ import { useEffect, useMemo, useState } from "react";
 import { apiFetch, can, currentUser, canOn, myRolesOn, needsRole } from "./auth";
 import { downloadCsv } from "./exporting";
 import { refreshAll, Swatch, useApi } from "./ModelViews";
-import { fmtDateTime } from "./fmt";
+import { fmtDateTime, byText } from "./fmt";
 
 const DATA_TYPES = [
   ["text", "Text"], ["long_text", "Long text"], ["integer", "Whole number"], ["decimal", "Decimal number"],
@@ -487,7 +487,7 @@ function paramField(t, [label, kind], i, initial) {
   if (kind === "date_attr") return { ...f, type: "select", options: attrs.filter((a) => a.data_type === "date").map((a) => [a.code, a.name]) };
   // relationship rules (D113): what the metamodel allows this type to be linked by, and to
   const allowed = [...(t.outgoing || []), ...(t.incoming || [])];
-  const uniq = (xs) => [...new Set(xs)].sort().map((x) => [x, x]);
+  const uniq = (xs) => [...new Set(xs)].sort(byText).map((x) => [x, x]);
   if (kind === "reltype") return { ...f, type: "select", options: uniq(allowed.map((a) => a.relationship_type)) };
   if (kind === "othertype") return { ...f, type: "select", options: uniq(allowed.map((a) => a.other_type)) };
   return f;
@@ -772,7 +772,7 @@ export function LockControl({ model, m }) {
           ? <button className="linkish" title={`Lift ${m.locked_by}'s lock as Super Admin (recorded in the audit trail and the change log)`}
             onClick={() => {
               // eslint-disable-next-line no-alert
-              if (window.confirm(`Lift the lock ${m.locked_by} set on ${m.name}${m.lock_reason ? ` (${m.lock_reason})` : ""}? They are not asked.`)) call("DELETE");
+              if (window.confirm(`Lift the lock ${m.locked_by} set on ${m.name}${m.lock_reason ? ` (${m.lock_reason})` : ""}? They are not asked.`)) void call("DELETE");
             }}>Unlock (Super Admin)</button>
           : <button className="linkish" onClick={() => call("DELETE")}>Unlock</button>}
         {error && <span className="status bad"> {error}</span>}

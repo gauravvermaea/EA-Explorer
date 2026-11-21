@@ -75,8 +75,8 @@ async function poll() {
 function start() {
   if (started) return;
   started = true;
-  poll();
-  slow = setInterval(() => { if (!timer) poll(); }, 30000);   // tasks started in another browser tab
+  void poll();
+  slow = setInterval(() => { if (!timer) void poll(); }, 30000);   // tasks started in another browser tab
 }
 
 // follow a task an answer carried; href: the screen that asked (the server keeps it as the task's link too)

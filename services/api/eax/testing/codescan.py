@@ -78,6 +78,18 @@ def bandit(root: Path, out: Path) -> dict | None:
     return data
 
 
+def bandit_accepted(result: dict, accept: list[dict] | None = None) -> bool:
+    """A bandit result accepted in writing and still in date (security_accepted.json, by "bandit:<test id>"; D800: SQL
+    built from text, B608, accepted for good)."""
+    from datetime import date
+
+    from eax.testing import security_gate as G
+    accept = G.accepted() if accept is None else accept
+    f = G.finding("code", f"bandit:{result.get('test_id')}", result.get("issue_severity", "low"), result.get("issue_text", ""),
+                  f"{result.get('filename')}:{result.get('line_number')}")
+    return any(G._match(f, a) and a["until"] >= date.today().isoformat() for a in accept)
+
+
 def licences() -> list[dict] | None:
     """The Python dependencies with a copyleft licence; None when pip-licenses is not there."""
     r = subprocess.run([sys.executable, "-m", "piplicenses", "--format", "json", "--with-system"], capture_output=True, text=True,
@@ -97,10 +109,12 @@ def run(root: Path, out: Path, record: Record) -> None:
     if data is None:
         record("code: Python static analysis (bandit)", "skipped", "bandit is not in the test runner (rebuild it: eax test --build)", 0)
     else:
-        bad = [r for r in data.get("results") or [] if r.get("issue_severity") == "HIGH" and r.get("issue_confidence") in ("HIGH", "MEDIUM")]
-        medium = [r for r in data.get("results") or [] if r.get("issue_severity") == "MEDIUM"]
+        results = [r for r in data.get("results") or [] if not bandit_accepted(r)]
+        bad = [r for r in results if r.get("issue_severity") == "HIGH" and r.get("issue_confidence") in ("HIGH", "MEDIUM")]
+        medium = [r for r in results if r.get("issue_severity") == "MEDIUM"]
+        left = len(data.get("results") or []) - len(results)
         record("code: Python static analysis (bandit)", "warning" if bad or medium else "passed",
-               f"{len(bad)} high, {len(medium)} medium" + (": " + "; ".join(f"{r['test_id']} {Path(r['filename']).name}:{r['line_number']}"
+               f"{len(bad)} high, {len(medium)} medium" + (f" ({left} accepted in writing)" if left else "") + (": " + "; ".join(f"{r['test_id']} {Path(r['filename']).name}:{r['line_number']}"
                                                                            for r in bad[:20]) if bad else ""), 0)
     found = secrets(root)
     (out / "secrets.json").write_text(json.dumps(found), encoding="utf-8")

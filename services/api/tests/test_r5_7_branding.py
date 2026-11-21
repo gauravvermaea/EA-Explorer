@@ -187,7 +187,7 @@ def test_a_theme_chosen_is_shown_at_once_and_kept_by_save():
     admin = (WEB / "BrandingAdmin.jsx").read_text(encoding="utf-8")
     assert "export async function previewTheme(" in js and "export async function endPreview(" in js
     assert "previewTheme(e.target.value)" in admin and "await endPreview()" in admin
-    assert "useEffect(() => () => { endPreview(); }, [])" in admin          # leaving unsaved goes back
+    assert "useEffect(() => () => { void endPreview(); }, [])" in admin         # leaving unsaved goes back
     assert "previewTheme(slug ||" in js and "chooseMine(trying)" in js       # My look: shown at once, Save keeps it
 
 

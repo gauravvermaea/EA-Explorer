@@ -136,7 +136,7 @@ def run() -> list[str]:
                                              "description": "Started from the starter template; being filled in (sample)."})["id"]
                 g = jy.get(conn, pg, la, j)
                 s = {x["name"]: x["id"] for x in g["stages"]}
-                first, second = list(s)[0], list(s)[1]
+                first, second, *_ = s
                 jy.add_item(conn, pg, la, j, {"stage": s[first], "part": "step", "text": "Sees a leaflet at the vet", "score": 1})
                 jy.add_item(conn, pg, la, j, {"stage": s[first], "part": "touchpoint", "text": "Vet's practice"})
                 jy.add_item(conn, pg, la, j, {"stage": s[second], "part": "step", "text": "Compares two cover levels on the website", "score": 0})

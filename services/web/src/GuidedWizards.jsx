@@ -12,6 +12,7 @@ import { Field, Modal } from "./ModelOps";
 import { Download, Upload } from "./Sheets";
 import UpkeepChoices from "./Upkeep";
 import { liveProjects } from "./ModelMarks";
+import { byText } from "./fmt";
 
 const post = (path, body, method = "POST") => apiFetch(path, { method, body: JSON.stringify(body || {}) });
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -41,7 +42,7 @@ export function QualityWizard({ m, onClose }) {
   const me = (myInfo()?.username || "").toLowerCase();
   const admin = !!d?.may_manage;
   const findings = d?.findings || [];
-  const types = [...new Set(findings.map((f) => f.type_name))].sort();
+  const types = [...new Set(findings.map((f) => f.type_name))].sort(byText);
   const queue = useMemo(() => {
     const pick = findings.filter((f) => kinds.includes(f.kind) && (!onlyImportant || f.kind !== "incomplete" || f.important)
       && (!type || f.type_name === type) && (!mine || (f.responsible || []).includes(me)));

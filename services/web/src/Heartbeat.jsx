@@ -164,7 +164,7 @@ const FEEDS = [
 function Integrate() {
   const [copied, setCopied] = useState("");
   const base = window.location.origin;
-  const copy = (u) => { try { navigator.clipboard.writeText(u); setCopied(u); } catch { /* no clipboard */ } };
+  const copy = (u) => { try { void navigator.clipboard.writeText(u); setCopied(u); } catch { /* no clipboard */ } };
   return (
     <>
       <h2>Read health from your monitoring or SOC</h2>

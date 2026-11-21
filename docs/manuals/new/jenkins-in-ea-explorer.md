@@ -35,6 +35,15 @@ The admin tasks under **Status and error codes** tell you how the environment is
 The run's console output is the same as `eax status` and `eax errors` on the machine. The Error codes guide lists every
 code.
 
+## Testing from Jenkins
+
+Under **Upkeep**, **smoke-test** runs the smoke test (every role signs in, every area answers) and **attack-test** runs
+the attack test (`eax test attack`): the security suite, then tools that try to break EA Explorer, each brought up to
+date first. The attack test takes an hour or more and runs only on a laptop or on an installation marked as a test one
+(`EAX_ATTACK_ALLOWED=yes`); its report is in `work/tests/<run>` on the machine. Every other test is under **eax**, the
+`test` pipeline, with the test chosen in **what**. After an update, `eax jenkins pipelines` writes the pipelines again,
+so a new one shows.
+
 ## How it runs
 
 Jenkins runs in its own stack beside EA Explorer. A small agent on the machine (port 8091, with its own token) runs each

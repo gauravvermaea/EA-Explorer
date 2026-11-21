@@ -10,7 +10,7 @@ export const STEP_KINDS = ["open", "click", "click_re", "choose", "fill", "selec
   "upload", "download", "as", "remember", "drawio_ready", "drawio_drop", "drawio", "popup"];
 const ROWS = "tr, li, fieldset, .chip";
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
-const LEAVE = /^#\/(break-glass|heartbeat|sql)\b|logout|sign-?out/i;
+const LEAVE = /(?:^#\/(break-glass|heartbeat|sql)\b)|logout|sign-?out/i;
 const CLICKABLE = "button, a, [role=tab], [role=button], [role=option], summary, label";
 const TABS = '[role=tablist] a[href^="#/"], .tabs a[href^="#/"], .nav-groups a[href^="#/"], .nav-menu a[href^="#/"], '
   + 'nav.subnav a[href^="#/"], .subtabs a[href^="#/"], .seg a[href^="#/"]';
@@ -19,8 +19,44 @@ export const MAX_PAGES = 400;
 const pause = (ms) => new Promise((ok) => setTimeout(ok, ms));
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+// the first run of / that is followed by ? or the end, taken off, as .replace(/\/+(\?|$)/, "$1") did (D804)
+function slashesBeforeQuery(r) {
+  let i = 0;
+  while (i < r.length) {
+    if (r[i] !== "/") { i += 1; continue; }
+    let j = i;
+    while (j < r.length && r[j] === "/") j += 1;
+    if (j === r.length || r[j] === "?") return r.slice(0, i) + r.slice(j);
+    i = j;
+  }
+  return r;
+}
+
+// "Not found" alone on its lines (only spaces and line breaks around it), any case, as /^\s*Not found\s*$/im found it (D804)
+const LINE_ENDS = "\n\r\u2028\u2029";
+export function notFoundAlone(t) {
+  const re = /not found/gi;
+  let m;
+  while ((m = re.exec(t))) {
+    let a = m.index, before = false;
+    for (;;) {
+      if (a === 0 || LINE_ENDS.includes(t[a - 1])) { before = true; break; }
+      if (!/\s/.test(t[a - 1])) break;
+      a -= 1;
+    }
+    let b = m.index + m[0].length, after = false;
+    for (;;) {
+      if (b === t.length || LINE_ENDS.includes(t[b])) { after = true; break; }
+      if (!/\s/.test(t[b])) break;
+      b += 1;
+    }
+    if (before && after) return true;
+  }
+  return false;
+}
+
 export function norm(route) {
-  const r = route.trim().replace(/\/+(\?|$)/, "$1");
+  const r = slashesBeforeQuery(route.trim());
   return r || "#/";
 }
 
@@ -255,7 +291,7 @@ const pageFound = (f) => {
   const nav = f.win().__eaxNav;
   if (nav?.groups) for (const g of nav.groups) for (const t of g.tabs) if (t.href) links.add(t.href);
   for (const a of d.querySelectorAll(TABS)) links.add(a.getAttribute("href"));
-  return { head, notFound: /\bno route\b|^\s*Not found\s*$/im.test(main.innerText || ""), links: [...links] };
+  return { head, notFound: /\bno route\b/i.test(main.innerText || "") || notFoundAlone(main.innerText || ""), links: [...links] };
 };
 
 const helpState = (f) => {

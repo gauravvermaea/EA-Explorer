@@ -14,7 +14,8 @@ def test_counts():
 
 
 def test_guids_are_stable():
-    assert build.gid("model", "x") == build.gid("model", "x")
+    first, again = build.gid("model", "x"), build.gid("model", "x")
+    assert first == again
     assert build.TEMPLATE_ID != build.SAMPLE_ID
 
 

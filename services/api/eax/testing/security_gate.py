@@ -20,6 +20,7 @@ and kind (security-findings.json in each run's folder) for the Self-test page, a
 
 from __future__ import annotations
 
+import fnmatch
 import json
 import re
 from datetime import date
@@ -80,9 +81,73 @@ def from_list(data, source: str) -> list[dict]:
             for f in (data or []) if isinstance(f, dict)]
 
 
+NUCLEI_SEVERITY = {"critical": "critical", "high": "high", "medium": "medium", "low": "low", "info": "info", "unknown": "info"}
+SEMGREP_SEVERITY = {"ERROR": "high", "WARNING": "medium", "INFO": "low"}
+
+
+def from_nuclei(path: Path) -> list[dict]:
+    """Nuclei's JSON lines (R8.2): one finding a template that matched, where it matched."""
+    out = []
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return out
+    for line in lines:
+        try:
+            r = json.loads(line)
+        except ValueError:
+            continue
+        info = r.get("info") or {}
+        out.append(finding("nuclei", f"nuclei:{r.get('template-id', '?')}", NUCLEI_SEVERITY.get(str(info.get("severity", "")).lower(), "info"),
+                           str(info.get("name") or r.get("template-id") or ""), str(r.get("matched-at") or r.get("host") or "")))
+    return out
+
+
+def from_semgrep(data: dict | None) -> list[dict]:
+    """Semgrep's results (R8.2): its ERROR as high, WARNING as medium, INFO as low."""
+    out = []
+    for r in (data or {}).get("results") or []:
+        extra = r.get("extra") or {}
+        path = str(r.get("path") or "").removeprefix("/src/")
+        out.append(finding("semgrep", f"semgrep:{r.get('check_id', '?')}", SEMGREP_SEVERITY.get(str(extra.get("severity", "")).upper(), "low"),
+                           str(extra.get("message") or "")[:300], f"{path}:{(r.get('start') or {}).get('line', '')}"))
+    return out
+
+
+def from_gitleaks(data) -> list[dict]:
+    """Gitleaks' leaks (R8.2): every secret that reached git is high, its commit and file kept (the secret itself is
+    redacted by Gitleaks and never copied here)."""
+    return [finding("gitleaks", f"gitleaks:{r.get('RuleID', '?')}", "high", str(r.get("Description") or "a secret in git"),
+                    f"{r.get('File', '')}:{r.get('StartLine', '')} commit {str(r.get('Commit', ''))[:12]}")
+            for r in (data if isinstance(data, list) else []) if isinstance(r, dict)]
+
+
+def from_junit(folder: Path) -> list[dict]:
+    """Schemathesis' JUnit report (R8.2): a call that crashed the server (5xx) is high; one whose answer breaks the
+    API's own description is medium, to look at."""
+    # defusedxml: no entities, no external anything (Semgrep, R8.2, D823)
+    from defusedxml import ElementTree as ET
+    out = []
+    for f in sorted(folder.glob("schemathesis/*.xml")):
+        try:
+            root = ET.parse(str(f)).getroot()
+        except (ET.ParseError, OSError, ValueError):
+            continue
+        for case in root.iter("testcase"):
+            for bad in list(case.iter("failure")) + list(case.iter("error")):
+                said = f"{bad.get('message') or ''} {bad.text or ''}"
+                crash = bool(re.search(r"server error|\b5\d\d\b|internal server", said, re.I))
+                out.append(finding("schemathesis", "fuzz:server-error" if crash else "fuzz:not-as-described",
+                                   "high" if crash else "medium", " ".join(said.split())[:300], case.get("name") or ""))
+    return out
+
+
 def collect(folder: Path) -> list[dict]:
     """Every finding of every scanner's report in a run's folder."""
     out = from_zap(_json(folder / "zap.json")) + from_zap(_json(folder / "zap-api.json"), "zap-api")
+    out += from_zap(_json(folder / "zap-full.json"), "zap-full")           # the attack test's (R8.2)
+    out += from_nuclei(folder / "nuclei.jsonl") + from_semgrep(_json(folder / "semgrep.json"))
+    out += from_gitleaks(_json(folder / "gitleaks.json")) + from_junit(folder)
     for f in sorted(folder.glob("trivy-*.json")):
         out += from_trivy(_json(f), f.stem.removeprefix("trivy-"))
     out += from_bandit(_json(folder / "bandit.json"))
@@ -111,6 +176,8 @@ def _match(f: dict, a: dict) -> bool:
             return False
         name = (f.get("title") or "").split(" ", 1)[0].lower()
         return name == pkg and a["where"].lower() in f["where"].lower()
+    if "*" in a["id"]:                                  # a family of rules, e.g. semgrep:*sql* (D800, R8.2)
+        return fnmatch.fnmatchcase(f["id"].lower(), a["id"].lower()) and (not a["where"] or a["where"].lower() in f["where"].lower())
     return f["id"] == a["id"] and (not a["where"] or a["where"].lower() in f["where"].lower())
 
 
@@ -179,7 +246,8 @@ def judge(folder: Path, record, today: date | None = None) -> dict:
     return {**g, "new": fresh}
 
 
-KINDS = (("OWASP ZAP signed-in", "zap-api"), ("OWASP ZAP", "zap"), ("(Trivy)", "trivy"), ("pip-audit", "python packages"),
+KINDS = (("ZAP full scan", "zap-full"), ("Schemathesis", "fuzzing"), ("Nuclei", "nuclei"), ("Semgrep", "semgrep"),
+         ("Gitleaks", "gitleaks"), ("brought up to date", "tools"), ("OWASP ZAP signed-in", "zap-api"), ("OWASP ZAP", "zap"), ("(Trivy)", "trivy"), ("pip-audit", "python packages"),
          ("code:", "code"), ("secrets", "secrets"), ("licences", "licences"), ("attack:", "attacks"), ("security gate", "gate"))
 
 
@@ -216,7 +284,7 @@ def clean_accepted(data: dict) -> dict:
 
 # ---------------------------------------------------------------- the signed-in ZAP scan (R5.17 (2))
 ZAP_SPEC, ZAP_AUTH = "zap-openapi.json", "zap-auth.txt"
-ZAP_LEAVE_OUT = re.compile(r"^/api/v1/(admin|operations|mcp|tests|updates|deploy|backups|restores)\b|/(download|export|zip|xlsx|csv|pdf)\b")
+ZAP_LEAVE_OUT = re.compile(r"(?:^/api/v1/(admin|operations|mcp|tests|updates|deploy|backups|restores)\b)|(?:/(download|export|zip|xlsx|csv|pdf)\b)")
 
 
 def zap_targets(spec: dict, ids: dict[str, str], fill) -> dict:

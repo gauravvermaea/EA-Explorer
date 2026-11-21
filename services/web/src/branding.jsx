@@ -129,7 +129,7 @@ export function useBranding() {
 export function useLookFromRoute(route) {
   useEffect(() => {
     if (!/[?&]look=standard\b/.test(route)) return;
-    if (!rescue()) { setRescue(true); apply(); }
+    if (!rescue()) { setRescue(true); void apply(); }
     window.history.replaceState(null, "", "#/my-profile");   // once: a reload does not put it on again
   }, [route]);
 }
@@ -152,25 +152,25 @@ export function MyLook() {
   const b = useBranding();
   const [msg, setMsg] = useState("");
   const [trying, setTrying] = useState(undefined);     // a theme shown, not saved yet (undefined: none)
-  useEffect(() => () => { endPreview(); }, []);         // leaving unsaved: back to the theme in use
+  useEffect(() => () => { void endPreview(); }, []);         // leaving unsaved: back to the theme in use
   const data = b.data;
   if (!b.loaded) return null;
   const rescued = rescue();
   const org = (data?.themes || []).find((t) => t.slug === data?.theme);
   const pick = (slug) => {                              // shown at once on this screen; Save keeps it
     setTrying(slug); setMsg("");
-    previewTheme(slug || themeFor(data, null, {}));
+    void previewTheme(slug || themeFor(data, null, {}));
   };
   const save = async () => {
     try { previewing = null; await chooseMine(trying); setTrying(undefined); setMsg("Saved: every screen uses it now."); }
     catch (e) { setMsg(e.message); }
   };
-  const undo = () => { setTrying(undefined); endPreview(); };
+  const undo = () => { setTrying(undefined); void endPreview(); };
   return (
     <>
       <h2>My look</h2>
       {rescued && <p className="status bad">This browser shows the standard look, whatever theme is chosen.
-        <button className="linkish" onClick={() => { setRescue(false); apply(); setMsg(""); }}> Use the chosen theme again</button></p>}
+        <button className="linkish" onClick={() => { setRescue(false); void apply(); setMsg(""); }}> Use the chosen theme again</button></p>}
       {data?.personal ? <>
         <p className="quiet">Pick the theme your screens use. The organisation's is {org?.name || "Standard (light)"}; yours is for you alone.</p>
         <div className="row-gap">

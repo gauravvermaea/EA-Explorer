@@ -9,8 +9,8 @@ import { check, sleep } from 'k6';
 const PLAN = JSON.parse(open(__ENV.PLAN || '/bench/bench-plan.json'));
 const TARGET = (__ENV.TARGET || PLAN.target || 'https://proxy').replace(/\/$/, '');
 const TOKENS = (__ENV.TOKENS || '').split(',').filter((t) => t);
-const USERS = parseInt(__ENV.USERS || PLAN.users || '20', 10);
-const MINUTES = parseFloat(__ENV.MINUTES || PLAN.minutes || '2');
+const USERS = Number.parseInt(__ENV.USERS || PLAN.users || '20', 10);
+const MINUTES = Number.parseFloat(__ENV.MINUTES || PLAN.minutes || '2');
 const PATHS = PLAN.paths || ['/api/v1/me'];
 
 export const options = {

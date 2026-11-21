@@ -11,7 +11,7 @@ import { refreshAll, useApi } from "./ModelViews";
 import { Modal } from "./ModelOps";
 import { EntityLink } from "./Changes";
 import { EntityPicker } from "./DataEntry";
-import { fmtDate, fmtDateTime } from "./fmt";
+import { fmtDate, fmtDateTime, byText } from "./fmt";
 import { TaskFiles } from "./TaskDrawer";
 import { downloadTask, runTask, trackTask, useAllTasks } from "./tasks";
 import { isRetiredModel, liveModels, useShowRetired } from "./ModelMarks";
@@ -98,7 +98,7 @@ export function TagsTab({ model, m }) {
                   {!t.locked && <>{" · "}<button className="linkish danger-text" disabled={busy} onClick={() => {
                     // eslint-disable-next-line no-alert
                     if (window.confirm(`Delete the tag '${t.name}'? The model is not changed.`)) {
-                      act(() => post(`/api/v1/models/${model}/tags/${t.id}`, {}, "DELETE"), `'${t.name}' deleted.`);
+                      void act(() => post(`/api/v1/models/${model}/tags/${t.id}`, {}, "DELETE"), `'${t.name}' deleted.`);
                     }
                   }}>Delete</button></>}
                 </>}
@@ -169,7 +169,7 @@ export function TagPage({ model, m, tagId, entityId }) {
           {mayTag && !t.locked && <button className="linkish danger-text" disabled={busy} onClick={() => {
             // eslint-disable-next-line no-alert
             if (window.confirm(`Delete the tag '${t.name}'? The model is not changed.`)) {
-              act(() => post(`/api/v1/models/${model}/tags/${t.id}`, {}, "DELETE"), "").then(() => go(`/metamodel/${model}/tags`));
+              void act(() => post(`/api/v1/models/${model}/tags/${t.id}`, {}, "DELETE"), "").then(() => go(`/metamodel/${model}/tags`));
             }
           }}>Delete</button>}
         </div>
@@ -896,7 +896,7 @@ function GapResultsCompared() {
   if (!data) return <p>Comparing...</p>;
   const moved = data.rows.filter((r) => !["Unchanged gap", "Not a gap in either"].includes(r.change)).length;
   const change = picked || (moved ? "changes" : "all");
-  const domains = [...new Set(data.rows.map((r) => r.domain))].filter(Boolean).sort();
+  const domains = [...new Set(data.rows.map((r) => r.domain))].filter(Boolean).sort(byText);
   const words = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const rows = data.rows.filter((r) => (change === "all" || (change === "changes" ? !["Unchanged gap", "Not a gap in either"].includes(r.change) : r.change === change))
     && (!domain || r.domain === domain) && words.every((w) => `${r.name} ${r.entity_type_name}`.toLowerCase().includes(w)));
@@ -969,7 +969,7 @@ function GapAnalysis({ id }) {
   const admin = canOn(model, "model.lock") && !m.is_locked;
   const mayEdit = canOn(model, "model.content");
   const live = a.items.filter((i) => !i.gone);
-  const domains = [...new Set(live.map((i) => i.domain))].sort();
+  const domains = [...new Set(live.map((i) => i.domain))].sort(byText);
   const items = live.filter((i) => (status === "gaps" ? i.status !== "kept" : status === "undecided" ? i.status !== "kept" && !i.resolution
     : status === "all" || i.status === status) && (!domain || i.domain === domain) && (!q || i.name.toLowerCase().includes(q.toLowerCase())));
   async function act(what, fn, done) {
@@ -1022,7 +1022,7 @@ function GapAnalysis({ id }) {
             // eslint-disable-next-line no-alert
             if (window.confirm(`Delete the gap analysis '${a.name}' now, with its results, notes and decisions, and the Gap entities `
               + `made from it in ${m.name}? This is not a draft: it happens at once (the history keeps a record).`)) {
-              act("delete", () => post(`/api/v1/gaps/${a.id}`, {}, "DELETE"), "").then(() => go("/compare/gaps"));
+              void act("delete", () => post(`/api/v1/gaps/${a.id}`, {}, "DELETE"), "").then(() => go("/compare/gaps"));
             }
           }}>Delete</button>
         </span>
@@ -1079,7 +1079,7 @@ function GapAnalysis({ id }) {
         <Modal title={`Work package for '${wpFor.name}'`} onClose={() => setWpFor(null)} actions={<button onClick={() => setWpFor(null)}>Close</button>}>
           <p className="quiet">Choose the work package (or any entity of {m.name}) that closes this gap.</p>
           <EntityPicker model={model} types={["WorkPackage", "Deliverable", "Plateau"]} autoFocus
-            onChange={(wid) => { if (wid) { patch(wpFor, { work_packages: [...wpFor.work_packages.map((w) => w.id), wid] }); setWpFor(null); } }} />
+            onChange={(wid) => { if (wid) { void patch(wpFor, { work_packages: [...wpFor.work_packages.map((w) => w.id), wid] }); setWpFor(null); } }} />
         </Modal>
       )}
     </div>

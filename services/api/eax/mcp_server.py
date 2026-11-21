@@ -26,17 +26,21 @@ import time
 from contextvars import ContextVar
 from typing import Any
 
-import anyio
-from mcp.server.mcpserver import MCPServer
-from mcp.server.transport_security import TransportSecuritySettings
+from . import coverage_probe
 
-from . import __version__, audit, model_ops, permissions
-from . import repository as repo
-from .auth import decode_token, user_from_claims
-from .config import get_settings
-from .db import get_engine
-from .logging_setup import configure_logging
-from .metamodel_edit import EditError
+coverage_probe.start()      # the MCP server measured too (D810): EAX_COVERAGE=on, before the tools' code is imported
+
+import anyio  # noqa: E402
+from mcp.server.mcpserver import MCPServer  # noqa: E402
+from mcp.server.transport_security import TransportSecuritySettings  # noqa: E402
+
+from . import __version__, audit, model_ops, permissions  # noqa: E402
+from . import repository as repo  # noqa: E402
+from .auth import decode_token, user_from_claims  # noqa: E402
+from .config import get_settings  # noqa: E402
+from .db import get_engine  # noqa: E402
+from .logging_setup import configure_logging  # noqa: E402
+from .metamodel_edit import EditError  # noqa: E402
 
 configure_logging()
 log = logging.getLogger("eax.mcp")

@@ -197,7 +197,7 @@ def test_the_helper_passes_the_repeat_and_scans_only_what_failed(monkeypatch, tm
         (tmp_path / "tests" / folder / "scans.json").write_text('{"zap": false, "images": ["eaexplorer/backup:1.0.0"]}')
         return "cid"
     monkeypatch.setattr(ops, "_start_runner", start_runner)
-    monkeypatch.setattr(ops, "_wait", lambda cid, follow=None: (0, "RUN_ID=5\nSCANS_NEXT\n"))
+    monkeypatch.setattr(ops, "_wait", lambda cid, follow=None, **_k: (0, "RUN_ID=5\nSCANS_NEXT\n"))
     monkeypatch.setattr(ops, "_zap", lambda *a: scanned.append("zap"))
     monkeypatch.setattr(ops, "_trivy", lambda hostdir, images, say: scanned.extend(images))
     monkeypatch.setattr(ops, "_collect", lambda *a, **k: (collected.append(a[3]), 0)[1])
@@ -205,7 +205,7 @@ def test_the_helper_passes_the_repeat_and_scans_only_what_failed(monkeypatch, tm
     assert out["code"] == 0 and cmds[0][-3:] == ["--repeat", "4", "--warnings"]
     assert scanned == ["eaexplorer/backup:1.0.0"] and collected == [5]          # no ZAP; Trivy on the failed image only
     scanned.clear()
-    monkeypatch.setattr(ops, "_wait", lambda cid, follow=None: (0, "RUN_ID=6\n"))   # nothing for the scanners: closed already
+    monkeypatch.setattr(ops, "_wait", lambda cid, follow=None, **_k: (0, "RUN_ID=6\n"))   # nothing for the scanners: closed already
     ops.run_sequence("detailed", ["security"], repeat=4)
     assert scanned == []
 

@@ -215,12 +215,12 @@ def run_sheets() -> str:
         permissions.current.set(None)
 
 
-def main() -> int:
+def main() -> None:
     """Laptop with the sample only; never fails the container (the API is already serving)."""
     from ..config import get_settings
     with_sample = os.environ.get("EAX_SEED_SAMPLE", "false").strip().lower() in ("1", "true", "yes")
     if get_settings().deployment != "laptop" or not with_sample:
-        return 0
+        return
     t = time.monotonic()
     try:
         _say(f"tags and gap analyses: {run()} ({time.monotonic() - t:.0f} s)")
@@ -228,8 +228,7 @@ def main() -> int:
     except Exception as exc:  # noqa: BLE001 - demo data is a convenience
         print(f"EA Explorer demo estate WARNING: tags and gap analyses not made ({exc}); a clean restart tries again",
               file=sys.stderr, flush=True)
-    return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()                         # ending normally is exit code 0

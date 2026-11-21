@@ -72,7 +72,7 @@ def test_the_bench_takes_every_option_of_eax_test():
     line = next(x for x in help_txt.splitlines() if x.startswith("### test "))
     # building the runner image is inside only; so is repeating a run's failed checks (R2.36: failed [run] --warnings)
     test_opts = set(__import__("re").findall(r"--[a-z-]+", line)) - {"--build", "--warnings", "--older-than", "--log", "--browser",
-                                                                     "--keep", "--reset"}   # delete: inside only (R2.43); watch --log (R3.2); sonar --keep/--reset: the machine's own SonarQube (R8)
+                                                                     "--keep", "--open", "--reset"}   # delete: inside only (R2.43); watch --log (R3.2); sonar --keep/--open/--reset: the machine's own SonarQube (R8, D805)
     bench_opts = {o for a in cli.parser()._subparsers._group_actions[0].choices["run"]._actions for o in a.option_strings}
     assert test_opts <= bench_opts, test_opts - bench_opts
 
@@ -82,7 +82,7 @@ def test_suites_are_the_self_tests():
     # and the restore test (R3.8): the command line only
     # and the reports (R4.1): Keycloak test users made with the installation's own administrator, inside only
     # and the MCP suite (R5.5): its read-only token is made with the installation's own database, inside only
-    assert set(SUITES) == set(INSIDE_SUITES) - {"backup", "restore", "reports", "performance", "jobs", "mcp"}   # performance: the bench has its own load test
+    assert set(SUITES) == set(INSIDE_SUITES) - {"backup", "restore", "reports", "performance", "jobs", "mcp", "attack"}   # performance: the bench has its own load test; attack: the helper's scanners (R8.2)
 
 
 def _calls(fn: ast.FunctionDef, modules: set[str]) -> set[str]:

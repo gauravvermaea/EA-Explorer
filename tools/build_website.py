@@ -173,7 +173,7 @@ def markdown(text: str, link=lambda u: u) -> tuple[str, list[tuple[int, str, str
             out.append(f'<pre class="code"><code>{html.escape(chr(10).join(code))}</code></pre>')
             i = j + 1
             continue
-        h = re.match(r"^(#{1,4})\s+(.*)$", line)
+        h = re.match(r"^(#{1,4})\s+(\S.*|)$", line)
         if h:
             flush()
             level, words = len(h.group(1)), h.group(2).strip()
@@ -217,7 +217,7 @@ def markdown(text: str, link=lambda u: u) -> tuple[str, list[tuple[int, str, str
                 kind = quote[0][2:].split("*")[0].split()[0].lower()
             out.append(f'<blockquote class="{kind}"><p>{_inline(" ".join(quote), link)}</p></blockquote>')
             continue
-        lm = re.match(r"^(\s*)([-*]|\d+\.)\s+(.*)$", line)
+        lm = re.match(r"^(\s*)([-*]|\d+\.)\s+(\S.*|)$", line)
         if lm:
             flush()
             html_list, i = _list(lines, i, link)
@@ -239,7 +239,7 @@ def _list(lines: list[str], i: int, link) -> tuple[str, int]:
     indent, ordered = len(first.group(1)), first.group(2)[0].isdigit()
     items: list[str] = []
     while i < len(lines):
-        m = re.match(r"^(\s*)([-*]|\d+\.)\s+(.*)$", lines[i])
+        m = re.match(r"^(\s*)([-*]|\d+\.)\s+(\S.*|)$", lines[i])
         if not m or len(m.group(1)) < indent:
             if lines[i].startswith(" " * (indent + 2)) and lines[i].strip() and items:   # an item carried on
                 items[-1] += " " + _inline(lines[i].strip(), link)

@@ -52,7 +52,7 @@ function SitesTable({ sa }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const reload = () => apiFetch("/api/v1/sites").then(setData).catch((e) => setError(e.message));
-  useEffect(() => { reload(); }, []);
+  useEffect(() => { void reload(); }, []);
   const [edit, setEdit] = useState(null);
   const [err, setErr] = useState("");
   const save = async (x) => {
@@ -60,12 +60,12 @@ function SitesTable({ sa }) {
     try {
       await apiFetch(x.id ? `/api/v1/sites/${x.id}` : "/api/v1/sites", { method: x.id ? "PUT" : "POST",
         body: JSON.stringify({ name: x.name, url: x.url, note: x.note }) });
-      setEdit(null); reload();
+      setEdit(null); void reload();
     } catch (e) { setErr(e.message); }
   };
   const remove = async (x) => {
     if (!window.confirm(`Remove ${x.name} from the list? Nothing happens to the site itself.`)) return;
-    try { await apiFetch(`/api/v1/sites/${x.id}`, { method: "DELETE" }); reload(); } catch (e) { setErr(e.message); }
+    try { await apiFetch(`/api/v1/sites/${x.id}`, { method: "DELETE" }); void reload(); } catch (e) { setErr(e.message); }
   };
   if (!data) return error ? <p className="status bad">{error}</p> : <p>Loading...</p>;
   return (

@@ -33,7 +33,7 @@ function fits(c, answers, shown) {
   const empty = a === undefined || a === null || a === "" || (Array.isArray(a) && !a.length);
   if (c.op === "answered") return !empty;
   if (empty) return c.op === "not_equals";
-  const vals = Array.isArray(a) ? a.map(String) : [typeof a === "boolean" ? String(a) : String(a)];
+  const vals = Array.isArray(a) ? a.map(String) : [String(a)];
   if (c.op === "includes") return vals.includes(String(c.value ?? ""));
   const exactly = vals.length === 1 && vals[0] === String(c.value ?? "");
   return c.op === "equals" ? exactly : !exactly;

@@ -20,7 +20,6 @@ carry on; the next start tries again (a step already loaded is skipped). Several
 from __future__ import annotations
 
 import os
-import sys
 import time
 
 import psycopg
@@ -422,12 +421,12 @@ def first_measurements() -> None:
             _say(f"first data quality measurement of {m['name']} failed: {exc}")
 
 
-def main() -> int:
+def main() -> None:
     """Loads the sample content after the start, part by part, saying how far it is."""
     settings = get_settings()
     if not settings.db_migrator_password:
         _say("EAX_DB_MIGRATOR_PASSWORD is not set; nothing loaded")
-        return 0
+        return
     with_sample = os.environ.get("EAX_SEED_SAMPLE", "false").strip().lower() in ("1", "true", "yes")
     steps = plan(settings, with_sample)
     name = "Sample data" if with_sample else "Start-up tasks"
@@ -452,8 +451,7 @@ def main() -> int:
         progress.close()
     packs.join()                                     # the process ends when the packs are loaded too
     _say(f"all done in {time.monotonic() - t:.0f} s")
-    return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()                         # ending normally is exit code 0

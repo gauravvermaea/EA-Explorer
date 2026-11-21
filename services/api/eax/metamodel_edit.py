@@ -107,7 +107,7 @@ def _unique(conn, table: str, column: str, model_id: int, wanted: str, lower: bo
     cmp = f"lower({column}) = lower(:v)" if lower else f"{column} = :v"
     while _one(conn, f"SELECT 1 AS x FROM core.{table} WHERE model_id = :m AND {cmp}", m=model_id, v=candidate):
         n += 1
-        candidate = f"{wanted}{n}" if not wanted.endswith("_") else f"{wanted}{n}"
+        candidate = f"{wanted}{n}"
     return candidate
 
 

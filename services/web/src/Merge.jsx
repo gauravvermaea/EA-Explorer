@@ -10,6 +10,7 @@ import { EntityLink } from "./Changes";
 import { TaskFiles } from "./TaskDrawer";
 import { dismissTask, downloadTask, isDismissed, runTask, useAllTasks } from "./tasks";
 import { liveModels } from "./ModelMarks";
+import { byText } from "./fmt";
 
 const post = (path, body) => apiFetch(path, { method: "POST", body: JSON.stringify(body || {}) });
 const show = (v) => (v === null || v === undefined || v === "" ? <span className="quiet">(empty)</span> : String(v));
@@ -50,7 +51,7 @@ export default function MergeTab({ model, m }) {
 
   const gaps = plan?.metamodel_gaps || {};
   const gapCount = useMemo(() => Object.values(gaps).reduce((n, v) => n + (Array.isArray(v) ? v.length : 0), 0), [gaps]);
-  const types = useMemo(() => [...new Set((plan?.entities || []).map((e) => e.entity_type))].sort(), [plan]);
+  const types = useMemo(() => [...new Set((plan?.entities || []).map((e) => e.entity_type))].sort(byText), [plan]);
   const match = (e) => (!type || e.entity_type === type) && (!filter || `${e.name || e.entity} ${e.field || ""}`.toLowerCase().includes(filter.toLowerCase()));
 
   async function upload() {

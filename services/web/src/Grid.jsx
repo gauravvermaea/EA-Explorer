@@ -5,6 +5,7 @@
 // sends only the changed rows and shows each row's outcome. Large grids draw only the rows in view.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { downloadCsv } from "./exporting";
+import { noEndDots } from "./textScan";
 
 const ROW_H = 30;
 const blankRow = () => ({});
@@ -207,7 +208,7 @@ export default function Grid({
     if (editing) return;
     const ctrl = e.ctrlKey || e.metaKey;
     if (ctrl && e.key.toLowerCase() === "z") { e.preventDefault(); doUndo(); return; }
-    if (ctrl && e.key.toLowerCase() === "s") { e.preventDefault(); save(); return; }
+    if (ctrl && e.key.toLowerCase() === "s") { e.preventDefault(); void save(); return; }
     if (ctrl) return;   // copy and paste go through the clipboard events
     const k = e.key;
     if (k === "ArrowDown") { e.preventDefault(); move(1, 0, e.shiftKey); }
@@ -313,7 +314,7 @@ export default function Grid({
         }
       } else if (failed.length) {
         setItems((list) => list.filter((x) => !(byKey[x.key]?.ok)).map((x) => (byKey[x.key] && !byKey[x.key].ok ? { ...x, error: byKey[x.key].error } : x)));
-        const why = failed.slice(0, 3).map((r) => { const b = batch[r.row - 1]; return `${b?.cur?.name || b?.cur?.display_id || `row ${r.row}`}: ${String(r.error || "").replace(/\.+$/, "")}`; }).join("; ");
+        const why = failed.slice(0, 3).map((r) => { const b = batch[r.row - 1]; return `${b?.cur?.name || b?.cur?.display_id || `row ${r.row}`}: ${noEndDots(String(r.error || ""))}`; }).join("; ");
         setMsg(`Saved ${outcome.saved}; ${failed.length} row${failed.length === 1 ? "" : "s"} not saved: ${why}${failed.length > 3 ? "; ..." : ""}. Fix and save again (the row is marked ⚠).`);
       } else {
         // saved: these rows are no longer changes of this screen (the server's rows replace them when they arrive)

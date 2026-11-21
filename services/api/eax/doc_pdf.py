@@ -124,7 +124,7 @@ def flowables(text: str) -> list:
                 block.append(lines[i])
                 i += 1
             out.append(KeepTogether([Preformatted("\n".join(wrap_code(block)), CODE)]))
-        elif m := re.match(r"^(#{1,4})\s+(.*)$", s):
+        elif m := re.match(r"^(#{1,4})\s+(\S.*|)$", s):
             flush_para()
             flush_list()
             out.append(para(m.group(2), H[len(m.group(1))]))
@@ -150,7 +150,7 @@ def flowables(text: str) -> list:
             out.append(t)
             out.append(Spacer(1, 6))
             continue
-        elif m := re.match(r"^(?:[-*+]|(\d+)[.)])\s+(.*)$", s):
+        elif m := re.match(r"^(?:[-*+]|(\d+)[.)])\s+(\S.*|)$", s):
             flush_para()
             is_num = m.group(1) is not None
             if items and is_num != numbered:

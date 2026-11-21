@@ -159,6 +159,16 @@ CACHE_SECONDS = 15
 BY_DEPLOYMENT: dict[str, dict] = {}
 
 
+
+def is_email(a: str) -> bool:
+    """name@place.end: one @, no spaces, a dot in the part after the @ with something both sides of it. String work giving
+    the same answer as the regular expression it replaces (SonarQube python:S8786, D804)."""
+    a = a[:-1] if a.endswith("\n") else a
+    local, at, domain = a.partition("@")
+    if not at or not local or "@" in domain or any(c.isspace() for c in a):
+        return False
+    return "." in domain[1:-1]
+
 def default_of(key: str) -> Any:
     """A setting's default: by deployment (EAX_DEPLOYMENT) where BY_DEPLOYMENT says, else the registry's."""
     import os
@@ -293,7 +303,7 @@ def check(key: str, value: Any) -> Any:
     if key.startswith("db_maint_window_") and not re.match(r"^([01]\d|2[0-3]):[0-5]\d$", s):
         raise EditError(f"{label}: a time as HH:MM, for example 01:00.")
     if key.startswith("alerts_email") and s:
-        bad = [a for a in re.split(r"[,;]\s*", s) if a and not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", a)]
+        bad = [a for a in re.split(r"[,;]\s*", s) if a and not is_email(a)]
         if bad:
             raise EditError(f"{label}: {bad[0]} is not an email address.")
     return s

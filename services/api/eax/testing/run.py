@@ -501,6 +501,20 @@ def coverage_gate(c: dict, before: dict | None, goal: float) -> tuple[str, str]:
     return "warning", f"under the goal of {goal:g}% by {round(goal - c.get('percent', 0.0), 1)} points"
 
 
+def with_unit_tests(live: dict, results: Path) -> dict:
+    """The live run's coverage joined line by line with the unit tests' from the last eax dev check (unit-coverage.json in
+    the results folder; R8.1, D807, owner, 20 Nov 2026: "Both combined"); the live run's alone when there is none."""
+    import json as _json
+
+    from eax import coverage_probe
+    try:
+        raw = _json.loads((results / "unit-coverage.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return live
+    unit = coverage_probe.summarise(raw.get("files") or {})
+    return coverage_probe.combine(live, unit) | {"scope": live.get("scope", "")}
+
+
 def coverage_result(r: Run, token: str, scope: str = "") -> dict | None:
     """The API's code coverage at the run's end (EAX_COVERAGE=on, D642): kept as coverage.json and coverage.html in the
     run's folder and as one result line, judged against the goal (EAX_COVERAGE_GOAL, 90%) and the last run of the same
@@ -517,6 +531,7 @@ def coverage_result(r: Run, token: str, scope: str = "") -> dict | None:
     if not c.get("on") or c.get("percent") is None:
         rec("coverage: the API's code run by this test", "skipped", c.get("why") or f"HTTP {s}", ms)
         return None
+    c = with_unit_tests(c, r.dir.parent)
     goal = coverage_goal()
     before = previous_coverage(r.dir.parent, r.dir, scope)
     outcome, why = coverage_gate(c, before, goal)
@@ -527,9 +542,11 @@ def coverage_result(r: Run, token: str, scope: str = "") -> dict | None:
     except OSError as exc:
         r.log(f"coverage files not written: {exc}")
     low = ", ".join(f"{a['area']} {a['percent']}%" for a in (c.get("areas") or [])[:4])
+    joined = (f" (this run {c['live']}% joined with the unit tests' {c['unit']}% of eax dev check, {c['joined']} files)"
+              if c.get("unit") is not None else " (this run only: no unit tests' coverage yet, eax dev check makes it)")
     rec("coverage: the API's code run by this test", outcome,
-        f"{c['percent']}% of lines ({c['run']} of {c['lines']}): {why}; least covered areas: {low}; coverage.html in the "
-        "run's folder", ms)
+        f"{c['percent']}% of lines ({c['run']} of {c['lines']}){joined}: {why}; least covered areas: {low}; coverage.html "
+        "in the run's folder", ms)
     r.counts["coverage %"] = c["percent"]
     return c
 
@@ -659,6 +676,23 @@ def _security_suite(r: Run, spec: dict, tokens: dict[str, str], ids: dict[str, s
     if token and spec:
         n = security_gate.prepare_zap(r.dir, spec, ids, token, api_matrix.fill)
         r.log(f"security: the signed-in ZAP scan will read {n} paths of the run's test data as its Architect")
+
+
+def _attack_suite(r: Run, spec: dict, tokens: dict[str, str], ids: dict[str, str]) -> None:
+    """The attack test in the runner (R8.2, D817): the fuzzer's scope and the Architect's token for the operations
+    helper, which then brings each scanner up to date and runs it (ZAP full scan, Schemathesis, Nuclei, Semgrep,
+    Gitleaks); `collect` reads their reports and the security gate judges them."""
+    from . import attack_scope
+    rec = r.recorder("attack")
+    token = tokens.get("architect") or ""
+    if not (token and spec):
+        rec("attack test: the fuzzer's scope", "skipped", "no Architect token or no API description", 0)
+        return
+    n = attack_scope.prepare(r.dir, spec, ids, token, api_matrix.fill)
+    said = ", ".join(f"{v} {k.upper()}" for k, v in sorted(n.items()))
+    r.log(f"attack: the fuzzer's scope: {said or 'nothing'} in the run's test data, as its Architect; the helper's scanners next")
+    rec("attack test: the fuzzer's scope", "passed", f"{said}: reads, and writes only on the run's own models, projects "
+        "and elements; never DELETE, admin, operations, backup or download paths", 0)
 
 
 def _performance_suite(r: Run, tokens: dict[str, str], ids: dict[str, str], args) -> None:
@@ -870,6 +904,9 @@ def cmd_run(args) -> int:
             if "performance" in suites:              # the benchmark (R5.18): the data, the reads, then k6 by the helper
                 _performance_suite(r, tokens, ids, args)
                 keep_open = True
+            if "attack" in suites:                   # the attack test (R8.2): the scope, then the helper's scanners
+                _attack_suite(r, spec, tokens, ids)
+                keep_open = True
             if "backup" in suites:                    # backups and trial restores (R2.45)
                 _backup_suite(r, tokens, ids, run_id)
             if "restore" in suites:                   # the very last: back up, change, restore, compare (R3.8)
@@ -913,7 +950,7 @@ def _close_access(engine, run_id: int, by: str, repo=None) -> None:
 
 
 SUITE_NAMES = {"smoke": "Smoke", "api": "API", "ui": "Pages and journeys", "db": "Database", "jobs": "Jobs", "mcp": "MCP", "security": "Security", "reports": "Reports",
-               "performance": "Performance", "backup": "Backups", "restore": "Restore"}
+               "performance": "Performance", "attack": "Attack", "backup": "Backups", "restore": "Restore"}
 
 
 def local_reader(root: Path):
@@ -1038,7 +1075,19 @@ def cmd_collect(args) -> int:
         security.read_zap(r.dir / "zap.json", rec)
         security.read_zap(r.dir / "zap-api.json", rec, "OWASP ZAP signed-in API scan")
         security.read_trivy(r.dir, rec)
+        if "attack" in (row[3] or []):                # the attack test's scanners, one result each (R8.2)
+            from . import attack_scope
+            attack_scope.forget_token(r.dir)
+            attack_scope.judge(r.dir, r.recorder("attack"), security_gate.collect(r.dir))
         security_gate.judge(r.dir, rec)               # a high or critical finding not accepted fails the run (R5.17)
+    elif not (args.error or args.stopped) and "attack" in (row[3] or []):   # attack without the security suite
+        from . import attack_scope
+        attack_scope.forget_token(r.dir)
+        attack_scope.judge(r.dir, r.recorder("attack"), security_gate.collect(r.dir))
+        security_gate.judge(r.dir, r.recorder("attack"))
+    else:
+        from . import attack_scope
+        attack_scope.forget_token(r.dir)              # a run that broke never leaves the token behind
     _close_access(engine, args.run_id, row[2], repo)
     try:                                              # the live view's frames never outlive the run (R5.20)
         from . import screencast

@@ -90,8 +90,8 @@ export function RestoreLog({ id, embedded }) {
     async function load() {
       try { const x = await readRestore(id); if (!stop) { setD(x); setErr(""); } } catch (e) { if (!stop) setErr(e.message); }
     }
-    load();
-    const t = setInterval(() => { if (!d || d.status === "running") load(); }, 3000);
+    void load();
+    const t = setInterval(() => { if (!d || d.status === "running") void load(); }, 3000);
     return () => { stop = true; clearInterval(t); };
   }, [id, d?.status]);   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (follow && box.current) box.current.scrollTop = box.current.scrollHeight; }, [d, follow]);
@@ -131,7 +131,7 @@ export function useRestoreLock() {
         if (r.ok) { const x = await r.json(); if (!stop) setLock((before) => (x.active ? x : before?.active ? { ...before, active: false, ended: true } : null)); }
       } catch { /* the proxy restarts at the end of a restore: ask again */ }
     }
-    check();
+    void check();
     const t = setInterval(check, 10000);
     return () => { stop = true; clearInterval(t); };
   }, []);

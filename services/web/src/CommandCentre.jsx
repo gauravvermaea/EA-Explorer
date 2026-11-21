@@ -239,7 +239,7 @@ function RunView({ run, onBack }) {
         timer = setTimeout(tick, misses.current > 3 ? 5000 : 1000);    // going down or coming back: keep asking
       }
     };
-    tick();
+    void tick();
     return () => { live = false; clearTimeout(timer); };
   }, [run.id]);
   const done = status && status.state !== "running";
@@ -392,20 +392,20 @@ function Schedules() {
   const [adding, setAdding] = useState(null);       // null | "new" | "demo"
   const [msg, setMsg] = useState("");
   const load = () => apiFetch("/api/v1/admin/commands/schedules").then(setData).catch((e) => setErr(e.message));
-  useEffect(() => { load(); apiFetch("/api/v1/admin/commands").then(setCat).catch(() => {}); }, []);
+  useEffect(() => { void load(); apiFetch("/api/v1/admin/commands").then(setCat).catch(() => {}); }, []);
   async function change(s, what) {
     if (what === "remove" && !window.confirm(`Remove the schedule ${s.name}?`)) return;
     setErr(""); setMsg("");
     try {
       const out = await apiFetch(`/api/v1/admin/commands/schedules/${s.id}/${what}`, { method: "POST", body: "{}" });
       setMsg(what === "run" ? `Started: ${out.command}. See the History.` : `${s.name}: ${what === "remove" ? "removed" : what}.`);
-      load();
+      void load();
     } catch (e) { setErr(e.message); }
   }
   if (err && !data) return <p className="status bad">{err}</p>;
   if (!data || !cat) return <p><span className="spinner" aria-hidden="true" /> Reading the schedules…</p>;
   if (adding) return <ScheduleForm cat={cat} demo={adding === "demo"} superAdmin={data.you?.super_admin}
-    onDone={(text) => { setAdding(null); setMsg(text || ""); load(); }} />;
+    onDone={(text) => { setAdding(null); setMsg(text || ""); void load(); }} />;
   return (
     <div className="cc-schedules">
       <UpkeepChoices />

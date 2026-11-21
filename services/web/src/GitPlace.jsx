@@ -4,6 +4,7 @@
 // browser only; the user name and token are typed each time and never kept, here or on the server.
 import { useState } from "react";
 import { apiBlob, apiFetch, signedIn } from "./auth";
+import { isGitAddress } from "./textScan";
 
 // a field as the forms show it (ModelOps' Field, written here so the two files do not import each other)
 function Field({ label, hint, tip, children }) {
@@ -47,7 +48,7 @@ export function GitFields({ g, set }) {
   );
 }
 
-export const gitReady = (g) => /^https:\/\/\S+\/\S+$/.test(g.repo || "");
+export const gitReady = (g) => isGitAddress(g.repo || "");
 
 export async function gitPush(g, source) {
   return apiFetch("/api/v1/git/push", { method: "POST", body: JSON.stringify({ ...g, ...source }) });

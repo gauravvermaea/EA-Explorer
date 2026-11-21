@@ -12,6 +12,7 @@ import { apiFetch, apiUpload } from "./auth";
 import { openFile } from "./drawioScratch";
 import { refreshAll, useApi } from "./ModelViews";
 import RichText from "./RichText";
+import { replaceTags } from "./textScan";
 
 export const FILE_TYPES = { docx: "Word document", pptx: "PowerPoint presentation", xlsx: "Excel workbook", pdf: "PDF",
   drawio: "draw.io diagram", md: "Markdown", txt: "Text" };
@@ -210,7 +211,7 @@ function QuestionForm({ q, names, onSave, onCancel, busy }) {
   );
 }
 
-const plain = (html) => (html || "").replace(/<[^>]+>|&nbsp;/g, " ").trim();
+const plain = (html) => replaceTags(html || "", " ", { atLeastOne: true, nbsp: true }).trim();
 // an answer saved before it was rich text, or from the seed or an assistant as plain text
 const AnswerText = ({ html }) => (/^\s*</.test(html || "")
   // eslint-disable-next-line react/no-danger -- cleaned by the server (eax/project_work.clean_html)

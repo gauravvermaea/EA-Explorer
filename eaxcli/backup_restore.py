@@ -179,6 +179,22 @@ def secrets_in(text: str, values: list[str]) -> list[str]:
     return [f"secret #{i + 1}" for i, v in enumerate(values) if len(v) >= 8 and v in text]
 
 
+_NAME_CHARS = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_")
+
+
+def secret_value(line: str) -> str | None:
+    """The value of a config line NAME=value whose name holds PASSWORD, SECRET or TOKEN or ends in _KEY (spaces around
+    both trimmed); None for any other line. Plain string work, the same answers as the regular expression it replaces
+    (SonarQube python:S8786, D804)."""
+    name, eq, raw = line.partition("=")
+    name = name.strip()
+    if not eq or not raw or not name or not set(name) <= _NAME_CHARS:
+        return None
+    if "PASSWORD" in name or "SECRET" in name or "TOKEN" in name or name.endswith("_KEY"):
+        return raw.strip() or raw[-1]          # only spaces: the expression gave the last of them
+    return None
+
+
 def config_secrets(path: Path) -> list[str]:
     """The passwords, keys and tokens of the config file (their values, only to look for them)."""
     out = []
@@ -186,9 +202,9 @@ def config_secrets(path: Path) -> list[str]:
         for line in path.read_text(encoding="utf-8").splitlines():
             # a password, secret or token, or a key (a name ending in _KEY): not EAX_KEYCLOAK_REALM, whose value
             # "eaexplorer" is in every report (the owner's run, 16 Nov 2026, 22:21: "secret #15")
-            m = re.match(r"^\s*([A-Z0-9_]*(PASSWORD|SECRET|TOKEN)[A-Z0-9_]*|[A-Z0-9_]*_KEY)\s*=\s*(.+?)\s*$", line)
-            if m and not m.group(3).startswith("change-me") and m.group(3).strip("'\"").lower() not in ("true", "false"):
-                out.append(m.group(3).strip("'\""))
+            value = secret_value(line)
+            if value is not None and not value.startswith("change-me") and value.strip("'\"").lower() not in ("true", "false"):
+                out.append(value.strip("'\""))
     except OSError:
         pass
     return out

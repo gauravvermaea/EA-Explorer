@@ -10,7 +10,7 @@ import { lazy, Suspense, useState } from "react";
 import ProjectTree, { flatten } from "./ProjectTree";
 import { can, myInfo, needsRole, partOn } from "./auth";
 import { useApi } from "./ModelViews";
-import { fmtDateTime } from "./fmt";
+import { fmtDateTime, byText } from "./fmt";
 import { isRetiredModel, isRetiredProject, KindMark, ShowRetired, useShowRetired } from "./ModelMarks";
 import { ArchivedRows } from "./Archive";
 
@@ -116,7 +116,7 @@ export function ArchitectureWork() {
       && (showRetired || status === "frozen" || !isRetiredModel(m)))
     .sort((a, b) => byPin("model")(a, b) || (a.kind === "project" ? 0 : 1) - (b.kind === "project" ? 0 : 1)
       || String(b.modified_at || "").localeCompare(String(a.modified_at || "")));
-  const purposes = [...new Set((pd?.projects || []).map((p) => p.purpose).filter(Boolean))].sort();
+  const purposes = [...new Set((pd?.projects || []).map((p) => p.purpose).filter(Boolean))].sort(byText);
   const Pin = ({ k, x }) => <PinButton k={k} x={x} pins={pinned} small />;
   return (
     <section className="work-home">

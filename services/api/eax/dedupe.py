@@ -133,7 +133,7 @@ def candidates(conn, model: Any, entity_type: str | None = None, attributes: lis
                     for b in ents[i + 1:]:
                         s = closeness(a["name"], b["name"])
                         if s >= threshold:
-                            join(a, b, "same name" if s == 1.0 else "close names", s)
+                            join(a, b, "same name" if s >= 1.0 else "close names", s)   # a closeness is at most 1.0
         if attributes:
             seen2: dict[tuple, dict] = {}
             for e in ents:
@@ -360,7 +360,7 @@ def similar_names(conn, model: Any, entity_type: Any, name: str, exclude: str | 
     for r in rows:
         s = closeness(name, r["name"])
         if s >= threshold:
-            hits.append({**r, "same_type": bool(r["same_type"]), "score": round(s * 100), "same": s == 1.0})
+            hits.append({**r, "same_type": bool(r["same_type"]), "score": round(s * 100), "same": s >= 1.0})   # a closeness is at most 1.0
     hits.sort(key=lambda h: (not h["same_type"], -h["score"], h["name"]))
     return {"similar": hits[:limit]}
 

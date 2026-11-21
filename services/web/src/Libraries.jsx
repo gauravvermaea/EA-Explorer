@@ -12,6 +12,7 @@ import { Field, Modal } from "./ModelOps";
 import { fmtDateTime } from "./fmt";
 import { liveModels, liveProjects } from "./ModelMarks";
 import { eaHref } from "./Links";
+import { markdownLinks } from "./textScan";
 
 export { eaHref };
 
@@ -35,13 +36,11 @@ function Link({ label, href }) {
 // text with [label](href) links in it
 function Inline({ text }) {
   const out = [];
-  const re = /\[([^\]\n]+)\]\(([^)\s]+)\)/g;
   let at = 0;
-  let m;
-  while ((m = re.exec(text || ""))) {
+  for (const m of markdownLinks(text || "")) {
     if (m.index > at) out.push(text.slice(at, m.index));
-    out.push(<Link key={m.index} label={m[1]} href={m[2]} />);
-    at = m.index + m[0].length;
+    out.push(<Link key={m.index} label={m.label} href={m.href} />);
+    at = m.index + m.length;
   }
   if (at < (text || "").length) out.push(text.slice(at));
   return <>{out.map((x, i) => (typeof x === "string" ? <Fragment key={`t${i}`}>{x}</Fragment> : x))}</>;

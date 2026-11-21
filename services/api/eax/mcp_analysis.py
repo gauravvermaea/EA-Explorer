@@ -358,8 +358,8 @@ def tidy_suggestions(snap: dict, model: str | None = None) -> list[dict]:
         new, why = " ".join(n.split()), []
         if new != n:
             why.append("extra spaces")
-        if re.search(r"[.,;:]+$", new):
-            new = re.sub(r"[.,;:]+$", "", new)
+        if new.rstrip(".,;:") != new:
+            new = new.rstrip(".,;:")
             why.append("trailing punctuation")
         words = new.split(" ")
         fixed = []

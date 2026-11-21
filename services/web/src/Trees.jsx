@@ -135,7 +135,7 @@ export function EntityTree({ model, m, typeId = null, entityId = null }) {
     apiFetch(`/api/v1/models/${model}/tree/types`).then((d) => {
       const list = d.types.filter((t) => t.entities > 0 && (!typeId || t.id === typeId || t.code === typeId));
       setTypes(list); setBands(d.bands || BANDS);
-      if (typeId && list[0]) loadType(list[0].id, 0).then(() => setOpen(new Set(["root", `t:${list[0].id}`])));
+      if (typeId && list[0]) void loadType(list[0].id, 0).then(() => setOpen(new Set(["root", `t:${list[0].id}`])));
     }).catch((e) => setErr(e.message));
   }, [model, typeId, entityId]); // eslint-disable-line react-hooks/exhaustive-deps
 

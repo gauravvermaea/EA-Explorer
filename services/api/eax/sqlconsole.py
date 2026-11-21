@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import datetime as dt
 import decimal
+import math
 import os
 import re
 import time
@@ -50,7 +51,7 @@ def to_json_value(value: Any) -> Any:
     if value is None or isinstance(value, (bool, int)):
         return value
     if isinstance(value, float):
-        return value if value == value and abs(value) != float("inf") else str(value)
+        return value if not math.isnan(value) and abs(value) != float("inf") else str(value)
     if isinstance(value, (decimal.Decimal, uuid.UUID)):
         return str(value)
     if isinstance(value, (dt.datetime, dt.date, dt.time)):

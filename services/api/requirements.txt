@@ -25,7 +25,7 @@ defusedxml>=0.7,<0.8
 # code coverage of the API while the self-test runs (R2 coverage, D642): only when EAX_COVERAGE=on
 coverage>=7.6,<8
 # a git repository as one more place for packages (Release 6.5, D749): pure Python git, no git program in the image
-dulwich>=0.22,<1
+dulwich>=1.2.5,<2    # 1.2.5 fixes PYSEC-2026-2462 to 2466 and the GHSAs pip-audit and Trivy found (the attack test, 21 Nov 2026, D823)
 # the AI's report as a Word project document (mcp_more.docx_from_markdown); missing until 19 Nov 2026, so the tool
 # failed with "No module named 'docx'" (found by tests/test_mcp_ops.py in the test runner)
 python-docx>=1.1,<2

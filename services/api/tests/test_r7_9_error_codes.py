@@ -174,8 +174,8 @@ def test_every_form_of_eax_has_the_errors_command():
         sys.path.insert(0, str(ROOT))
     from eaxcli import commands as C
     assert "### errors [<code-or-words>...]" in (ROOT / "eaxcli" / "help.txt").read_text(encoding="utf-8")
-    assert '"site", "errors")) -or' in (ROOT / "eax.ps1").read_text(encoding="utf-8")
-    assert "|site|errors)" in (ROOT / "eax.sh").read_text(encoding="utf-8")
+    assert '"site", "errors", "sonar")) -or' in (ROOT / "eax.ps1").read_text(encoding="utf-8")    # sonar: D805
+    assert "|site|errors|sonar)" in (ROOT / "eax.sh").read_text(encoding="utf-8")
     assert 'command == "errors"' in (ROOT / "eaxcli" / "main.py").read_text(encoding="utf-8")
     assert C.check_argv(["errors", "EAX-AUTH-001"]) == ["errors", "EAX-AUTH-001"]       # a code is a free word
     assert C.check_argv(["errors", "no", "backup"]) == ["errors", "no", "backup"]
@@ -217,7 +217,7 @@ def test_the_on_screen_help_web_pages_and_printed_guide_explain_the_codes():
 def test_the_error_code_guide_is_a_printed_guide_of_its_own():
     """The owner, 18 Nov 2026, 23:45: "documents ... still has 24 docs nothing for error codes" (D790): guide 25."""
     manuals = json.loads((ROOT / "docs" / "manuals" / "manuals.json").read_text(encoding="utf-8"))["manuals"]
-    g25 = manuals[-1]
-    assert g25["id"] == "25-error-codes" and len(manuals) == 25
+    g25 = manuals[24]
+    assert g25["id"] == "25-error-codes" and len(manuals) >= 25                 # the 26th came after it (R8.2, D817)
     assert "page:docs/site/guides/error-codes.md" in json.dumps(g25) and "help:commands=status,errors" in json.dumps(g25)
     assert "of {total}" in (ROOT / "tools" / "build_manuals.py").read_text(encoding="utf-8")   # no "of 24" written in

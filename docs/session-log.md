@@ -242,3 +242,113 @@ source, and the pictures themselves read one by one and measured).
 ### 16:49 Clean baseline
 - Owner's dev check 16:48: lint ok, tests ok, documents ok (work/tests/dev-check-20261119-164842.log).
 - Next: eax clean-restart --wait-all, eax test full, eax test sonar; then every Sonar issue fixed in one pass.
+
+### 18:24 Full test running; SQL built from text accepted (D800)
+- Owner: the full test has failures; no need for 100% to go on, work with what there is.
+- Bandit in the run: 438 findings, 287 of them B608 (SQL built from text). Owner: accept them all. Done in both
+  accepted lists (bandit:B608, python:S2077) with a test; the code-scan line counts only what is not accepted.
+
+### 19:46 Full test result (run 20261119T152923Z)
+- Self-test: 2,785 passed, 87 skipped, 20 warnings, 7 failed. Backup and restore test PASSED (35.3 minutes).
+- Failed: GET /sync/status for every role (a test fault: it takes the pairing key; fixed, D801); reports VP-16 and
+  SR-20 not loaded in 60 s and 'every report opens' timed out; pip-audit (dulwich 0.25.2); the security gate (169
+  high or critical, mostly image packages: api, library, views, web nginx, drawio, ops, superset); the metamodel
+  page saw a 503 from deploys/questions (the operations helper slow or busy).
+- Coverage of the API: 41.2% of lines (the report's goal says 90; R8.1 agreed 80).
+
+### 19:49 Order agreed (D802)
+- Owner: Sonar first; coverage goal 90% on the code we write (R8.1 was 80% overall).
+- Next: the owner runs eax test sonar; the AI fixes every issue in one pass, each tested before and after.
+
+### 20:02 First eax test sonar: scan ok, report refused (D803)
+- SonarQube Community Build 26.11.0: the scan took 12.5 minutes and succeeded; reading the results got HTTP 400.
+- Cause: the old parameter names (componentKeys, projectKey). Fixed with a test; the owner runs eax test sonar again.
+
+### 20:19 to 23:xx The SonarQube fixes (D804)
+- Scan 20:07 (work/tests/sonar-20261119-200750): 504 issues (237 bugs, 84 vulnerabilities, 183 code smells), no hotspots.
+- Owner: fix with these; Group B (106, would change what users see) accepted ("yes go for it").
+- Fixed 299 without changing what EA Explorer does, each class with a before-and-after test; 2,016 existing tests give the
+  same results before and after. Waiting for the owner: 99 proposed as by design (listed in D804).
+- Owner next: eax up --build (API and web), eax dev check, eax test sonar.
+
+### 21:24 Sonar scan after the fixes
+- 232 issues (was 504), 106 accepted, 126 open: the 99 waiting for the owner and 27 from the fixes themselves: the
+  screens' test keeps the old patterns (now read as a test: sonar.tests takes services/web/tests and deploy/drawio/tests),
+  sys.exit(main()) of a main that returns nothing (now main()), the clipboard helper (no promise in a try or a condition)
+  and the link scan's loop counter. Fixed; the owner runs eax test sonar again (no rebuild needed for the scan).
+
+### 21:27 SonarQube's pages (D805)
+- Owner: open SonarQube without running a test. Built: eax sonar open (pages at http://localhost:9000, this computer
+  only, the last scan, nothing scanned), eax sonar close, and eax test sonar --open. Sign in as admin with the password
+  in work/tests/sonar/admin.
+
+### 20 Nov 04:58 eax sonar open: the test runner was older than the command (D805)
+- The runner did not know "ready" (it printed its help): eax sonar open now builds the test runner first, as eax test
+  sonar does. Test updated.
+
+### 05:09 eax sonar open said open, the browser showed nothing (D805)
+- docker port printed nothing, also after close and open: SonarQube ran without its port. eax sonar open now checks the
+  port Docker gave it and fails with what to do when there is none. Owner reboots, then runs the checks: docker inspect
+  (its port bindings), docker compose ... config sonarqube with the open file, and the same up --force-recreate.
+
+### 20 Nov 21:11 The runs of the night (D806)
+- Full test (19 Nov 21:25 to 20 Nov 06:31): 2,780 passed, 26 warnings, 8 failed: the same kinds as before the Sonar fixes
+  (reports slow, dulwich, the images' packages, the 503 from deploys/questions) plus GET /projects/{project} as architect
+  (no answer); backup and restore test failed (S1: the Architect sign-in 599; S6: jobs that ran twice). Coverage 41.1%.
+- Dev check 05:08: 7 failed: 5 tests reading the eax command's text, stale after D805 (fixed); test_r8_sonar ran a stale
+  compiled copy (its text is right); test_screen: a real bug, the refresh with a menu open (fixed, D806).
+
+### 21:17 Coverage up (R8.1, D807)
+- The 41% was the live run only; unit tests did not count. Owner: both combined. Built: dev check measures the unit tests
+  (work/tests/unit-coverage.json), the full test joins them line by line with the live run. Next: the owner's runs give
+  the joined figure by file; then tests where it is lowest.
+### 21 Nov 06:26 SonarQube's pages work; R8.3 closed; backup and restore (D808, D809)
+- Owner: the SonarQube website bug is fixed (eax sonar open shows the pages). R8.3, Jenkins tested end to end, closed (D809).
+- Backup and restore test of 20 Nov: S6's five jobs run twice all date from the night's full test, before the test began;
+  S6 now reads only the test's own window. S1 keeps why a call had no answer (the Architect's 599 said nothing more).
+  Test: test_r8_backup_restore_s6_window.py. The Architect's no answer (S1 and GET /projects/{project} in the full
+  test) is looked at again with the reason from the next run.
+### 07:00 Dev check: 2,215 passed, 1 failed; unit tests cover 42.6% (D810)
+- The failure: test_r8_dev_check_in_runner expected -x last; D807 put the coverage flags after it. Test updated.
+- Coverage: the job runners and the MCP server were never measured (0% for the MCP modules). They now start the
+  probe as the API does. Next: the files where the joined coverage is lowest, once the unit figures by file are read.
+### 09:40 Release 11 planned (D811)
+- Owner: templates for Government, Agile and Digital Transformation projects, with model templates; more from the TOGAF
+  Series Guides; a printed project types guide; the Architect's Bible. Written as R11 to R11.7, not built.
+### 09:51 Release 11 narrowed (D812)
+- Information and organization maps in A and B from the model; business scenarios in Requirements Management, with the
+  project; nothing from the Leader's Guide; the Bible a new guide. Data and security proposed, waiting on the owner.
+### 09:58 Release 11: data and security templates in; everything in the bases (D813)
+- Risk and security architecture, and Data architecture and governance, written into R11.4. A business scenario is a
+  document or points to a model item. R11.8: every new capability lives in the project base and root metamodels.
+### 09:59 Release 11 from the TOGAF Standard only (D814)
+- Every template item from TOGAF 10 (fundamental content and Series Guides), traced to its source; Government generic,
+  no country variant; no outside control catalogue.
+### 10:05 Release 11 from the Open Group documents (D815)
+- Owner has The Open Group's permission. GRM into the library for the Government template (corrects D814); DPBoK's
+  levers and contexts for Digital Transformation; risk and security phase by phase from G152; R11.9 links, not copies.
+### 10:08 The Bible's three worked examples (D816)
+- Fynbos Mutual digital transformation, Ridgeview City Council citizen services (GRM), Karoo Re risk and security; each a
+  shipped sample project.
+### 10:20 Release 10 AI only (D818)
+- Scenario planning wizard started in words for a project or model, run by the AI; results in a read-only tab.
+  Executive summary written as a Claude doc.
+### 10:22 Full test of 21 Nov; Release 8.5 for bug fixes (D819)
+- Backup and restore passed, 100 of 100 (D808 confirmed). The self-test stopped in the reports suite with no report.
+- Owner: bugs go to a release of their own, Release 8.5 (R8.5.1 to R8.5.4); now coverage with the results there are.
+  R8.2 (attack test) is half built in the working copy, not on the laptop.
+### 10:26 Release 8.5 becomes Release 12, stabilisation (D820)
+- Bugs, failing tests and the rest of the coverage go to Release 12, the last. Now: coverage tests here, then R8.2.
+### 10:40 The attack test built (D817); Release 13 for documents (D821)
+- `eax test attack`: the runner's scope and token, the helper's five tools brought up to date first, their reports
+  judged by the security gate, forged tokens in the security suite, migration 0110. A laptop only.
+- Guide 26 and the website guide "Security and performance testing"; docs/testing.md and the help updated.
+- Release 13 after Release 12: every document checked and updated.
+### 10:50 Release 12 fixes while the attack test runs; attack-test in Jenkins (D822)
+- R12.1: the runner's output and the helper's lines kept on disk as they come; token files always deleted.
+- R12.2: the 503 was a late answer counted against the next page; fixed in the page sweep. Slow reports and the
+  Architect's project page still to do. Jenkins: eax-admin › Upkeep › attack-test.
+### 13:10 The first attack run; the full test does everything but the benchmark (D823)
+- Attack run: every tool ran; no fuzzing server errors; every attack refused; gate failed on 190 (168 Trivy).
+- Fixed: nan-injection, the menu's PowerShell, defusedxml, dulwich 1.2.5. The rest: the rebuild, or the owner's word.
+- `eax test full` (command line): dev check, self-test with attack, backup and restore, SonarQube; --no-* to leave out.

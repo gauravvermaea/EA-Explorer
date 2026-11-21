@@ -259,7 +259,7 @@ class _Parser:
         if self.peek()[0] == "word" and self.peek()[1].lower() == "not":
             self.take()
             return ("not", self.not_())
-        return self.compare()
+        return self.comparison()
 
     def operand(self):
         """Parses a value or a column name."""
@@ -283,7 +283,7 @@ class _Parser:
             return ("col", value)
         raise ODataError(f"$filter: unexpected '{value}'.", 400)
 
-    def compare(self):
+    def comparison(self):
         """Parses a comparison, a function call or a bracketed expression."""
         kind, value = self.peek()
         if kind == "punct" and value == "(":

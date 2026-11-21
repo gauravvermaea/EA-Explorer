@@ -207,6 +207,7 @@ def start(state: dict) -> dict:
     from ..db import get_engine
     engine, repo = store.engine(), get_engine()
     by = state.get("by") or "eax test backup-restore"
+    began = int(time.time())       # S6 reads only the jobs from here on (D808)
     with engine.begin() as conn:
         run_id = store.create_run(conn, by, "eax", ["restore"], state.get("folder", ""), state.get("version", ""), "detailed")
         store.set_state(conn, run_id, state="running", step="backup and restore test")
@@ -284,7 +285,7 @@ def start(state: dict) -> dict:
     out = {"run_id": run_id, "sid": sid, "ids": {**ids, **extra}}
     _read_back(made, out, bool(proj))
     return {"run_id": run_id, "sid": sid, "token": tokens["super-admin"], "architect": tokens.get("architect", ""),
-            "ids": {**ids, **extra}, "made": made, "calls": a.calls}
+            "ids": {**ids, **extra}, "made": made, "calls": a.calls, "began": began}
 
 
 THEME_CSS = ":root { --accent: #0b6e4f; --accent-soft: #e3f2ed; }\n.topbar { border-bottom: 3px solid #0b6e4f; }\n"
@@ -534,11 +535,11 @@ def after(state: dict) -> dict:
     a = Api(state["token"])
     m1 = ids.get("model", "")
     # S1: the test's accounts sign in again (their tokens were made between B1 and B2)
-    s, _ = a.rest("get", "/api/v1/search?q=self&limit=1")
-    rec("S1", "the test's Super Admin account signs in", s == 200, f"{s}")
+    s, d = a.rest("get", "/api/v1/search?q=self&limit=1")
+    rec("S1", "the test's Super Admin account signs in", s == 200, signed_in(s, d))
     if state.get("architect"):
-        s, _ = Api(state["architect"]).rest("get", "/api/v1/search?q=self&limit=1")
-        rec("S1", "the test's Architect account signs in", s == 200, f"{s}")
+        s, d = Api(state["architect"]).rest("get", "/api/v1/search?q=self&limit=1")
+        rec("S1", "the test's Architect account signs in", s == 200, signed_in(s, d))
     # S4: what is worked out from the data
     s, d = a.rest("get", f"/api/v1/search?q={urllib.request.quote('Self-test application 1')}&model={m1}")
     hits = d.get("results") or d.get("items") or d.get("entities") or [] if isinstance(d, dict) else []
@@ -581,8 +582,17 @@ def after(state: dict) -> dict:
             s, out = a.tool("customer_journey", {"project": ids["project"], "journey": ids["journey"], "compare_with": ids["journey_target"]})
             rec("S4", "the restored journey compares with its target", s == 200 and isinstance(out, dict) and "counts" in out, _why(out))
     # S6: the jobs after a restore
-    rec(*_jobs())
+    rec(*_jobs(state.get("began")))
     return {"checks": checks, "calls": a.calls}
+
+
+def signed_in(status: int, answer: Any) -> str:
+    """S1's detail: the status, and for no answer (599) why, as the call said it (D808; the owner's run, 20 Nov 2026:
+    the Architect's "599" alone did not say whether the API timed out or refused the connection)."""
+    if status == 200:
+        return "200"
+    why = (answer.get("text") or answer.get("message") or "") if isinstance(answer, dict) else str(answer or "")
+    return f"{status}: {str(why)[:200]}" if why else f"{status}"
 
 
 def _ref_number(ref: str) -> int:
@@ -592,8 +602,11 @@ def _ref_number(ref: str) -> int:
         return 0
 
 
-def _jobs() -> tuple[str, str, bool, str]:
-    """S6: no recurring job deferred twice for one time, none left running for over half an hour."""
+def _jobs(since: int | None = None) -> tuple[str, str, bool, str]:
+    """S6: no recurring job deferred twice for one time, none left running for over half an hour. Only the times from
+    the test's start (`since`, epoch seconds) on are read (D808): the job history is kept for days, and a recurring job
+    deferred twice before the test (the owner's run, 20 Nov 2026: five, all from the night's full test, hours before this
+    test began) says nothing about the restores."""
     from ..db import get_engine
     try:
         with get_engine().begin() as conn:
@@ -601,7 +614,8 @@ def _jobs() -> tuple[str, str, bool, str]:
                 return "S6", "the jobs after the restore", None, "no job queue in this database"
             conn.execute(text("SET LOCAL search_path TO jobs, public"))
             twice = conn.execute(text("""SELECT task_name, args->>'timestamp' FROM jobs.procrastinate_jobs WHERE args ? 'timestamp'
-                                          GROUP BY 1, 2 HAVING count(*) > 1 LIMIT 5""")).all()
+                                            AND (args->>'timestamp')::bigint >= :since
+                                          GROUP BY 1, 2 HAVING count(*) > 1 LIMIT 5"""), {"since": int(since or 0)}).all()
             stuck = conn.execute(text("""SELECT j.task_name FROM jobs.procrastinate_jobs j WHERE j.status = 'doing' AND EXISTS (
                                            SELECT 1 FROM jobs.procrastinate_events e WHERE e.job_id = j.id AND e.type = 'started'
                                               AND e.at < now() - interval '30 minutes') LIMIT 5""")).all()

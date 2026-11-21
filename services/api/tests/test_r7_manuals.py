@@ -24,8 +24,8 @@ def guides() -> list[dict]:
 
 def test_twenty_four_guides_each_with_its_purpose_and_reader():
     specs = guides()
-    assert len(specs) == 25                                  # the 25th: the error code guide (D790)
-    assert [s["id"].split("-")[0] for s in specs] == [f"{n:02d}" for n in range(1, 26)]
+    assert len(specs) == 26                                  # the 25th: the error code guide (D790); the 26th: security and performance testing (D817)
+    assert [s["id"].split("-")[0] for s in specs] == [f"{n:02d}" for n in range(1, 27)]
     for s in specs:
         assert s["title"] and len(s["purpose"]) > 60 and s["audience"] and s["chapters"], s["id"]
         assert all(ch["title"] and ch["sources"] for ch in s["chapters"]), s["id"]
@@ -56,7 +56,7 @@ def test_the_contents_get_page_numbers_and_the_pictures_their_place():
     second = g.body_html({"c1": 3, "c1s1": 3})
     assert '<span class="n">3</span>' in second
     assert "About this guide" in first and "Contents" in first and html.escape(s["purpose"]) in first
-    assert "Guide 14 of 25" in g.cover_html()
+    assert "Guide 14 of 26" in g.cover_html()
 
 
 def test_the_command_reference_comes_from_the_help():

@@ -554,7 +554,7 @@ export function WebhooksPanel() {
                   <button className="linkish" onClick={() => call(() => apiFetch(`/api/v1/admin/webhooks/${w.id}`, { method: "PATCH", body: JSON.stringify({ new_secret: true }) }))}>New secret</button>{" · "}
                   <button className="linkish" onClick={() => {
                     // eslint-disable-next-line no-alert
-                    if (window.confirm(`Delete the webhook ${w.name} and its delivery log?`)) call(() => apiFetch(`/api/v1/admin/webhooks/${w.id}`, { method: "DELETE" }));
+                    if (window.confirm(`Delete the webhook ${w.name} and its delivery log?`)) void call(() => apiFetch(`/api/v1/admin/webhooks/${w.id}`, { method: "DELETE" }));
                   }}>Delete</button>
                 </td>
               </tr>

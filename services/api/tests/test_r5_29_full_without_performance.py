@@ -19,7 +19,7 @@ def _ops_testruns():
 
 
 def test_the_full_test_has_every_suite_but_performance():
-    assert ON_DEMAND == ("performance",) and "performance" in SUITES
+    assert ON_DEMAND == ("performance", "attack") and "performance" in SUITES   # attack: on demand too (R8.2)
     assert "performance" not in FULL_SUITES and "performance" not in WEB_FULL_SUITES
     assert {"api", "ui", "db", "security", "reports", "backup"} <= set(FULL_SUITES)       # security stays in it
     assert store.clean_suites(None) == list(FULL_SUITES) and store.clean_suites("all") == list(FULL_SUITES)

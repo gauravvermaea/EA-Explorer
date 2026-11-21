@@ -412,7 +412,7 @@ function Services() {
     try { setHealth(await apiFetch("/api/v1/admin/services/health")); } catch (e) { setHErr(e.message); }
     setChecking(false);
   }
-  useEffect(() => { if (can("system.operate")) check(); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (can("system.operate")) void check(); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
   const [busy, setBusy] = useState("");
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
@@ -436,12 +436,12 @@ function Services() {
     // eslint-disable-next-line no-alert
     if (!window.confirm(`Stop ${s.name}? It is switched off in the config file (a dated copy is kept first), so it stays off after `
       + `the next eax up too. ${s.when_off}`)) return;
-    call(s, "stop", () => put(s, false));
+    void call(s, "stop", () => put(s, false));
   };
   const restart = (s) => {
     // eslint-disable-next-line no-alert
     if (s.key === "db" && !window.confirm("Restart the database? Every screen pauses for a few seconds.")) return;
-    call(s, "restart", async () => {
+    void call(s, "restart", async () => {
       await apiFetch("/api/v1/admin/restart", { method: "POST", body: JSON.stringify({ service: s.containers[s.containers.length - 1] }) });
       return { message: `Restarting ${s.name}: it is back in a moment.` };
     });
@@ -501,7 +501,7 @@ function Services() {
                     : !running ? <code className="quiet" title="Not running">{addr}</code>
                       : PAGE_OF[s.key] ? <><a href={PAGE_OF[s.key]} title="How to connect a language model">{addr}</a>
                         <button className="linkish small" title="Copy the address for your language model client"
-                          onClick={() => { try { navigator.clipboard.writeText(addr); setMsg(`Copied ${addr}`); } catch { /* no clipboard */ } }}>Copy</button></>
+                          onClick={() => { try { void navigator.clipboard.writeText(addr); setMsg(`Copied ${addr}`); } catch { /* no clipboard */ } }}>Copy</button></>
                         : <a href={addr} target="_blank" rel="noreferrer">{addr} ↗</a>}</td>
                   <td className="svc-buttons nowrap">
                     <button title={tip(offTip || (running ? "Already running" : ""))} disabled={!!why || wait || s.core || running || !s.state}

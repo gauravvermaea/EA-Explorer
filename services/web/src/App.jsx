@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { apiFetch, can, isBreakGlass, keycloak, keycloakReachable, myInfo, partOn, roles, signedIn as isSignedIn, viewOnly } from "./auth";
+import { apiFetch, can, isBreakGlass, keycloak, isKeycloakReachable, myInfo, partOn, roles, signedIn as isSignedIn, viewOnly } from "./auth";
 import BreakGlass from "./BreakGlass";
 import { config } from "./config";
 import StartPage, { EverythingElse } from "./StartPage";
@@ -66,7 +66,7 @@ export default function App() {
   const [testRun, setTestRun] = useState(null);
   const [testAtSignIn, setTestAtSignIn] = useState(null);   // null: not known yet; true: it was running when they came
   useLookFromRoute(route);   // #/my-profile?look=standard: the standard look in this browser (R5.7-B1)
-  useEffect(() => { if (signedIn) loadBranding(); }, [signedIn]);   // the logo and the theme (R5.7-B1)
+  useEffect(() => { if (signedIn) void loadBranding(); }, [signedIn]);   // the logo and the theme (R5.7-B1)
   useEffect(() => {
     if (!signedIn) return undefined;
     const beat = () => apiFetch("/api/v1/heartbeat").then((b) => {
@@ -74,7 +74,7 @@ export default function App() {
       setSite({ purpose: b.site_purpose || null, dr: b.dr_copy || null });
       setTestAtSignIn((was) => (was === null ? !!b.test_in_progress : was && !!b.test_in_progress));
     }).catch(() => {});
-    beat();
+    void beat();
     const t = setInterval(beat, 20000);
     return () => clearInterval(t);
   }, [signedIn]);
@@ -105,7 +105,7 @@ export default function App() {
       <div className="signin">
         <div className="signin-card">
           <h1>EA Explorer</h1>
-          {keycloakReachable ? <p className="quiet">Sign in to continue.</p>
+          {isKeycloakReachable() ? <p className="quiet">Sign in to continue.</p>
             : <p className="status bad">Sign-in (Keycloak) is not reachable at the moment.</p>}
           <button className="primary" onClick={() => keycloak.login()}>Sign in</button>
           <p className="small-note"><a href="#/break-glass">Keycloak is down? Break-glass sign-in</a></p>

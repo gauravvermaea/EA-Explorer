@@ -158,7 +158,7 @@ function List({ view }) {
   const [stats, setStats] = useState(null);
   const [err, setErr] = useState("");
   const load = () => apiFetch(`/api/v1/service-desk/tickets?view=${view}&status=${status}&q=${encodeURIComponent(q)}`).then(setD).catch((e) => setErr(e.message));
-  useEffect(() => { load(); }, [view, status]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { void load(); }, [view, status]);   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (view === "all" && can("system.operate")) apiFetch("/api/v1/service-desk/stats").then(setStats).catch(() => {}); }, [view]);
   return (
     <div>
@@ -192,7 +192,7 @@ function TicketPage({ ident }) {
   const [people, setPeople] = useState(null);
   const [to, setTo] = useState("");
   const load = () => apiFetch(`/api/v1/service-desk/tickets/${ident}`).then(setT).catch((e) => setErr(e.message));
-  useEffect(() => { load(); }, [ident]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { void load(); }, [ident]);   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (t?.can_assign && !people) apiFetch("/api/v1/service-desk/people").then((x) => setPeople(x.people || [])).catch(() => setPeople([]));
   }, [t?.can_assign]);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -206,12 +206,12 @@ function TicketPage({ ident }) {
         if (r.link) { window.location.hash = r.link; return; }
         setMsg(r.message);
       }
-      setNote(""); setTo(""); load();
+      setNote(""); setTo(""); void load();
     } catch (e) { setErr(e.message); }
   }
   async function upload(file) {
     const fd = new FormData(); fd.append("file", file);
-    try { await apiUpload(`/api/v1/service-desk/tickets/${ident}/files`, fd); load(); }
+    try { await apiUpload(`/api/v1/service-desk/tickets/${ident}/files`, fd); void load(); }
     catch (e) { setErr(e.message); }
   }
   const download = (f) => apiDownload(`/api/v1/service-desk/tickets/${ident}/files/${f.id}`, f.name).catch((e) => setErr(e.message));
@@ -306,14 +306,14 @@ function CatalogueAdmin() {
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
   const load = () => apiFetch("/api/v1/service-desk/catalogue?all=1").then(setCat).catch((e) => setErr(e.message));
-  useEffect(() => { load(); }, []);
+  useEffect(() => { void load(); }, []);
   if (!cat) return err ? <p className="status bad">{err}</p> : <p><span className="spinner" aria-hidden="true" /> Reading…</p>;
   async function save() {
     setErr(""); setMsg("");
     try {
       const form = typeof edit.formText === "string" ? JSON.parse(edit.formText) : edit.form;
       await apiFetch(`/api/v1/service-desk/catalogue/${encodeURIComponent(edit.key)}`, { method: "PUT", body: JSON.stringify({ ...edit, form, formText: undefined }) });
-      setMsg(`Saved ${edit.name}.`); setEdit(null); load();
+      setMsg(`Saved ${edit.name}.`); setEdit(null); void load();
     } catch (e) { setErr(e.message); }
   }
   const blank = { key: "", area: "Other", name: "", about: "", target_hours: 24, wizard: "", enabled: true, sort: 100, formText: "[]" };

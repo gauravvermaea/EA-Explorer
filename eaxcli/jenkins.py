@@ -196,6 +196,9 @@ ADMIN_TASKS: list[dict] = [
      "argv": ["jobs", "clear-stuck"]},
     {"name": "diagnostics", "group": "Upkeep", "summary": "Every container's state and logs, in one bundle to send", "argv": ["diag"]},
     {"name": "smoke-test", "group": "Upkeep", "summary": "Every role signs in, every area answers", "argv": ["test", "smoke"]},
+    {"name": "attack-test", "group": "Upkeep",                    # R8.2 (owner, 21 Nov 2026, 10:47: "Add pipeline in Jenkins to do attack")
+     "summary": "The attack test: tools that try to break EA Explorer, each updated first (an hour or more)",
+     "argv": ["test", "attack"]},
     {"name": "update", "group": "Upkeep", "summary": "To the newest release of your channel (a backup first)", "argv": ["update"],
      "confirm": True},
     {"name": "rollback", "group": "Upkeep", "summary": "Back to the release before, with its data as it was", "argv": ["rollback"],

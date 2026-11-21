@@ -288,8 +288,13 @@ def build_app(form: str, windows: bool, how: str):
                 yield Static("", id="note")
             yield Static(sm.STATUS_LINE, id="statusline")
 
+        def desk(self):
+            """The main screen, under any menu or dialog that is open: the refresh writes there (20 Nov 2026: with a menu
+            open, the 5-second refresh looked for the table on the menu and the screen stopped)."""
+            return self.screen_stack[0]
+
         def on_mount(self) -> None:
-            t = self.query_one("#containers", DataTable)
+            t = self.desk().query_one("#containers", DataTable)
             t.add_columns("Container", "State", "Status")
             self.action_refresh()
             self.set_interval(5, self.action_refresh)
@@ -310,13 +315,14 @@ def build_app(form: str, windows: bool, how: str):
             self.call_from_thread(self.show, rows, dk, note)
 
         def show(self, rows: list[dict], dk: list[dict], note: str) -> None:
-            t = self.query_one("#containers", DataTable)
+            main = self.desk()
+            t = main.query_one("#containers", DataTable)
             t.clear()
             for r in rows:
                 t.add_row(Text(r["service"]), Text(r["health"] or r["state"], style=f"bold {r['colour']}"), Text(r["status"]))
-            self.query_one("#disks", Static).update(Text(
+            main.query_one("#disks", Static).update(Text(
                 "\n".join(f"{d['path']}: {sm.gb(d['free'])} free of {sm.gb(d['total'])} ({d['used']}% used)" for d in dk)))
-            self.query_one("#note", Static).update(Text(note))
+            main.query_one("#note", Static).update(Text(note))
 
         @on(Button.Pressed, ".menu-item")
         def clicked(self, event: Button.Pressed) -> None:

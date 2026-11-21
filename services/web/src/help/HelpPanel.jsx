@@ -6,6 +6,7 @@
 import { useEffect, useState } from "react";
 import { currentNav } from "../navActions";
 import { lookup, norm, openHelp, pageHelp, searchHelp, tipOf } from "./help";
+import { withoutEndBullet } from "../textScan";
 
 const NAV_TABS = ".nav-classic, .nav-groups, .nav-tabs, .nav-menu";
 const FORM = new Set(["INPUT", "SELECT", "TEXTAREA"]);
@@ -64,7 +65,7 @@ function helpHere(popupTitle) {
   const title = popupTitle || top?.getAttribute("aria-label") || top?.querySelector("h2")?.textContent || "";
   if (title) add("This pop-up", lookup("popup", title));
   const step = document.querySelector(".wizard-steps li.on button, .wiz-steps li.on");
-  if (step) add("This step", lookup("step", step.textContent.replace(/^\s*\d+\.\s*/, "").replace(/\s*•\s*$/, "")));
+  if (step) add("This step", lookup("step", withoutEndBullet(step.textContent.replace(/^\s*\d+\.\s*/, ""))));
   const subs = [...document.querySelectorAll('main [role="tab"][aria-selected="true"]')].filter((t) => !t.closest(NAV_TABS));
   subs.forEach((t) => add("This sub-tab", lookup("tab", t.textContent)));
   const nav = currentNav();

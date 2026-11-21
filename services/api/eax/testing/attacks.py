@@ -12,6 +12,8 @@ change even when one is not (anything a check makes is deleted at once and the c
   identity        a header that claims to be another person (the front door's own, X-EAX-Actor, or a forwarded user)
                   changes nothing: an Architect stays an Architect
   uploads         a file that is not a backup, one named to climb out of its folder, one far too big: refused
+  tokens          forged and tampered tokens (unsigned, expired, the signature or the claims changed, rubbish) against
+                  an admin call: refused (R8.2)
 
 One result each ("attack: ..."), in the suite "security"; the gate (security_gate.py) counts them with the scanners.
 """
@@ -130,6 +132,48 @@ def identity(base: str, token: str, record: Callable) -> None:
                f"answered {s}", 0)
 
 
+def _b64(d: dict) -> str:
+    import base64
+    return base64.urlsafe_b64encode(json.dumps(d, separators=(",", ":")).encode()).decode().rstrip("=")
+
+
+def forged(token: str) -> list[tuple[str, str]]:
+    """Tokens no one signed (R8.2, D817): EA Explorer must refuse each, whatever it claims. The real token altered (its
+    signature, or its claims with the old signature kept), and tokens made up from nothing: unsigned (alg none), long
+    expired, and plain rubbish."""
+    claims = {"sub": "eaadmin", "preferred_username": "eaadmin", "realm_access": {"roles": ["super-admin"]},
+              "exp": int(time.time()) + 3600, "iat": int(time.time())}
+    out = [("unsigned (alg none), claiming Super Admin", f"{_b64({'alg': 'none', 'typ': 'JWT'})}.{_b64(claims)}."),
+           ("long expired, claiming Super Admin", f"{_b64({'alg': 'RS256', 'typ': 'JWT'})}.{_b64({**claims, 'exp': 1_000_000_000})}.c2ln"),
+           ("rubbish", "not-a-token-" + uuid.uuid4().hex)]
+    parts = token.split(".")
+    if len(parts) == 3 and parts[2]:
+        last = parts[2]
+        flip = ("A" if last[-1] != "A" else "B")
+        out.append(("its own token with the signature changed", ".".join([parts[0], parts[1], last[:-1] + flip])))
+        out.append(("its own token claiming Super Admin, the old signature kept", ".".join([parts[0], _b64(claims), last])))
+    elif token:
+        out.append(("its own token with a character changed", token[:-1] + ("A" if token[-1] != "A" else "B")))
+    return out
+
+
+def forged_tokens(base: str, token: str, record: Callable) -> None:
+    """Forged and tampered tokens against an admin call: each refused (401 or 403), never answered."""
+    from ..service_split import route
+    path = "/api/v1/admin/databases"
+    for what, bad in forged(token):
+        req = urllib.request.Request(route(base, path) + path, method="GET",
+                                     headers={"Authorization": f"Bearer {bad}", "Accept": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=60) as r:
+                s = r.status
+        except urllib.error.HTTPError as exc:
+            s = exc.code
+        except (urllib.error.URLError, OSError):
+            s = 599
+        record(f"attack: a forged token, {what}, is refused", "passed" if s in (401, 403) else "failed", f"answered {s}", 0)
+
+
 def uploads(base: str, admin: str, record: Callable) -> None:
     """Multipart uploads to the backups' upload (the one upload that takes any file name): each must be refused."""
     from ..service_split import route
@@ -165,5 +209,6 @@ def run(base: str, tokens: dict[str, str], ids: dict[str, str], record: Callable
         leaks(base, reader, record)
         cross(base, architect, ids, record)
         identity(base, architect, record)
+        forged_tokens(base, architect, record)
     if tokens.get("super-admin"):
         uploads(base, tokens["super-admin"], record)

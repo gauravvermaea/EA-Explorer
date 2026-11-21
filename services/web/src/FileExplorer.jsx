@@ -90,10 +90,10 @@ export default function FileExplorer({ service, on, start = "/" }) {
         for (const c of crumbs(x.path)) if (c !== x.path) next[c] = { ...(next[c] || {}), open: true };
         return next;
       });
-      for (const c of crumbs(x.path)) if (c !== x.path) children(c);
+      for (const c of crumbs(x.path)) if (c !== x.path) void children(c);
     }).catch((e) => setErr(e.message));
   };
-  useEffect(() => { setTree({}); setBack([]); setFwd([]); if (on !== false) load(start, "first"); }, [service, on, start]);
+  useEffect(() => { setTree({}); setBack([]); setFwd([]); if (on !== false) void load(start, "first"); }, [service, on, start]);
   useEffect(() => { try { localStorage.setItem("eax.fx.view", view); } catch { /* a convenience only */ } }, [view]);
   const shown = (d?.entries || []).filter((e) => !find || e.name.toLowerCase().includes(find.toLowerCase()));
   const items = shown.filter((e) => chosen.includes(e.path));
@@ -110,10 +110,10 @@ export default function FileExplorer({ service, on, start = "/" }) {
     const n = tree[p];
     if (n?.open) setTree((t) => ({ ...t, [p]: { ...n, open: false } }));
     else if (n?.children) setTree((t) => ({ ...t, [p]: { ...n, open: true } }));
-    else children(p);
+    else void children(p);
   };
-  const goBack = () => { const p = back[back.length - 1]; if (p == null) return; setBack(back.slice(0, -1)); setFwd([path, ...fwd]); load(p, "history"); };
-  const goFwd = () => { const p = fwd[0]; if (p == null) return; setFwd(fwd.slice(1)); setBack([...back, path]); load(p, "history"); };
+  const goBack = () => { const p = back[back.length - 1]; if (p == null) return; setBack(back.slice(0, -1)); setFwd([path, ...fwd]); void load(p, "history"); };
+  const goFwd = () => { const p = fwd[0]; if (p == null) return; setFwd(fwd.slice(1)); setBack([...back, path]); void load(p, "history"); };
 
   const send = async (body) => {
     try { return await apiFetch(url(path).split("?")[0], { method: "POST", body: JSON.stringify(body) }); }
@@ -127,14 +127,14 @@ export default function FileExplorer({ service, on, start = "/" }) {
   const change = async (body, sure) => {
     if (sure && !window.confirm(sure)) return null;
     setBusy(true); setErr("");
-    try { const out = await send(body); load(path, "refresh"); return out; }
+    try { const out = await send(body); void load(path, "refresh"); return out; }
     catch (e) { setErr(e.message); return null; } finally { setBusy(false); }
   };
   const changeAll = async (bodies, done) => {        // several changes, one after another; stops at the first refused
     setBusy(true); setErr(""); let n = 0;
     try { for (const b of bodies) { await send(b); n += 1; } setMsg(done(n)); }
     catch (e) { setErr(`${e.message}${n ? ` (${n} done before this)` : ""}`); }
-    finally { setBusy(false); load(path, "refresh"); }
+    finally { setBusy(false); void load(path, "refresh"); }
   };
   const viewFile = (f) => apiFetch(url(f.path, "/content")).then((x) => { setFile(x); setEdit(null); }).catch((e) => setErr(e.message));
   const openItem = (f) => (f?.dir ? load(f.path) : f && viewFile(f));
@@ -149,38 +149,38 @@ export default function FileExplorer({ service, on, start = "/" }) {
   const upload = async (list, into = path) => {
     const files = await Promise.all([...list].map((f) => new Promise((ok) => { const r = new FileReader(); r.onload = () => ok({ name: f.name, content: String(r.result).split(",")[1] || "" }); r.readAsDataURL(f); })));
     const overwrite = window.confirm(`Upload ${files.length} file(s) into ${into}? OK replaces files of the same name; Cancel keeps them (the upload then stops at a clash).`);
-    change({ op: "upload", path: into, files, overwrite });
+    void change({ op: "upload", path: into, files, overwrite });
   };
   const newFile = () => {
     const n = window.prompt("New file name:");
-    if (n) change({ op: "upload", path, files: [{ name: n, content: "" }], overwrite: false });
+    if (n) void change({ op: "upload", path, files: [{ name: n, content: "" }], overwrite: false });
   };
-  const newFolder = () => { const n = window.prompt("New folder name:"); if (n) change({ op: "mkdir", path: joinPath(path, n) }); };
+  const newFolder = () => { const n = window.prompt("New folder name:"); if (n) void change({ op: "mkdir", path: joinPath(path, n) }); };
   const rename = (f) => {
     if (!f) { setErr("Choose one item to rename."); return; }
     const to = window.prompt("New name:", f.name);
-    if (to && to !== f.name) change({ op: "move", path: f.path, to: joinPath(parentOf(f.path), to) });
+    if (to && to !== f.name) void change({ op: "move", path: f.path, to: joinPath(parentOf(f.path), to) });
   };
   const moveOrCopy = (what, list) => {
     if (!list.length) { setErr("Choose a file or folder first."); return; }
     const to = window.prompt(`${what === "copy" ? "Copy" : "Move"} ${list.length > 1 ? `these ${list.length} items` : list[0].name} to which folder (full path)?`, path);
     if (!to) return;
     const { ops, skipped } = pasteOps({ mode: what === "copy" ? "copy" : "cut", paths: list.map((f) => f.path) }, to);
-    changeAll(ops, (n) => `${n} ${what === "copy" ? "copied" : "moved"}${skipped.length ? `; left out: ${skipped.join(", ")}` : ""}.`);
+    void changeAll(ops, (n) => `${n} ${what === "copy" ? "copied" : "moved"}${skipped.length ? `; left out: ${skipped.join(", ")}` : ""}.`);
   };
   const remove = (list) => {
     const a = deleteAsk(list.map((f) => f.path));
     if (!a) { setErr("Choose a file or folder first."); return; }
     const typedIn = window.prompt(a.prompt);
     if (typedIn !== a.expect) { if (typedIn != null) setErr("Not deleted: what you typed does not match."); return; }
-    changeAll(list.map((f) => ({ op: "delete", path: f.path, confirm_path: f.path })), (n) => `${n} deleted.`);
+    void changeAll(list.map((f) => ({ op: "delete", path: f.path, confirm_path: f.path })), (n) => `${n} deleted.`);
   };
   const paste = () => {
     if (!clip || clip.service !== service) { setErr("Nothing to paste: cut or copy something in this container first."); return; }
     const { ops, skipped } = pasteOps(clip, path);
     if (!ops.length) { setErr(skipped.join("; ") || "Nothing to paste."); return; }
     if (!window.confirm(`${clip.mode === "cut" ? "Move" : "Copy"} ${ops.length} item(s) into ${path}?`)) return;
-    changeAll(ops, (n) => `${n} ${clip.mode === "cut" ? "moved" : "copied"} into ${path}${skipped.length ? `; left out: ${skipped.join(", ")}` : ""}.`);
+    void changeAll(ops, (n) => `${n} ${clip.mode === "cut" ? "moved" : "copied"} into ${path}${skipped.length ? `; left out: ${skipped.join(", ")}` : ""}.`);
     if (clip.mode === "cut") setClip(null);
   };
   const showProps = (f) => apiFetch(url((f || { path }).path, "/properties")).then(setProps).catch((e) => setErr(e.message));
@@ -220,10 +220,10 @@ export default function FileExplorer({ service, on, start = "/" }) {
     const plan = dropPlan({ files: [...(e.dataTransfer.files || [])], dragged, copy }, folder);
     if (!plan) return;
     if (ro) { setErr(`Read only here: ${ro}`); return; }
-    if (plan.upload) { upload(e.dataTransfer.files, folder); return; }
+    if (plan.upload) { void upload(e.dataTransfer.files, folder); return; }
     if (!plan.ops.length) { setErr(plan.skipped.join("; ")); return; }
     if (!window.confirm(`${copy ? "Copy" : "Move"} ${plan.ops.length} item(s) into ${folder}?`)) return;
-    changeAll(plan.ops, (n) => `${n} ${copy ? "copied" : "moved"} into ${folder}.`);
+    void changeAll(plan.ops, (n) => `${n} ${copy ? "copied" : "moved"} into ${folder}.`);
   };
   const click = (e, f) => {
     const out = choose(shown, chosen, anchor, f.path, { ctrl: e.ctrlKey || e.metaKey, shift: e.shiftKey });
@@ -258,7 +258,7 @@ export default function FileExplorer({ service, on, start = "/" }) {
     item("New folder", newFolder, !!ro),
     item("New file", newFile, !!ro),
     <li key="upload"><label className={`fx-upload${ro ? " disabled" : ""}`}>Upload...
-      <input type="file" multiple hidden disabled={!!ro} onChange={(e) => { setMenu(""); setCtx(null); if (e.target.files.length) upload(e.target.files); }} /></label></li>,
+      <input type="file" multiple hidden disabled={!!ro} onChange={(e) => { setMenu(""); setCtx(null); if (e.target.files.length) void upload(e.target.files); }} /></label></li>,
     sep("s1"),
     item("Open", () => openItem(one), !one, "Enter"),
     item(items.length > 1 ? `Download ${items.length} as one zip` : one?.dir ? "Download as zip" : "Download", () => download(items)),
@@ -389,7 +389,7 @@ export default function FileExplorer({ service, on, start = "/" }) {
               <pre className="ct-file-text">{file.text}</pre></>
               : <>
                 <textarea className="ct-file-edit" value={edit} onChange={(e) => setEdit(e.target.value)} rows={24} aria-label={`Edit ${file.path}`} />
-                <button disabled={busy} onClick={async () => { const out = await change({ op: "write", path: file.path, content: edit, sha256: file.sha256 }, `Save your changes to ${file.path}? The file is replaced (the before and after go into the audit trail).`); if (out) viewFile(file); }}>Save</button>
+                <button disabled={busy} onClick={async () => { const out = await change({ op: "write", path: file.path, content: edit, sha256: file.sha256 }, `Save your changes to ${file.path}? The file is replaced (the before and after go into the audit trail).`); if (out) void viewFile(file); }}>Save</button>
                 <button onClick={() => setEdit(null)}>Cancel</button></>}
         </div>)}
     </div>

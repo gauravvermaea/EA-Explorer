@@ -4,7 +4,7 @@ import App from "./App";
 import { initAuth } from "./auth";
 import "./styles.css";
 
-initAuth().then(() => {
+void initAuth().then(() => {
   createRoot(document.getElementById("root")).render(
     <React.StrictMode>
       <App />

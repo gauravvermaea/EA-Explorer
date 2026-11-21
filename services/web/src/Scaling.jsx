@@ -28,7 +28,7 @@ export default function Scaling() {
   const load = async () => {
     try { const x = await apiFetch("/api/v1/admin/scaling"); setD(x); setForm((f) => f || { ...x.settings }); setErr(""); } catch (e) { setErr(e.message); }
   };
-  useEffect(() => { load(); const t = setInterval(load, 30000); return () => clearInterval(t); }, []);
+  useEffect(() => { void load(); const t = setInterval(load, 30000); return () => clearInterval(t); }, []);
   if (err && !d) return <p className="status bad">{err}</p>;
   if (!d || !form) return <p>Loading...</p>;
   const changed = Object.keys(form).some((k) => String(form[k]) !== String(d.settings[k]));

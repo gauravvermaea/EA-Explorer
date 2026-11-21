@@ -2,28 +2,25 @@
 
 from __future__ import annotations
 
-import sys
-
 import psycopg
 
 from .config import get_settings
 
 
-def main() -> int:
+def main() -> None:
     """Makes the job queue's tables (procrastinate's schema) when they are not there."""
     settings = get_settings()
     with psycopg.connect(settings.libpq_conninfo) as conn:
         exists = conn.execute("SELECT to_regclass('jobs.procrastinate_jobs')").fetchone()[0]
     if exists:
         print("EA Explorer: job queue schema already present")
-        return 0
+        return
     from .jobs import app
 
     with app.open():
         app.schema_manager.apply_schema()
     print("EA Explorer: job queue schema created")
-    return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()                         # ending normally is exit code 0

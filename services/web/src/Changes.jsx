@@ -469,7 +469,7 @@ export function LiveCommits({ model, m }) {
       if (first === null) { first = c.number; setSeen(c.number); return; }
       if (c.number > first && (c.committed_by || "") !== me()) setNews(c);
     }).catch(() => {});
-    look();
+    void look();
     const t = setInterval(look, 20000);
     return () => { live = false; clearInterval(t); };
   }, [model, m?.kind, seen]);
@@ -545,7 +545,7 @@ export function EntityChanges({ model, entity, ec, compact }) {
           </>}
           <button className="danger" disabled={busy} onClick={() => {
             // eslint-disable-next-line no-alert
-            if (window.confirm(`Discard your ${ec.mine.length} uncommitted change(s) to ${entity.name}?`)) step("discard", { changes: ids }, "Discarded.");
+            if (window.confirm(`Discard your ${ec.mine.length} uncommitted change(s) to ${entity.name}?`)) void step("discard", { changes: ids }, "Discarded.");
           }}>Discard</button>
           <a href={`#/metamodel/${model}/changes`}>All my changes</a>
         </div>

@@ -28,7 +28,7 @@ export function HostsPage() {
   const [d, setD] = useState(null);
   const [err, setErr] = useState("");
   const load = () => apiFetch("/api/v1/admin/hosts").then(setD).catch((e) => setErr(e.message));
-  useEffect(() => { load(); const t = setInterval(load, 60000); return () => clearInterval(t); }, []);
+  useEffect(() => { void load(); const t = setInterval(load, 60000); return () => clearInterval(t); }, []);
   if (!can("system.operate")) return <p className="status bad">Hosts are for IT Admins and Super Admins.</p>;
   if (!d) return err ? <p className="status bad">{err}</p> : <p>Loading...</p>;
   const hist = d.history || [];
@@ -164,7 +164,7 @@ export function ContainerAlertBanner() {
   useEffect(() => {
     if (!can("system.operate")) return undefined;
     const look = () => apiFetch("/api/v1/admin/alerts").then((x) => setOpen(x.open || [])).catch(() => {});
-    look();
+    void look();
     const t = setInterval(look, 60000);
     return () => clearInterval(t);
   }, []);

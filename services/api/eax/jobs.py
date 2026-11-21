@@ -8,12 +8,16 @@ from __future__ import annotations
 
 import logging
 
-from procrastinate import App, PsycopgConnector
-from sqlalchemy import text
+from . import coverage_probe
 
-from . import audit, databases
-from .config import get_settings
-from .db import get_engine, get_projects_engine
+coverage_probe.start()      # the job runners measured too (D810): EAX_COVERAGE=on, before the jobs' code is imported
+
+from procrastinate import App, PsycopgConnector  # noqa: E402
+from sqlalchemy import text  # noqa: E402
+
+from . import audit, databases  # noqa: E402
+from .config import get_settings  # noqa: E402
+from .db import get_engine, get_projects_engine  # noqa: E402
 
 log = logging.getLogger(__name__)
 

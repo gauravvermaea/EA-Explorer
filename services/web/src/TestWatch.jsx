@@ -50,7 +50,7 @@ export function LiveBrowser({ runId, open }) {
     return () => { el?.removeEventListener("mousemove", show); clearTimeout(hide.current); };
   }, [full]);
   const enterFull = () => { stage.current?.requestFullscreen?.().catch((e) => setErr(`Full screen: ${e.message}`)); };
-  const exitFull = () => { if (document.fullscreenElement) document.exitFullscreen?.(); };
+  const exitFull = () => { if (document.fullscreenElement) void document.exitFullscreen?.(); };
   useEffect(() => {
     if (!open) return undefined;
     let alive = true, timer;
@@ -64,7 +64,7 @@ export function LiveBrowser({ runId, open }) {
         timer = setTimeout(ask, large ? LARGE_MS : TILES_MS);
       } catch (e) { if (alive) { setErr(e.message); timer = setTimeout(ask, 5000); } }
     };
-    ask();
+    void ask();
     return () => { alive = false; clearTimeout(timer); };
   }, [runId, open, large]);
   if (!open) return null;
@@ -142,7 +142,7 @@ export default function TestWatch({ runId, onClose, live = false }) {
         if (s.open) timer = setTimeout(tick, 2000);
       } catch (e) { if (alive) { setErr(e.message); timer = setTimeout(tick, 5000); } }
     };
-    tick();
+    void tick();
     return () => { alive = false; clearTimeout(timer); };
   }, [runId]);
   useEffect(() => { if (follow) logEnd.current?.scrollIntoView?.({ block: "end" }); }, [st.log, st.results.length, follow]);

@@ -36,7 +36,7 @@ export function useStartup() {
       const d = await load(false);
       if (!stop) timer = setTimeout(tick, d && d.overall === "up" ? 60000 : 8000);
     };
-    tick();
+    void tick();
     return () => { stop = true; clearTimeout(timer); listeners.delete(setData); };
   }, []);
   return data;

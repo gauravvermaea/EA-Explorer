@@ -362,9 +362,9 @@ export function JourneysTab({ p }) {
             {may && <select value="" onChange={(e) => { const v = e.target.value; if (!v) return;
               if (v === "rename") { setDialog("rename"); setForm({ name: j.name, description: j.description, persona: j.persona }); }
               else if (v === "copy-to") { setDialog("copy-to"); setForm({ project: "" }); }
-              else if (v === "delete") { if (window.confirm(`Remove the journey ${j.name}?`)) act(() => apiFetch(`${url}/journeys/${j.id}`, { method: "DELETE" })).then((r) => r && setSel("")); }
-              else if (v.startsWith("kind:")) act(() => apiFetch(`${url}/journeys/${j.id}`, { method: "PUT", body: JSON.stringify({ kind: v.slice(5) }) }));
-              else if (v.startsWith("status:")) act(() => apiFetch(`${url}/journeys/${j.id}`, { method: "PUT", body: JSON.stringify({ status: v.slice(7) }) }));
+              else if (v === "delete") { if (window.confirm(`Remove the journey ${j.name}?`)) void act(() => apiFetch(`${url}/journeys/${j.id}`, { method: "DELETE" })).then((r) => r && setSel("")); }
+              else if (v.startsWith("kind:")) void act(() => apiFetch(`${url}/journeys/${j.id}`, { method: "PUT", body: JSON.stringify({ kind: v.slice(5) }) }));
+              else if (v.startsWith("status:")) void act(() => apiFetch(`${url}/journeys/${j.id}`, { method: "PUT", body: JSON.stringify({ status: v.slice(7) }) }));
             }} aria-label="More">
               <option value="">More…</option>
               {j.status === "draft" ? <option value="status:agreed">Mark it agreed</option> : <option value="status:draft">Make it a draft again</option>}
@@ -391,7 +391,7 @@ export function JourneysTab({ p }) {
               <button className="primary" disabled={busy || (dialog === "copy-to" ? !form.project : !(form.name || "").trim())} onClick={() => {
                 const call = dialog === "rename" ? apiFetch(`${url}/journeys/${j.id}`, { method: "PUT", body: JSON.stringify(form) })
                   : apiFetch(`${url}/journeys/${j.id}/${dialog}`, { method: "POST", body: JSON.stringify(form) });
-                act(() => call).then((r) => r && made(dialog === "copy" ? r.id : null));
+                void act(() => call).then((r) => r && made(dialog === "copy" ? r.id : null));
               }}>{{ copy: "Make the copy", rename: "Save", "copy-to": "Copy it" }[dialog]}</button>
               <button className="linkish" onClick={() => setDialog("")}>Cancel</button>
             </div>

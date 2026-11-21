@@ -18,6 +18,9 @@ Levels:
                         called with the run's data, refusals (no token, read-only, the wrong role), the AI activity log
               security  headers and cookies, the Python dependencies (pip-audit), an OWASP ZAP baseline scan and Trivy
                         image scans (run by the operations helper next to the runner)
+              attack    on demand (eax test attack, R8.2): the security suite, then tools that try to break EA Explorer,
+                        each brought up to date first: a ZAP full scan, API fuzzing (Schemathesis), Nuclei on every
+                        container's port, Semgrep and Gitleaks on the source; a laptop or test installation only
 Filters: one role, one API area.
 
 Each run has a guid; everything it needs it makes itself, named self_test_<first 12 of the guid>_<n> (models, a project)
@@ -27,10 +30,10 @@ fixtures stay until an admin purges them (Self-test > Test fixtures, `eax test -
 run recorded (fixtures.py). The report (HTML and Excel) stays after the purge, marked "fixtures removed".
 """
 
-SUITES = ("api", "ui", "db", "jobs", "mcp", "security", "reports", "performance", "backup", "restore")   # reports (R4.1); performance (R5.18); backup (R2.45), then restore (R3.8): the last
+SUITES = ("api", "ui", "db", "jobs", "mcp", "security", "reports", "performance", "attack", "backup", "restore")   # reports (R4.1); performance (R5.18); attack (R8.2); backup (R2.45), then restore (R3.8): the last
 WEB_SUITES = SUITES[:-1]       # restore runs from the command line only (it stops the services the web runs on)
 # run only when asked for by name, never as part of the full test (owner, 15 Nov 2026, 19:22: "I dont want full test to
 # run performance test"; R5.29): eax test performance, Performance alone on the Self-test page, and CI's nightly job
-ON_DEMAND = ("performance",)
+ON_DEMAND = ("performance", "attack")    # attack: the attack test (R8.2, eax test attack), an hour or more
 FULL_SUITES = tuple(s for s in SUITES if s not in ON_DEMAND)
 WEB_FULL_SUITES = tuple(s for s in WEB_SUITES if s not in ON_DEMAND)
