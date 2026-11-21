@@ -3350,6 +3350,26 @@
   "field:Type DELETE": "Type the word DELETE to confirm something that cannot be undone.",
   "button:Delete all test results": "Delete every finished test run for good: its data, results, screenshots, report, log and videos.",
   "button:Keep them": "Close without deleting anything.",
+  "tab:Summary": {
+    "what": "Each eax test full, as one card a step: the dev check, the code coverage of our code as a ring, the self-test, the security gate, the attack test, the backup and restore test and SonarQube (D825).",
+    "how": [
+      "Pick a full test; the newest is shown first.",
+      "Each card's figures stay when the detailed files are deleted (Keep the summary only, or eax test prune)."
+    ],
+    "example": "Check the coverage ring and the security gate after last night's full test."
+  },
+  "popup:Delete the detailed files?": {
+    "what": "Deletes only the detailed files: the reports, logs, videos, scanners' reports and screenshots in work/tests. The summaries, counts and results stay.",
+    "how": [
+      "Type DELETE, then Delete. A run still going is left."
+    ],
+    "example": "Free the disk after a week of full tests, keeping what each one found."
+  },
+  "field:Full test": "Which full test to show: its number, when it ended and whether it passed.",
+  "field:days": "Only what is older than this many days is deleted.",
+  "button:Download the summary page": "The full test's summary page (work/tests/full-<time>/index.html), to open anywhere or send on.",
+  "button:Keep the summary only": "Delete this full test's detailed files; its summary and cards stay.",
+  "button:Self-test": "Open the self-test run of this full test, with every result.",
   "tab:Databases": {
     "what": "Every database EA Explorer uses: what it holds, its setting in eaexplorer.env, where it lives (the shared PostgreSQL or a server of its own) and whether it answers.",
     "how": [

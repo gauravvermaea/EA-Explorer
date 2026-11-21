@@ -63,6 +63,22 @@ def save_log(root: Path = ROOT, now: float | None = None) -> Path:
     return out
 
 
+def save_summary(log: Path, results: list[tuple[str, bool, str]], unit: Path) -> Path:
+    """The check in figures beside its log (dev-check-<time>.json, D825): each step, and the unit tests' coverage."""
+    cov = None
+    try:
+        t = json.loads(unit.read_text(encoding="utf-8")).get("totals") or {}
+        cov = {"percent": round(float(t["percent_covered"]), 1), "lines": int(t["num_statements"]),
+               "run": int(t.get("covered_lines") or 0)}
+    except (OSError, ValueError, KeyError, TypeError):
+        pass
+    out = log.with_suffix(".json")
+    out.write_text(json.dumps({"log": log.name, "passed": all(ok for _t, ok, _w in results), "coverage": cov,
+                               "steps": [{"title": t, "passed": ok, "why": w} for t, ok, w in results]}, indent=1),
+                   encoding="utf-8")
+    return out
+
+
 def documents(root: Path = ROOT) -> list[str]:
     """The documents' cross-checks; each problem in words."""
     out = []
@@ -169,6 +185,8 @@ def main(rest: list[str]) -> int:
     say("\nSummary:")
     for title, ok, why in results:
         say(f"  {'ok    ' if ok else 'FAILED'} {title}" + (f": {why}" if why else ""))
-    say(f"Saved: {save_log().relative_to(ROOT)}")
+    log = save_log()
+    save_summary(log, results, ROOT / UNIT_COVERAGE)      # what the full test's summary page shows (D825)
+    say(f"Saved: {log.relative_to(ROOT)}")
     say("Next: docs/handover.md says what is in progress and what comes next.")
     return 0 if all(ok for _t, ok, _w in results) else 1

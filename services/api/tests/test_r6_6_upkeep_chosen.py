@@ -55,7 +55,7 @@ def test_rotating_when_due_is_off_until_chosen_and_the_first_run_asks():
     assert "upkeep" in [s[0] for s in F.STEPS]
     web = REPO / "services/web/src"
     assert "<UpkeepChoices />" in (web / "GuidedWizards.jsx").read_text()
-    assert "<UpkeepChoices />" in (web / "CommandCentre.jsx").read_text()
+    assert "<UpkeepChoices cleanup />" in (web / "CommandCentre.jsx").read_text()   # with Clean up now (D825)
     up = (web / "Upkeep.jsx").read_text()
     assert "schedules/r6rotate/" in up and '"secrets", "schedule"' in up and "integrity_fixes" in up
     jsx = (web / "DbIntegrity.jsx").read_text()
@@ -142,7 +142,7 @@ def test_rotation_and_renewal_switched_off_where_they_were_on_unless_an_admin_ch
     monkeypatch.setattr(CC, "S", st)
     CC.ensure_system_schedules()
     by = {s["id"]: s["enabled"] for s in st.items}
-    assert by == {"r6rotate": False, "r6certs": True, "x1": True}                  # an admin's choice kept
+    assert by == {"r6rotate": False, "r6certs": True, "x1": True, "r12tests": False}                  # an admin's choice kept
     up = (REPO / "services/web/src/Upkeep.jsx").read_text()
     assert "schedules/r6certs/" in up
     assert 's["chosen"] = True' in (REPO / "eaxcli/schedules.py").read_text()

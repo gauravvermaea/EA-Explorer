@@ -1151,6 +1151,8 @@ try {
                 Invoke-Interactive @("api", "python", "-m", "eax.testing.cli", "clean", "all") @($RestArgs | Select-Object -Skip 1)
             } elseif ($RestArgs.Count -gt 0 -and $RestArgs[0] -eq "delete") {   # delete test results for good (R2.43)
                 Invoke-Interactive @("api", "python", "-m", "eax.testing.cli", "delete") @($RestArgs | Select-Object -Skip 1)
+            } elseif ($RestArgs.Count -gt 0 -and ($RestArgs[0] -eq "prune" -or $RestArgs[0] -eq "summary")) {   # only the detailed files; the summaries (D825)
+                Invoke-Interactive @("api", "python", "-m", "eax.testing.cli", $RestArgs[0]) @($RestArgs | Select-Object -Skip 1)
             } elseif ($RestArgs.Count -gt 0 -and $RestArgs[0] -eq "api") {   # the API test harness: one call (R3.16)
                 Invoke-Interactive @("api", "python", "-m", "eax.testing.cli", "api") @($RestArgs | Select-Object -Skip 1)
             } elseif ($RestArgs.Count -gt 0 -and $RestArgs[0] -eq "watch" -and $RestArgs -contains "--browser") {   # the live view (R5.20)

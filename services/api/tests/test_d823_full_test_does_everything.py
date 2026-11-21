@@ -33,7 +33,7 @@ def test_the_order_and_the_options():
     src = (REPO / "eaxcli/main.py").read_text(encoding="utf-8")
     body = src.split('last = "full" in rest and "--ci" not in rest', 1)[1].split("elif command ==", 1)[0]
     order = [body.index(w) for w in ('full_step("dev check"', 'stack.interactive([*ops, "test"]',
-                                     'full_step("backup and restore test"', 'full_step("SonarQube scan"', "full_summary(steps)")]
+                                     'full_step("backup and restore test"', 'full_step("SonarQube scan"', "full_summary(steps, began)")]
     assert order == sorted(order)
     assert 'if last and "--no-dev-check" not in rest:' in body and "if not no_sonar:" in body
     assert 'rest = [a for a in rest if a not in ("--no-dev-check", "--no-sonar")]' in body   # not passed to the helper

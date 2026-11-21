@@ -1,5 +1,5 @@
-"""`eax test --status | --last | --report | --fixtures | --clean` (phase 36.1, D367, D529): read from the one results store
-in the api container (starting a run goes through the operations helper: services/ops/testruns.py).
+"""`eax test --status | --last | --report | --fixtures | --clean`, `prune` and `summary` (phase 36.1, D367, D529, D825):
+read from the one results store in the api container (starting a run goes through the operations helper: services/ops/testruns.py).
 
   python -m eax.testing.cli status                  the run going on: its step and counts so far
   python -m eax.testing.cli last                    the last run: its result and every failure
@@ -11,6 +11,11 @@ in the api container (starting a run goes through the operations helper: service
   python -m eax.testing.cli delete <run|all> [--older-than DAYS] [--yes]
                                                     delete test runs for good: their data, results, reports, logs and
                                                     videos (R2.43)
+  python -m eax.testing.cli prune <run|full-N|all> [--older-than DAYS] [--yes]
+                                                    delete only the detailed files (reports, logs, videos, scanners'
+                                                    reports, screenshots); the summaries and results stay (D825)
+  python -m eax.testing.cli summary [full-N]        the full tests kept (D825): each step's outcome, the summary page
+  python -m eax.testing.cli full-save <full-time>   keep the summary eax test full wrote (work/tests/<it>/summary.json)
   python -m eax.testing.cli watch [run] [--log]    follow a run as it happens: the step, each check as it is recorded,
                                                     each failure with its reason (and the log with --log) (R3.2)
   python -m eax.testing.cli stop [run]             stop the run going on (or the one named), as the Self-test page's Stop
@@ -152,6 +157,8 @@ def main(argv: list[str]) -> int:
     cmd, args = (argv[0] if argv else "last"), argv[1:]
     if cmd == "api":                                  # the API test harness, one call (R3.16): no run list needed
         return api_call(args)
+    if cmd in ("full-save", "summary", "prune"):       # the summaries kept, the detailed files deleted (D825)
+        return summaries(cmd, args)
     eng, teng = _engine(), store.engine()
     try:                                              # runs no one is running any more are closed first (R2.64)
         with teng.begin() as conn:
@@ -282,6 +289,84 @@ def _delete(eng, args: list[str], teng=None) -> int:
                          say=lambda m: print(f"  {m}", flush=True))
     print(cleanup.message(out))
     return 0 if not out["left"] else 1
+
+
+def summaries(cmd: str, args: list[str], out=print, teng=None, remove=None, ask=input) -> int:
+    """eax test full's summaries (D825): full-save keeps one, summary lists them, prune deletes only detailed files."""
+    import json
+    from pathlib import Path
+
+    from . import full_tests
+    teng = teng or store.engine()
+    if cmd == "full-save":
+        name = args[0] if args else ""
+        if not full_tests.FOLDER.match(name):
+            out("Usage: python -m eax.testing.cli full-save full-<time>")
+            return 2
+        path = _results_root(Path("/results")) / name / "summary.json"
+        try:
+            summary = json.loads(path.read_text(encoding="utf-8"))
+            with teng.begin() as conn:
+                fid = full_tests.save(conn, summary)
+        except (OSError, ValueError) as exc:
+            out(f"The full test's summary could not be kept: {exc}")
+            return 1
+        out(f"Full test {fid} kept: System admin > Self-test > Summary (eax test summary full-{fid}).")
+        return 0
+    if cmd == "summary":
+        with teng.connect() as conn:
+            if args and args[0].startswith("full-") and args[0][5:].isdigit():
+                f = full_tests.get(conn, int(args[0][5:]))
+                rows = [f] if f else []
+            else:
+                rows = full_tests.listing(conn, 10)
+        if not rows:
+            out("No full test kept yet: run eax test full.")
+            return 0
+        for f in rows:
+            steps = f.get("steps") or (f.get("summary") or {}).get("steps") or []
+            out(f"Full test {f['id']} ({f['folder']}): {'PASSED' if f['passed'] else 'FAILED'}  {str(f['finished_at'])[:16]}"
+                + (f"  by {f['started_by']}" if f.get("started_by") else "")
+                + ("  [detailed files deleted]" if f.get("files_deleted_at") else ""))
+            for st in steps:
+                out(f"    {'ok    ' if st.get('passed') else 'FAILED'} {st.get('title')}" + (f": {st['why']}" if st.get("why") else ""))
+            out(f"    The page: work/tests/{f['folder']}/index.html")
+        return 0
+    usage = "Usage: eax test prune <run|full-N|all> [--older-than DAYS] [--yes]"
+    days = None
+    if "--older-than" in args:
+        i = args.index("--older-than")
+        if i + 1 >= len(args) or not args[i + 1].isdigit():
+            out(usage)
+            return 2
+        days = int(args[i + 1])
+        args = args[:i] + args[i + 2:]
+    which = next((a for a in args if not a.startswith("--")), "")
+    try:
+        with teng.connect() as conn:
+            picked = full_tests.pick(conn, which, days)
+    except ValueError as exc:
+        out(f"{exc}\n{usage}")
+        return 2
+    if which == "all" or (not which and days is not None):
+        picked["loose"] = full_tests.loose(_results_root(Path("/results")), days)
+    if not picked["runs"] and not picked["fulls"] and not picked.get("loose"):
+        out("No detailed files left to delete for that.")
+        return 0
+    out(f"This deletes the detailed files of {len(picked['runs'])} self-test run(s), {len(picked['fulls'])} full "
+        f"test(s) and {len(picked.get('loose') or [])} SonarQube, backup and restore or dev check result(s): their reports, logs, videos, scanners' reports and screenshots. Their summaries, counts and results stay "
+        "(System admin > Self-test > Summary and History). It cannot be undone.")
+    if "--yes" not in args and ask("Type DELETE to go on: ").strip() != "DELETE":
+        out("Nothing deleted.")
+        return 1
+    if remove is None:
+        from ..api.admin import _ops_raw
+
+        def remove(names):
+            return _ops_raw("POST", "/tests/results/delete", {"folders": names}, timeout=120)
+    done = full_tests.prune(teng, picked, "eax test prune", remove, say=lambda m: out(f"  {m}"))
+    out(full_tests.message(done))
+    return 0 if not done["left"] else 1
 
 
 if __name__ == "__main__":

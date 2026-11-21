@@ -1029,6 +1029,12 @@ def _close(engine, r: Run, error: str = "", stopped: str = "") -> int:
             (r.dir / "report.xlsx").write_bytes(report.to_xlsx(conn, r.id, files, points))
     except Exception as exc:  # noqa: BLE001 - the results are in the database whatever happens to the files
         print(f"the report files could not be written: {exc}", flush=True)
+    try:                                             # the run's summary kept in its row, beside its files (D825)
+        from . import run_summary
+        with engine.begin() as conn:                 # outcome "none": the counts and health, no result rows read
+            run_summary.save(conn, r.id, run_summary.make(store.run_detail(conn, r.id, "none"), r.dir), r.dir)
+    except Exception as exc:  # noqa: BLE001 - the report has it all; only the summary is missing
+        print(f"the run's summary could not be kept: {exc}", flush=True)
     from .. import filestore
     if filestore.in_database():                      # no local file system (R2.44, D635): the run's folder into the store
         try:

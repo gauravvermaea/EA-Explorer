@@ -408,7 +408,7 @@ function Schedules() {
     onDone={(text) => { setAdding(null); setMsg(text || ""); void load(); }} />;
   return (
     <div className="cc-schedules">
-      <UpkeepChoices />
+      <UpkeepChoices cleanup />
       <p className="quiet">eax commands that run by themselves, in the installation's time zone (<strong>{data.time_zone}</strong>). They are kept in
         <code> persist/schedules.json</code>, which no reset deletes, so a demo can reset itself every night and still keep its schedule.
         Each run is in the <a href="#/admin/commands/history">History</a>.</p>

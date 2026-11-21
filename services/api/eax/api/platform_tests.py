@@ -9,6 +9,10 @@ System admin > Scaling. Super Admins and IT Admins (system.operate) only; nobody
   PUT  /api/v1/admin/tests/settings                     {auto_build, keep_days}: build it automatically after each start or
                                                         update; keep test results N days (R2.43)
   POST /api/v1/admin/tests/delete                       {runs | "all", older_than_days}: delete test results for good (R2.43)
+  POST /api/v1/admin/tests/prune                        {runs | "all", fulls, older_than_days}: delete only the detailed
+                                                        files; the summaries and results stay (D825)
+  GET  /api/v1/admin/tests/full                         the full tests kept (eax test full), newest first (D825)
+  GET  /api/v1/admin/tests/full/<id>                    one, with every step's summary;  .../page  its summary page
   GET  /api/v1/admin/tests/coverage?scope=             the code coverage over the last runs (R3.10)
   GET  /api/v1/admin/tests/<run>                        a run, its results (?outcome=, ?suite=), files and fixtures; while it
                                                         waits for a watching browser also its ticket and journeys
@@ -298,6 +302,103 @@ class TestDelete(MethodView):
             audit.record(conn, actor=g.user.username, action="selftest.delete", object_type="test_run",
                          object_id=",".join(map(str, ids))[:200], details={k: v for k, v in out.items() if k != "notes"})
         return {**out, "message": cleanup.message(out)}
+
+
+@blp.route("/tests/prune")
+class TestPrune(MethodView):
+    """/api/v1/admin/tests/prune: POST delete only the detailed files (D825) {runs: [ids] | "all", fulls: [ids],
+    older_than_days}: the reports, logs, videos, scanners' reports and screenshots; the summaries and results stay."""
+    @blp.doc(security=SECURITY)
+    @blp.arguments(FreeIn)
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def post(self, data):
+        """Delete only the detailed files (D825) {runs: [ids] | "all", fulls: [ids], older_than_days}: the reports,
+        logs, videos, scanners' reports and screenshots of those runs and full tests; their summaries, counts and
+        results stay. With "all" or older_than_days also SonarQube, backup and restore and dev check results run by
+        themselves. A run still going is left"""
+        from ..testing import full_tests
+        data = data or {}
+        runs, fulls = data.get("runs"), data.get("fulls") or []
+        try:
+            days = int(data["older_than_days"]) if data.get("older_than_days") not in (None, "", 0, "0") else None
+            with store.engine().connect() as conn:
+                if runs == "all" or (days is not None and not fulls and not runs):
+                    picked = full_tests.pick(conn, "all", days)
+                    picked["loose"] = full_tests.loose(WORK_TESTS, days)
+                else:
+                    picked = {"runs": [], "fulls": []}
+                    for x in runs or []:
+                        picked["runs"] += full_tests.pick(conn, str(int(x)))["runs"]
+                    for x in fulls:
+                        picked["fulls"] += full_tests.pick(conn, f"full-{int(x)}")["fulls"]
+        except (TypeError, ValueError) as exc:
+            abort(400, message=str(exc))
+        if not picked["runs"] and not picked["fulls"] and not picked.get("loose"):
+            return {"runs": 0, "fulls": 0, "message": "No detailed files left to delete for that."}
+        from .. import filestore
+
+        def drop(names):
+            if filestore.in_database():              # no local file system: the runs' files are in the store (R2.44)
+                return {"removed": [n for n in names if filestore.delete("tests", n) >= 0], "left": []}
+            return _ops_raw("POST", "/tests/results/delete", {"folders": names}, timeout=120)
+        out = full_tests.prune(store.engine(), picked, g.user.username, drop)
+        with get_engine().begin() as conn:
+            audit.record(conn, actor=g.user.username, action="selftest.prune", object_type="test_run",
+                         object_id=",".join(str(r["id"]) for r in picked["runs"])[:200],
+                         details={k: v for k, v in out.items() if k not in ("notes", "removed")})
+        return {**{k: v for k, v in out.items() if k != "removed"}, "removed": len(out["removed"]),
+                "message": full_tests.message(out)}
+
+
+@blp.route("/tests/full")
+class FullTests(MethodView):
+    """/api/v1/admin/tests/full: GET the full tests kept (D825), newest first, each step's outcome."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def get(self):
+        """The full tests kept (eax test full, D825), newest first: each step's title and outcome"""
+        from ..testing import full_tests
+        with store.engine().connect() as conn:
+            return {"full_tests": full_tests.listing(conn, int(request.args.get("limit", 30) or 30))}
+
+
+@blp.route("/tests/full/<int:full_id>")
+class FullTest(MethodView):
+    """/api/v1/admin/tests/full/<id>: GET one full test's summary: every step's card (D825)."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth("system.operate")
+    def get(self, full_id):
+        """One full test's summary (D825): each step's figures, its self-test run, whether its detailed files are there"""
+        from ..testing import full_tests
+        with store.engine().connect() as conn:
+            f = full_tests.get(conn, full_id)
+            run = store.run_row(conn, int(f["run_id"])) if f and f.get("run_id") else None
+        if not f:
+            abort(404, message="No such full test.")
+        f["run"] = {k: (str(v) if k.endswith("_at") and v is not None else v) for k, v in (run or {}).items()
+                    if k in ("id", "state", "folder", "files_deleted_at")} or None
+        f["page"] = _run_file(f["folder"], "index.html") is not None
+        return f
+
+
+@blp.route("/tests/full/<int:full_id>/page")
+class FullTestPage(MethodView):
+    """/api/v1/admin/tests/full/<id>/page: GET its summary page (work/tests/full-<time>/index.html)."""
+    @blp.doc(security=SECURITY)
+    @require_auth("system.operate")
+    def get(self, full_id):
+        """The full test's summary page, as written by eax test full (D825)"""
+        from ..testing import full_tests
+        with store.engine().connect() as conn:
+            f = full_tests.get(conn, full_id)
+        body = _run_file(f["folder"], "index.html") if f else None
+        if body is None:
+            abort(404, message="That full test's summary page is not there.")
+        return Response(body, mimetype="text/html",
+                        headers={"Content-Disposition": f'attachment; filename="full-test-{full_id}.html"'})
 
 
 @blp.route("/tests/security")

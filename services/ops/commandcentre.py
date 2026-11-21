@@ -553,6 +553,10 @@ SYSTEM_SCHEDULES = [
      "cron": "17 3 * * *", "enabled": False},   # off until an admin chooses it (first-run setup, 18 Nov 2026, 10:21)
     {"id": "r6certs", "name": "Renew the certificates that are due (R6-R1; nothing in password mode)", "argv": ["certs", "renew"],
      "cron": "41 2 * * *", "enabled": False},
+    # the test results' detailed files, the summaries kept (D825; owner, 21 Nov 2026, 13:30: "In the regular mantiance
+    # tab please add ability to clean up logs and all these test result files"): off until chosen on Scheduled upkeep
+    {"id": "r12tests", "name": "Delete the test results' detailed files older than 14 days; the summaries stay (D825)",
+     "argv": ["test", "prune", "--older-than", "14", "--yes"], "cron": "47 4 * * *", "enabled": False},
 ]
 # off by default until rotation and renewal are fully tested (the owner, 18 Nov 2026, 10:58: "For now disable key and
 # certificate rotation by default until this is fully tested"): switched off once on installations that have them,

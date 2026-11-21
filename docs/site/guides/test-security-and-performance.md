@@ -40,6 +40,16 @@ backup and restore test, and the SonarQube scan. A step runs whatever the one be
 ends it. `--no-dev-check`, `--no-attack` and `--no-sonar` leave one out. From the Self-test page, Full runs the self-test
 only.
 
+**One page for anyone to check.** The full test ends with a summary page, `work/tests/full-<time>/index.html`: a card a
+step, with the code coverage of our own code as a ring, each card linking to its report. It is kept in the database
+too: System Admin › Tools › Self-test › **Summary** shows every full test as cards, and `eax test summary` lists them.
+
+**Keeping only the summaries.** The detailed files (reports, logs, videos, the scanners' reports and screenshots) take
+room; the summaries do not. `eax test prune all` (or `--older-than 14`, or one run, or `full-3`) deletes only those
+files, as do *Keep summary only* on the Self-test page's History and *Clean up now* on System Admin › Command centre ›
+Schedules, where the logs can be cleaned up too and the test files every night. `eax test delete` still deletes a run
+for good, its summary too.
+
 Every run's report is in `work/tests/<run>/report.html`, and on System Admin › Tools › Self-test › History. The Security
 tab there shows the findings over time; the Performance tab shows the benchmark's times against the last release.
 

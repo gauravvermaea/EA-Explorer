@@ -942,6 +942,9 @@ case "$CMD" in
         if [ "${1:-}" = "delete" ]; then shift                                # delete test results for good (R2.43)
           compose exec api python -m eax.testing.cli delete "$@"; exit $?
         fi
+        if [ "${1:-}" = "prune" ] || [ "${1:-}" = "summary" ]; then WHAT="$1"; shift   # only the detailed files (D825)
+          compose exec api python -m eax.testing.cli "$WHAT" "$@"; exit $?
+        fi
         if [ "${1:-}" = "api" ]; then shift                                   # the API test harness: one call (R3.16)
           compose exec api python -m eax.testing.cli api "$@"; exit $?
         fi

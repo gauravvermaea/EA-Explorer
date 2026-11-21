@@ -217,8 +217,9 @@ def set_keep_days(days: int, by: str = "") -> dict:
 
 
 def delete_results(folders: list[str]) -> dict:
-    """Removes test runs' folders in work/tests (R2.43): the report, the log, the videos and screenshots. Only plain
-    folder names directly under work/tests; returns which went and which could not."""
+    """Removes test runs' folders in work/tests (R2.43): the report, the log, the videos and screenshots; and the
+    detailed files of a full test's steps, folders or files (D825). Only plain names directly under work/tests;
+    returns which went and which could not."""
     removed, left = [], []
     base = os.path.realpath(f"{WORK}/tests")
     for name in folders:
@@ -230,7 +231,13 @@ def delete_results(folders: list[str]) -> dict:
         if not os.path.exists(path):
             removed.append(name)
             continue
-        shutil.rmtree(path, ignore_errors=True)
+        if os.path.isfile(path) and not os.path.islink(path):    # a file there too: a dev check's log (D825)
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+        else:
+            shutil.rmtree(path, ignore_errors=True)
         (left if os.path.exists(path) else removed).append(name)
     return {"removed": removed, "left": left}
 

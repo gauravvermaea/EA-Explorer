@@ -4,12 +4,12 @@ The state of the work, for whoever picks it up next: a person or another AI with
 13 Nov 2026: "what happens if I need another ai to work on this"). **Updated at the end of every working session.**
 Read [AGENTS.md](../AGENTS.md) first, run `eax dev check`, then read this.
 
-Last updated: 19 Nov 2026, late. The first SonarQube pass is done (D804: 299 fixed, 106 accepted, 99 proposed as by
-design and waiting for the owner); next eax up --build, eax dev check and eax test sonar again. Release 7.9 closed as 7.9.0 (D791). Now: Release 8 in build (D792). The dev
-check baseline is clean (16:48: lint, tests and documents all ok, after D795, D798 and D799); next the owner's clean
-restart and `eax test full` done (7 failed: one a test fault, fixed D801; the rest reports timing and
-security updates). Order (D802): `eax test sonar` and every fix first, then the security updates, then R8.1 (90%
-coverage of our own code) to R8.3. Working notes: docs/session-log.md.
+Last updated: 21 Nov 2026, 13:45. Release 8 is in build: SonarQube (D792 to D805), the attack test (R8.2, D817; its
+first run 21 Nov, D823), `eax test full` doing everything but the benchmark from the command line (D823), code coverage
+as a ring (D824) and the full test's summary page with the summaries kept and the detailed files deletable (R8.4, D825).
+Bugs go to Release 12 (D820), the documents to Release 13 (D821). Next: the owner's `.\eax clean-restart`, then
+`.\eax test full`; the AI reads work/tests/full-<time>/ and fixes what it found. Still waiting: the owner's word on the
+attack findings that are by design (D823). Working notes: docs/session-log.md.
 
 ## How the owner works
 

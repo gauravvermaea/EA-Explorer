@@ -84,13 +84,13 @@ def test_charts_and_summary_line():
     line = cv.summary_line(files)
     assert "Coverage 72.4% of the API's lines (goal 90%, was 70.1%)" in line
     assert "least covered: <b>odd</b> 10%" in line and "negative tests 53: 50 passed, 1 warnings, 2 failed" in line
-    assert cv.summary_line({}) == "" and cv.charts({}) == {"gauge": "", "areas": "", "trend": "", "negative": ""}
+    assert cv.summary_line({}) == "" and cv.charts({}) == {"rings": "", "gauge": "", "areas": "", "trend": "", "negative": ""}
 
 
 def test_html_section_with_and_without():
     assert "kept no code coverage" in cv.html_section({})
     out = cv.html_section({"coverage": COV, "negative": NEG})
-    assert out.count("<figure>") == 3 and "Negative tests by kind" in out and "&lt;b&gt;odd" in out
+    assert out.count("<figure>") == 4 and "Negative tests by kind" in out and "&lt;b&gt;odd" in out   # the ring too (D824)
 
 
 class _Conn:
@@ -175,3 +175,33 @@ def test_wired_into_the_page_the_endpoint_and_the_reports():
     comp = (REPO / "services/web/src/CoverageCharts.jsx").read_text()
     for k in ("gauge", "areas", "trend", "negative"):
         assert f'["{k}",' in comp
+
+
+# ---------------------------------------------------------------- the ring (D824; owner, 21 Nov 2026, 13:18: "Can code
+# coverage of a full test be shown in a ring pie chart please? Only for our code")
+def test_the_ring_shows_the_share_the_lines_and_the_goal():
+    svg = cv.ring_svg(41.6, 26_960, 64_846, 190, "Our code", 90)
+    assert svg.startswith("<svg") and ">41.6%</text>" in svg and "26,960 of 64,846 lines" in svg
+    assert cv.LOW in svg and "stroke-dasharray" in svg and "<line " in svg             # the goal's tick
+    assert cv.GOOD in cv.ring_svg(95, goal=90) and cv.NEAR in cv.ring_svg(80, goal=90)
+    assert "stroke-dasharray" not in cv.ring_svg(0)                                    # nothing run: the grey ring only
+    assert ">100%</text>" in cv.ring_svg(130)                                          # never more than the whole ring
+
+
+def test_our_code_ring_and_when_joined_one_for_each_measurement():
+    joined = {"percent": 63.0, "run": 40_853, "lines": 64_846, "live": 41.1, "unit": 42.6, "goal": 90.0}
+    out = cv.rings_svg(joined)
+    assert out.count("<svg") == 3 and "Our code, every line (this run and the unit tests together)" in out
+    assert "This run alone" in out and "The unit tests alone (eax dev check)" in out and ">63%</text>" in out
+    alone = cv.rings_svg({"percent": 26.4, "run": 14_920, "lines": 56_511})
+    assert alone.count("<svg") == 1 and "together" not in alone
+    assert cv.rings_svg({}) == ""
+
+
+def test_the_ring_comes_first_in_the_report_and_on_the_page(monkeypatch):
+    ch = cv.charts({"coverage": COV, "negative": NEG})
+    assert list(ch)[0] == "rings" and ch["rings"]
+    page = cv.html_section({"coverage": COV})
+    assert page.index("Our code: the lines run, against the goal") < page.index("Share of the API")
+    comp = (REPO / "services/web/src/CoverageCharts.jsx").read_text()
+    assert comp.index('["rings",') < comp.index('["gauge",')

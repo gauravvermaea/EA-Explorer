@@ -157,9 +157,9 @@ def _params(args: str) -> list[dict]:
 PLACEHOLDERS = {"name", "tag", "run", "command", "source", "id", "words", "service", "n", "version"}
 # syntax lines too rich for the reader above: their fields written out
 OVERRIDES = {
-    "test": [{"key": "what", "type": "choice", "choices": ["smoke", "full", "backup", "failed", "delete", "clean", "sonar", "attack"], "required": False,
-              "placeholder": "smoke|full|security|performance|attack|backup|failed|delete|clean|sonar"},
-             {"key": "run", "type": "word", "required": False, "placeholder": "run (with failed: which run; the last if none)"},
+    "test": [{"key": "what", "type": "choice", "choices": ["smoke", "full", "backup", "failed", "delete", "prune", "summary", "clean", "sonar", "attack"],
+              "required": False, "placeholder": "smoke|full|security|performance|attack|backup|failed|delete|prune|summary|clean|sonar"},
+             {"key": "run", "type": "word", "required": False, "placeholder": "run (with failed: which run; with prune: a run, full-N or all)"},
              {"key": "--warnings", "type": "flag", "required": False},     # with failed: its warnings too (R2.36)
              {"key": "--older-than", "type": "flag-value", "flags": ["--older-than"], "required": False,
               "placeholder": "days"},                                     # with delete: runs older than DAYS (R2.43)

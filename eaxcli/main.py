@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import shutil
 import sys
+import time
 from pathlib import Path
 
 from . import help as help_
@@ -139,11 +140,22 @@ def full_step(title: str, run) -> tuple[str, bool, str]:
     return title, code in (0, None), "" if code in (0, None) else f"ended with {code}"
 
 
-def full_summary(steps: list[tuple[str, bool, str]]) -> int:
-    """Every step of the full test in one list at the end; 1 when any failed."""
+def full_summary(steps: list[tuple[str, bool, str]], began: float | None = None, keep=None) -> int:
+    """Every step of the full test in one list at the end; 1 when any failed. With began: the summary page too
+    (work/tests/full-<time>/index.html, D825), kept in the database by keep(folder) (the api container's)."""
     say("\nThe full test, step by step:")
     for title, passed, why in steps:
         say(f"  {'ok    ' if passed else 'FAILED'} {title}" + (f": {why}" if why else ""))
+    if began is not None:
+        try:
+            from . import fullreport
+            who = os.environ.get("USERNAME") or os.environ.get("USER") or ""
+            summary = fullreport.gather(WORK / "tests", began, steps, version=version(), by=who)
+            folder = fullreport.write(WORK / "tests", summary)
+            say(f"The summary page: {folder / 'index.html'} (System admin > Self-test > Summary)")
+            (keep or (lambda f: stack.interactive(["api", "python", "-m", "eax.testing.cli", "full-save"], [f])))(folder.name)
+        except Exception as exc:  # noqa: BLE001 - every step's own report is still there
+            say(f"The summary page could not be made or kept: {exc}", "yellow")
     return 0 if all(p for _t, p, _w in steps) else 1
 
 
@@ -554,6 +566,8 @@ def dispatch(command: str, rest: list[str], wait_all: bool) -> None:
         stack.interactive(["api", "python", "-m", "eax.testing.cli", "clean", "all"], rest[1:])
     elif command == "test" and rest[:1] == ["delete"]:  # delete test results for good (R2.43)
         stack.interactive(["api", "python", "-m", "eax.testing.cli", "delete"], rest[1:])
+    elif command == "test" and rest[:1] in (["prune"], ["summary"]):   # only the detailed files; the summaries (D825)
+        stack.interactive(["api", "python", "-m", "eax.testing.cli", rest[0]], rest[1:])
     elif command == "test" and rest[:1] == ["api"]:     # the API test harness: one call (R3.16)
         stack.interactive(["api", "python", "-m", "eax.testing.cli", "api"], rest[1:])
     elif command == "test" and rest[:1] == ["watch"] and "--browser" in rest:   # the live view in a browser (R5.20)
@@ -595,6 +609,7 @@ def dispatch(command: str, rest: list[str], wait_all: bool) -> None:
             # coverage joins the run's own, D807), the self-test with the attack test, the backup and restore test,
             # SonarQube last; --no-dev-check and --no-sonar leave one out
             steps: list[tuple[str, bool, str]] = []
+            began = time.time()                       # each step's files made since then go on the summary page (D825)
             no_sonar = "--no-sonar" in rest
             if last and "--no-dev-check" not in rest:
                 steps.append(full_step("dev check", lambda: dev_cli_main(["check"])))
@@ -614,7 +629,7 @@ def dispatch(command: str, rest: list[str], wait_all: bool) -> None:
                 if not no_sonar:
                     from . import sonar as sonar_
                     steps.append(full_step("SonarQube scan", lambda: sonar_.main([])))
-                return full_summary(steps)
+                return full_summary(steps, began)
             if failed:
                 raise failed
     elif command == "standby":          # the database standby (phase 36.3, D527; EAX_COMPOSE_EXTRA=standby)

@@ -441,7 +441,7 @@ def finish(conn, run_id: int, error: str = "", stopped: str = "") -> str:
 
 _LIVE = "CASE WHEN r.state IN ('queued', 'running') THEN (SELECT count(*) FROM tests.test_results x WHERE x.run_id = r.id AND x.outcome {o}) ELSE r.{c} END AS {c}"
 _RUN_COLS = ("r.id, r.run_guid::text AS run_guid, r.started_by, r.trigger, r.suites, r.state, r.step, r.folder, r.version, "
-             "r.level, r.role, r.area, r.watch, r.journeys, r.pages_only, r.repeat_of, r.repeat_warnings, r.followed_up_by, r.stop_asked, r.message, r.purged_at, r.purged_by, r.queued_at, r.started_at, "
+             "r.level, r.role, r.area, r.watch, r.journeys, r.pages_only, r.repeat_of, r.repeat_warnings, r.followed_up_by, r.stop_asked, r.message, r.purged_at, r.purged_by, r.files_deleted_at, r.files_deleted_by, r.queued_at, r.started_at, "
              "r.finished_at, (SELECT count(*) FROM tests.test_fixtures f WHERE f.run_id = r.id AND f.purged_at IS NULL) AS fixtures, "
              + ", ".join(_LIVE.format(o=o, c=c) for o, c in (("= 'passed'", "passed"), ("= 'failed'", "failed"),
                                                              ("IN ('skipped', 'warning')", "skipped"))))
@@ -496,7 +496,7 @@ def screenshot(conn, result_id: int) -> bytes | None:
     return bytes(row[0]) if row and row[0] is not None else None
 
 
-_re_choice = __import__("re").compile(r"^  (smoke|full|backup-restore|backup|restore|failed|watch|stop|api|delete|clean)\s{2,}(.*)$")
+_re_choice = __import__("re").compile(r"^  (smoke|full|backup-restore|backup|restore|failed|watch|stop|api|delete|prune|summary|clean)\s{2,}(.*)$")
 
 
 def test_entry(help_text: str) -> dict:

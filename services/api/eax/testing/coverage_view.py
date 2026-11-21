@@ -181,11 +181,53 @@ def negative_svg(neg: dict | None, width: int = 420) -> str:
     return "".join(out)
 
 
+def ring_svg(percent: float, run: int | None = None, lines: int | None = None, size: int = 180, label: str = "",
+             goal: float = GOAL) -> str:
+    """A full ring (R8.1, D824; owner, 21 Nov 2026, 13:18: "Can code coverage of a full test be shown in a ring pie chart
+    please? Only for our code"): the share of lines run in the goal's colour, the rest grey, the percent in the middle
+    and, when known, how many lines of how many under it; the goal marked as a tick on the ring."""
+    import math
+    p = max(0.0, min(100.0, float(percent)))
+    r, sw = size / 2 - size * 0.08, size * 0.13
+    cx = cy = size / 2
+    circ = 2 * math.pi * r
+    ga = math.radians(goal / 100 * 360 - 90)
+    gx1, gy1 = cx + (r - sw / 2 - 2) * math.cos(ga), cy + (r - sw / 2 - 2) * math.sin(ga)
+    gx2, gy2 = cx + (r + sw / 2 + 2) * math.cos(ga), cy + (r + sw / 2 + 2) * math.sin(ga)
+    sub = f"{run:,} of {lines:,} lines" if run is not None and lines else "lines run"
+    tip = html.escape(f"{label}: {p:g}% ({sub})" if label else f"{p:g}% ({sub})")
+    arc = (f"<circle cx='{cx}' cy='{cy}' r='{r:.1f}' fill='none' stroke='{colour(p, goal)}' stroke-width='{sw:.1f}' "
+           f"stroke-dasharray='{p / 100 * circ:.2f} {circ:.2f}' transform='rotate(-90 {cx} {cy})'/>") if p > 0 else ""
+    return (f"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 {size} {size}' width='{size}' height='{size}' role='img' "
+            f"aria-label='{tip}'><title>{tip}</title>"
+            f"<circle cx='{cx}' cy='{cy}' r='{r:.1f}' fill='none' stroke='{GRID}' stroke-opacity='0.3' stroke-width='{sw:.1f}'/>"
+            f"{arc}<line x1='{gx1:.1f}' y1='{gy1:.1f}' x2='{gx2:.1f}' y2='{gy2:.1f}' stroke='currentColor' stroke-width='2'/>"
+            f"<text x='{cx}' y='{cy + size * 0.03:.1f}' text-anchor='middle' font-size='{size * 0.17:.0f}' font-weight='700' "
+            f"fill='currentColor'>{p:g}%</text>"
+            f"<text x='{cx}' y='{cy + size * 0.15:.1f}' text-anchor='middle' font-size='{max(9, size * 0.065):.0f}' "
+            f"fill='currentColor' opacity='0.7'>{html.escape(sub)}</text></svg>")
+
+
+def rings_svg(c: dict) -> str:
+    """The ring of our own code (eax, the tests' code left out) and, when the run's coverage is joined with the unit
+    tests' (D807), a smaller ring for each of the two."""
+    if c.get("percent") is None:
+        return ""
+    goal = float(c.get("goal") or GOAL)
+    main = f"<figure class='cov-ring'>{ring_svg(c['percent'], c.get('run'), c.get('lines'), 190, 'Our code', goal)}" \
+           f"<figcaption>Our code, every line{' (this run and the unit tests together)' if c.get('unit') is not None else ''}</figcaption></figure>"
+    parts = [(c.get("live"), "This run alone"), (c.get("unit"), "The unit tests alone (eax dev check)")]
+    small = "".join(f"<figure class='cov-ring'>{ring_svg(v, size=120, label=t, goal=goal)}<figcaption>{t}</figcaption></figure>"
+                    for v, t in parts if v is not None and c.get("unit") is not None)
+    return f"<div class='cov-rings' style='display:flex;flex-wrap:wrap;gap:16px;align-items:center'>{main}{small}</div>"
+
+
 def charts(files: dict, points: list[dict] | None = None) -> dict[str, str]:
-    """The four pictures for a run (each '' when there is nothing to draw)."""
+    """The pictures for a run (each '' when there is nothing to draw): the rings first (D824), then the four of R3.10."""
     c = files.get("coverage") or {}
     goal = float(c.get("goal") or GOAL)
-    return {"gauge": gauge_svg(float(c["percent"]), goal) if c.get("percent") is not None else "",
+    return {"rings": rings_svg(c),
+            "gauge": gauge_svg(float(c["percent"]), goal) if c.get("percent") is not None else "",
             "areas": areas_svg(c.get("areas") or [], goal),
             "trend": trend_svg(points or [], goal),
             "negative": negative_svg(files.get("negative"))}
@@ -213,7 +255,8 @@ def html_section(files: dict, points: list[dict] | None = None) -> str:
     if not any(ch.values()):
         return ("<h2>Code coverage</h2><p class='q'>This run kept no code coverage (EAX_COVERAGE=on measures it) and ran no "
                 "negative tests.</p>")
-    figs = [(k, t) for k, t in (("gauge", "Share of the API's lines run"), ("areas", "By area, the least covered first"),
+    figs = [(k, t) for k, t in (("rings", "Our code: the lines run, against the goal"),
+                                ("gauge", "Share of the API's lines run"), ("areas", "By area, the least covered first"),
                                 ("trend", "Over the last runs of this kind"), ("negative", "Negative tests by kind")) if ch[k]]
     line = html.escape(summary_line(files))
     return ("<h2>Code coverage</h2>" + (f"<p>{line}</p>" if line else "") + "<div class='covcharts'>"

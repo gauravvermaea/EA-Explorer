@@ -352,3 +352,11 @@ source, and the pictures themselves read one by one and measured).
 - Attack run: every tool ran; no fuzzing server errors; every attack refused; gate failed on 190 (168 Trivy).
 - Fixed: nan-injection, the menu's PowerShell, defusedxml, dulwich 1.2.5. The rest: the rebuild, or the owner's word.
 - `eax test full` (command line): dev check, self-test with attack, backup and restore, SonarQube; --no-* to leave out.
+### 13:25 Code coverage as a ring (D824)
+- The report and the Self-test page: a ring of our own code first, with a ring each for this run and the unit tests.
+### 13:45 The full test's summary page; the summaries kept; cleaning up (D825)
+- `eax test full` ends with work/tests/full-<time>/index.html, a card a step, kept in tests.full_tests (migration 0111);
+  Self-test › Summary and `eax test summary` show it.
+- `eax test prune` and the web delete only the detailed files; the summaries, counts and results stay.
+- Command centre › Schedules › Scheduled upkeep: clean up the logs, the test files and old runs now; the test files
+  every night when chosen.

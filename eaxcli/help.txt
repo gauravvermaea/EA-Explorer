@@ -405,7 +405,7 @@ $ {eax} import --all
 > Checks that Docker is running and the config and compose files are valid. Starts nothing.
 $ {eax} check
 
-### test [smoke|full|jobs|mcp|reports|security|performance|attack|sonar [--keep|--open|--reset]|backup|backup-restore|restore|failed [run] [--warnings]|watch [run] [--log|--browser]|stop [run]|api <method> <path>|delete <run|all> [--older-than DAYS]|clean] [--yes]
+### test [smoke|full|jobs|mcp|reports|security|performance|attack|sonar [--keep|--open|--reset]|backup|backup-restore|restore|failed [run] [--warnings]|watch [run] [--log|--browser]|stop [run]|api <method> <path>|delete <run|all> [--older-than DAYS]|prune <run|full-N|all> [--older-than DAYS]|summary [full-N]|clean] [--yes]
 > Test this installation: smoke or full; only what failed last time; or delete the test data.
 The same two tests as System Admin > Tools > Self-test (owner, 12 Nov 2026, D592: "Smoke or Full. Not too many
 options"); a run started in either place shows in both. Each run first removes any test data earlier runs left
@@ -422,7 +422,8 @@ and IT Admins.
           test below where it may run (a laptop, or EAX_ATTACK_ALLOWED=yes; --no-attack or --ci leaves it out, an hour
           or two more), the backup and restore test below (it asks nothing; --ci leaves it out), and last the SonarQube
           scan (eax test sonar; --no-sonar leaves it out). Each step runs whatever the one before found; a list of every
-          step ends it. With --ci only the self-test runs.
+          step ends it, and one summary page with a card a step (D825): work/tests/full-<time>/index.html, kept in
+          the database too (eax test summary; System Admin > Self-test > Summary). With --ci only the self-test runs.
   security  only the security suite (part of full, R5.17): the front door's headers, the dependencies, the code and
           secrets scans, the attacks of Release 3, ZAP signed in and not, Trivy; a high or critical finding not
           accepted (eax/testing/security_accepted.json) fails it. It also runs by itself every Sunday at 03:20.
@@ -488,6 +489,12 @@ and IT Admins.
   delete  deletes test runs for good: their test data, results and screenshots, reports, logs and videos (R2.43):
           delete 12, delete all, delete --older-than 30; asks you to type DELETE (--yes skips that). Old runs also go
           by themselves after the days set on the Self-test page (default 30)
+  prune   deletes only the detailed files, the summaries staying (D825): the reports, logs, videos, scanners'
+          reports and screenshots of a run (prune 12), of a full test and its steps (prune full-3), or of every one
+          (prune all, or prune --older-than 14), with the SonarQube, backup and restore and dev check results run by
+          themselves. The counts, results and summary pages stay. Asks you to type DELETE (--yes skips that). Also
+          System Admin > Command centre > Schedules (Scheduled upkeep) and Self-test > History.
+  summary  the full tests kept: each step's outcome and where its summary page is (summary full-3 for one).
   clean   deletes the test data of every run, for good (asks you to type DELETE; --yes skips that). The reports stay.
           --dry-run lists what it would delete (models with their counts, projects, accounts) and deletes nothing.
           Each run removes its own test data when it ends (passed, failed or stopped); lists leave test data out.
@@ -507,6 +514,8 @@ $ {eax} test stop 12
 $ {eax} test failed
 $ {eax} test failed 12 --warnings
 $ {eax} test delete --older-than 30
+$ {eax} test prune --older-than 14
+$ {eax} test summary
 $ {eax} test clean
 $ {eax} test clean --dry-run
 

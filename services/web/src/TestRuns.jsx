@@ -15,6 +15,7 @@
 import { useEffect, useRef, useState } from "react";
 import ApiHarness from "./ApiHarness";
 import CoverageCharts from "./CoverageCharts";
+import FullSummary from "./FullSummary";
 import TestWatch from "./TestWatch";
 import { Phases } from "./TestPhases";
 import { journey, makeFrame, sweep } from "./selfTestDriver.js";
@@ -172,7 +173,7 @@ export default function SelfTest() {
         named <code>self_test_&lt;id&gt;_&lt;n&gt;</code> and tests only inside them, so nothing else changes and runs can be repeated.
         The same runs come from <code>eax test</code> and CI. Fixtures stay until you purge them (Test fixtures).</p>
       <div className="seg" role="tablist" aria-label="Self-test">
-        {[["run", "Run"], ["history", "History"], ["security", "Security"], ["performance", "Performance"], ["fixtures", "Test data"], ["harness", "API harness"]].map(([k, l]) => (
+        {[["run", "Run"], ["summary", "Summary"], ["history", "History"], ["security", "Security"], ["performance", "Performance"], ["fixtures", "Test data"], ["harness", "API harness"]].map(([k, l]) => (
           <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>{l}</button>))}
       </div>
       {err && <p className="status bad">{err}</p>}
@@ -185,6 +186,7 @@ export default function SelfTest() {
           {" "}· {fmtDateTime(data.runs[0].finished_at || data.runs[0].queued_at)}</p>)}
       {tab === "history" && data && <History runs={data.runs} onOpen={setOpen} busy={!!live} onRepeat={repeated}
         keepDays={data.runner?.keep_days} onChange={load} />}
+      {tab === "summary" && <FullSummary onOpen={setOpen} />}
       {tab === "security" && <SecurityTrend onOpen={setOpen} />}
       {tab === "performance" && <PerformanceTrend />}
       {tab === "fixtures" && <FixturesTab runs={data?.runs || []} />}
@@ -528,7 +530,7 @@ function DeleteResults({ keepDays, onChange }) {
   useEffect(() => { setDays(keepDays ?? 30); }, [keepDays]);
   const go = async () => {
     try {
-      const x = await apiFetch("/api/v1/admin/tests/delete", { method: "POST", body: JSON.stringify(ask.body) });
+      const x = await apiFetch(ask.prune ? "/api/v1/admin/tests/prune" : "/api/v1/admin/tests/delete", { method: "POST", body: JSON.stringify(ask.body) });
       setMsg(x.message); setAsk(null); setTyped(""); onChange();
     } catch (e) { setMsg(e.message); }
   };
@@ -539,16 +541,22 @@ function DeleteResults({ keepDays, onChange }) {
   return (
     <div className="row-gap filters test-delete">
       <button onClick={() => setAsk({ body: { runs: "all" }, label: "every finished test run" })}>Delete all test results...</button>
+      <button onClick={() => setAsk({ prune: true, body: { runs: "all" }, label: "every finished test run and full test" })}
+        title="The reports, logs, videos, scanners' reports and screenshots go; the summaries, counts and results stay (D825)">
+        Delete the detailed files, keep the summaries...</button>
       <label className="small">Keep test results <input type="number" min="0" max="3650" value={days} onChange={(e) => setDays(e.target.value)} style={{ width: 70 }} /> days
         (0: until deleted)</label>
       <button className="linkish" onClick={saveDays}>Save</button>
       {msg && <span className="small">{msg}</span>}
       {ask && (
-        <Modal title="Delete test results for good?" onClose={() => setAsk(null)}
+        <Modal title={ask.prune ? "Delete the detailed files?" : "Delete test results for good?"} onClose={() => setAsk(null)}
           actions={<><button onClick={() => setAsk(null)}>Keep them</button>
             <button className="danger" disabled={typed !== "DELETE"} onClick={go}>Delete</button></>}>
-          <p>This deletes {ask.label} for good: its test data, its results and screenshots, and its reports, logs and videos
-            in work/tests. It cannot be undone. A run still going is left.</p>
+          {ask.prune ? <p>This deletes the detailed files of {ask.label}: the reports, logs, videos, scanners' reports and
+            screenshots in work/tests, and the SonarQube, backup and restore and dev check results run by themselves. Their
+            summaries, counts and results stay (Summary and History). It cannot be undone. A run still going is left.</p>
+            : <p>This deletes {ask.label} for good: its test data, its results and screenshots, and its reports, logs and videos
+            in work/tests. It cannot be undone. A run still going is left.</p>}
           <label>Type DELETE <input value={typed} onChange={(e) => setTyped(e.target.value)} autoFocus /></label>
         </Modal>)}
     </div>
@@ -562,6 +570,12 @@ function History({ runs, onOpen, busy, onRepeat, keepDays, onChange }) {
     // eslint-disable-next-line no-alert
     if (!window.confirm(`Delete self-test ${r.id} for good: its test data, results, screenshots, report, log and videos?`)) return;
     try { const x = await apiFetch("/api/v1/admin/tests/delete", { method: "POST", body: JSON.stringify({ runs: [r.id] }) }); setMsg(x.message); onChange(); }
+    catch (e) { setMsg(e.message); }
+  };
+  const prune = async (r) => {
+    // eslint-disable-next-line no-alert
+    if (!window.confirm(`Delete self-test ${r.id}'s detailed files (report, log, videos, screenshots)? Its summary, counts and results stay.`)) return;
+    try { const x = await apiFetch("/api/v1/admin/tests/prune", { method: "POST", body: JSON.stringify({ runs: [r.id] }) }); setMsg(x.message); onChange(); }
     catch (e) { setMsg(e.message); }
   };
   return (
@@ -585,9 +599,12 @@ function History({ runs, onOpen, busy, onRepeat, keepDays, onChange }) {
             <td className={`num${r.failed ? " bad-text" : ""}`}>{r.failed || ""}</td>
             <td className="num">{r.skipped || ""}</td>
             <td className="nowrap small">{took(r)}</td>
-            <td className="small">{r.purged_at ? <span className="quiet">removed</span> : r.fixtures}</td>
+            <td className="small">{r.purged_at ? <span className="quiet">removed</span> : r.fixtures}
+              {r.files_deleted_at && <div className="quiet">files deleted, summary kept</div>}</td>
             <td className="nowrap"><button className="linkish" onClick={() => onOpen(r.id)}>Results</button>
               {r.failed > 0 && !r.followed_up_by && <> · <RepeatButton run={r} busy={busy} onStarted={onRepeat} small /></>}
+              {!open_(r) && !r.files_deleted_at && <> · <button className="linkish" onClick={() => prune(r)}
+                title="The detailed files go; the summary, counts and results stay">Keep summary only</button></>}
               {!open_(r) && <> · <button className="linkish" onClick={() => del(r)}>Delete</button></>}</td>
           </tr>
         ))}

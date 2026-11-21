@@ -16,7 +16,48 @@ async function runAndWait(argv) {
   return false;
 }
 
-export default function UpkeepChoices() {
+// Clean-up (D825; owner, 21 Nov 2026, 13:30: "In the regular mantiance tab please add ability to clean up logs and all
+// these test result files etc"): now, older than the days given, and the test files every night when chosen above
+export function CleanUp() {
+  const [days, setDays] = useState({ logs: 14, files: 14, runs: 30 });
+  const [busy, setBusy] = useState("");
+  const [msg, setMsg] = useState("");
+  const go = async (what, ask, url, body, said) => {
+    if (!window.confirm(ask)) return;
+    setBusy(what); setMsg("");
+    try { const r = await apiFetch(url, { method: "POST", body: JSON.stringify(body) }); setMsg(said(r)); }
+    catch (e) { setMsg(e.message); }
+    setBusy("");
+  };
+  const n = (k) => Math.max(1, parseInt(days[k], 10) || 1);
+  const box = (k) => (<input type="number" min="1" max="3650" style={{ width: "5em" }} value={days[k]} disabled={!!busy}
+    aria-label="days" onChange={(e) => setDays({ ...days, [k]: e.target.value })} />);
+  return (
+    <div className="upkeep-cleanup">
+      <h4>Clean up now</h4>
+      <ul className="upkeep-list">
+        <li><b>Logs</b> older than {box("logs")} days{" "}
+          <button disabled={!!busy} onClick={() => go("logs", `Delete the logs and log backups older than ${n("logs")} days, for good?`,
+            "/api/v1/admin/logs/clean", { days: n("logs") }, (r) => `Logs: ${(r.deleted || []).length} file(s) deleted.`)}>Delete</button>
+          <span className="quiet small"> the containers' logs, eax's own and the log backups; also every night after the days in
+            System Admin › Settings "Delete logs older than"</span></li>
+        <li><b>Test results' detailed files</b> older than {box("files")} days{" "}
+          <button disabled={!!busy} onClick={() => go("files", `Delete the detailed test files older than ${n("files")} days? The summaries, counts and results stay.`,
+            "/api/v1/admin/tests/prune", { older_than_days: n("files") }, (r) => r.message)}>Delete</button>
+          <span className="quiet small"> reports, logs, videos, scanners' reports, screenshots, SonarQube and backup and restore
+            results; the summaries stay (Self-test › Summary)</span></li>
+        <li><b>Test runs</b> older than {box("runs")} days{" "}
+          <button disabled={!!busy} onClick={() => go("runs", `Delete the test runs older than ${n("runs")} days FOR GOOD, their summaries too?`,
+            "/api/v1/admin/tests/delete", { older_than_days: n("runs") }, (r) => r.message)}>Delete for good</button>
+          <span className="quiet small"> everything of those runs, summaries included</span></li>
+      </ul>
+      {busy && <p className="small"><span className="spinner" aria-hidden="true" /> Deleting...</p>}
+      {msg && <p className="small">{msg}</p>}
+    </div>
+  );
+}
+
+export default function UpkeepChoices({ cleanup = false }) {
   const [sch, setSch] = useState(null);
   const [fixes, setFixes] = useState(null);
   const [busy, setBusy] = useState("");
@@ -31,6 +72,7 @@ export default function UpkeepChoices() {
   if (!sch) return <p className="quiet">Reading the schedules...</p>;
   const due = sch.find((s) => s.id === "r6rotate");
   const certs = sch.find((s) => s.id === "r6certs");
+  const tests = sch.find((s) => s.id === "r12tests");
   const all = sch.find((s) => s.id === "r6rotateall" && s.enabled);
   const act = async (what, fn) => {
     setBusy(what); setMsg("");
@@ -64,7 +106,12 @@ export default function UpkeepChoices() {
             { method: "POST", body: "{}" }))} /> <b>Renew EA Explorer's own certificates when due</b></label>
           <span className="quiet small"> every night at 02:41 (certificate mode only: they last 30 days, so switch this on before
             using it, or renew by hand with eax certs renew)</span></li>
+        {tests && <li><label><input type="checkbox" disabled={!!busy} checked={!!tests.enabled}
+          onChange={(e) => act("tests", () => apiFetch(`/api/v1/admin/commands/schedules/r12tests/${e.target.checked ? "on" : "off"}`,
+            { method: "POST", body: "{}" }))} /> <b>Delete the test results' detailed files older than 14 days</b></label>
+          <span className="quiet small"> every night at 04:47; the summaries, counts and results stay (eax test prune)</span></li>}
       </ul>
+      {cleanup && <CleanUp />}
       {busy && <p className="small"><span className="spinner" aria-hidden="true" /> Saving...</p>}
       {msg && <p className="small">{msg}</p>}
     </div>
