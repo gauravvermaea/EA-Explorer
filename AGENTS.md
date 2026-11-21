@@ -53,6 +53,11 @@ draw.io, nginx, React screens. How it is built: [docs/architecture.md](docs/arch
   (Documentation) and as a folder in the Enterprise library, refreshed from the release's own docs at start-up, so
   each installation shows the documents of the version it runs (D550); and (4) **no file in the repository needs Git
   LFS**: nothing over 50 MB (split larger files into parts with a manifest, joined when loaded).
+- **The printed guides and the website move together (owner, 21 Nov 2026, 16:53: "When u make new pdf etc, ensure
+  website is also updated"; D833)**: whenever a PDF, a printed guide or any page it is made from is made or changed,
+  the website is built again in the same change (`tools/build_manuals.py`, then `tools/build_website.py`), so its
+  Guides, Printed guides page, search and downloads match the PDFs; the change is not done until both are built and
+  copied. With R13.1 each guide's version shows on both.
 - **Every bug fixed gets a test that keeps it fixed (owner, 12 Nov 2026, D599)**: a fix is not done until a test fails
   without it and passes with it: a unit or API test always, and a self-test check (smoke or full: an API call, a write,
   a page or a journey step) when the bug could be seen on a screen or through the API. The test names the bug (its R2

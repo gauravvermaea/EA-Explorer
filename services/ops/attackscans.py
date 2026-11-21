@@ -26,6 +26,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import secrets
 import subprocess
 import time
 
@@ -66,11 +67,61 @@ def repo_of(work: str) -> str:
     return base or sep
 
 
+# ---------------------------------------------------------------- every test container named, labelled and removed
+# (owner, 21 Nov 2026, 14:39: "when tests run they will bring down the contianer not in use"; 14:40: "This is important
+# stray containers are hard on memory"). docker run --rm removes a scanner only when it ends by itself: when its time
+# limit was hit only the waiting command was stopped and the scanner ran on (a ZAP full scan: 1 to 2 GB for an hour),
+# and nothing named or labelled it, so eax up and down could not find it either.
+LABEL = "eaexplorer.test"                       # its value: the run's folder in work/tests
+
+
+def tag(args: list[str], folder: str, tool: str) -> tuple[list[str], str]:
+    """A docker run given a name and the test label: (the arguments, the name)."""
+    if args[:2] != ["docker", "run"] or "--name" in args:
+        return args, ""
+    clean = re.sub(r"[^A-Za-z0-9_.-]", "-", f"{tool}-{folder}")
+    name = f"eax-test-{clean}-{secrets.token_hex(3)}"[:63]
+    return [*args[:2], "--name", name, "--label", f"{LABEL}={folder or 'none'}", *args[2:]], name
+
+
+def _named(args: list[str]) -> str:
+    return args[args.index("--name") + 1] if "--name" in args[:-1] else ""
+
+
+def remove(name: str) -> None:
+    """The container itself removed (docker rm -f), not only the command that waited for it."""
+    if name:
+        try:
+            subprocess.run(["docker", "rm", "-f", name], capture_output=True, text=True, timeout=120, check=False)
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+
+
+def sweep(folder: str | None = None) -> list[str]:
+    """Every test container still there (one run's with its folder, every run's without), removed; their names."""
+    want = f"label={LABEL}" + (f"={folder}" if folder else "")
+    try:
+        p = subprocess.run(["docker", "ps", "-a", "--filter", want, "--format", "{{.Names}}"], capture_output=True,
+                           text=True, timeout=60, check=False)
+    except (OSError, subprocess.TimeoutExpired):
+        return []
+    names = [n.strip() for n in (p.stdout or "").splitlines() if n.strip()]
+    for n in names:
+        remove(n)
+    return names
+
+
+def run_tagged(args: list[str], folder: str, tool: str, timeout: int = TIMEOUT, env: dict | None = None) -> tuple[int, str]:
+    """A scanner run named and labelled; at its time limit the container is removed too."""
+    return _run(tag(args, folder, tool)[0], timeout, env)
+
+
 def _run(args: list[str], timeout: int = TIMEOUT, env: dict | None = None) -> tuple[int, str]:
     try:
         p = subprocess.run(args, capture_output=True, text=True, timeout=timeout, check=False, env=env)
         return p.returncode, (p.stdout or "") + (p.stderr or "")
     except subprocess.TimeoutExpired:
+        remove(_named(args))                         # the scanner too, not only the command waiting for it
         return 124, f"stopped after {timeout // 60} minutes"
     except OSError as exc:
         return 127, str(exc)
@@ -105,9 +156,9 @@ def versions(folder: str, say, run=_run) -> dict:
 def zap_full(hostdir: str, front: str, say, run=_run) -> None:
     """OWASP ZAP full scan of the front door: the spider, then every active rule, as someone not signed in."""
     say("attack: OWASP ZAP full scan of the front door (spider and active rules; up to an hour)")
-    code, out = run(["docker", "run", "--rm", *(["--network", front] if front else []), "-v", f"{hostdir}:/zap/wrk:rw",
-                     "-t", IMAGES["zap"], "zap-full-scan.py", "-t", "https://proxy/", "-J", "zap-full.json", "-I",
-                     "-m", "10", "-T", "60"])
+    code, out = run(tag(["docker", "run", "--rm", *(["--network", front] if front else []), "-v", f"{hostdir}:/zap/wrk:rw",
+                         "-t", IMAGES["zap"], "zap-full-scan.py", "-t", "https://proxy/", "-J", "zap-full.json", "-I",
+                         "-m", "10", "-T", "60"], os.path.basename(hostdir), "zap")[0])
     if code not in (0, 1, 2, 3):
         say(f"attack: ZAP did not finish ({code}): {out.strip()[-300:]}")
 
@@ -137,9 +188,9 @@ def schemathesis(here: str, hostdir: str, front: str, say, run=_run) -> None:
         return
     say("attack: Schemathesis fuzzing the API in the run's test data, as its Architect")
     env = {**os.environ, "EAX_FUZZ_AUTH": f"Authorization: Bearer {token}"}   # the value from env: not on the command line
-    code, out = run(["docker", "run", "--rm", *(["--network", front] if front else []), "-v", f"{hostdir}:/out:rw",
-                     "-e", "EAX_FUZZ_AUTH", "--entrypoint", "sh", IMAGES["schemathesis"], "-c", FUZZ],
-                    env=env)
+    code, out = run(tag(["docker", "run", "--rm", *(["--network", front] if front else []), "-v", f"{hostdir}:/out:rw",
+                         "-e", "EAX_FUZZ_AUTH", "--entrypoint", "sh", IMAGES["schemathesis"], "-c", FUZZ],
+                        os.path.basename(hostdir), "schemathesis")[0], env=env)
     with open(os.path.join(here, "schemathesis.log"), "w", encoding="utf-8") as f:
         f.write(out.replace(token, "<token>"))
     if code not in (0, 1):
@@ -173,15 +224,17 @@ def nuclei(here: str, hostdir: str, nets: dict[str, list[str]], say, run=_run) -
     if not nets:
         say("attack: Nuclei: no container ports found: left out")
         return
-    run(["docker", "run", "--rm", "-v", "eaexplorer-nuclei:/root", IMAGES["nuclei"], "-update-templates", "-silent"], 1800)
+    run(tag(["docker", "run", "--rm", "-v", "eaexplorer-nuclei:/root", IMAGES["nuclei"], "-update-templates", "-silent"],
+            os.path.basename(hostdir), "nuclei-update")[0], 1800)
     for i, (net, hosts) in enumerate(sorted(nets.items())):
         name = f"nuclei-targets-{i}.txt"
         with open(os.path.join(here, name), "w", encoding="utf-8") as f:
             f.write("\n".join(hosts) + "\n")
         say(f"attack: Nuclei against {len(hosts)} ports on {net}")
-        code, out = run(["docker", "run", "--rm", "--network", net, "-v", "eaexplorer-nuclei:/root", "-v", f"{hostdir}:/out:rw",
-                         IMAGES["nuclei"], "-l", f"/out/{name}", "-jsonl", "-o", f"/out/nuclei-{i}.jsonl", "-silent", "-nc",
-                         "-duc", "-es", "info", "-etags", NUCLEI_LEAVE_OUT])
+        code, out = run(tag(["docker", "run", "--rm", "--network", net, "-v", "eaexplorer-nuclei:/root", "-v",
+                             f"{hostdir}:/out:rw", IMAGES["nuclei"], "-l", f"/out/{name}", "-jsonl", "-o",
+                             f"/out/nuclei-{i}.jsonl", "-silent", "-nc", "-duc", "-es", "info", "-etags", NUCLEI_LEAVE_OUT],
+                            os.path.basename(hostdir), "nuclei")[0])
         if code not in (0, 1):
             say(f"attack: Nuclei on {net} did not finish ({code}): {out.strip()[-300:]}")
     with open(os.path.join(here, "nuclei.jsonl"), "w", encoding="utf-8") as joined:
@@ -202,7 +255,7 @@ def semgrep(hostdir: str, repo: str, say, run=_run) -> None:
         args += ["--config", r]
     for d in SKIP_DIRS:
         args += ["--exclude", d]
-    code, out = run([*args, "/src"])
+    code, out = run(tag([*args, "/src"], os.path.basename(hostdir), "semgrep")[0])
     if code not in (0, 1):
         say(f"attack: Semgrep did not finish ({code}): {out.strip()[-300:]}")
 
@@ -210,8 +263,8 @@ def semgrep(hostdir: str, repo: str, say, run=_run) -> None:
 def gitleaks(hostdir: str, repo: str, say, run=_run) -> None:
     """Gitleaks on what is committed (the git history): a secret that reached git, never the work folder's own."""
     say("attack: Gitleaks on the git history")
-    code, out = run(["docker", "run", "--rm", "-v", f"{repo}:/src:ro", "-v", f"{hostdir}:/out:rw", "--entrypoint", "sh",
-                     IMAGES["gitleaks"], "-c", LEAKS])
+    code, out = run(tag(["docker", "run", "--rm", "-v", f"{repo}:/src:ro", "-v", f"{hostdir}:/out:rw", "--entrypoint", "sh",
+                         IMAGES["gitleaks"], "-c", LEAKS], os.path.basename(hostdir), "gitleaks")[0])
     if code != 0:
         say(f"attack: Gitleaks did not finish ({code}): {out.strip()[-300:]}")
 
@@ -242,4 +295,7 @@ def run_all(H: dict, info: dict, folder: str, work: str, hostwork: str, say, run
     if got["gitleaks"]["present"]:
         gitleaks(hostdir, repo, say, run)
         ran["gitleaks"] = True
+    left = sweep(folder)                                # nothing of this run left running (owner, 14:40)
+    if left:
+        say(f"attack: removed {len(left)} scanner container(s) still there: {', '.join(left)}")
     return ran

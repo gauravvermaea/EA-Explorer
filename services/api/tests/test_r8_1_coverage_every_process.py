@@ -71,3 +71,21 @@ def test_it_measures_once_per_process_and_not_at_all_when_off(monkeypatch, tmp_p
     kw = _FakeCoverage.made[0].kw
     assert kw["data_suffix"] is True                       # each process its own file, combined by report()
     assert kw["data_file"].startswith(str(tmp_path))
+
+
+class _Measuring(_FakeCoverage):
+    """As coverage.py when pytest --cov is measuring this process already."""
+    @staticmethod
+    def current():
+        return object()
+
+
+def test_it_never_starts_a_second_measurer_where_one_runs_already(monkeypatch, tmp_path):
+    """The dev check of 21 Nov 2026 ended in INTERNALERROR (Expected current collector to be ..., but it's ...): the
+    unit tests import eax.jobs and eax.mcp_server under pytest --cov, and each started a measurer of its own."""
+    monkeypatch.setitem(sys.modules, "coverage", types.SimpleNamespace(Coverage=_Measuring))
+    monkeypatch.setattr(coverage_probe, "_cov", {"c": None})
+    monkeypatch.setenv("EAX_COVERAGE", "on")
+    monkeypatch.setenv("EAX_COVERAGE_DIR", str(tmp_path))
+    _Measuring.made = []
+    assert coverage_probe.start() is False and _Measuring.made == [] and coverage_probe._cov["c"] is None

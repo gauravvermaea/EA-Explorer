@@ -106,7 +106,8 @@ def test_the_helper_deletes_the_token_whatever_happens(tmp_path, monkeypatch):
     (tmp_path / "tests/run1/zap-openapi.json").write_text("{}")
     (tmp_path / "tests/run1/zap-auth.txt").write_text("abc.def.ghi")
     seen = {}
-    monkeypatch.setattr(T.subprocess, "run", lambda **k: seen.update(k))
+    # the scanner is named and labelled now and goes through attackscans.run_tagged (R12.6, D833)
+    monkeypatch.setattr(T.subprocess, "run", lambda args, **k: seen.update(args=args, **k) or T.subprocess.CompletedProcess(args, 0, "", ""))
     T._zap_api("run1", "/host/run1", "net_frontend", lambda m: None)
     assert not (tmp_path / "tests/run1/zap-auth.txt").exists()
     assert "abc.def.ghi" not in " ".join(seen["args"]) and seen["env"]["ZAP_AUTH_HEADER_VALUE"] == "Bearer abc.def.ghi"

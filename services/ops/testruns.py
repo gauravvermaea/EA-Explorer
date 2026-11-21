@@ -516,10 +516,13 @@ def _security_scans(info: dict, folder: str, say) -> None:
 def _zap(hostdir: str, front: str, say) -> None:
     say(f"OWASP ZAP baseline scan of the front door ({ZAP_IMAGE})")
     try:
-        subprocess.run(check=False, args=["docker", "run", "--rm", *(["--network", front] if front else []), "-v", f"{hostdir}:/zap/wrk:rw",
-                        "-t", ZAP_IMAGE, "zap-baseline.py", "-t", "https://proxy/", "-J", "zap.json", "-I"],
-                       capture_output=True, text=True, timeout=3600)
-    except (OSError, subprocess.TimeoutExpired) as exc:
+        code, out = _attackscans().run_tagged(["docker", "run", "--rm", *(["--network", front] if front else []), "-v",
+                                               f"{hostdir}:/zap/wrk:rw", "-t", ZAP_IMAGE, "zap-baseline.py", "-t",
+                                               "https://proxy/", "-J", "zap.json", "-I"], os.path.basename(hostdir),
+                                              "zap-baseline", 3600)
+        if code in (124, 127):
+            say(f"ZAP did not run: {out.strip()[-300:]}")
+    except OSError as exc:
         say(f"ZAP did not run: {exc}")
 
 
@@ -545,12 +548,14 @@ def _zap_api(folder: str, hostdir: str, front: str, say) -> None:
     env = {**os.environ, "ZAP_AUTH_HEADER_VALUE": f"Bearer {token}"}   # ZAP's packaged scans add it to every request
     say(f"OWASP ZAP signed-in scan of the API's reads in the run's test data ({ZAP_IMAGE})")
     try:
-        subprocess.run(check=False, args=["docker", "run", "--rm", *(["--network", front] if front else []), "-v", f"{hostdir}:/zap/wrk:rw",
-                        "-e", "ZAP_AUTH_HEADER=Authorization", "-e", "ZAP_AUTH_HEADER_VALUE",   # the value from env: not on the command line
-                        "-t", ZAP_IMAGE, "zap-api-scan.py", "-t", "/zap/wrk/zap-openapi.json", "-f", "openapi", "-O", "https://proxy",
-                        "-J", "zap-api.json", "-I", "-T", "30"], capture_output=True, text=True, timeout=3600,
-                       env=env)
-    except (OSError, subprocess.TimeoutExpired) as exc:
+        code, out = _attackscans().run_tagged(
+            ["docker", "run", "--rm", *(["--network", front] if front else []), "-v", f"{hostdir}:/zap/wrk:rw",
+             "-e", "ZAP_AUTH_HEADER=Authorization", "-e", "ZAP_AUTH_HEADER_VALUE",   # the value from env: not on the command line
+             "-t", ZAP_IMAGE, "zap-api-scan.py", "-t", "/zap/wrk/zap-openapi.json", "-f", "openapi", "-O", "https://proxy",
+             "-J", "zap-api.json", "-I", "-T", "30"], folder, "zap-api", 3600, env)
+        if code in (124, 127):
+            say(f"ZAP signed-in scan did not run: {out.strip()[-300:]}")
+    except OSError as exc:
         say(f"ZAP signed-in scan did not run: {exc}")
 
 
@@ -588,12 +593,14 @@ def _k6(info: dict, folder: str, say) -> None:
     threading.Thread(target=_sample_resources, args=(stop, samples), daemon=True, name="k6-resources").start()
     env = {**os.environ, "TOKENS": tokens}
     try:
-        subprocess.run(check=False, args=["docker", "run", "--rm", *(["--network", front] if front else []), "-v", f"{hostdir}:/bench:rw",
-                       "-e", "TOKENS", "-e", f"TARGET={plan.get('target') or 'https://proxy'}", "-e", f"USERS={users}",
-                       "-e", f"MINUTES={minutes}", "-e", "PLAN=/bench/bench-plan.json", "-e", "OUT=/bench/bench-load.json",
-                       K6_IMAGE, "run", "--quiet", "/bench/benchmark.js"], capture_output=True, text=True,
-                       timeout=int(minutes * 60) + 600, env=env)
-    except (OSError, subprocess.TimeoutExpired) as exc:
+        code, out = _attackscans().run_tagged(
+            ["docker", "run", "--rm", *(["--network", front] if front else []), "-v", f"{hostdir}:/bench:rw",
+             "-e", "TOKENS", "-e", f"TARGET={plan.get('target') or 'https://proxy'}", "-e", f"USERS={users}",
+             "-e", f"MINUTES={minutes}", "-e", "PLAN=/bench/bench-plan.json", "-e", "OUT=/bench/bench-load.json",
+             K6_IMAGE, "run", "--quiet", "/bench/benchmark.js"], folder, "k6", int(minutes * 60) + 600, env)
+        if code in (124, 127):
+            say(f"k6 did not run: {out.strip()[-300:]}")
+    except OSError as exc:
         say(f"k6 did not run: {exc}")
     finally:
         stop.set()
@@ -660,11 +667,14 @@ def _trivy(hostdir: str, images: list[str], say) -> None:
         short = re.sub(r"[^a-z0-9-]", "-", image.split("/")[-1].split(":")[0])
         say(f"Trivy scan of {image}")
         try:
-            subprocess.run(check=False, args=["docker", "run", "--rm", "-v", "/var/run/docker.sock:/var/run/docker.sock",
-                            "-v", "eaexplorer-trivy-cache:/root/.cache/", "-v", f"{hostdir}:/out", TRIVY_IMAGE, "image",
-                            "--quiet", "--format", "json", "--output", f"/out/trivy-{short}.json",
-                            "--severity", "HIGH,CRITICAL", image], capture_output=True, text=True, timeout=3600)
-        except (OSError, subprocess.TimeoutExpired) as exc:
+            code, out = _attackscans().run_tagged(
+                ["docker", "run", "--rm", "-v", "/var/run/docker.sock:/var/run/docker.sock",
+                 "-v", "eaexplorer-trivy-cache:/root/.cache/", "-v", f"{hostdir}:/out", TRIVY_IMAGE, "image",
+                 "--quiet", "--format", "json", "--output", f"/out/trivy-{short}.json",
+                 "--severity", "HIGH,CRITICAL", image], os.path.basename(hostdir), f"trivy-{short}", 3600)
+            if code in (124, 127):
+                say(f"Trivy did not run on {image}: {out.strip()[-300:]}")
+        except OSError as exc:
             say(f"Trivy did not run on {image}: {exc}")
 
 
@@ -699,6 +709,9 @@ def run_sequence(level: str, suites: list[str], role: str = "", area: str = "", 
         os.chmod(f"{WORK}/tests/{folder}", 0o777)
         current["folder"] = folder
         say = helper_log(f"{WORK}/tests/{folder}", say)   # the helper's own lines kept on disk too (R12.1)
+        left = _attackscans().sweep()                       # test containers left by an earlier run (owner, 14:40)
+        if left:
+            say(f"removed {len(left)} test container(s) left by an earlier run: {', '.join(left)}")
         beating = keep_beating(f"{WORK}/tests/{folder}")   # this run is being run, scans and collect included (R2.64)
         memory = memory_watch(folder, run_id, level, suites)  # every container's memory while it runs (R3.5-M1)
         cmd = ["run", "--level", level, "--suites", ",".join(suites), "--trigger", trigger, "--folder", folder]
@@ -764,6 +777,12 @@ def run_sequence(level: str, suites: list[str], role: str = "", area: str = "", 
     finally:
         if current.get("folder") == folder:
             forget_tokens(f"{WORK}/tests/{folder}")
+            try:                                            # nothing of this run left running, however it ended
+                left = _attackscans().sweep(folder)
+                if left:
+                    say(f"removed {len(left)} test container(s) of this run still there: {', '.join(left)}")
+            except Exception:  # noqa: BLE001, S110 - never in the way of closing the run
+                pass
         if beating is not None:
             beating.set()
         if memory is not None:

@@ -140,9 +140,13 @@ def full_step(title: str, run) -> tuple[str, bool, str]:
     return title, code in (0, None), "" if code in (0, None) else f"ended with {code}"
 
 
-def full_summary(steps: list[tuple[str, bool, str]], began: float | None = None, keep=None) -> int:
+def full_summary(steps: list[tuple[str, bool, str]], began: float | None = None, keep=None, containers=None) -> int:
     """Every step of the full test in one list at the end; 1 when any failed. With began: the summary page too
     (work/tests/full-<time>/index.html, D825), kept in the database by keep(folder) (the api container's)."""
+    if began is not None:                                 # every test container gone once the steps are done (14:40)
+        left = (containers or stack.test_containers)()
+        steps = [*steps, ("no test container left running", not left,
+                          f"still there: {', '.join(left)} (eax down removes them)" if left else "")]
     say("\nThe full test, step by step:")
     for title, passed, why in steps:
         say(f"  {'ok    ' if passed else 'FAILED'} {title}" + (f": {why}" if why else ""))

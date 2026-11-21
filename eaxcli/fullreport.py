@@ -25,7 +25,8 @@ import time
 from pathlib import Path
 
 RUN_FOLDER = re.compile(r"^\d{8}T\d{6}Z$")
-KINDS = {"dev check": "dev", "self-test": "selftest", "backup and restore test": "backup", "SonarQube scan": "sonar"}
+KINDS = {"dev check": "dev", "self-test": "selftest", "backup and restore test": "backup", "SonarQube scan": "sonar",
+         "no test container left running": "containers"}
 GOOD, NEAR, LOW, GREY = "#1a7f37", "#b7791f", "#c62828", "#8a8f98"
 
 
@@ -195,6 +196,11 @@ def cards(s: dict) -> list[str]:
                 + f'<p>{_link(f"../{sq["folder"]}/report.md", "Every issue by file and line")}</p>'
                 if sq else f"<p>{html.escape((sst or {}).get('why') or '')}</p>")
         out.append(f'<section class="card"><h2>SonarQube {_state((sst or sq or {}).get("passed"))}</h2>{body}</section>')
+    ct = steps.get("containers")
+    if ct:
+        out.append(f'<section class="card"><h2>Test containers {_state(ct.get("passed"))}</h2><p>'
+                   + (html.escape(ct.get("why") or "") if not ct.get("passed") else
+                      "None left running: every scanner, k6 and the test runner removed when done.") + "</p></section>")
     return out
 
 

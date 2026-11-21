@@ -51,6 +51,12 @@ def start() -> bool:
         import coverage
     except ImportError:
         return False
+    current = getattr(coverage.Coverage, "current", None)
+    if current is not None and current() is not None:
+        # something is measuring this process already (the unit tests' pytest --cov imports eax.jobs and
+        # eax.mcp_server): a second measurer clashed with it and ended the dev check of 21 Nov 2026 in an error, its
+        # coverage unsaved, and slowed the tests (R12 fix)
+        return False
     folder().mkdir(parents=True, exist_ok=True)
     c = coverage.Coverage(data_file=str(folder() / ".coverage"), data_suffix=True, source=[PACKAGE],
                           omit=[f"{PACKAGE}/testing/*"])

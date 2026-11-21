@@ -446,6 +446,14 @@ function Remove-Extras {
     $running = @(Invoke-Quiet docker @(Get-ComposeArgs ($all + @("ps", "--status", "running", "-q", "testrunner"))) | Where-Object { $_ })
     if ($running.Count -eq 0) { $names += "testrunner" }
     Invoke-Compose ($all + @("rm", "-s", "-f") + $names) -NoThrow -Quiet | Out-Null
+    # a test's own containers (scanners, k6) its run left behind; a run still going (its heartbeat fresh) keeps them
+    $listed = @(Invoke-Quiet docker @("ps", "-a", "--filter", "label=eaexplorer.test", "--format", '{{.Names}} {{.Label "eaexplorer.test"}}') | Where-Object { $_ })
+    foreach ($line in $listed) {
+        $name, $folder = ("$line".Trim() -split " ", 2)
+        $beat = if ($folder -and $folder -match '^[A-Za-z0-9._-]+$') { Join-Path (Join-Path (Join-Path $WorkDir "tests") $folder) ".alive" } else { "" }
+        $fresh = $beat -and (Test-Path $beat) -and (((Get-Date) - (Get-Item $beat).LastWriteTime).TotalSeconds -lt 180)
+        if (-not $fresh) { Invoke-Quiet docker @("rm", "-f", $name) | Out-Null }
+    }
 }
 # start-later: the second tier (run by Start-Later): the rest without touching the core, then the switched-off ones created
 function Invoke-Later {

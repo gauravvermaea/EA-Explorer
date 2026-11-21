@@ -186,10 +186,53 @@ def extras_to_remove(test_running: bool) -> list[str]:
     return [*EXTRA_CONTAINERS, *([] if test_running else ["testrunner"])]
 
 
+TEST_LABEL = "eaexplorer.test"     # the containers a test starts (scanners, k6), its run's folder as the value
+BEAT, BEAT_STALE = ".alive", 180   # a run being run touches work/tests/<folder>/.alive every 20 seconds
+
+
+def stale_tests(listed: list[str], tests_dir, now: float | None = None) -> list[str]:
+    """Of `docker ps -a` lines "<name> <folder>", the test containers whose run is no longer going (no heartbeat for
+    three minutes): removed by up and down; a run in progress is never touched."""
+    now = now or time.time()
+    out = []
+    for line in listed:
+        name, _, folder = line.strip().partition(" ")
+        if not name:
+            continue
+        beat = tests_dir / folder.strip() / BEAT if folder.strip() and "/" not in folder and ".." not in folder else None
+        try:
+            fresh = beat is not None and now - beat.stat().st_mtime < BEAT_STALE
+        except OSError:
+            fresh = False
+        if not fresh:
+            out.append(name)
+    return out
+
+
+def test_containers() -> list[str]:
+    """The containers a test started that are still there (none after a run: the full test says so)."""
+    try:
+        out = subprocess.run(["docker", "ps", "-a", "--filter", f"label={TEST_LABEL}", "--format", "{{.Names}}"],
+                             capture_output=True, text=True, timeout=60, check=False).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return []
+    return [n.strip() for n in out.splitlines() if n.strip()]
+
+
 def remove_extras() -> None:
-    """Removes the containers that are not part of running EA Explorer."""
+    """Removes the containers that are not part of running EA Explorer: the test and platform profiles' (but the test
+    runner while a run uses it), and any container a test started that its run left behind (owner, 21 Nov 2026,
+    14:40: "stray containers are hard on memory")."""
     running = bool(compose_out([*ALL_PROFILES, "ps", "--status", "running", "-q", "testrunner"]))
     compose([*ALL_PROFILES, "rm", "-s", "-f", *extras_to_remove(running)], no_throw=True, quiet=True)
+    try:
+        listed = subprocess.run(["docker", "ps", "-a", "--filter", f"label={TEST_LABEL}", "--format",
+                                 '{{.Names}} {{.Label "' + TEST_LABEL + '"}}'], capture_output=True, text=True,
+                                timeout=60, check=False).stdout.splitlines()
+    except (OSError, subprocess.TimeoutExpired):
+        return
+    for name in stale_tests(listed, WORK / "tests"):
+        subprocess.run(["docker", "rm", "-f", name], capture_output=True, text=True, timeout=120, check=False)
 
 
 def later() -> None:

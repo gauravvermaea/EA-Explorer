@@ -441,6 +441,15 @@ remove_extras() {
   [ -z "$(compose --profile test ps --status running -q testrunner 2>/dev/null)" ] && names="$names testrunner"
   # shellcheck disable=SC2086
   compose --profile test --profile platform rm -s -f $names >/dev/null 2>&1 || true
+  # a test's own containers (scanners, k6) its run left behind; a run still going (its heartbeat fresh) keeps them
+  docker ps -a --filter label=eaexplorer.test --format '{{.Names}} {{.Label "eaexplorer.test"}}' 2>/dev/null |
+  while read -r name folder; do
+    [ -n "$name" ] || continue
+    beat="$WORK_DIR/tests/$folder/.alive"
+    case "$folder" in ''|*/*|*..*) beat="" ;; esac
+    if [ -n "$beat" ] && [ -n "$(find "$beat" -mmin -3 2>/dev/null)" ]; then continue; fi
+    docker rm -f "$name" >/dev/null 2>&1 || true
+  done
 }
 # start-later: the second tier, the rest without touching the core, then the switched-off ones created
 start_later() {

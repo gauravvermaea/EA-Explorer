@@ -75,6 +75,10 @@ export function Cards({ s, onOpen }) {
           {s.sonar ? <Rows rows={[["to fix", s.sonar.to_fix], ["issues", s.sonar.issues], ["security hotspots", s.sonar.hotspots],
             ["accepted in writing", s.sonar.accepted], ...Object.entries(s.sonar.by_severity || {}).map(([k, v]) => [`severity ${k.toLowerCase()}`, v])]} />
             : <p className="small">{steps.sonar.why}</p>}</section>)}
+      {steps.containers && (
+        <section className="full-card"><h3>Test containers <State ok={steps.containers.passed} /></h3>
+          <p className="small">{steps.containers.passed ? "None left running: every scanner, k6 and the test runner removed when done."
+            : steps.containers.why}</p></section>)}
     </div>
   );
 }

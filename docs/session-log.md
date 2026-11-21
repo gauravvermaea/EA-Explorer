@@ -360,3 +360,31 @@ source, and the pictures themselves read one by one and measured).
 - `eax test prune` and the web delete only the detailed files; the summaries, counts and results stay.
 - Command centre › Schedules › Scheduled upkeep: clean up the logs, the test files and old runs now; the test files
   every night when chosen.
+### 14:20 Switching password and certificate sign-in from the screen: R9.4 (D826)
+- Planned for Release 9: an API for the mode and one to switch behind the maintenance page, checked and undone on
+  failure; a panel on System Admin › Secrets; `eax test auth-switch` in the full test. Not built.
+### 14:25 Themes: limit the choice, people's own, download to share: R9.5 (D827)
+- Planned for Release 9: an allowed list on Branding; a setting (off) for people's own themes from My profile, made in
+  the designer or uploaded; Download CSS beside every theme. Not built.
+### 14:28 No ? for help, the menu only: R9.6 (D828)
+- Planned for Release 9: the ? menu and the pop-ups' ? go; Help and documentation (the Documentation menu) gets Help
+  for this page first; F1, the panel and the tooltips stay; every test and document updated. Not built.
+### 14:32 Force a person's authenticator set-up from the user list: R9.7 (D829)
+- Planned for Release 9: select people on Users, Set up the authenticator again; signed out at once, emailed, audited;
+  the phone part tested manually from a checklist. Not built.
+### 14:45 A scenario planning guide; a version on every guide (D830)
+- R10.4: a printed guide of its own, Scenario planning with your AI, and the website Guide.
+- R13.1: each guide versioned (1, 2, 3, with date), raised only on a change, in the file name; old versions removed;
+  the website keeps the current version's folder only. Not built.
+### 15:04 The website and repository found on Google: R9.8 (D831)
+- Planned for Release 9: sitemap, robots, canonical and Open Graph tags, structured data, stable addresses, the in-app
+  copy noindex, the README and GitHub settings, Search Console by the owner. Not built.
+### 16:37 A Releases page to download each release: R9.9 (D832)
+- Planned for Release 9: the newest release with downloads, installs and checksums; every release linked to its
+  GitHub release; candidates apart. Not built.
+### 17:05 Stray test containers and the dev check's coverage error fixed (D833; R12.6, R12.7)
+- Owner's full test 16:24: dev check 2,288 passed, 3 failed, then pytest-cov INTERNALERROR (two measurers); no unit
+  coverage saved. Self-test run 6 at 2,706 results, none failed, at 16:48.
+- Scanners now named, labelled, removed at their time limit and swept; eax up and down remove leftovers; the full test
+  checks none is left. The probe never starts under pytest --cov.
+- AGENTS.md: the website is built again whenever a PDF or guide changes.

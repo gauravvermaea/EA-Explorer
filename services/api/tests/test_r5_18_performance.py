@@ -120,7 +120,8 @@ def test_the_helper_runs_k6_and_deletes_the_tokens(tmp_path, monkeypatch):
     d.mkdir(parents=True)
     B.plan(d, "https://proxy", {"model": "m"}, ["tok-1"], 5, 1, "small")
     seen = {}
-    monkeypatch.setattr(T.subprocess, "run", lambda **k: seen.update(k))
+    # the scanner is named and labelled now and goes through attackscans.run_tagged (R12.6, D833)
+    monkeypatch.setattr(T.subprocess, "run", lambda args, **k: seen.update(args=args, **k) or T.subprocess.CompletedProcess(args, 0, "", ""))
     T._k6({}, "run1", lambda m: None)
     assert not (d / B.TOKENS).exists() and (d / "benchmark.js").exists()
     assert "tok-1" not in " ".join(seen["args"]) and seen["env"]["TOKENS"] == "tok-1"
