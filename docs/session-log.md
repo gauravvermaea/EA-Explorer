@@ -423,3 +423,5 @@ source, and the pictures themselves read one by one and measured).
 ### 08:00 The website's version and build in its footer (D844)
 - Footer "Version 8.0.0 · build <commit>": the build stamped when published (GitHub Pages) or from the app's heartbeat
   (inside EA Explorer); checked in a browser. Before the owner's `eax site pdfs`, so it is in the 8.0.0 website.
+### 08:11 The Architect's Bible in parts (D845); the owner's shots and PDFs being checked
+- R11.6: one PDF and one source file per part, each well under 25 MB, so each can go into git.
