@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EA Explorer 7.0.0: Release 7, the documentation · EA Explorer</title>
+<meta name="description" content="EA Explorer 7.0.0: Release 7, the documentation">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html" class="here">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>EA Explorer 7.0.0: Release 7, the documentation</h1>
+    <p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#the-website-release-7-1-and-7-7">The website (Release 7.1 and 7.7)</a></li><li><a href="#the-printed-guides">The printed guides</a></li><li><a href="#fixed">Fixed</a></li><li><a href="#moved-out-of-release-7">Moved out of Release 7</a></li></ul></nav>
+    <p>Release 7 (built 18 Nov 2026; <strong>accepted and closed 18 Nov 2026</strong>, the owner: "Then lets accept this release and we can move on"): <strong>a website for EA Explorer</strong>, inside the application and on its own, written for each kind of reader; <strong>a How do I page for every task</strong>, each with a picture of the screen it is done on; and <strong>24 printed guides</strong>, as PDF, to print and keep.</p>
+<p><strong>Before updating:</strong> take a backup (<code>.\eax backup before-7.0.0</code>). From 6.7.0 the update runs migration 0108 (the version). Then <code>.\eax up</code> (it rebuilds what changed and keeps your data) and <code>.\eax test smoke</code>. To make the pictures and the guides on your own installation: <code>.\eax site shots</code>, then <code>.\eax site pdfs</code>.</p>
+<h2 id="the-website-release-7-1-and-7-7">The website (Release 7.1 and 7.7)</h2>
+<ul><li><strong>One website, served by EA Explorer and published on its own</strong>: <strong>Documentation</strong> in the top menu opens it, for everyone, signed in or not, and the folder <code>services/web/public/site/&lt;version&gt;</code> can be copied anywhere (a web server, GitHub Pages, a file share). It works offline, search included.</li><li><strong>For eight kinds of reader</strong>: System Admins, Model Admins, Project Admins, practising architects, industry model makers, developers, executives and platform developers, each with a page saying what EA Explorer has for them.</li><li><strong>How do I</strong>: 281 tasks, one page each, at most six steps, each with why it matters, where it sits in TOGAF, and a <strong>picture of the screen</strong> it is done on, taken from the product itself (<code>eax site shots</code>): the tab, the dialog or the record the task is about, not just the screen it starts on.</li><li><strong>Guides</strong> for the topics with several tasks (making a model, restoring, merging a child model, a DR site, rotating secrets and more), <strong>Concepts</strong> (the ideas behind the work and how EA Explorer maps to TOGAF), <strong>Integrate</strong> (for developers connecting systems), <strong>Platform</strong> (for developers working on EA Explorer itself) and a page for **every report and dashboard**.</li><li><strong>What the AI can do</strong> (AI › What it can do) as tiles in plain words, each opening its How do I page.</li><li><strong>System Admin › Tools › Jenkins</strong> opens Jenkins in a new tab.</li></ul>
+<h2 id="the-printed-guides">The printed guides</h2>
+<ul><li><strong>24 guides as PDF</strong>: an overview of EA Explorer and its roles; a guide for System Admins, Model Admins, Project Admins, architects, industry model makers, developers and platform developers; installing, day-to-day operations, tuning, upgrades, troubleshooting and security; disaster recovery, site pairing for hot-standby DR, emergencies and testing backups and DR; the eax command, Jenkins, AI and MCP, and Keycloak with Active Directory, Entra ID, Google or any OpenID Connect or SAML provider; and an example project from start to finish.</li><li>Each has a <strong>cover</strong>, <strong>About this guide</strong> (what it is for, who it is for, how to use it), **contents with page numbers**, numbered chapters, page numbers on every page and bookmarks; every task with its picture.</li><li><strong>Where they are</strong>: on the website under <strong>Printed guides</strong>, in EA Explorer under **Documentation › Printed guides (PDF)<strong>, and in the repository's </strong>documents** folder. <code>eax site pdfs</code> makes them again from the documentation.</li></ul>
+<h2 id="fixed">Fixed</h2>
+<ul><li>The pictures were taken before some screens had drawn (four showed only "Loading..."): the picture taker now waits until the screen has drawn, and up to 15 seconds for a list that arrives late.</li><li>Three steps named buttons by the wrong words (now <strong>Make this the latest</strong>, <strong>Refine it</strong>, <strong>Change in Keycloak</strong>).</li></ul>
+<h2 id="moved-out-of-release-7">Moved out of Release 7</h2>
+<ul><li>The learning videos are Release 9; testing Jenkins end to end is in Release 8 (R8.3).</li><li>Error codes, with <code>eax status</code> saying what to do about each, and the error guide: <strong>Release 7.9</strong>, next.</li><li>Still to do from the website story: publishing on GitHub Pages, and the deep technical dives (in docs/todo.md).</li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="10.0.0">Version 10.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: releases/7.0.0.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

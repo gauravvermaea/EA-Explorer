@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data in and out: integration · EA Explorer</title>
+<meta name="description" content="The ways data reaches EA Explorer from other systems and leaves it for them, and why everything is reviewed first.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html" class="here">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Data in and out: integration</h1>
+    <p class="who">For: Developers, Model Admin, Practising architects</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">The ways data reaches EA Explorer from other systems and leaves it for them, and why everything is reviewed first.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-integrate">Why integrate</a></li><li><a href="#ways-in">Ways in</a></li><li><a href="#ways-out">Ways out</a></li><li><a href="#read-next">Read next</a></li></ul></nav>
+    <h2 id="why-integrate">Why integrate</h2>
+<p>Much of what the architecture needs is already known elsewhere: the application list in a service management tool, the servers in a configuration database, the teams in HR. Typing it in again is slow and goes stale. Integration brings it in on a schedule, and sends the architecture back out to the tools people already use for reporting.</p>
+<h2 id="ways-in">Ways in</h2>
+<ul><li><strong>Excel</strong>: download a sheet with the model's own columns and drop-downs, fill it, load it (<a href="../how-do-i/load-data-from-excel.html">Load data from Excel</a>).</li><li><strong>Deliveries</strong>: another system drops a file in a folder; it waits as a delivery for a person to review (<a href="../guides/send-data-with-a-delivery.html">Send data with a delivery</a>, <a href="../how-do-i/set-up-a-delivery-source.html">Set up a delivery source</a>).</li><li><strong>Python or the API</strong>: a script pushes the data (<a href="../how-do-i/push-data-with-python.html">Push data with Python</a>, <a href="../how-do-i/call-the-rest-api.html">Call the REST API</a>).</li><li><strong>OData feeds</strong>: EA Explorer reads a feed your organisation already has (<a href="../how-do-i/read-an-odata-feed-from-another-system.html">Read an OData feed from another system</a>).</li><li><strong>AI discovery</strong>: your AI assistant reads documents and proposes what it finds (<a href="../how-do-i/discover-the-enterprise-with-ai.html">Discover the enterprise with AI</a>).</li></ul>
+<p>Whatever the way, what arrives is <strong>reviewed before it counts</strong>: new, changed and problem rows are shown, and a Committer accepts or declines. That review is what keeps automated data from quietly corrupting the model.</p>
+<h2 id="ways-out">Ways out</h2>
+<p>Excel and CSV files, a whole-model package, OData for Power BI and Excel, the REST API and webhooks (<a href="../how-do-i/take-data-out-with-the-guide.html">Take data out with the guide</a>, <a href="../how-do-i/receive-webhooks.html">Receive webhooks</a>).</p>
+<h2 id="read-next">Read next</h2>
+<ul><li><a href="../concepts/data-quality.html">Data quality: why it matters and how it is measured</a></li><li><a href="../how-do-i/get-a-token-or-api-key.html">Get a token or an API key</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="10.0.0">Version 10.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: concepts/bringing-data-in-and-out.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

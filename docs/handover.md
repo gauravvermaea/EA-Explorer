@@ -9,9 +9,8 @@ certificate mode. **Release 10 is built, to be run** (D867, D868: scenario
 planning and game theory through the AI, the read-only Scenario planning tab, the sample; and every MCP tool tried in
 the full test with its own card). The releases are numbered in the order they are built (D869): **10** scenario planning
 (built), **11** certificate mode (next), **12** templates (settled, D858, D859), **13** System Admin regrouped and every
-command-line option documented, **14** stabilisation (the bugs, R14.n, were R12.n), **15** the documents, the books
-**16** (project types), **17** (the Architect's Bible, D861, D862) and **18** (scenario planning), **19** every picture
-and the website, **20** the videos. Until Release 19 no
+command-line option documented, **14** stabilisation (the bugs, R14.n, were R12.n), **15** the documents, **16** every picture and the website (D873), the books **17**
+(project types), **18** (the Architect's Bible, D861, D862) and **19** (scenario planning), **20** the videos. Until Release 16 no
 documentation for users changes (D850). Push after each change (D853).
 
 **Release 9, to be run by the owner in one go (22 Nov 2026: "build all these I will test eevrything in one go")**:

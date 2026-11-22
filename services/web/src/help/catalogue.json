@@ -2863,6 +2863,8 @@
   "button:Stop": "Stop it.",
   "button:Stop here": "Stop here.",
   "button:Swap": "Swap the two sides.",
+  "button:Switch to certificates": "The services sign in to the database with certificates EA Explorer makes for each, not passwords; it takes effect when EA Explorer restarts (offered next). No data changes.",
+  "button:Switch to passwords": "The services sign in to the database with passwords again, not certificates; it takes effect when EA Explorer restarts (offered next). No data changes.",
   "button:TOGAF gap matrix": "Show the TOGAF gap matrix.",
   "button:Table": "Show as a table.",
   "button:Take": "Take it.",

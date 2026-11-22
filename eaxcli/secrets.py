@@ -36,6 +36,11 @@ DB_LOGINS = {"EAX_DB_SUPERUSER_PASSWORD": "postgres", "EAX_DB_PASSWORD": "eax_ap
              "EAX_SUPERSET_DB_PASSWORD": "superset", "EAX_MAYAN_DB_PASSWORD": "mayan", "EAX_LIBRARY_DB_PASSWORD": "eax_library",
              "EAX_VIEWS_DB_PASSWORD": "eax_views", "EAX_REPLICATION_PASSWORD": "eax_replicator",
              "EAX_CONSOLE_IT_PASSWORD": "eax_console_it", "EAX_CONSOLE_SUPER_PASSWORD": "eax_console_super"}
+# in certificate mode (R6-C1) these logins sign in with their service's certificate, not their password
+# (deploy/postgres/certificate/pg_ident.conf): the password is kept, and still rotated, so a switch back to passwords
+# works at once; the superuser and the standby's replication login keep signing in with their passwords (owner, 22 Nov
+# 2026, 20:43: "should we not only show what is relevent ... call out this is not applicable", D877)
+NOT_USED_WITH_CERTIFICATES = {k for k, login in DB_LOGINS.items() if login not in ("postgres", "eax_replicator")}
 # the Keycloak clients' secrets: changed in Keycloak through its admin API too
 KEYCLOAK_CLIENTS = {"EAX_SUPERSET_OIDC_SECRET": "superset", "EAX_MAYAN_OIDC_SECRET": "mayan", "EAX_KC_SERVICE_SECRET": "eax-admin"}   # as deploy/keycloak/realm-eaexplorer.json.tmpl names them
 # kept where they are used as well, or by people: not rotated by themselves; the admins are alerted when due (R6-R1)
@@ -184,7 +189,8 @@ def main(options: list[str]) -> int:
         for s in out["secrets"]:
             due = "  DUE" if s["due"] else (f"  due in {s['days_left']} days" if s["warn"] else "")
             say(f"  {s['key']:<34} {s['kind']:<9} changed {s['changed'][:10] or 'not yet'}{due}"
-                f"{'  (a person: ' + s['why'] + ')' if s['why'] and (s['due'] or s['warn']) else ''}")
+                f"{'  (a person: ' + s['why'] + ')' if s['why'] and (s['due'] or s['warn']) else ''}"
+                f"{'  (not used: its certificate signs in; kept for a switch back)' if s.get('not_used') else ''}")
         return 0
     if action == "schedule":           # Rotate all now, at a time, or regularly (D763)
         from . import secretsrot

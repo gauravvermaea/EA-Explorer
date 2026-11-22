@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Read a model in Power BI or Excel · EA Explorer</title>
+<meta name="description" content="The model&#x27;s OData feed: every entity type as a table, read only, with your permissions.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html" class="here">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Read a model in Power BI or Excel</h1>
+    <p class="who">For: Developers, Practising architects</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">The model&#x27;s OData feed: every entity type as a table, read only, with your permissions.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-do-this">Why do this</a></li><li><a href="#the-ways-to-do-it">The ways to do it</a></li><li><a href="#each-task-one-page">Each task, one page</a></li><li><a href="#related">Related</a></li></ul></nav>
+    <h2 id="why-do-this">Why do this</h2>
+<p>The model's OData feed lets Power BI and Excel read it directly, so your own reports stay current without exports. See <a href="../concepts/bringing-data-in-and-out.html">Data in and out: integration</a>.</p>
+<p>The architecture is most useful where decisions are made, which is often outside EA Explorer: in reports, spreadsheets, other systems. Data leaves in the shapes those places need, from the same trusted model.</p>
+<p><strong>In TOGAF terms:</strong> Communicating the architecture: views and data for stakeholders and other systems. See <a href="../concepts/ea-explorer-and-togaf.html">EA Explorer and the TOGAF Standard</a>.</p>
+<p><strong>The goal:</strong> Your own reports read the model live.</p>
+<h2 id="the-ways-to-do-it">The ways to do it</h2>
+<ol><li>Open the model, <strong>Reports › OData</strong>, and copy the address (<code>https://&lt;your EA Explorer address&gt;/api/v1/odata/models/&lt;model id&gt;/</code>).</li><li><strong>Excel</strong>: Data › Get Data › From Other Sources › OData feed; paste the address. <strong>Power BI</strong>: Get data › OData feed.</li><li>Sign in with <strong>Basic</strong>: your EA Explorer user name and password, or your user name and a token as the password (the way for single sign-on users).</li><li>Choose the entity types (tables) and load.</li></ol>
+<h2 id="each-task-one-page">Each task, one page</h2>
+<ol><li><a href="../how-do-i/read-a-model-in-excel.html">Read a model in Excel</a></li><li><a href="../how-do-i/read-a-model-in-power-bi.html">Read a model in Power BI</a></li></ol>
+<h2 id="related">Related</h2>
+<ul><li><a href="../how-do-i/get-a-token-or-api-key.html">Get a token or an API key</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="10.0.0">Version 10.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: guides/read-a-model-in-power-bi-or-excel.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

@@ -843,8 +843,13 @@ case "$CMD" in
   clean-run|clean-debug|clean-restart)
     # cleanup --all --yes, init, then up or debug: each as its own run of this script (own log);
     # clean-restart brings the running containers down first
-    kind="${2:-laptop}"; last=up; [ "$CMD" = clean-debug ] && last=debug
-    steps=("cleanup --all --yes" "init $kind" "$last${WAIT_ALL:+ --wait-all}")
+    # the kind is the first word that is not an option; --certificate or --password passed on to init (R11.2)
+    kind=laptop; modes=""
+    for a in "${@:2}"; do
+      case "$a" in --certificate|--password) modes="$modes $a" ;; --*) ;; *) [ "$kind" = laptop ] && kind="$a" ;; esac
+    done
+    last=up; [ "$CMD" = clean-debug ] && last=debug
+    steps=("cleanup --all --yes" "init $kind$modes" "$last${WAIT_ALL:+ --wait-all}")
     if [ "$CMD" = clean-restart ]; then
       if [ -f "$ENV_FILE" ]; then steps=("down" "${steps[@]}")
       else echo "No $ENV_FILE yet: nothing running to bring down; going straight to clean-run."; fi

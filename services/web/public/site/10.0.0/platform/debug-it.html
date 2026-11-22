@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Debug it · EA Explorer</title>
+<meta name="description" content="Find out what is going wrong: debug mode, logs, diagnostics, the database, the API explorer and the browser.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html" class="here">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Debug it</h1>
+    <p class="who">For: Platform developers</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">Find out what is going wrong: debug mode, logs, diagnostics, the database, the API explorer and the browser.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-a-routine">Why a routine</a></li><li><a href="#the-tools">The tools</a></li><li><a href="#a-routine-that-works">A routine that works</a></li><li><a href="#read-next">Read next</a></li></ul></nav>
+    <h2 id="why-a-routine">Why a routine</h2>
+<p>Most faults show themselves in one of a few places. Looking in the same order each time finds them fastest.</p>
+<h2 id="the-tools">The tools</h2>
+<div class="table"><table><thead><tr><th>Tool</th><th>What it shows</th></tr></thead><tbody><tr><td><code>.\eax debug</code></td><td>Starts like <code>up</code> but does not stop on a failure, then records every container's output to <code>work/logs/containers-&lt;date-time&gt;.log</code> until Ctrl+C. <code>.\eax debug api</code> records the API and database only</td></tr><tr><td><code>.\eax clean-debug</code></td><td>A clean start ending in debug mode</td></tr><tr><td><code>.\eax logs &lt;service&gt;</code></td><td>One container's log</td></tr><tr><td><code>.\eax diag</code></td><td>A diagnostics report: containers, health, recent errors</td></tr><tr><td>System Admin › Logs, Containers, Health</td><td>The same in the screens</td></tr><tr><td>System Admin › Tools › SQL</td><td>Read the database with your sign-in</td></tr><tr><td><code>/api/docs</code></td><td>Try any API call with your sign-in</td></tr><tr><td>The browser's developer tools</td><td>The screens' console and network calls; each API answer carries a request id that is in the API's log</td></tr><tr><td><code>.\eax test smoke</code> and Self-test › Watch</td><td>The self-test as it runs, with screenshots and video of a failed browser journey</td></tr></tbody></table></div>
+<h2 id="a-routine-that-works">A routine that works</h2>
+<ol><li>Reproduce it, and note the time.</li><li>Health and Containers: is a service down?</li><li>The browser's network tab: which call failed, with which status and request id?</li><li>The API's log at that time, by request id.</li><li>Fix, then add a test that fails without the fix (<a href="../platform/test-it.html">Test it</a>).</li></ol>
+<h2 id="read-next">Read next</h2>
+<ul><li><a href="../platform/test-it.html">Test it</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="10.0.0">Version 10.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: platform/debug-it.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

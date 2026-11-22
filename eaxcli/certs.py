@@ -8,6 +8,8 @@
   eax certs revoke <service>     a service's certificate refused at once and a new one issued (when a key may have
                                  been copied): api, library, views, keycloak, reports, dms
   eax certs switch certificate|password   change how the services sign in (EAX_AUTH_MODE); then eax restart
+  eax certs check                each running service: who it runs as, and whether it can read its own key (Release 11:
+                                 the API ran in group 999 and could not read its key, root:10001 0640)
 
 The certificates are made on this machine, by the setup service, in the Docker volume eax-certs: never in a backup or a
 DR pack (a DR copy makes its own). The authority itself is changed only here, never from the screens (D743)."""
@@ -57,7 +59,7 @@ def listing_from(state: dict, values: dict) -> list[dict]:
 
 
 def switch(mode: str) -> None:
-    """EAX_AUTH_MODE set in the config file (a dated copy first)."""
+    """EAX_AUTH_MODE set in the config file (a dated copy first), and remembered for the next clean restart (R14.11)."""
     from .secrets import dated_copy
     if mode not in ("certificate", "password"):
         raise Failure(f"{EAX} certs switch certificate|password")
@@ -68,6 +70,12 @@ def switch(mode: str) -> None:
     else:
         text = text.rstrip("\n") + f"\nEAX_AUTH_MODE={mode}\n"
     ENV_FILE.write_text(text, encoding="utf-8", newline="\n")
+    # remembered for the next clean restart, as eax init remembers it (R14.11: it was not, so a clean restart went back)
+    from . import persist as P
+    try:
+        P.write_json(P.folder() / "auth.json", {"mode": mode})
+    except Exception as exc:  # noqa: BLE001 - said, not fatal: the config file is changed
+        say(f"(Not remembered for the next clean restart: {exc}; give {EAX} clean-restart --{mode}.)", "yellow")
     say(f"The services will sign in with {'certificates' if mode == 'certificate' else 'passwords'} ({ENV_REL}: "
         f"EAX_AUTH_MODE={mode}). Run {EAX} restart: the certificates are made as it starts; no data changes.")
 
@@ -130,8 +138,31 @@ def front(rest: list[str], run=subprocess.run) -> int:
     raise Failure(f"{EAX} certs front [show] | install --cert <file> --key <file> [--chain <file>] | undo")
 
 
+# each service and the key it must read in its own /eax-certs (the volume's subpath; eax/certs.py writes them)
+KEYS = {"db": "server.key", "api": "client.key", "library": "client.key", "views": "client.key",
+        "keycloak": "client.key.pk8", "reports": "client.key", "dms": "client.key"}
+
+
+def check(run=subprocess.run) -> list[dict]:
+    """Each running service: its user and groups, and whether it can read its key (R11, D872). A service not running is
+    said, not failed."""
+    out = []
+    for svc, key in KEYS.items():
+        p = run(compose_args(["exec", "-T", svc, "sh", "-c", f"id; if [ -r /eax-certs/{key} ]; then echo READABLE; "
+                              f"else echo UNREADABLE; ls -ln /eax-certs/{key} 2>&1; fi"]),
+                cwd=ROOT, capture_output=True, text=True, encoding="utf-8", errors="replace", check=False)
+        text_ = (p.stdout or "").strip()
+        if p.returncode != 0 and "READABLE" not in text_:
+            out.append({"service": svc, "key": key, "ok": None, "why": (p.stderr or text_ or "not running").strip()[-200:]})
+            continue
+        lines = text_.splitlines()
+        out.append({"service": svc, "key": key, "ok": "READABLE" in lines, "id": lines[0] if lines else "",
+                    "why": " ".join(lines[2:])[:200] if "UNREADABLE" in lines else ""})
+    return out
+
+
 def main(options: list[str]) -> int:
-    """eax certs [list|renew [--force|--authority]|revoke <service>|switch certificate|password]."""
+    """eax certs [list|check|renew [--force|--authority]|revoke <service>|switch certificate|password]."""
     if not ENV_FILE.exists():
         raise Failure(f"No {ENV_REL} yet: run {EAX} init first.")
     action = options[0] if options else "list"
@@ -144,6 +175,19 @@ def main(options: list[str]) -> int:
     if setting("EAX_AUTH_MODE", "password") != "certificate":
         say(f"The services sign in with passwords: there are no certificates. {EAX} certs switch certificate, then "
             f"{EAX} restart, to use them (R6-C1).")
+        return 0
+    if action == "check":
+        bad = 0
+        for c in check():
+            if c["ok"] is None:
+                say(f"  {c['service']:<9} not checked: {c['why']}")
+            elif c["ok"]:
+                say(f"  {c['service']:<9} can read {c['key']}  ({c['id']})")
+            else:
+                bad += 1
+                say(f"  {c['service']:<9} CANNOT read {c['key']}  ({c['id']}; {c['why']})", "red")
+        if bad:
+            raise Failure(f"{bad} service(s) cannot read their key: they cannot reach the database in certificate mode.")
         return 0
     if action == "list":
         out = _in_setup(["list"])
@@ -180,4 +224,4 @@ def main(options: list[str]) -> int:
         say(f"{svc}'s certificate (serial {out['serial']}) is refused from now on; a new one was issued and {svc} uses it "
             "from its next connection.")
         return 0
-    raise Failure(f"{EAX} certs [list|renew [--force|--authority]|revoke <service>|switch certificate|password]")
+    raise Failure(f"{EAX} certs [list|check|renew [--force|--authority]|revoke <service>|switch certificate|password]")

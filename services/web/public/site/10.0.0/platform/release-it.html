@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Release it · EA Explorer</title>
+<meta name="description" content="How a version gets from the main branch to installations: branches, tags, GitHub Releases, the notes.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html" class="here">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Release it</h1>
+    <p class="who">For: Platform developers</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">How a version gets from the main branch to installations: branches, tags, GitHub Releases, the notes.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#how-releases-travel">How releases travel</a></li><li><a href="#the-steps">The steps</a></li><li><a href="#read-next">Read next</a></li></ul></nav>
+    <h2 id="how-releases-travel">How releases travel</h2>
+<p>Installations offer only <strong>published GitHub Releases</strong> of the EA Explorer repository: a tag with no published release, a draft, or the main branch is never offered. The <strong>Prod</strong> channel offers releases; <strong>RC</strong> also offers pre-releases, once an admin turns it on. Installations move forward one release at a time, taking a pinned backup first.</p>
+<h2 id="the-steps">The steps</h2>
+<ol><li>The version in <code>services/api/version.toml</code>, the migration that records it, and <code>releases/&lt;version&gt;.md</code>.</li><li>All tests pass; the self-test passes on a clean installation.</li><li>Merge to the <code>release</code> branch (or <code>rc</code>), tag <code>vX.Y.Z</code>, and publish the GitHub Release with the notes.</li><li>Each installation's System Admin › Updates offers it; this website is rebuilt for the release (<code>.\eax site build</code> makes <code>site/&lt;version&gt;/</code>).</li></ol>
+<p>The repository's <code>docs/release-process.md</code> has the full commands.</p>
+<h2 id="read-next">Read next</h2>
+<ul><li><a href="../how-do-i/update-to-a-new-release.html">Update to a new release</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="10.0.0">Version 10.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: platform/release-it.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

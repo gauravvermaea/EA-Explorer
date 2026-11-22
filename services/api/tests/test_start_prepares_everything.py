@@ -87,7 +87,9 @@ def test_every_form_runs_the_pack_step_before_a_full_start():
     assert sh.count("./eaxpy.sh packs auto || true") == 2
     assert py.count("_packs_auto()") >= 2
     # restart and the clean-* commands end in up (or debug), so they run it too
-    assert re.search(r'\$steps = @\(@\("cleanup", "--all", "--yes"\), @\("init", \$kind\), \$finish\)', ps1)
+    # (R11.2: init also takes --certificate or --password, so its step is built first)
+    assert re.search(r'\$steps = @\(@\("cleanup", "--all", "--yes"\), \$initStep, \$finish\)', ps1)
+    assert '[string[]]$initStep = @("init", $kind) + $modes' in ps1
 
 
 def test_every_test_run_builds_the_runner_first_in_every_form():

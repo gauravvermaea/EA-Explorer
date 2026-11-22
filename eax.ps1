@@ -950,13 +950,17 @@ if ($Command -eq "restart") {
 # this script (so each step writes its own log, like typing the three commands)
 # clean-restart: down first (when there is a config file to find the containers by), then the same
 if ($Command -in @("clean-run", "clean-debug", "clean-restart")) {
-    $kind = if ($RestArgs.Count -gt 0) { $RestArgs[0] } else { "laptop" }
+    $words = @($RestArgs | Where-Object { -not "$_".StartsWith("--") })
+    $kind = if ($words.Count -gt 0) { $words[0] } else { "laptop" }
+    # --certificate or --password passed on to init (R11.2): without either, init keeps the choice made before
+    [string[]]$modes = @($RestArgs | Where-Object { $_ -eq "--certificate" -or $_ -eq "--password" })
     $last = if ($Command -eq "clean-debug") { "debug" } else { "up" }
     # built as an array on purpose: an if-expression would turn @("up") into the string "up", and splatting a string
     # passes its letters one by one ("u")
     [string[]]$finish = @($last)
     if ($WaitAll) { $finish += "--wait-all" }
-    $steps = @(@("cleanup", "--all", "--yes"), @("init", $kind), $finish)
+    [string[]]$initStep = @("init", $kind) + $modes
+    $steps = @(@("cleanup", "--all", "--yes"), $initStep, $finish)
     if ($Command -eq "clean-restart") {
         if (Test-Path $EnvFile) { $steps = @(, @("down")) + $steps }
         else { Write-Host "No $EnvFile yet: nothing running to bring down; going straight to clean-run." -ForegroundColor Yellow }

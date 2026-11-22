@@ -2217,8 +2217,9 @@ def secrets_list() -> dict:
     secrets_ = {k: values.get(k, "") for k in keys if k in values}
     state = P.read_json(Path(os.environ.get("EAX_PERSIST_DIR", "/eax-persist")) / "secrets" / "state.json", {})[0]
     days = int(values.get("EAX_ROTATE_PASSWORD_DAYS") or SR.DEFAULT_DAYS)
-    out = {"mode": values.get("EAX_AUTH_MODE", "password"), "days": days, "laptop": values.get("EAX_DEPLOYMENT", "laptop") == "laptop",
-           "rotate_on_laptop": values.get("EAX_ROTATE_ON_LAPTOP", "") == "on", "secrets": SR.rows(secrets_, state, days)}
+    mode = values.get("EAX_AUTH_MODE", "password")
+    out = {"mode": mode, "days": days, "laptop": values.get("EAX_DEPLOYMENT", "laptop") == "laptop",
+           "rotate_on_laptop": values.get("EAX_ROTATE_ON_LAPTOP", "") == "on", "secrets": SR.rows(secrets_, state, days, mode=mode)}
     try:
         from eaxcli import certs as CE
         out["certificates"] = CE.listing_from(state, values)

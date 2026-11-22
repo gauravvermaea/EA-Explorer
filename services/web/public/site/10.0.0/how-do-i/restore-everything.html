@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Restore everything from a backup · EA Explorer</title>
+<meta name="description" content="The whole installation as it was; the maintenance page is shown meanwhile.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html" class="here">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Restore everything from a backup</h1>
+    <p class="who">For: System Admin</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">The whole installation as it was; the maintenance page is shown meanwhile.</p>
+    <figure class="shot"><img src="../shots/restore-everything.png" alt="The screen: Restore everything from a backup" loading="lazy"><figcaption>The screen: <code>#/admin/restores</code></figcaption></figure>
+    
+    <h2 id="why-do-this">Why do this</h2>
+<p>Restoring everything is the last resort after serious loss or damage: all work since the backup is lost, and the maintenance page is up while it runs. A backup of now is taken first. See <a href="../concepts/backups-and-recovery.html">Backups, restores and disaster recovery</a>.</p>
+<p>Recovery is planned before it is needed: what to protect, how often, how to check it, and how far back each kind of restore reaches. EA Explorer takes a backup of now before any restore, so a restore can itself be undone.</p>
+<p><strong>In TOGAF terms:</strong> Outside the method: this protects the Architecture Repository itself, the record every ADM phase relies on. See <a href="../concepts/ea-explorer-and-togaf.html">EA Explorer and the TOGAF Standard</a>.</p>
+<p><strong>The goal:</strong> The whole installation is back as it was at a backup.</p>
+<blockquote class="before"><p><strong>Before you start</strong> You need the Super Admin role.</p></blockquote>
+<h2 id="steps">Steps</h2>
+<ol><li>Open <strong>System Admin › Restores</strong>.</li><li>Pick the backup; choose <strong>Everything</strong>.</li><li>Read the warning about the maintenance page and accept it.</li><li>Type RESTORE to confirm. A backup of now is taken first.</li></ol>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="10.0.0">Version 10.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: how-do-i/restore-everything.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

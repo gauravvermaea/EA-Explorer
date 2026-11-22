@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Get a token or an API key · EA Explorer</title>
+<meta name="description" content="A credential for a script or another system, limited to what it needs.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html" class="here">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Get a token or an API key</h1>
+    <p class="who">For: Developers, System Admin</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">A credential for a script or another system, limited to what it needs.</p>
+    <figure class="shot"><img src="../shots/get-a-token-or-api-key.png" alt="The screen: Get a token or an API key" loading="lazy"><figcaption>The screen: <code>#/admin/machine-access</code></figcaption></figure>
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-do-this">Why do this</a></li><li><a href="#steps">Steps</a></li><li><a href="#check-it-worked">Check it worked</a></li><li><a href="#if-something-goes-wrong">If something goes wrong</a></li><li><a href="#related">Related</a></li></ul></nav>
+    <h2 id="why-do-this">Why do this</h2>
+<p>A token lets a script or system call the API with limited rights: only the areas and models it needs, for a set time. It is safer than sharing a person's password, and can be revoked at once. See <a href="../concepts/bringing-data-in-and-out.html">Data in and out: integration</a>.</p>
+<p>Systems that talk to EA Explorer need identities of their own, limited to what they do, so their access can be watched and stopped without affecting people. This is part of keeping integration safe as well as useful.</p>
+<p><strong>In TOGAF terms:</strong> Outside the method: this keeps the repository connected to the systems that feed it, so the Architecture Repository stays current. See <a href="../concepts/ea-explorer-and-togaf.html">EA Explorer and the TOGAF Standard</a>.</p>
+<p><strong>The goal:</strong> A script or system can call EA Explorer safely.</p>
+<blockquote class="before"><p><strong>Before you start</strong> Your own token: any signed-in person. A service account's API key or a client certificate: an IT Admin or Super Admin.</p></blockquote>
+<h2 id="steps">Steps</h2>
+<ol><li>Your own: <strong>Me › My tokens and keys</strong>. For a system: <strong>System Admin › Machine access</strong>.</li><li><strong>New token</strong>: choose the areas (read or read-write per API area), optionally only some models or projects, and an expiry.</li><li>Copy the secret: it is shown once.</li><li>Send it with every call as <code>Authorization: Bearer &lt;token&gt;</code>. A client certificate, trusted on the same page, signs in on the machine-access port instead.</li></ol>
+<h2 id="check-it-worked">Check it worked</h2>
+<p>Machine access shows when each was last used; every call is in the change log.</p>
+<h2 id="if-something-goes-wrong">If something goes wrong</h2>
+<ul><li>Revoke it at once if it leaks; make a new one.</li></ul>
+<h2 id="related">Related</h2>
+<ul><li><a href="../how-do-i/call-the-rest-api.html">Call the REST API</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="10.0.0">Version 10.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: how-do-i/get-a-token-or-api-key.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

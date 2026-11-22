@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A server · EA Explorer</title>
+<meta name="description" content="A server">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html" class="here">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>A server</h1>
+    <p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    
+    
+    
+    <p>EA Explorer for a team, on a Linux server with Docker.</p>
+<p>On screen: System Admin &gt; Setup &gt; A server, where you fill in your values and get every command ready to copy. On the machine: <code>eax setup server</code> with <code>--set KEY=VALUE</code> for each value. In Jenkins: the <code>setup</code> pipeline with <code>server</code>.</p>
+<h2 id="your-values">Your values</h2>
+<div class="table"><table><thead><tr><th>Value</th><th>What it is</th><th>For example</th></tr></thead><tbody><tr><td><code>&lt;HOSTNAME&gt;</code></td><td>The name people open EA Explorer at</td><td><code>ea.example.org</code></td></tr><tr><td><code>&lt;CERT_FILE&gt;</code></td><td>The certificate file (PEM)</td><td><code>C:/certs/ea.crt</code></td></tr><tr><td><code>&lt;KEY_FILE&gt;</code></td><td>Its private key file (PEM, no password)</td><td><code>C:/certs/ea.key</code></td></tr></tbody></table></div>
+<h2 id="steps">Steps</h2>
+<h3 id="1-docker-runs">1. Docker runs</h3>
+<p>Docker Engine and the compose plugin on the server.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax check</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh check</code></pre>
+<h3 id="2-the-config-file">2. The config file</h3>
+<p>Server mode: strong passwords made; certificates chosen by default; the name people open (<code>&lt;HOSTNAME&gt;</code>), with DNS records for it, reports.<code>&lt;HOSTNAME&gt;</code> and docs.<code>&lt;HOSTNAME&gt;</code>.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax init server --certificate --hostname &lt;HOSTNAME&gt;</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh init server --certificate --hostname &lt;HOSTNAME&gt;</code></pre>
+<h3 id="3-the-organisation-s-certificate">3. The organisation's certificate</h3>
+<p>Covering <code>&lt;HOSTNAME&gt;</code>, reports.<code>&lt;HOSTNAME&gt;</code> and docs.<code>&lt;HOSTNAME&gt;</code>, from files on this machine: checked, then used at once (or upload it on System Admin &gt; Secrets after the start; guide: certificates).</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax certs front install --cert &lt;CERT_FILE&gt; --key &lt;KEY_FILE&gt;</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh certs front install --cert &lt;CERT_FILE&gt; --key &lt;KEY_FILE&gt;</code></pre>
+<h3 id="4-start">4. Start</h3>
+<p>The core, then the rest.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax up --wait-all</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh up --wait-all</code></pre>
+<h3 id="5-backups">5. Backups</h3>
+<p>The nightly backup and where it goes (guide: backups).</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax backups</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh backups</code></pre>
+<h3 id="6-check-it">6. Check it</h3>
+<p>The full test, once.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax test full</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh test full</code></pre>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="10.0.0">Version 10.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: install/server.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

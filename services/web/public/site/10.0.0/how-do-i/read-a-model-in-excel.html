@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Read a model in Excel · EA Explorer</title>
+<meta name="description" content="The model&#x27;s tables live in Excel, refreshed when you choose.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html" class="here">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Read a model in Excel</h1>
+    <p class="who">For: Practising architects, Developers</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">The model&#x27;s tables live in Excel, refreshed when you choose.</p>
+    <figure class="shot"><img src="../shots/read-a-model-in-excel.png" alt="The screen: Read a model in Excel" loading="lazy"><figcaption>The screen: <code>#/metamodel/{m}/odata</code></figcaption></figure>
+    
+    <h2 id="why-do-this">Why do this</h2>
+<p>Excel can read a model's OData feed and refresh it when you choose, so your own analysis works on current data without exporting files. See <a href="../concepts/bringing-data-in-and-out.html">Data in and out: integration</a>.</p>
+<p>The architecture is most useful where decisions are made, which is often outside EA Explorer: in reports, spreadsheets, other systems. Data leaves in the shapes those places need, from the same trusted model.</p>
+<p><strong>In TOGAF terms:</strong> Communicating the architecture: views and data for stakeholders and other systems. See <a href="../concepts/ea-explorer-and-togaf.html">EA Explorer and the TOGAF Standard</a>.</p>
+<p><strong>The goal:</strong> The model's tables are live in Excel.</p>
+<h2 id="steps">Steps</h2>
+<ol><li>Open the model, <strong>Reports › OData</strong>, and copy the address.</li><li>In Excel: <strong>Data › Get Data › From Other Sources › OData feed</strong>; paste the address.</li><li>Sign in with <strong>Basic</strong>: your user name and password, or your user name and a token as the password.</li><li>Choose the entity types (tables); <strong>Load</strong>.</li></ol>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="10.0.0">Version 10.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: how-do-i/read-a-model-in-excel.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EA Explorer 8.0.0: Release 8, code quality and testing · EA Explorer</title>
+<meta name="description" content="EA Explorer 8.0.0: Release 8, code quality and testing">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html" class="here">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>EA Explorer 8.0.0: Release 8, code quality and testing</h1>
+    <p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#for-everyone">For everyone</a></li><li><a href="#testing-for-administrators">Testing (for administrators)</a></li><li><a href="#fixed">Fixed</a></li><li><a href="#known-for-release-12">Known, for Release 12</a></li><li><a href="#next">Next</a></li></ul></nav>
+    <p>Release 8 (built 19 to 21 Nov 2026; <strong>accepted and closed 21 Nov 2026</strong>, the owner: "accept release"): <strong>EA Explorer tests itself harder</strong>. One command runs every test, scans the code, attacks the installation and checks backup and restore; a summary page shows the result; and code coverage is measured and shown. For people using EA Explorer little changes: a Questions page on the website, and How do I under Documentation.</p>
+<p><strong>Before updating:</strong> take a backup (<code>.\eax backup before-8.0.0</code>). The update runs migrations 0110 to 0112 (the attack suite, the test summaries, the version). Then <code>.\eax up</code> (it rebuilds what changed and keeps your data) and <code>.\eax test smoke</code>. For the new Jenkins jobs: <code>.\eax jenkins pipelines</code>.</p>
+<h2 id="for-everyone">For everyone</h2>
+<ul><li><strong>Questions on the website</strong> (Questions in its menu, and <strong>?</strong> › Questions or <strong>Documentation › How do I</strong> in EA Explorer): every How do I question once, with tabs by role and a search box. Each opens to its quick steps, the How do I page and the printed guide and chapter to read, and its video (coming soon).</li><li><strong>Documentation</strong> starts with a <strong>How do I</strong> sub-menu: help for this page (F1), Questions, and the How do I pages by role. The <strong>?</strong> menu is still there.</li><li>The AI (MCP) page's How do I links open the right page again (they went nowhere).</li><li>The website shows its <strong>version</strong> at the foot of every page, and inside EA Explorer its <strong>build</strong> too, as EA Explorer does.</li></ul>
+<h2 id="testing-for-administrators">Testing (for administrators)</h2>
+<ul><li>**<code>eax test full</code>** from the command line now does everything but the performance test, one step after another: the dev check (lint, unit tests, documents), the self-test, the attack test, the backup and restore test and the SonarQube scan. **<code>.\eax test summary</code>** shows the last one.</li><li><strong>The summary page</strong>: each full test writes one page with every step, the counts, the security findings, the memory used and the coverage (System admin › Self-test › Summary, and <code>work/tests/full-&lt;time&gt;/index.html</code>). The summaries are kept in the database; the detailed result files can be deleted from the screen or <code>eax test prune</code>, and the summaries stay.</li><li><strong>Cleaning up</strong> (System admin › Command centre › Schedules, the regular maintenance): old logs and test result files deleted too.</li><li><strong>The attack test</strong> (<code>eax test attack</code>, also in Jenkins › eax-admin › Upkeep): it tries to break EA Explorer, black box and white box, with each tool at its newest: an OWASP ZAP full scan, the API fuzzed with Schemathesis, Nuclei on every container's port, Semgrep and Gitleaks on the source, and forged and tampered sign-in tokens. In the first runs every attack was refused. A laptop only, unless allowed. <strong>Printed guide 26, Security and performance testing</strong>, describes it.</li><li><strong>SonarQube</strong> (<code>eax test sonar</code>, and <code>eax sonar open</code> for its own pages): the whole repository scanned by SonarQube Community Build; 299 of the first 504 issues fixed with nothing changed for users.</li><li><strong>Code coverage</strong> measured across the API, the job runners and the MCP server while the self-test runs, and shown as a ring on the test run and the summary page.</li><li><strong>Test containers no longer stay running</strong>: each scan's container is removed when it ends, and any left by a run that stopped is removed at the next run's start and end, and by <code>eax up</code>. SonarQube and the other test containers never start in regular operation.</li><li><code>eax dev check</code> works on a computer without the test tools (it runs in the test runner).</li></ul>
+<h2 id="fixed">Fixed</h2>
+<ul><li><code>eax screen</code> no longer stops when its refresh lands while a menu is open.</li><li>The backup and restore test reads only its own window for jobs run twice, and says why a sign-in had no answer.</li><li>The dev check no longer ends with a coverage error when two measurers start at once.</li><li>System admin's resource history refuses <code>?days=nan</code>; other findings of the attack test fixed (D823).</li><li>21 security findings that are by design or false matches are accepted in writing until 21 May 2027 (D835).</li></ul>
+<h2 id="known-for-release-12">Known, for Release 12</h2>
+<p><strong>Certificate mode</strong> (<code>eax init --certificate</code>, the services signing in to the database with certificates) <strong>does not work in 8.0.0</strong>: the API cannot open its key and restarts. Use password mode (the default on a laptop). It is fixed in Release 15.</p>
+<p>Coverage is 57.7% of our code, from the self-test alone; the goal is 90% (R12.5), with the final joined figure on screen (R12.15). The remaining SonarQube issues (R12.17); SonarQube after a clean restart (R12.10) and two scans at once (R12.16); 161 package updates in the images (R12.4); 4 report checks that fail on a host short of memory (R12.9); 3 unit tests (R12.8). Every open bug is listed in Release 12.</p>
+<h2 id="next">Next</h2>
+<ul><li>Release 9: learning videos, the AI reading all the documentation, certificate sign-in switched from the screen, themes, the authenticator reset from the user list, the website on Google and a Releases page.</li><li>Release 10: scenario planning by AI. Release 11: more project templates and the Architect's Bible. Release 12: stabilisation. Release 13: every document checked.</li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="10.0.0">Version 10.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: releases/8.0.0.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

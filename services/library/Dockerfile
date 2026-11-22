@@ -14,8 +14,11 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 COPY . .
+# the user and its group both 10002: in certificate mode its key is root:10002 0640 (eax/certs.py CLIENTS), and
+# useradd --system alone gives the group a system id (999), so the key could not be read (Release 11, D872)
 RUN chmod +x /app/entrypoint.sh \
- && useradd --system --uid 10002 --home /app eaxlib
+ && groupadd --system --gid 10002 eaxlib \
+ && useradd --system --uid 10002 --gid 10002 --home /app eaxlib
 
 USER eaxlib
 EXPOSE 8100

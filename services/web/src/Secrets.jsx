@@ -21,7 +21,7 @@ const KIND = {
 // read again. The API itself may be made again during a rotation: the page keeps asking until it answers.
 // after Rotate all, the page offers the restart (the owner, 18 Nov 2026, 09:56: "If done form web app, it asks for
 // restart of the app"): through the Command centre; where it cannot run from the web (Windows), the command to type
-function RestartOffer() {
+function RestartOffer({ why = "Recommended after Rotate all." }) {
   const [said, setSaid] = useState("");
   const restart = async () => {
     if (!window.confirm("Restart EA Explorer now? Everyone is signed out for a few minutes while it starts again.")) return;
@@ -32,7 +32,7 @@ function RestartOffer() {
   };
   return (
     <div className="status warn" role="status">
-      <p><b>Restart EA Explorer now?</b> Every service then starts with the new values. Recommended after Rotate all.</p>
+      <p><b>Restart EA Explorer now?</b> Every service then starts with the new values. {why}</p>
       <button className="primary" onClick={restart}>Restart EA Explorer</button>
       {said && <p className="small">{said}</p>}
     </div>
@@ -74,13 +74,13 @@ function RotationRun({ run, onDone }) {
   return (
     <div className={`status ${state === "running" ? "" : ok ? "ok" : "bad"}`} role="status" aria-live="polite">
       {state === "running"
-        ? <p><span className="spinner" aria-hidden="true" /> Rotating {run.what}...{away
+        ? <p><span className="spinner" aria-hidden="true" /> {run.verb || "Rotating"} {run.what}...{away
           ? " EA Explorer is making its services again with the new values: this page carries on when it answers." : ""}</p>
-        : <p><b>{ok ? "Done" : "It did not finish"}</b>: {run.what}. {ok ? "The table below shows the new ages."
+        : <p><b>{ok ? "Done" : "It did not finish"}</b>: {run.what}. {ok ? (run.after || "The table below shows the new ages.")
           : "The new values are saved; run eax restart on the machine to make the services again, then rotate again if needed."}</p>}
       {lines.length > 0 && <pre className="small secrets-run">{lines.slice(-15).join("\n")}</pre>}
       <p className="quiet small">Its full record: <a href="#/admin/commands/history">System Admin › Command centre › History</a>.</p>
-      {run.all && state !== "running" && ok && <RestartOffer />}
+      {run.all && state !== "running" && ok && <RestartOffer why={run.why} />}
     </div>
   );
 }
@@ -142,6 +142,27 @@ function Due({ s }) {
   return <span className="quiet">{s.due_at || "-"}</span>;
 }
 
+// switching how the services sign in, password or certificate, from the screen (Release 11, R11.3; the owner, 22 Nov 2026,
+// 20:30: "ok build it"): `eax certs switch` in the Command centre's runner (it writes the config file and remembers the
+// choice for the next clean restart), then the restart offered; nothing changes until EA Explorer restarts. Where the
+// Command centre cannot run on this machine (Windows), its message says the command to type.
+function SwitchMode({ mode, busy, onRun, onError }) {
+  const to = mode === "certificate" ? "password" : "certificate";
+  const label = to === "certificate" ? "Switch to certificates" : "Switch to passwords";
+  const go = async () => {
+    const what = to === "certificate"
+      ? "The services will sign in to the database with certificates EA Explorer makes for each of them (no passwords between them)."
+      : "The services will sign in to the database with passwords again (the certificates are kept but not used).";
+    if (!window.confirm(`${label}? ${what} Nothing changes until EA Explorer restarts, which you are offered next; everyone is signed out for a few minutes then. No data changes.`)) return;
+    try {
+      const r = await apiFetch("/api/v1/admin/commands/run", { method: "POST", body: JSON.stringify({ argv: ["certs", "switch", to] }) });
+      onRun({ id: r.id, all: true, verb: "Switching to", what: to === "certificate" ? "certificates" : "passwords",
+        after: "It takes effect when EA Explorer restarts.", why: "Needed to sign in the new way." });
+    } catch (e) { onError(e.message); }
+  };
+  return <p><button disabled={busy} onClick={go}>{label}</button></p>;
+}
+
 export default function SecretsPage() {
   const [gen, setGen] = useState(0);
   const { data, error } = useApi(`/api/v1/admin/secrets?g=${gen}`);
@@ -169,30 +190,25 @@ export default function SecretsPage() {
     } catch (e) { setMsg({ ok: false, text: e.message }); setBusy(""); }
   };
   const finished = () => { setBusy(""); setGen((g) => g + 1); };
-  return (
-    <div className="secrets-page">
-      <p className="quiet">Every password, key and certificate EA Explorer uses, by name: their values are never shown. The services
-        sign in with <b>{data.mode === "certificate" ? "certificates" : "passwords"}</b> (EAX_AUTH_MODE). Passwords and keys
-        rotate by themselves every <b>{data.days} days</b>{data.laptop && !data.rotate_on_laptop
-          ? " on a server (this laptop keeps its own unless EAX_ROTATE_ON_LAPTOP=on)" : ""}; certificates renew by themselves.
-        What needs a person is alerted at 30, 14 and 7 days (System Admin › Alerts).</p>
-      {person.length > 0 && (
-        <div className="status warn" role="status">
-          <b>Needs a person:</b>
-          <ul>{person.map((s) => <li key={s.key}><code>{s.key}</code> {s.due ? "is due now" : `in ${s.days_left} days`}: {s.why}</li>)}</ul>
-        </div>)}
-      <div className="toolbar">
-        <button className="primary" disabled={!!busy} onClick={() => rotate("--due")}>Rotate every one that is due now</button>{" "}
-        <button disabled={!!busy} onClick={() => rotate("--all")}>Rotate all</button>
-      </div>
-      {run && <RotationRun key={run.id} run={run} onDone={finished} />}
-      {msg.text && <p className={`status ${msg.ok ? "ok" : "bad"}`} role="status">{msg.text}</p>}
+  // what applies to this installation first (the owner, 22 Nov 2026, 20:43: "should we not only show what is relevent or
+  // block the buttons and call out this is not applivcalble", D877): in certificate mode the certificates, then the
+  // passwords, with the service logins certificates replace marked not used (kept, and still rotated, for a switch
+  // back); in password mode the passwords, then one line for the certificates. The front door's certificate is used
+  // in both modes: it stays with the passwords' part.
+  const certMode = data.mode === "certificate";
+  const notUsed = secrets.filter((s) => s.not_used).length;
+  const passwordsPart = (
+    <>
       <h3>Passwords and keys</h3>
+      {notUsed > 0 && <p className="quiet small" data-testid="not-used-note">Marked <i>not used</i> ({notUsed}): the services' own
+        database logins, which sign in with their certificates in certificate mode. Their passwords are kept, and still
+        rotated, so a switch back to passwords works at once. Every other password and key here is used in both modes.</p>}
       <table className="grid-table">
         <thead><tr><th>Setting</th><th>How it changes</th><th>Last changed</th><th>Next due</th><th /></tr></thead>
         <tbody>{secrets.map((s) => (
           <tr key={s.key}>
-            <td><code className="small">{s.key}</code>{!s.set && <span className="quiet small"> (not set)</span>}</td>
+            <td><code className="small">{s.key}</code>{!s.set && <span className="quiet small"> (not set)</span>}
+              {s.not_used && <div className="small" data-testid="not-used"><i>Not used while in certificate mode</i>: its certificate signs it in; kept so you can switch back.</div>}</td>
             <td className="small">{s.auto ? "by itself" : "by a person"}<span className="quiet">: {KIND[s.kind] || s.kind}</span>
               {s.why && <div className="quiet small">{s.why}</div>}</td>
             <td className="small">{s.changed ? `${s.changed.slice(0, 10)}${s.how ? ` (${s.how}${s.by ? `, ${s.by}` : ""})` : ""}` : "-"}</td>
@@ -202,9 +218,17 @@ export default function SecretsPage() {
       </table>
       <RotateAllSchedule />
       <FrontCertificate />
+    </>);
+  const certificatesPart = !certMode ? (
+    <>
       <h3>Certificates</h3>
-      {certs.length === 0 ? <p className="quiet">None: the services sign in with passwords. eax init --certificate, or eax certs switch,
-        moves an installation to certificates (R6-C1).</p> : (
+      <p className="quiet" data-testid="certs-not-used">Not used: the services sign in with passwords. <b>Switch to certificates</b> above
+        moves this installation to certificates (or eax certs switch certificate, or eax init --certificate).</p>
+    </>) : (
+    <>
+      <h3>Certificates</h3>
+      {certs.length === 0 ? <p className="status warn">Certificate mode, but no certificates are listed yet: they are made when EA
+        Explorer starts. Restart it, then run eax certs check.</p> : (
         <table className="grid-table">
           <thead><tr><th>Certificate</th><th>Issued by</th><th>Valid until</th><th>Renews</th><th /></tr></thead>
           <tbody>{certs.map((c) => (
@@ -216,6 +240,27 @@ export default function SecretsPage() {
               <td>{c.auto && <button disabled={!!busy} onClick={() => rotate(`cert:${c.name}`)}>Renew now</button>}</td>
             </tr>))}</tbody>
         </table>)}
+    </>);
+  return (
+    <div className="secrets-page">
+      <p className="quiet">Every password, key and certificate EA Explorer uses, by name: their values are never shown. The services
+        sign in with <b>{data.mode === "certificate" ? "certificates" : "passwords"}</b> (EAX_AUTH_MODE). Passwords and keys
+        rotate by themselves every <b>{data.days} days</b>{data.laptop && !data.rotate_on_laptop
+          ? " on a server (this laptop keeps its own unless EAX_ROTATE_ON_LAPTOP=on)" : ""}; certificates renew by themselves.
+        What needs a person is alerted at 30, 14 and 7 days (System Admin › Alerts).</p>
+      <SwitchMode mode={data.mode} busy={!!busy} onRun={(r) => { setBusy("switch"); setRun(r); }} onError={(t) => setMsg({ ok: false, text: t })} />
+      {person.length > 0 && (
+        <div className="status warn" role="status">
+          <b>Needs a person:</b>
+          <ul>{person.map((s) => <li key={s.key}><code>{s.key}</code> {s.due ? "is due now" : `in ${s.days_left} days`}: {s.why}</li>)}</ul>
+        </div>)}
+      <div className="toolbar">
+        <button className="primary" disabled={!!busy} onClick={() => rotate("--due")}>Rotate every one that is due now</button>{" "}
+        <button disabled={!!busy} onClick={() => rotate("--all")}>Rotate all</button>
+      </div>
+      {run && <RotationRun key={run.id} run={run} onDone={finished} />}
+      {msg.text && <p className={`status ${msg.ok ? "ok" : "bad"}`} role="status">{msg.text}</p>}
+      {certMode ? <>{certificatesPart}{passwordsPart}</> : <>{passwordsPart}{certificatesPart}</>}
     </div>
   );
 }

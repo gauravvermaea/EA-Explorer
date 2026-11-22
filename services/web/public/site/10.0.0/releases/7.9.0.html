@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EA Explorer 7.9.0: Release 7.9, error codes and the error code guide · EA Explorer</title>
+<meta name="description" content="EA Explorer 7.9.0: Release 7.9, error codes and the error code guide">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html" class="here">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>EA Explorer 7.9.0: Release 7.9, error codes and the error code guide</h1>
+    <p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#error-codes">Error codes</a></li><li><a href="#the-error-code-guide">The error code guide</a></li><li><a href="#fixed">Fixed</a></li><li><a href="#next">Next</a></li></ul></nav>
+    <p>Release 7.9 (built 18 Nov 2026; <strong>accepted and closed 19 Nov 2026</strong>, the owner: "ok lets release 7.9"): <strong>every problem EA Explorer finds has an error code</strong>, the same wherever it shows, with what it means and what to do; and <strong>a guide to every code</strong>, on the website and as a printed guide.</p>
+<p><strong>Before updating:</strong> take a backup (<code>.\eax backup before-7.9.0</code>). From 7.0.0 the update runs migration 0109 (the version). Then <code>.\eax up</code> (it rebuilds what changed and keeps your data) and <code>.\eax test smoke</code>. For the new Jenkins folder: <code>.\eax jenkins pipelines</code>.</p>
+<h2 id="error-codes">Error codes</h2>
+<ul><li><strong>One code per problem</strong>, of the form <code>EAX-AREA-NNN</code> (for example <code>EAX-AUTH-001</code>, sign-in down): 60 codes, each with what it means, its usual cause and what to do. A code never changes its meaning.</li><li><strong>Where they show</strong>:<ul><li>**<code>eax status</code>**: after the containers and the disks, every problem now, the most serious first, each with its code and what to do. <code>eax status problems</code> lists the problems only.</li><li><strong>System Admin › Running › Health</strong>: each part that is not up shows its code and what to do.</li><li><strong>System Admin › Running › Alerts</strong>: each open alert shows its code and what to do; the alert's notification and email name the code too.</li><li><strong>The screens</strong>: an error message ends with its code in brackets.</li><li><strong>The API</strong>: every error answer has <code>error_code</code> and <code>to_do</code> beside <code>message</code>, and the header <code>X-EAX-Error-Code</code>.</li><li><strong>The logs</strong>: the API's log lines about a problem carry <code>error_code</code>, so they can be searched by code.</li></ul></li><li>**<code>eax errors</code>**: <code>eax errors EAX-AUTH-001</code> says what a code means and what to do; <code>eax errors BAK</code> lists an area's codes, <code>eax errors backup</code> searches; on its own it lists every code. It needs no containers.</li><li><strong>Jenkins</strong>: a new admin folder, <strong>Status and error codes</strong>: <strong>status</strong> (the environment: containers, disks and every problem with its code), <strong>problems</strong> and <strong>error-code</strong> (put a code in CODE).</li></ul>
+<h2 id="the-error-code-guide">The error code guide</h2>
+<ul><li><strong>On the website</strong>: <strong>Guides › Error codes</strong>, every code by area, and two new How do I pages: **Find what an error code means<strong> and </strong>See every problem from the machine<strong>. </strong>Check the health and alerts** links them.</li><li><strong>Printed guide 25, Error code guide</strong> (a PDF in the repository's <strong>documents</strong> folder, on the website under <strong>Printed guides</strong> and in EA Explorer under <strong>Documentation › Printed guides (PDF)</strong>). There are now **25 printed guides**; the troubleshooting guide (21) has an Error codes chapter too, and the eax command (15) and Jenkins (16) guides describe <code>eax errors</code> and the new folder.</li><li>The on-screen help (F1) of Health and Alerts explains the codes.</li></ul>
+<h2 id="fixed">Fixed</h2>
+<ul><li><code>eax status</code> no longer reports the self-test's own container as a problem when a test run has finished.</li></ul>
+<h2 id="next">Next</h2>
+<ul><li>Release 8: every SonarQube issue fixed, 80% code coverage, automated attack testing, Jenkins tested end to end.</li><li>Release 9: learning videos. Release 10: scenario planning and game theory.</li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="10.0.0">Version 10.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: releases/7.9.0.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

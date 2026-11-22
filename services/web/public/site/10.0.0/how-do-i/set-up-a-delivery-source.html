@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Set up a delivery source · EA Explorer</title>
+<meta name="description" content="Another system sends its data to a model as deliveries, each previewed and accepted by a Committer.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html" class="here">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Set up a delivery source</h1>
+    <p class="who">For: Model Admin, Developers</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">Another system sends its data to a model as deliveries, each previewed and accepted by a Committer.</p>
+    <figure class="shot"><img src="../shots/set-up-a-delivery-source.png" alt="The screen: Set up a delivery source" loading="lazy"><figcaption>The screen: <code>#/metamodel/{m}/import/deliveries</code></figcaption></figure>
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-do-this">Why do this</a></li><li><a href="#steps">Steps</a></li><li><a href="#related">Related</a></li></ul></nav>
+    <h2 id="why-do-this">Why do this</h2>
+<p>A delivery source names a system that sends data, the folder it uses, whether its values win, and who is told. Set up once, it brings data in on every delivery for review. See <a href="../concepts/bringing-data-in-and-out.html">Data in and out: integration</a>.</p>
+<p>Every route in ends the same way: what arrives is shown as new, changed, kept and problem rows, and a person decides. That review is what lets you automate feeds without losing control of the model.</p>
+<p><strong>In TOGAF terms:</strong> Supports the content of phases B, C and D (baseline architectures), keeping the Architecture Landscape current from the systems that already know it. See <a href="../concepts/ea-explorer-and-togaf.html">EA Explorer and the TOGAF Standard</a>.</p>
+<p><strong>The goal:</strong> Another system can deliver data to a model.</p>
+<blockquote class="before"><p><strong>Before you start</strong> You need Model Admin on the model. For a system that sends through the API, a service account with a token (System Admin › Machine access).</p></blockquote>
+<h2 id="steps">Steps</h2>
+<ol><li>Open the model, <strong>Import and export › Deliveries</strong>.</li><li>Add a <strong>source</strong>: its name, its folder, whether its values win over EA Explorer's, who is told, and optionally the service account that sends it.</li><li>The system then sends deliveries in the Excel or CSV format, by a folder, the API or an upload (see the related page).</li><li>Each delivery is previewed (new, changed, kept, unchanged, problems) and waits. A Committer, Model Sub Admin or Model Admin <strong>accepts</strong> it (committed as their load, undone like any load) or <strong>declines</strong> it.</li></ol>
+<h2 id="related">Related</h2>
+<ul><li><a href="../guides/send-data-with-a-delivery.html">Send data with a delivery</a></li><li><a href="../how-do-i/push-data-with-python.html">Push data with Python</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="10.0.0">Version 10.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: how-do-i/set-up-a-delivery-source.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

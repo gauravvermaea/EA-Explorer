@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EA Explorer 10.0.0: Release 10, scenario planning and game theory through your AI · EA Explorer</title>
+<meta name="description" content="EA Explorer 10.0.0: Release 10, scenario planning and game theory through your AI">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html" class="here">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>EA Explorer 10.0.0: Release 10, scenario planning and game theory through your AI</h1>
+    <p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#for-everyone">For everyone</a></li><li><a href="#testing">Testing</a></li><li><a href="#known-issues">Known issues</a></li><li><a href="#in-one-paragraph-for-the-github-release">In one paragraph (for the GitHub release)</a></li></ul></nav>
+    <p>Release 10 (built 22 Nov 2026; <strong>accepted 22 Nov 2026</strong>, the owner: "R10 accepted"): your AI can now run a <strong>scenario planning</strong> study in a project: the futures that could come, the early signs of each, the other players and how they are likely to move, and which option holds up best across all of it. EA Explorer works out the games and the scores itself and shows its working; the project shows the result, read only.</p>
+<p><strong>Before updating:</strong> take a backup (<code>.\eax backup before-10.0.0</code>). The update runs migrations 0113 to 0115 if you are coming from 8.0.0, or 0115 from 9.0.0. Then <code>.\eax clean-restart</code> and <code>.\eax test smoke</code>.</p>
+<h2 id="for-everyone">For everyone</h2>
+<ul><li><strong>The scenario planning wizard</strong> (your AI over MCP): ask it to <em>run the scenario planning wizard for</em> a project. It reads the project's documents and models, asks the question the study should answer and which template to use (two uncertainties and four futures, three to five futures, one uncertainty low to high, or players and games only), and works through the driving forces, the futures and their signposts, the players and their games, and the options scored in each future. It suggests; you decide; each part is saved only after your yes.</li><li><strong>The working is EA Explorer's own</strong>, never the AI's guess: each player's best replies, dominant options, the stable outcomes, where everyone would do better by agreeing, mixed strategies (exact, for two players), games in turn worked back from the end, and for the options the best in each future, the most robust and the least regret. Values can be numbers, money or words (with the score you agree).</li><li><strong>The Scenario planning tab</strong> on a project (once it has a study): the recommendation, the forces, the futures, the signposts (those due at this review marked), the options across the futures, the players and their games. Each run is a <strong>dated version</strong>; earlier ones are a click away. The Project report shows a short section.</li><li><strong>Signposts at each review</strong>: your AI marks each as seen or not; one not marked for 90 days is due again.</li><li><strong>The sample</strong>: Protea build or buy (sample) has a study in two versions.</li></ul>
+<h2 id="testing">Testing</h2>
+<ul><li><strong>Every MCP tool is tried in the full test</strong>: the tools that change something after a preview must give one (and refuse a wrong confirm token); the others must refuse what is not there. The summary page has an <strong>MCP tools</strong> card.</li></ul>
+<h2 id="known-issues">Known issues</h2>
+<ul><li>Four Jenkins pipelines (eax-admin's start and maintenance page on, off and clear) can never run (R14.18, Release 14).</li><li>Certificate mode does not work yet: Release 11, next.</li></ul>
+<h2 id="in-one-paragraph-for-the-github-release">In one paragraph (for the GitHub release)</h2>
+<p>EA Explorer 10.0.0 adds scenario planning and game theory, run by your AI over MCP in a project: futures and their signposts, the players and their games, and the options tested across them, with the working (best replies, stable outcomes, mixed strategies, robustness and regret) done by EA Explorer itself and shown on a read-only Scenario planning tab, each run kept as a dated version. The full test now tries every MCP tool, with its own card. Take a backup, then <code>.\eax clean-restart</code>.</p>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="10.0.0">Version 10.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: releases/10.0.0.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

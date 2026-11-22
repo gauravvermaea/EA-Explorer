@@ -384,6 +384,11 @@ def _runner_args(info: dict, name: str, folder: str, cmd: list[str]) -> list[str
         dest = str(m.get("Destination") or "")
         if m.get("Source") and (dest == "/run/secrets" or dest.startswith("/run/secrets/")):
             args += ["-v", f"{m['Source']}:{dest}:ro"]
+    # certificate mode (Release 11, the owner's smoke test, 22 Nov 2026, 20:18: "root certificate file /eax-certs/ca.crt
+    # does not exist"): the environment copied says PGSSLROOTCERT=/eax-certs/ca.crt, so the runner needs the api
+    # container's own certificates folder too: the same volume, the same subpath (only the api's folder, never the
+    # authority's key), read only
+    args += certs_mount(info)
     persist = host_mount("/eax-persist")               # persist/, read only: the database checks read its settings
     if persist:                                        # (R3.13: "persist/ is not mounted in the runner")
         args += ["-v", f"{persist}:/persist:ro"]
@@ -392,6 +397,18 @@ def _runner_args(info: dict, name: str, folder: str, cmd: list[str]) -> list[str
     if backend:
         args += ["--network", backend]
     return args + [runner_image(info), *cmd]
+
+
+def certs_mount(info: dict) -> list[str]:
+    """The api container's /eax-certs as a --mount for the runner: [] in password mode (no such mount)."""
+    for m in (info.get("HostConfig") or {}).get("Mounts") or []:
+        if m.get("Target") == "/eax-certs" and m.get("Type") == "volume" and m.get("Source"):
+            sub = ((m.get("VolumeOptions") or {}).get("Subpath") or "api").strip("/")
+            return ["--mount", f"type=volume,src={m['Source']},dst=/eax-certs,volume-subpath={sub},readonly"]
+    for m in info.get("Mounts") or []:                  # older Docker: the volume by name, the api's folder
+        if m.get("Destination") == "/eax-certs" and m.get("Type") == "volume" and m.get("Name"):
+            return ["--mount", f"type=volume,src={m['Name']},dst=/eax-certs,volume-subpath=api,readonly"]
+    return []
 
 
 def copy_secrets(source: str, target: str, popen=subprocess.Popen, timeout: int = 60) -> None:

@@ -251,9 +251,12 @@ def _remove(p: Path) -> None:
 
 def clean(command: str, rest: list[str], wait_all: bool) -> int:
     """clean-run, clean-debug, clean-restart: cleanup --all --yes, init, then up or debug, each a run of its own."""
-    kind_ = rest[0] if rest else "laptop"
+    words = [w for w in rest if not w.startswith("--")]
+    kind_ = words[0] if words else "laptop"
+    # --certificate or --password passed on to init (R11.2): without either, init keeps the choice made before
+    modes = [m for m in ("--certificate", "--password") if m in rest]
     last = ["debug" if command == "clean-debug" else "up", *(["--wait-all"] if wait_all else [])]
-    steps = [["cleanup", "--all", "--yes"], ["init", kind_], last]
+    steps = [["cleanup", "--all", "--yes"], ["init", kind_, *modes], last]
     if command == "clean-restart":
         if ENV_FILE.exists():
             steps.insert(0, ["down"])

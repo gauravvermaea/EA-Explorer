@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A forgotten password or certificate · EA Explorer</title>
+<meta name="description" content="A forgotten password or certificate">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html" class="here">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>A forgotten password or certificate</h1>
+    <p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    
+    
+    
+    <p>Getting back in.</p>
+<p>On screen: System Admin &gt; Setup &gt; A forgotten password or certificate, where you fill in your values and get every command ready to copy. On the machine: <code>eax setup forgotten</code> with <code>--set KEY=VALUE</code> for each value. In Jenkins: the <code>setup</code> pipeline with <code>forgotten</code>.</p>
+<h2 id="your-values">Your values</h2>
+<div class="table"><table><thead><tr><th>Value</th><th>What it is</th><th>For example</th></tr></thead><tbody><tr><td><code>&lt;USER&gt;</code></td><td>The administrator's user name</td><td><code>eaadmin</code></td></tr></tbody></table></div>
+<h2 id="steps">Steps</h2>
+<h3 id="1-a-person-s-password">1. A person's password</h3>
+<p>Keycloak's Forgot password, or a Keycloak Admin sets one.</p>
+<h3 id="2-an-administrator-locked-out">2. An administrator locked out</h3>
+<p><code>&lt;USER&gt;</code> gets a temporary password, shown once (changed at the next sign-in).</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax access reset-password &lt;USER&gt;</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh access reset-password &lt;USER&gt;</code></pre>
+<h3 id="3-keycloak-is-down">3. Keycloak is down</h3>
+<p>The break-glass account (EAX_BREAK_GLASS_PASSWORD).</p>
+<h3 id="4-a-service-s-password">4. A service's password</h3>
+<p>eax secrets rotate <code>&lt;KEY&gt;</code> sets a new one everywhere it is used.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax secrets show</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh secrets show</code></pre>
+<h3 id="5-a-certificate">5. A certificate</h3>
+<p>eax certs renew --force makes them all again.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax certs renew --force</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh certs renew --force</code></pre>
+<h3 id="6-everything-else">6. Everything else</h3>
+<p>On the machine, the database answers without a network login: eax psql.</p>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="10.0.0">Version 10.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: install/forgotten.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

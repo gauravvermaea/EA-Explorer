@@ -67,10 +67,10 @@ area by area: [docs/capabilities.md](docs/capabilities.md).
 | 13 | | System Admin regrouped into fewer menus and tabs; every command-line option documented | planned |
 | 14 | | Stabilisation: every bug fixed and every test passing | planned |
 | 15 | | Every document checked and brought up to date | planned |
-| 16 | | Book: the project types guide | planned |
-| 17 | | Book: the Architect's Bible, in volumes | planned |
-| 18 | | Book: Scenario planning with your AI | planned |
-| 19 | | Every picture, printed guide and the website brought up to date; every feature listed on the website | planned |
+| 16 | | Every picture, printed guide and the website brought up to date; every feature listed on the website | planned |
+| 17 | | Book: the project types guide | planned |
+| 18 | | Book: the Architect's Bible, in volumes | planned |
+| 19 | | Book: Scenario planning with your AI | planned |
 | 20 | | Learning videos and the YouTube channel | planned |
 
 ## Quick start (laptop)

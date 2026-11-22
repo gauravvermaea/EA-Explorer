@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A new machine · EA Explorer</title>
+<meta name="description" content="A new machine">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html" class="here">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>A new machine</h1>
+    <p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    
+    
+    
+    <p>A machine made ready for EA Explorer: Docker, disk, folders, network.</p>
+<p>On screen: System Admin &gt; Setup &gt; A new machine, where you fill in your values and get every command ready to copy. On the machine: <code>eax setup new-machine</code>. In Jenkins: the <code>setup</code> pipeline with <code>new-machine</code>.</p>
+<h2 id="steps">Steps</h2>
+<h3 id="1-docker">1. Docker</h3>
+<p>Docker installed; at least 16 GB of memory and 100 GB of disk for a server.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax check</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh check</code></pre>
+<h3 id="2-folders">2. Folders</h3>
+<p>Where data, backups and logs live (EAX_DATA_DIR, EAX_BACKUP_DIR, EAX_LOGS_DIR).</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax folders</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh folders</code></pre>
+<h3 id="3-network">3. Network</h3>
+<p>Port 443 open to people; nothing else needs to be.</p>
+<h3 id="4-then">4. Then</h3>
+<p>The laptop or server guide.</p>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="10.0.0">Version 10.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: install/new-machine.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

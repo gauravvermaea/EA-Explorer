@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EA Explorer 3.0.0: Release 3 · EA Explorer</title>
+<meta name="description" content="EA Explorer 3.0.0: Release 3">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html" class="here">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>EA Explorer 3.0.0: Release 3</h1>
+    <p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#data-discovery-and-ingestion">Data discovery and ingestion</a></li><li><a href="#the-eax-command">The eax command</a></li><li><a href="#administration">Administration</a></li><li><a href="#estate">Estate</a></li><li><a href="#speed">Speed</a></li><li><a href="#testing">Testing</a></li><li><a href="#security">Security</a></li></ul></nav>
+    <p>Release 3 (14 Nov 2026): data discovery and ingestion (a reverse OData feed, pushes with a Python kit, documents read by AI, all reviewed as deliveries), Import and export guided step by step both ways, and testing that proves the whole product: negative tests for every endpoint, code coverage graphs, watching a run, the restore suite, the API harness, a security review with a Content-Security-Policy, and the eax screen.</p>
+<p><strong>Before updating:</strong> take a backup (<code>.\eax backup before-3.0.0</code>). From 2.0.0 the update runs migrations 0068 to 0072 (the restore suite, the API harness's cases, text indexes, discovery; indexes and tables only, nothing removed). Clean rebuilds now fetch current base images, so the first one takes longer. After it, run <code>.\eax test full</code>.</p>
+<p><strong>Known issues, fixed in Release 4</strong> (from the last full self-test, R4.13 to R4.17): a body that is not JSON sent to a model's archive is acted on (it archives the model); three server errors where "not found" belongs; System Admin › Scaling fails when a container has just gone; the iteration journey's step 14; and some of the self-test's own checks.</p>
+<h2 id="data-discovery-and-ingestion">Data discovery and ingestion</h2>
+<ul><li><strong>A reverse OData feed</strong>: Import and export › Discovery points a model at an OData feed EA Explorer reads, an endpoint other systems push to, or documents the AI engine reads. EA Explorer discovers the sets, fields and keys, suggests where each goes, and each run (now, daily or weekly) sends only what is new or changed as a delivery to preview and accept; names close to existing elements are suggested as matches to confirm. The AI engine is off until a Super Admin chooses one: cloud with your own key, or local (the Release 3 epic, D670; docs/discovery.md).</li><li><strong>Push with Python</strong>: a push source's Discovery panel shows a short Python script to copy and downloads it as a kit (the script, requirements.txt, a README with the venv steps, sample CSVs from the model's metamodel): it reads CSV files and pushes them with <code>push_dataframe(url, df, username, password)</code>, or a token, API key or client certificate (D674). Its samples are a file for every entity type of the model, each showing a relationship the metamodel allows, and the README lists how each relationship is published.</li><li><strong>Import and export, step by step</strong>: <em>Bring data in</em> and <em>Take data out</em> guide you from "where is the data?" or "what is it for?" to the right screen and the review, whichever way the data comes or goes (D676).</li><li><strong>Delete a discovery source</strong> (after a confirm; refused while a delivery of it waits; what it delivered stays, D675).</li></ul>
+<h2 id="the-eax-command">The eax command</h2>
+<ul><li>**<code>eax screen</code>**: a full-screen eax in the style of Turbo Pascal, opened by plain <code>eax</code>: menus with Alt letters and the mouse, a dialog per command that shows the command as you fill it, a live dashboard of the containers and disks, and output in a window or the plain terminal; the numbered <code>eax menu</code> stays (R3.1, D669).</li></ul>
+<h2 id="administration">Administration</h2>
+<ul><li><strong>A full file explorer</strong>: a container's Files tab has File, Edit and View menus and a right-click menu, Details, List and Large icons views and a Preview pane, keys (F2, Delete, Ctrl+C / X / V / A and more), choosing several at once (one zip, cut, copy, move, delete), Properties, and drag and drop to upload or move; System Admin › Mounts opens a mount in the same explorer (R3.5, D668).</li><li><strong>Users shows projects too</strong>: System Admin › Users › People lists each person's projects with their roles beside their models with their roles, as two plain lists; the CSV has a Projects column (R3.3).</li></ul>
+<h2 id="estate">Estate</h2>
+<ul><li><strong>Clean estate diagrams</strong>: System Admin › Estate draws every line at right angles around the boxes with an arrowhead and a label, keeps text inside its box, lists each host folder once (single files and finished one-shot containers apart), and keeps the logical columns level; the draw.io downloads keep the same routes (R3.4, D667).</li></ul>
+<h2 id="speed">Speed</h2>
+<ul><li><strong>Faster text searches</strong>: exact name lookups go through a hashed-name index, and Find, search and filters through trigram indexes on every column they look in (name, display id, description, merged-away names); migration 0070 (R3.7, D665).</li></ul>
+<h2 id="testing">Testing</h2>
+<ul><li><strong>GitHub's checks pass again</strong>: the API tests ran into "No module named 'eax'" on every push since 5 Nov 2026 (R3.15, D657).</li><li><strong>Browser journeys on a busy machine</strong>: a step that looks in a row or a pop-up waits for it to appear; saving an iteration and sending a merge request are given longer; a failed step also says what an open dialog showed (R3.14, D658).</li><li><strong>The full backup-and-restore test</strong>: <code>eax test restore</code> (and the end of <code>eax test full</code> from the command line) backs the installation up, changes it, restores it every way (all models, one model, and the infrastructure backup part by part) and checks all the content each time; a safety backup is put back if anything fails (R3.8, D659).</li><li><strong>The upgrade test checks the way back</strong>: the updater's own backup is checked and <code>eax rollback</code> is run and checked; a runbook for upgrading 1.0.0 to 2.0.0 on a laptop and a server (R3.11, D660).</li><li><strong>Far fewer skipped checks</strong>: the self-test finds the ids it needs from the lists it can read, checks the heavy reads in a bounded way, mounts persist/ in every runner and opens the break-glass page on its own (R3.13, D661).</li><li><strong>API test harness</strong> (Self-test › API harness, and <code>eax test api</code>): pick any endpoint, call it as yourself or a test role, see the answer and the same call as a curl line; save calls as cases the self-test runs too (R3.16, D662).</li><li><strong>Negative tests for every endpoint</strong>: the full self-test sends every write bad JSON and a list where an object belongs, every read an id that is not there, and long names inside its test data; a server error or a success fails the check. Code coverage under 90% is a warning; an area falling more than 2 points since the last run of the same kind fails (R3.9, in part, D663).</li><li><strong>Coverage as graphs</strong>: a run's page shows a gauge against 90%, the areas least covered first, the trend over the last runs and the negative tests by kind; the same in the reports and a line in <code>eax test</code> (R3.10, D664).</li><li><strong>Watch a test as it runs</strong>: Self-test › a run › Watch shows the step running and what it checks, each check as it is recorded, every failure with its reason, the counts and the log, with Stop; <code>eax test watch</code> and <code>eax test stop</code> do the same from a terminal (R3.2, D666).</li></ul>
+<h2 id="security">Security</h2>
+<ul><li><strong>The whole release reviewed</strong> (docs/security-r3.md): discovery sources may sign in only with settings made for them and may not reach EA Explorer's own services, the machine or private networks unless IT allows a host; the screens' Content-Security-Policy is enforced; clean rebuilds fetch current base images so their fixes arrive; nginx 1.30 (R3.12, D671 to D673). Reports' remaining findings need Superset 6.1 (R4.7).</li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="10.0.0">Version 10.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: releases/3.0.0.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

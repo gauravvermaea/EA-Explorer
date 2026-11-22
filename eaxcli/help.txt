@@ -56,18 +56,21 @@ deletes the Docker volumes, so the databases and documents start empty. Keeps: t
 $ {eax} cleanup
 $ {eax} cleanup --all
 
-### clean-restart [laptop|server] [--wait-all]
+### clean-restart [laptop|server] [--certificate|--password] [--wait-all]
 > Stops EA Explorer, DELETES everything (databases included) and starts fresh. Does not ask.
 For testing a new version: stop (down), then cleanup --all --yes, init and up. Fetches the current base images first
 (with their security fixes) and rebuilds our images on them, then starts with empty databases and the sample data, the
 industry packs, the documentation and (in the background) the test runner: nothing else to run before testing. The
-trusted certificate and persist/ are kept.
+trusted certificate and persist/ are kept. --certificate or --password: how the services sign in (given to init);
+without either, the choice made before is kept.
 $ {eax} clean-restart
+$ {eax} clean-restart laptop --certificate
 $ {eax} clean-restart --wait-all
 
-### clean-run [laptop|server] [--wait-all]
+### clean-run [laptop|server] [--certificate|--password] [--wait-all]
 > DELETES everything (databases included), then starts fresh: cleanup --all, init, up. Does not ask.
-Like clean-restart, it fetches the current base images first and rebuilds our images on them.
+Like clean-restart, it fetches the current base images first and rebuilds our images on them; --certificate or
+--password as for clean-restart.
 $ {eax} clean-run
 $ {eax} clean-run server
 
@@ -622,18 +625,21 @@ $ {eax} secrets rotate --all
 $ {eax} secrets schedule monthly
 $ {eax} secrets schedule --at 2026-11-20T17:00
 
-### certs [list|renew|revoke|switch|front] [WHAT] [--force] [--authority] [--cert FILE] [--key FILE] [--chain FILE]
+### certs [list|check|renew|revoke|switch|front] [WHAT] [--force] [--authority] [--cert FILE] [--key FILE] [--chain FILE]
 > Certificate mode: EA Explorer's own certificates, which the services sign in to the database with.
 With EAX_AUTH_MODE=certificate the setup service makes EA Explorer's own certificate authority and a certificate for
 each service at every start, on this machine, in the Docker volume eax-certs: never in a backup or a DR pack (a DR copy
 makes its own). The database then accepts only TLS, each service by its certificate, only for its own logins.
   list           every certificate: who issued it, until when (the default).
+  check          each running service: the user it runs as, and whether it can read its own key (a service that
+                 cannot never reaches the database).
   renew          each one that is due made again (two-thirds of its 30 days gone: EAX_CERT_DAYS); a schedule runs this
                  every night at 02:41. --force: every one now. --authority: a new authority and every certificate with
                  it (about every ten years; the database and the services are made again).
   revoke WHAT    a service's certificate refused at once and a new one issued (WHAT: api, library, views,
                  keycloak, reports or dms).
-  switch WHAT    how the services sign in, certificate or password (EAX_AUTH_MODE); then eax restart.
+  switch WHAT    how the services sign in, certificate or password (EAX_AUTH_MODE), remembered for the next clean
+                 restart; then eax restart. Also System Admin > Secrets (Switch to certificates or passwords).
   front [show]   the front door's certificate (the one people's browsers see), in both modes.
   front install --cert FILE --key FILE [--chain FILE]   your organisation's certificate from files on this machine:
                  checked as System Admin > Secrets checks an upload, the one in use kept, reloaded with no restart.

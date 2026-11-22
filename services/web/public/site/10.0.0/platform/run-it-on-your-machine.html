@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Run it on your machine · EA Explorer</title>
+<meta name="description" content="A full EA Explorer on your laptop with Docker: set up, start, sign in, start clean.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html" class="here">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Run it on your machine</h1>
+    <p class="who">For: Platform developers</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">A full EA Explorer on your laptop with Docker: set up, start, sign in, start clean.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-a-full-local-installation">Why a full local installation</a></li><li><a href="#what-you-need">What you need</a></li><li><a href="#the-commands">The commands</a></li><li><a href="#read-next">Read next</a></li></ul></nav>
+    <h2 id="why-a-full-local-installation">Why a full local installation</h2>
+<p>EA Explorer is several services working together (screens, API, database, sign-in, reports, documents). Running the real stack locally means what you test is what ships, with the demo data and test accounts to work with.</p>
+<h2 id="what-you-need">What you need</h2>
+<p>Docker (Docker Desktop on Windows or macOS, Docker Engine on Linux), git, and enough memory (<code>eax estimate</code> says how much for a size). Python is fetched by the <code>eaxpy</code> launcher into <code>work/tools</code> the first time; nothing else is installed on your machine.</p>
+<h2 id="the-commands">The commands</h2>
+<div class="table"><table><thead><tr><th>Command</th><th>What it does</th></tr></thead><tbody><tr><td><code>.\eax init laptop</code> (<code>./eax.sh init laptop</code>)</td><td>Makes <code>work/eaexplorer.env</code>, the config, with generated passwords</td></tr><tr><td><code>.\eax up</code></td><td>Builds what changed and starts everything; keeps data</td></tr><tr><td><code>.\eax clean-run</code></td><td>Removes everything and starts fresh; use after migration, realm or config changes</td></tr><tr><td><code>.\eax status</code></td><td>Every container and its state</td></tr><tr><td><code>.\eax url</code></td><td>The addresses and the sign-ins (the laptop's test accounts too)</td></tr><tr><td><code>.\eax stop</code></td><td>Stops everything; keeps data</td></tr></tbody></table></div>
+<p>On a laptop the installation has a test account for each role and the demo estate, so you can try any screen as any role. See <a href="../how-do-i/follow-a-setup-guide.html">Follow a setup guide</a> for the same steps with your own values.</p>
+<h2 id="read-next">Read next</h2>
+<ul><li><a href="../platform/debug-it.html">Debug it</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="10.0.0">Version 10.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: platform/run-it-on-your-machine.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

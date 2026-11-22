@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Backups, restores and disaster recovery · EA Explorer</title>
+<meta name="description" content="What is backed up, the kinds of restore from one model to everything, and how a DR site keeps you running.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html" class="here">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Backups, restores and disaster recovery</h1>
+    <p class="who">For: System Admin, Model Admin, Project Admin</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">What is backed up, the kinds of restore from one model to everything, and how a DR site keeps you running.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-it-matters">Why it matters</a></li><li><a href="#the-layers">The layers</a></li><li><a href="#read-next">Read next</a></li></ul></nav>
+    <h2 id="why-it-matters">Why it matters</h2>
+<p>The repository holds years of an organisation's thinking. Losing it, or a part of it, costs far more than the effort of protecting it. A backup that has never been restored is a hope, not a backup; so EA Explorer restores its own backups to check them.</p>
+<h2 id="the-layers">The layers</h2>
+<ul><li><strong>Tags and history</strong> put back one model, or one entity, without any backup at all (<a href="../how-do-i/go-back-to-a-tag.html">Put a model back to a tag</a>).</li><li><strong>Backups</strong> of the databases, files and settings, on a schedule, pinned when they matter (<a href="../how-do-i/set-a-backup-schedule.html">Set when backups are taken</a>).</li><li><strong>Restores</strong> from one model or project up to everything; a backup of now is always taken first (<a href="../guides/restore-a-backup.html">Restore a backup</a>).</li><li><strong>A DR pack and a DR site</strong>: everything needed to rebuild elsewhere, and a second site kept up to date that can take over (<a href="../how-do-i/make-a-dr-pack.html">Make a DR pack</a>, <a href="../guides/set-up-a-dr-site.html">Set up a DR site</a>).</li></ul>
+<h2 id="read-next">Read next</h2>
+<ul><li><a href="../guides/take-and-check-a-backup.html">Take a backup and check it</a></li><li><a href="../how-do-i/run-a-restore-drill.html">Run a restore drill</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="10.0.0">Version 10.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: concepts/backups-and-recovery.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

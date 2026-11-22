@@ -25,7 +25,10 @@ RUN echo "EAX-STEP chromium: Chromium for the browser tests" && pip install "pla
 RUN echo "EAX-STEP scanners: pip-audit, bandit, pip-licenses" && pip install "pip-audit==2.7.3" "bandit==1.7.10" "pip-licenses==5.0.0"
 
 COPY . .
-RUN echo "EAX-STEP code: EA Explorer's code" && useradd --system --uid 10001 --home /app eax \
+# the user and its group both 10001: in certificate mode the API's key is root:10001 0640 (Release 11, D872; the
+# smoke test found the test runner had the same fault, 22 Nov 2026)
+RUN echo "EAX-STEP code: EA Explorer's code" && groupadd --system --gid 10001 eax \
+ && useradd --system --uid 10001 --gid 10001 --home /app eax \
  && mkdir -p /results && chown eax /results && chmod -R a+rx /ms-playwright
 
 USER eax

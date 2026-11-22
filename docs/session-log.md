@@ -475,3 +475,14 @@ source, and the pictures themselves read one by one and measured).
 - 19:25 Release 9 accepted (D870): version 9.0.0, migration 0114, releases/9.0.0.md; tag commands given.
 - 19:30 Release 10 accepted (D871): version 10.0.0, migration 0115, releases/10.0.0.md; tag commands given. Next: Release 11, certificate mode.
 - 19:40 README.md brought up to date (owner: "The md file on https://github.com/gauravvermaea/EA-Explorer is not being updated, it shwos release 8. Please fix it."): the status is 10.0.0, the release table lists 6 to 10 as accepted with their notes and 11 to 20 in their new order. From now on every release's acceptance updates the README's status and table too.
+- 19:42 Certificate mode's cause confirmed on the owner's machine: the API runs as uid 10001 gid 999, its key is root:10001 0640, so it cannot read it (R11). eax diag wrote an empty report (R14.23).
+- 19:55 R11.1 built (D872): groupadd --gid 10001/10002/10003 in the api, library and views images; eax certs check; tests.
+- 20:00 Pictures and the website moved before the books (D873): 16 pictures and website, 17 to 19 the books, 20 the videos.
+- 20:05 R14.24 added (D874): eax test soak, 8 hours by default, a realistic mix, four ways to fail; in Release 14 before the documents.
+- 20:08 R11.1 passed the owner's run: in certificate mode the API was ready after 57 s; eax certs check: every service can read its key; reports still starting at the time.
+- 20:12 eax certs check on the owner's machine: all seven services can read their keys (reports too). R11.1 closed.
+- 20:20 The smoke test in certificate mode ran nothing: the test runner's image (Dockerfile.test) had the same group fault; fixed, and the test now checks every Dockerfile.
+- 20:25 The smoke test in certificate mode, second run: the runner had the API's settings but not its certificates folder; the operations helper now mounts the api's folder (read only) into it.
+- 20:45 R11.3 built (D875): Switch to certificates or passwords on System Admin › Secrets; eax certs switch remembers the choice (R14.11); clean-restart and clean-run take --certificate or --password.
+- 20:50 R14.25 added (D876): every container pinned by version and digest to the tested set, published with each release, upgraded only after the three-monthly check and the owner's decision.
+- 21:00 R11.5 built (D877): System Admin › Secrets puts the sign-in mode's part first and marks what is not used in that mode (the service database logins in certificate mode; the certificates in password mode).

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Metamodels: the shape of a model · EA Explorer</title>
+<meta name="description" content="What a metamodel is, why every model has one, the kinds EA Explorer offers, and how one changes safely.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html" class="here">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Metamodels: the shape of a model</h1>
+    <p class="who">For: Model Admin, Industry model makers, Practising architects, Developers</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">What a metamodel is, why every model has one, the kinds EA Explorer offers, and how one changes safely.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#what-a-metamodel-is">What a metamodel is</a></li><li><a href="#why-it-matters">Why it matters</a></li><li><a href="#the-kinds-you-will-meet">The kinds you will meet</a></li><li><a href="#changing-a-metamodel-safely">Changing a metamodel safely</a></li><li><a href="#read-next">Read next</a></li></ul></nav>
+    <h2 id="what-a-metamodel-is">What a metamodel is</h2>
+<p>A metamodel is the model of a model: it says what a model may contain. It lists the <strong>entity types</strong> (Capability, Application Component, Business Process...), the <strong>attributes</strong> each type has (owner, cost, lifecycle status, a pick list of values), and the <strong>relationships</strong> allowed between types (an Application Component may serve a Business Process; a Capability may be composed of other Capabilities). It also groups types into <strong>domains</strong> (business, data, application, technology, motivation) with a colour each.</p>
+<h2 id="why-it-matters">Why it matters</h2>
+<p>The metamodel is what makes a repository more than a drawing tool. Because every model follows its metamodel:</p>
+<ul><li>people put the same kind of thing in the same place, so a question can be answered across the whole model;</li><li>only meaningful relationships can be drawn, so impact analysis follows real dependencies;</li><li>reports, views and data quality rules can be written once and work on every model built on the same metamodel;</li><li>data from other systems can be checked before it loads.</li></ul>
+<p>A loose metamodel lets anything in and answers little; a strict one answers a lot but asks more of the people filling it in. Choosing the balance is the Model Admin's job.</p>
+<h2 id="the-kinds-you-will-meet">The kinds you will meet</h2>
+<ul><li><strong>ArchiMate 4</strong>: The Open Group's modelling language, a rich general-purpose metamodel.</li><li><strong>The TOGAF content metamodel</strong>: the entities the TOGAF Standard's deliverables talk about.</li><li><strong>Industry metamodels</strong>: banking, insurance, government and others, from the <a href="../concepts/industry-models.html">Industry models and the library</a> in the library.</li><li><strong>Your own</strong>: built in Excel (<a href="../how-do-i/build-a-metamodel-in-excel.html">Build a metamodel in Excel</a>) or by extending another (<a href="../how-do-i/extend-from-another-model.html">Extend a model from another</a>).</li></ul>
+<p>Models made from the same root share its metamodel; a child model inherits its parent's and can take its later changes (<a href="../how-do-i/take-changes-from-the-parent.html">Take changes from the parent</a>).</p>
+<h2 id="changing-a-metamodel-safely">Changing a metamodel safely</h2>
+<p>A change to a metamodel changes what everyone may record, so it is reviewed: it starts as a <strong>draft</strong> (<a href="../how-do-i/start-a-metamodel-draft.html">Start a metamodel draft</a>), is reviewed and accepted (<a href="../how-do-i/review-a-metamodel-draft.html">Review a metamodel draft</a>), and becomes a new version of the metamodel with its note. Any two versions can be compared. See <a href="../guides/change-a-metamodel.html">Change a model's metamodel</a>.</p>
+<h2 id="read-next">Read next</h2>
+<ul><li><a href="../concepts/models.html">Models: what they are and how they relate</a></li><li><a href="../concepts/data-quality.html">Data quality: why it matters and how it is measured</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="10.0.0">Version 10.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: concepts/metamodels.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

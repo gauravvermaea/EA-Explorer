@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The REST API · EA Explorer</title>
+<meta name="description" content="Everything the screens do, over HTTP: where it is described, how to sign in, and the conventions.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html" class="here">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>The REST API</h1>
+    <p class="who">For: Developers</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">Everything the screens do, over HTTP: where it is described, how to sign in, and the conventions.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-use-it">Why use it</a></li><li><a href="#where-it-is-described">Where it is described</a></li><li><a href="#conventions">Conventions</a></li><li><a href="#signing-in">Signing in</a></li><li><a href="#read-next">Read next</a></li></ul></nav>
+    <h2 id="why-use-it">Why use it</h2>
+<p>The REST API is the complete interface: every screen in EA Explorer is built on it, so anything a person can do, a script can do (within the caller's roles). Use it when the formats and feeds are not enough: reading in detail, writing with full control, automating admin tasks.</p>
+<h2 id="where-it-is-described">Where it is described</h2>
+<p>Every call is described at <code>https://&lt;your EA Explorer address&gt;/api/docs</code> (OpenAPI 3), with the document itself at <code>/api/openapi.json</code> for generating a client. You can try calls there with your own sign-in (<a href="../how-do-i/try-the-api-in-the-browser.html">Try the API in the browser</a>).</p>
+<h2 id="conventions">Conventions</h2>
+<ul><li>Everything is under <code>/api/v1/</code>; ids are uuids.</li><li>Writes to a model become uncommitted changes unless the caller may commit; a dry run is offered where a change is big.</li><li>Errors answer a status and a message saying what was wrong and what to do.</li><li>Long work (copies, loads, backups) answers a job id; follow it under <code>/api/v1/jobs</code>.</li></ul>
+<h2 id="signing-in">Signing in</h2>
+<p>A Keycloak access token, a personal token or a service account's API key, as <code>Authorization: Bearer ...</code>; or a client certificate on port 9443. See <a href="../integrate/authentication-for-integrations.html">Signing in as a system</a>.</p>
+<h2 id="read-next">Read next</h2>
+<ul><li><a href="../how-do-i/call-the-rest-api.html">Call the REST API</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="10.0.0">Version 10.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: integrate/rest-api.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

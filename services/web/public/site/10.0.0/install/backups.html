@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Backups · EA Explorer</title>
+<meta name="description" content="Backups">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html" class="here">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Backups</h1>
+    <p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    
+    
+    
+    <p>What is backed up, when, where to keep it, and checking it works.</p>
+<p>On screen: System Admin &gt; Setup &gt; Backups, where you fill in your values and get every command ready to copy. On the machine: <code>eax setup backups</code> with <code>--set KEY=VALUE</code> for each value. In Jenkins: the <code>setup</code> pipeline with <code>backups</code>.</p>
+<h2 id="your-values">Your values</h2>
+<div class="table"><table><thead><tr><th>Value</th><th>What it is</th><th>For example</th></tr></thead><tbody><tr><td><code>&lt;TAG&gt;</code></td><td>A word to name the backup (may be left out)</td><td><code>before-upgrade</code></td></tr><tr><td><code>&lt;PACK&gt;</code></td><td>The folder for the DR pack</td><td><code>D:/dr-packs</code></td></tr></tbody></table></div>
+<h2 id="steps">Steps</h2>
+<h3 id="1-a-backup-now">1. A backup now</h3>
+<p>Every database, the files, the config file; <code>&lt;TAG&gt;</code> names it.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax backup &lt;TAG&gt;</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh backup &lt;TAG&gt;</code></pre>
+<h3 id="2-the-list">2. The list</h3>
+<p>Newest first, with its size and whether it was checked.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax backups</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh backups</code></pre>
+<h3 id="3-check-one-restores">3. Check one restores</h3>
+<p>A trial restore into scratch copies: nothing live touched.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax verify</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh verify</code></pre>
+<h3 id="4-off-this-machine">4. Off this machine</h3>
+<p>A DR pack in <code>&lt;PACK&gt;</code>, to keep elsewhere (guide: DR site).</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax dr-pack &lt;PACK&gt;</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh dr-pack &lt;PACK&gt;</code></pre>
+<h3 id="5-the-backup-and-restore-test">5. The backup and restore test</h3>
+<p>Made, backed up, removed, restored, compared.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax test backup-restore</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh test backup-restore</code></pre>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="10.0.0">Version 10.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: install/backups.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

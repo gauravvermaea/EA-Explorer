@@ -43,6 +43,7 @@ CASES: list[tuple[list[str], list[str], int, bool]] = [
     (["secrets", "schedule"], [], 120, False),
     (["schedule", "list"], [], 60, False),
     (["certs", "list"], [], 120, False),
+    (["certs", "check"], [], 120, False),          # R11: each service can read its key (password mode: says so)
     (["jenkins", "status"], ["jenkins"], 120, False),
     (["setup"], [], 60, False),
     (["access", "admins"], [], 180, False),

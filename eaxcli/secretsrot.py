@@ -39,6 +39,7 @@ from .secrets import (
     EXTERNAL_DB_WHY,
     KEYCLOAK_CLIENTS,
     NEEDS_A_PERSON,
+    NOT_USED_WITH_CERTIFICATES,
     dated_copy,
     generate,
     kind_of,
@@ -75,10 +76,13 @@ def _parse(at: str) -> datetime | None:
         return None
 
 
-def rows(values: dict[str, str], state: dict, days: int = DEFAULT_DAYS, now: datetime | None = None) -> list[dict]:
+def rows(values: dict[str, str], state: dict, days: int = DEFAULT_DAYS, now: datetime | None = None,
+         mode: str = "password") -> list[dict]:
     """Every secret by name, with how it is rotated, when it last changed, when it is next due and whether it is due
-    or near (pure). A secret never changed through eax counts from the first time it was seen."""
+    or near (pure). A secret never changed through eax counts from the first time it was seen. In certificate mode a
+    service login's password is marked not_used: its certificate signs it in (D877)."""
     now = now or datetime.now(UTC)
+    certificate = mode == "certificate"
     out = []
     for key in sorted(values):
         if key in DERIVED:
@@ -93,7 +97,7 @@ def rows(values: dict[str, str], state: dict, days: int = DEFAULT_DAYS, now: dat
                     "days_left": left, "due": left is not None and left <= 0,
                     "warn": next((w for w in sorted(WARN_DAYS) if left is not None and 0 < left <= w), None),
                     "why": NEEDS_A_PERSON.get(key, "") or (EXTERNAL_DB_WHY if kind == "person" else ""),
-                    "auto": kind != "person"})
+                    "auto": kind != "person", "not_used": certificate and key in NOT_USED_WITH_CERTIFICATES})
     return out
 
 
@@ -392,7 +396,8 @@ def listing() -> dict:
     cfg = _config_values()
     first_seen(values)
     days = int(cfg.get("EAX_ROTATE_PASSWORD_DAYS") or DEFAULT_DAYS)
-    return {"mode": cfg.get("EAX_AUTH_MODE", "password"), "days": days, "secrets": rows(values, read_state(), days)}
+    mode = cfg.get("EAX_AUTH_MODE", "password")
+    return {"mode": mode, "days": days, "secrets": rows(values, read_state(), days, mode=mode)}
 
 
 def main_json(argv: list[str]) -> int:
