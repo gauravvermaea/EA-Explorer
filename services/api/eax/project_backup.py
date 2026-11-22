@@ -74,6 +74,9 @@ TABLES = [
     ("gov_history", "record_id IN (SELECT id FROM proj.gov_records WHERE project_id = :p)", {"record_id": "gov_records"}),
     # scenario assessments (phase 27.1, D494): their document and governance decision re-pointed at the restored rows
     ("scenario_assessments", "project_id = :p", {"document_id": "documents", "gov_record_id": "gov_records"}),
+    # scenario planning studies (Release 10, D857): each run a dated version, its signposts' review marks after it
+    ("sp_runs", "project_id = :p", {}),
+    ("sp_signpost_marks", "run_id IN (SELECT id FROM proj.sp_runs WHERE project_id = :p)", {"run_id": "sp_runs"}),
     ("charters", "project_id = :p", {}),
     ("phase_states", "project_id = :p", {}),
     ("iteration_changes", "project_id = :p", {}),          # the ADM iteration per cycle (D571-D574)
@@ -109,7 +112,7 @@ TABLES = [
     # drawn views as evidence (D408: links only): the view's name rides along so a model made again finds its view
     ("view_evidence", "project_id = :p", {"item_id": "items", "question_id": "key_questions"}),
 ]
-NEW_GUID = {"projects", "items", "documents", "signoff_requests", "steps", "stakeholders", "stakeholder_notes", "tasks", "org_people", "standards", "gov_records", "gov_approvals", "cal_events", "sheets", "repo_tags", "key_questions", "placeholder_views", "canvases", "canvas_items", "view_evidence", "scenario_assessments", "journeys", "journey_stages", "journey_items", "journey_links"}   # tables whose guid is made new (when they have one)
+NEW_GUID = {"projects", "items", "documents", "signoff_requests", "steps", "stakeholders", "stakeholder_notes", "tasks", "org_people", "standards", "gov_records", "gov_approvals", "cal_events", "sheets", "repo_tags", "key_questions", "placeholder_views", "canvases", "canvas_items", "view_evidence", "scenario_assessments", "sp_runs", "journeys", "journey_stages", "journey_items", "journey_links"}   # tables whose guid is made new (when they have one)
 
 
 def folder() -> Path:

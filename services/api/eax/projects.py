@@ -331,6 +331,9 @@ def detail(conn, project: Any, user) -> dict:
                          FROM core.models m LEFT JOIN core.models pm ON pm.id = m.parent_model_id
                          LEFT JOIN core.models sm ON sm.id = m.source_model_id
                         WHERE m.guid::text = ANY (CAST(:g AS text[])) ORDER BY m.name""", g=list(how))] if how else []
+    # the Scenario planning tab shows when there is a study (Release 10)
+    from . import scenario_planning as spl
+    out["scenario_planning"] = spl.count(conn, p)
     names = {r["code"]: r["name"] for r in _rows(core(conn), "SELECT code, name FROM core.viewpoints")}
     out["views"] = [{"code": v["code"], "name": names.get(v["code"], v["code"])} for v in
                          _rows(conn, "SELECT view AS code FROM proj.project_views WHERE project_id = :p ORDER BY view", p=p["id"])]

@@ -58,16 +58,16 @@ draw.io, nginx, React screens. How it is built: [docs/architecture.md](docs/arch
   and push it to main (`git add -A`, `git commit -m "<D or R number>: <what>"`, `git push origin main`); he runs them.
 - **No new or changed documentation for users until the last release (owner, 22 Nov 2026, 09:30: "Lets not make any
   new documentation pdf website changes and so on till the last release"; D850)**: the printed guides (PDFs), their
-  pictures, the website, the How do I pages and the role guides are not changed until Release 14, which brings them all
+  pictures, the website, the How do I pages and the role guides are not changed until Release 19, which brings them all
   up to date at once; new guides (the Architect's Bible, the scenario planning guide, the project types guide, the
   certificate mode guides) are written then. Still kept current as work goes on: the working records (decisions,
   build-phases, handover, session log, todo), the release notes, `eaxcli/help.txt`, and the on-screen help catalogue
-  (the build fails when a screen has no help). The rule below applies again in Release 14.
+  (the build fails when a screen has no help). The rule below applies again in Release 19.
 - **The printed guides and the website move together (owner, 21 Nov 2026, 16:53: "When u make new pdf etc, ensure
   website is also updated"; D833)**: whenever a PDF, a printed guide or any page it is made from is made or changed,
   the website is built again in the same change (`tools/build_manuals.py`, then `tools/build_website.py`), so its
   Guides, Printed guides page, search and downloads match the PDFs; the change is not done until both are built and
-  copied. With R13.1 each guide's version shows on both.
+  copied. With R15.1 each guide's version shows on both.
 - **Every bug fixed gets a test that keeps it fixed (owner, 12 Nov 2026, D599)**: a fix is not done until a test fails
   without it and passes with it: a unit or API test always, and a self-test check (smoke or full: an API call, a write,
   a page or a journey step) when the bug could be seen on a screen or through the API. The test names the bug (its R2

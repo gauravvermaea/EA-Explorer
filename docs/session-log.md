@@ -458,3 +458,18 @@ source, and the pictures themselves read one by one and measured).
 - 11:12 R12.21: eax test jenkins was not hung (2 Jenkins executors, about 6 s a probe: 122 in about 13 minutes); its wait now says so and shows the count every 30 seconds.
 - 11:20 R12.22: eax test jenkins waited its full 30 minutes for the 4 probes the agent refuses (R12.18), which were never written in runs.log; the agent now records a refused probe with why, and the wait stops after 3 quiet minutes.
 - 11:32 The owner's `eax test jenkins` (work/tests/jenkins-20261122T092029Z): 118 passed, 4 failed (the R12.18 pipelines, now reported at once as refused), 2 skipped (footprint: a choice field with an empty list; restore-model: takes no words), in about 12 minutes with its progress shown: R12.21 and R12.22 confirmed.
+- 12:05 Release 16 added (D856): System Admin's menus and tabs regrouped (44 entries today), a System Admin home, and every command-line option in help.txt with a test (about 30 missing at a first count); built after Release 12, before Release 13.
+- 12:10 Release 10 discussed: seven questions answered (D857). Not built until the owner says.
+- 12:15 Release 11 discussed (D858): guides to Release 14; Agile sprints; structure-only model templates; more Series Guides to propose.
+- 12:20 Release 11: the other nine TOGAF Series Guides all taken in (D859): R11.10 (DBRM, Microservices, Digital Technology Adoption, the EA capability) and R11.11 (building blocks, maturity models, roles and skills, project management).
+- 12:16 Each book its own release (D860): 17 the project types guide, 18 the Architect's Bible, 19 Scenario planning with your AI; before Release 14, which stays last.
+- 12:22 The Architect's Bible discussed (D861): teaches TOGAF fully, by the work, all architecture roles, the AI in its own chapter, Fynbos Mutual in full.
+- 12:24 The Bible: an appendix of every screen; every file of every book under 25 MB, in as many volumes as needed, with a test (D862).
+- 12:26 The Bible only after every project type is built and the project types guide (Release 17) is written; the order 10, 11, 12, 16, 13, 17, 18, 19, 14 already keeps it so.
+- 12:28 R14.3 added (D863): a Features page on the website listing every feature, made from one list in the code, kept complete by a test; the last story of the last release.
+- 14:05 Stabilisation (Release 12) moved after Release 16 (D864): the order is 10, 11, 16, 12, 13, 17, 18, 19, 14.
+- 14:08 The videos (R9.1, R9.2) moved to Release 20 at the end (D865); Release 9 closes without them.
+- 14:10 Release 15 (certificate mode) placed after Release 10 (D866): the order is 10, 15, 11, 16, 12, 13, 17, 18, 19, 14, 20.
+- 15:10 Release 10 built (D867): migration 0113 (proj.sp_runs, proj.sp_signpost_marks), eax/game_theory.py, eax/scenario_planning.py, the MCP wizard (eax/mcp_scenario_planning.py, 10 tools and a prompt), the read-only Scenario planning tab and Project report section, the deck, the project backup, the Protea sample (two versions), the help; and R10.5 (D868): every MCP tool tried in the full test with its own card. Unit tests for the engine, the study and the MCP tools as an AI calls them.
+- 14:40 Releases renumbered into the order they are built (D869): 10 to 20 in sequence; the bugs are R14.n.
+- 19:25 Release 9 accepted (D870): version 9.0.0, migration 0114, releases/9.0.0.md; tag commands given.

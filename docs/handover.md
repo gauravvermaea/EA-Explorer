@@ -4,29 +4,31 @@ The state of the work, for whoever picks it up next: a person or another AI with
 13 Nov 2026: "what happens if I need another ai to work on this"). **Updated at the end of every working session.**
 Read [AGENTS.md](../AGENTS.md) first, run `eax dev check`, then read this.
 
-Last updated: 22 Nov 2026, 12:15. **Release 8 is published as 8.0.0 (D851)**; **Release 9 is built, to be run**
-(D852: R9.3, R9.5, R9.7, R9.10, R9.12, R9.13, R9.14 built 22 Nov 2026; R9.11 built earlier; R9.1 and R9.2, the videos,
-when they are made). Bugs are in Release 12 (D820), the documents review in Release 13 (D821), **every picture, PDF and
-the website in Release 14, the last (D846); until then no documentation for users is changed (D850, AGENTS.md)**;
-certificate mode (it does not work in 8.0.0: the API cannot open its key) in Release 15 (D847). The repository stays
-as it is unless git cannot cope (D849). Push after each change (D853). The video list (R9.1) is a Sheet of 269 videos:
-https://claude.ai/artifact/Q8wQGUwysndaMamrCuPVa1
+Last updated: 22 Nov 2026, 15:15. Release 9 is accepted and published as **9.0.0** (D870; the code holds Release 10 too, not yet
+accepted). **Release 10 is built, to be run** (D867, D868: scenario
+planning and game theory through the AI, the read-only Scenario planning tab, the sample; and every MCP tool tried in
+the full test with its own card). The releases are numbered in the order they are built (D869): **10** scenario planning
+(built), **11** certificate mode (next), **12** templates (settled, D858, D859), **13** System Admin regrouped and every
+command-line option documented, **14** stabilisation (the bugs, R14.n, were R12.n), **15** the documents, the books
+**16** (project types), **17** (the Architect's Bible, D861, D862) and **18** (scenario planning), **19** every picture
+and the website, **20** the videos. Until Release 19 no
+documentation for users changes (D850). Push after each change (D853).
 
 **Release 9, to be run by the owner in one go (22 Nov 2026: "build all these I will test eevrything in one go")**:
 `.\eax clean-restart` (docker-compose.yml, the api, web and ops images changed), `.\eax jenkins up`, `.\eax test
 jenkins` (R9.13), `.\eax test commands` (R9.14), `.\eax images` (R9.12), the hand checks of R9.7 in
 docs/manual-tests.md, the themes (R9.5: System admin > Branding, then My look), an MCP client asking docs_search
-(R9.3), and last `.\eax test full` (R9.10: the DR drill is now its last step; hours). What fails goes to Release 12.
-Known before the run: R12.18 (four Jenkins pipelines that can never run, found by eax test jenkins).
+(R9.3), and last `.\eax test full` (R9.10: the DR drill is now its last step; hours). What fails goes to Release 14.
+Known before the run: R14.18 (four Jenkins pipelines that can never run, found by eax test jenkins).
 
 **Pick up here (the owner's full test of 21 Nov 2026, 16:24 to about 20:20, after a clean restart):**
-- Dev check: 2,288 passed, 3 failed, then pytest-cov INTERNALERROR (two coverage measurers; fixed, R12.7): the 3
+- Dev check: 2,288 passed, 3 failed, then pytest-cov INTERNALERROR (two coverage measurers; fixed, R14.7): the 3
   failures were not named and no unit coverage saved. Next: the owner runs `.\eax dev check` again (no rebuild).
 - Self-test run 6 (work/tests/20261121T142504Z): 2,797 passed, 5 failed, 28 warnings, 89 skipped. Failed: 4 in reports
   (VP-25 and VP-15 not loaded in 60 s, DR-03 no chart, "every report opens" page crashed), probably memory: the
   installation peaked at 11.1 GB on an 11.6 GB Docker host with swap full (memory.md); and the security gate.
 - Security gate: 182 high or critical. 21 by design or false matches accepted in writing by the owner (D835,
-  security_accepted.json, until 21 May 2027, each kept to its file). The other 161 are package updates for R12.4:
+  security_accepted.json, until 21 May 2027, each kept to its file). The other 161 are package updates for R14.4:
   Superset 151 (124 in linux-libc-dev, the kernel headers, to remove from the image; pyasn1, urllib3, jaraco.context),
   web 7 (nginx 1.30.7, libxml2), ops 2 (Go libraries in the Docker CLI), backup 1 (libxml2).
 - Attack test: all five scanners at their newest, every attack and forged token refused; ZAP full 2 medium,
@@ -38,14 +40,14 @@ Known before the run: R12.18 (four Jenkins pipelines that can never run, found b
   the unit tests; coverage.json keeps the lines run file by file, so it can be joined with the next dev check's
   unit-coverage.json without another full test. Biggest gaps: projects.py, model_ops.py, pairing.py, quality.py,
   project_backup.py, project_work.py, metamodel_edit.py.
-- Built today, to take effect at the next clean restart: R12.6 (no test container left running) and the D835
-  acceptances (in the api image). Then: fix the 3 unit failures and the 4 report failures (Release 12).
+- Built today, to take effect at the next clean restart: R14.6 (no test container left running) and the D835
+  acceptances (in the api image). Then: fix the 3 unit failures and the 4 report failures (Release 14).
 **The owner moves to the next release with these bugs open (21 Nov 2026, 20:34: "no more testing I will move to next
 release"; D836)**, every one in Release 12 of docs/build-phases.md: R12.1 (why the morning's full test stopped, part
-done), R12.2 (two slow reports, the Architect's project page), R12.3 (jobs deferred twice), R12.4 (the 161 package
-updates), R12.5 (coverage to 90%), R12.8 (3 unit tests), R12.9 (4 reports), R12.10 (SonarQube after a clean restart),
-R12.11 (certs switch's remembered choice), R12.12 (28 warnings), R12.13 (today's work not yet run on the owner's
-installation), R12.14 (dms and reports-init shown with a problem; D837), R12.15 (the final coverage figure on screen), R12.16 (two SonarQube scans at once), R12.17 (every SonarQube issue, from Release 8; D839). Before calling anything fixed: a test that fails without it, and the owner's run that shows it.
+done), R14.2 (two slow reports, the Architect's project page), R14.3 (jobs deferred twice), R14.4 (the 161 package
+updates), R14.5 (coverage to 90%), R14.8 (3 unit tests), R14.9 (4 reports), R14.10 (SonarQube after a clean restart),
+R14.11 (certs switch's remembered choice), R14.12 (28 warnings), R14.13 (today's work not yet run on the owner's
+installation), R14.14 (dms and reports-init shown with a problem; D837), R14.15 (the final coverage figure on screen), R14.16 (two SonarQube scans at once), R14.17 (every SonarQube issue, from Release 8; D839). Before calling anything fixed: a test that fails without it, and the owner's run that shows it.
 Working notes: docs/session-log.md.
 
 ## How the owner works

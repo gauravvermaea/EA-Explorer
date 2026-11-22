@@ -146,6 +146,7 @@ def plan(settings, with_sample: bool) -> list[tuple[str, object]]:
         steps.append(("Sample import sources and deliveries, and a model from a metamodel workbook", sample_imports))
         steps.append(("Sample MCP work: a copy cleaned up, an override, the AI activity log", sample_mcp))
         steps.append(("Sample scenario planning: a scenario committed, one with what-ifs pending, an assessment", sample_scenarios))
+        steps.append(("Sample scenario planning study: futures, signposts, players and games, two versions (Release 10)", sample_planning))
         steps.append(("Sample ADM iterations: full, development then transition, governance, custom, none chosen", sample_iterations))
         steps.append(("Sample update history: succeeded, rolled back, not started, scheduled", sample_updates))
         steps.append(("Sample archive: a model archived and one deleted, a project archived", sample_archive))
@@ -324,6 +325,13 @@ def sample_scenarios() -> None:
     """Laptop (owner, 10 Nov 2026, phase 27.1, D495): scenario planning in Protea build or buy, made once."""
     from . import sample_scenarios as ss
     for line in ss.run():
+        _say(line)
+
+
+def sample_planning() -> None:
+    """Laptop (Release 10, R10.4, D857): a scenario planning study in Protea build or buy, two versions, made once."""
+    from . import sample_planning as sp
+    for line in sp.run():
         _say(line)
 
 

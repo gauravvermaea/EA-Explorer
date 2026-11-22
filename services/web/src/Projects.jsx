@@ -7,6 +7,7 @@
 // later), its people and who signs off. Documents are edited outside in Office: check out, download, edit, check in.
 // Deliverables are signed off (D276); a finished project is frozen, or merged into another (D277).
 import OtherDocsTab from "./OtherDocs";
+import ScenarioPlanningTab from "./ScenarioPlanning";
 import ScenariosTab from "./Scenarios";
 import PinButton from "./PinButton";
 import { Fragment, useEffect, useMemo, useState } from "react";
@@ -1875,7 +1876,7 @@ function Review({ d, lib, purpose, problems }) {
 const TABS = [["home", "Home"], ["phases", "Phases"], ["report", "Project report"], ["base", "Base"], ["charter", "Charter"], ["archrepo", "Enterprise Repository (Project Scope)"], ["content", "Content framework"],
   ["tasks", "Tasks"], ["models", "Models"], ["organisation", "Organisation"], ["stakeholders", "Stakeholders"], ["questions", "Key questions"], ["canvas", "Business model canvas"], ["journeys", "Customer journeys"], ["business", "Business artifacts"], ["otherdocs", "Other views and documents"], ["principles", "Principles"],
   ["standards", "Standards"], ["governance", "Governance log"], ["library", "Library"], ["views", "Views"], ["reports", "Model reports"], ["quality", "Quality"], ["calendar", "Calendar"], ["sheets", "Sheets"],
-  ["analysis", "Gaps and comparison"], ["scenarios", "Scenarios"], ["signoff", "Sign-off"]];
+  ["analysis", "Gaps and comparison"], ["scenarios", "Scenarios"], ["planning", "Scenario planning"], ["signoff", "Sign-off"]];
 
 // the project page's groups (D478), the same in the Grouped and Menu styles
 const PROJECT_GROUPS = [
@@ -1935,7 +1936,7 @@ function ProjectPage({ id, tab, sub }) {
         try { const r = await apiFetch(`/api/v1/projects/${id}/repository`, { method: "POST" }); setMsg(r.message); setTimeout(refreshAll, 4000); }
         catch (e) { setMsg(e.message); }
       } : null} />
-      <PageNav page="project" tabs={TABS.filter(([k]) => (k !== "archrepo" || partOn("repository")) && (k !== "scenarios" || hasScenarios(p))).map(([k, l]) => [k, l, k === "signoff" ? mine || null : k === "questions" ? waitingQs || null : null])}
+      <PageNav page="project" tabs={TABS.filter(([k]) => (k !== "archrepo" || partOn("repository")) && (k !== "scenarios" || hasScenarios(p)) && (k !== "planning" || p.scenario_planning > 0)).map(([k, l]) => [k, l, k === "signoff" ? mine || null : k === "questions" ? waitingQs || null : null])}
         groups={PROJECT_GROUPS} active={projectTabOf(tab)} href={(k) => `#/projects/${id}/${k}`} ctx={{ id, p }}
         subLabel={tab === "reference" ? "Reference" : tab === "gaps" ? "Gap analyses" : tab === "compare" ? "Compare two models" : ""}
         crumbs={[{ label: "Architecture work", href: "#/work" }, { label: p.name, href: `#/projects/${id}` }]}>
@@ -1969,6 +1970,7 @@ function ProjectPage({ id, tab, sub }) {
         {tab === "models" && <ProjectModels p={p} />}
         {["analysis", "gaps", "compare"].includes(tab) && <AnalysisTab p={p} start={tab} />}
         {tab === "scenarios" && <ScenariosTab p={p} />}
+        {tab === "planning" && <ScenarioPlanningTab p={p} />}
       </div>
       </PageNav>
       {finish && <FinishDialog p={p} onClose={() => setFinish(false)} />}

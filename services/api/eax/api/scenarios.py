@@ -5,6 +5,10 @@ GET /projects/<p>/scenarios                      the baseline and each scenario 
 GET /projects/<p>/scenarios/<model>/compare      one scenario against the baseline in full
 GET /projects/<p>/scenario-assessments/<a>       one assessment (SCN-001 or its id)
 GET /projects/<p>/scenario-assessments/<a>/docx  the assessment as a Word document
+GET /projects/<p>/scenario-planning              the scenario planning studies (Release 10, D857): every dated
+                                                 version, the newest finished one in full with its working, the
+                                                 signposts due at this review, the draft
+GET /projects/<p>/scenario-planning/<version>    one version in full
 
 Scenario models are made, what-ifs applied and assessments recorded through MCP (the prompt plan_scenarios), as the
 person; the tab shows the result. Figures include the person's own uncommitted changes (their what-ifs).
@@ -20,6 +24,7 @@ from flask_smorest import Blueprint, abort
 
 from .. import projects as pj
 from .. import repository as repo
+from .. import scenario_planning as sp
 from .. import scenarios as sc
 from ..auth import require_auth
 from ..metamodel_edit import EditError
@@ -81,3 +86,27 @@ class ScenarioAssessmentDocx(MethodView):
         data, name = _run(lambda c: sc.assessment_file(c, project, g.user, aid))
         return Response(data, mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                         headers={"Content-Disposition": f"attachment; filename*=UTF-8''{quote(name)}"})
+
+
+@blp.route("/projects/<string:project>/scenario-planning")
+class ScenarioPlanning(MethodView):
+    """/api/v1/projects/{project}/scenario-planning: GET the project's scenario planning (Release 10): every dated
+    version, the newest finished one with its working, the signposts due, the draft. Read only: the wizard runs through
+    the person's AI (D818)."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth()
+    def get(self, project):
+        """The project's scenario planning studies"""
+        return _run(lambda c: sp.overview(c, project, g.user))
+
+
+@blp.route("/projects/<string:project>/scenario-planning/<string:version>")
+class ScenarioPlanningVersion(MethodView):
+    """/api/v1/projects/{project}/scenario-planning/{version}: GET one version of the project's scenario planning."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth()
+    def get(self, project, version):
+        """One version of the project's scenario planning"""
+        return _run(lambda c: sp.get_run(c, project, g.user, version))

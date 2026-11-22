@@ -54,7 +54,7 @@ def test_a_fake_installation_passes_every_check():
            {"name": "get_entity", "area": "r", "changes": False, "params": [{"name": "model", "required": True},
                                                                               {"name": "entity", "required": True}]},
            {"name": "survey_results", "area": "r", "changes": False, "params": [{"name": "survey", "required": True}]},
-           {"name": "add_entities", "area": "b", "changes": True, "params": []}]
+           {"name": "add_entities", "area": "b", "changes": True, "params": [{"name": "model", "required": True, "type": "str"}]}]
     added: list[str] = []
 
     def text(v):
@@ -69,6 +69,8 @@ def test_a_fake_installation_passes_every_check():
         if n == "add_entities":
             if token == "ro":
                 return 200, text({"error": "This credential may only read through MCP"}), ""
+            if a.get("model") == mc.MISSING:          # pointed at a model that is not there (R10's every-tool check)
+                return 200, text({"error": "No such model"}), ""
             added.append(a["rows"][0]["name"])
             return 200, text({"saved": 1}), ""
         if n == "list_my_changes":
@@ -88,7 +90,8 @@ def test_a_fake_installation_passes_every_check():
     out = mc.run("http://api:8000", {"super-admin": "admin", "architect": "other"}, {"model": "m", "other_model": "m2", "entity": "e", "sid": "s"},
                  lambda name, outcome, detail, ms, **k: seen.append((name, outcome, detail)), read_only_token=lambda: "ro",
                  call=call, send=send, catalogue=cat)
-    assert out == {"passed": 9, "failed": 0, "skipped": 0}, [x for x in seen if x[1] != "passed"]
+    assert out == {"passed": 10, "failed": 0, "skipped": 0}, [x for x in seen if x[1] != "passed"]
+    assert ("mcp: add_entities (refuses what is not there)", "passed") in [(n, o) for n, o, _d in seen]
 
 
 def test_a_tool_that_crashes_fails_the_check():

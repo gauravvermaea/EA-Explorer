@@ -40,7 +40,7 @@ def sources(conn, project: Any, user, parts: list[str] | None = None) -> dict:
     d = pj.detail(conn, project, user)                         # refuses who may not read the project
     name = d["name"]
     want = set(parts or []) or {"project", "phases", "models", "governance", "requirements", "questions", "signoffs",
-                                "stakeholders", "canvases", "journeys"}
+                                "stakeholders", "canvases", "journeys", "scenario_planning"}
     out: dict[str, Any] = {"guide": GUIDE, "not_for_ai": NOT_FOR_AI}
     it = d.get("iteration") or {}
     if "project" in want:
@@ -114,6 +114,11 @@ def sources(conn, project: Any, user, parts: list[str] | None = None) -> dict:
         out["journeys"] = [{**{k: j[k] for k in ("id", "name", "kind", "status", "stages", "steps", "emotion")},
                             "source": _src("customer journey", j["id"], f"{name} › Customer journeys")}
                            for j in jy.listing(conn, d.get("id") or project, user)["journeys"]]
+    if "scenario_planning" in want and d.get("scenario_planning"):   # the newest finished study (Release 10)
+        from . import scenario_planning as spl
+        sec = spl.report_section(conn, pj.project_row(conn, d.get("id") or project))
+        if sec:
+            out["scenario_planning"] = {**sec, "source": _src("scenario planning", f"v{sec['version']}", f"{name} › Scenario planning")}
     return out
 
 

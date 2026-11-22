@@ -7,6 +7,7 @@ summary; System admin > Self-test > Summary). One card a step:
   dev check          lint, the unit tests, the documents (dev-check-<time>.json)
   code coverage      our code only: the lines run, against the goal, as a ring (the run joined with the unit tests)
   self-test          the counts and the functional health, by suite (the run's summary.json)
+  MCP tools          the MCP suite's checks, a card of their own (the self-test's summary.json, "mcp")
   security gate      the findings: failing, accepted, no fix yet, new
   attack test        each scanner, whether it was brought up to date, its findings by severity
   backup and restore every check passed or not (backup-restore-<time>/report.json)
@@ -186,6 +187,14 @@ def cards(s: dict) -> list[str]:
                    f'<p class="big">{t.get("passed", 0)} passed · {t.get("failed", 0)} failed · {t.get("warning", 0)} warnings · '
                    f'{t.get("skipped", 0)} skipped</p><p>Functional health: <b>{html.escape(str(run.get("health") or "-"))}</b> '
                    f'{html.escape(str(run.get("reason") or ""))}</p><table>{suites}</table><p>{link}</p></section>')
+    mc = run.get("mcp")
+    if mc:                     # the MCP tools, called as an AI calls them, a card of their own (owner, 22 Nov 2026)
+        bad = [c for c in mc.get("checks") or [] if c.get("outcome") == "failed"]
+        body = (_rows((c["name"], c.get("detail") or "") for c in bad[:30]) if bad else
+                "<p>Every tool answered as it should: the reading tools with the run's data, the tools that change "
+                "something with a preview (and a wrong confirm token refused), the others refusing what is not there.</p>")
+        out.append(f'<section class="card"><h2>MCP tools {_state(not bad)}</h2><p class="big">{mc.get("passed", 0)} passed · '
+                   f'{mc.get("failed", 0)} failed · {mc.get("skipped", 0)} skipped</p>{body}</section>')
     sec = run.get("security")
     if sec:
         out.append(f'<section class="card"><h2>Security gate {_state(not sec.get("failing"))}</h2>' + _rows([

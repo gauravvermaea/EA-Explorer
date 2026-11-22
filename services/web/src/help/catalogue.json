@@ -823,6 +823,13 @@
       "Write a SELECT and run it."
     ]
   },
+  "tab:Scenario planning": {
+    "what": "The project's scenario planning, read only: the futures and their signposts, the players and their games worked out, the options scored across the futures, and the recommendation; each run of the wizard a dated version.",
+    "how": [
+     "Ask your AI to run the scenario planning wizard for this project (MCP, the prompt scenario_planning_wizard); it asks, suggests and saves each part after your yes.",
+     "Pick an earlier version to compare; signposts due at this review are marked, and your AI records each as seen or not."
+    ]
+  },
   "tab:Scenarios": {
     "what": "Scenario models of the project compared with the baseline, and recorded assessments.",
     "how": [

@@ -11,6 +11,12 @@ the run's own accounts and test data; no language model is involved:
                                                 project and the like: it answers, never a server error; a tool whose
                                                 arguments the run cannot know (a survey, a merge request...) is called
                                                 with one that does not exist and must say so, not fail
+  mcp: <tool> (preview)                         every tool that changes something after a preview, called without
+                                                confirm: a preview with a confirm token, or a refusal in words; never
+                                                a server error, never a change (owner, 22 Nov 2026: "tests for all MCP")
+  mcp: <tool> (a wrong confirm token)           the same tool with a confirm token that is not one: refused
+  mcp: <tool> (refuses what is not there)       a tool that changes at once, pointed at a model, project... that does
+                                                not exist: refused in words, so nothing changes
   mcp: a change is the person's uncommitted one add_entities in the run's second model, then list_my_changes shows it
   mcp: a read-only token changes nothing        a read-only token for the run's Super Admin account: reads answer,
                                                 add_entities is refused and nothing is added
@@ -37,6 +43,9 @@ Record = Callable[..., None]
 MISSING = "00000000-0000-0000-0000-00000000beef"        # a guid nothing has: "not found" must be said, not crash
 # tools that only read but whose arguments the run cannot know: called with one that does not exist
 GUESSED = {"survey", "request", "draft", "analysis", "run", "scenario"}
+# the parameters that point at one thing: a tool that changes at once is called with one that does not exist
+AN_ID = {"model", "project", "entity", "draft", "run", "document", "relationship", "view", "question", "step", "canvas",
+         "journey", "request", "stakeholder", "item", "comment", "scenario"}
 # tools whose answer depends on what the installation has now: their own "there is none yet" is an answer
 MAY_SAY_NONE = {"what_changed", "list_drawn_views", "get_drawn_view", "ops_backups", "ops_logs"}
 
@@ -107,7 +116,8 @@ def arguments(tool: dict, ids: dict, found: dict) -> tuple[dict | None, bool]:
              "entities": found.get("entities") or ["Self-test duplicate app", "Self-test duplicate ap"], "from_version": 1, "service": "api",
              "view": found.get("view") or "VP-01", "relationship": found.get("relationship", ""), "attribute": "name",
              "code": "self_test_rule", "name": "Self-test rule", "kind": "relationship", "spec": {},
-             "words": "backup restore", "key": "readme", "guide": "01-overview"}   # the documentation tools (R9.3)
+             "words": "backup restore", "key": "readme", "guide": "01-overview",
+             "version": 1}                                                   # sp_version (R10): none yet says so   # the documentation tools (R9.3)
     args, guessed = {}, False
     for p in tool["params"]:
         if not p["required"]:
@@ -117,7 +127,7 @@ def arguments(tool: dict, ids: dict, found: dict) -> tuple[dict | None, bool]:
             args[n], guessed = MISSING, True
         elif known.get(n) not in (None, ""):
             args[n] = known[n]
-            guessed = guessed or n in ("attribute", "code", "name", "kind", "spec")
+            guessed = guessed or n in ("attribute", "code", "name", "kind", "spec", "version")
         else:
             return None, False
     if tool["name"] == "compare_duplicates" and not found.get("entities"):
@@ -132,6 +142,32 @@ def arguments(tool: dict, ids: dict, found: dict) -> tuple[dict | None, bool]:
     if tool["name"] == "get_entity_as_of":
         args["at"] = datetime.now(UTC).isoformat(timespec="seconds")
     return args, guessed or tool["name"] in MAY_SAY_NONE
+
+
+def change_arguments(tool: dict, ids: dict) -> dict:
+    """Arguments for a tool that changes something after a preview: the run's own project and models where it asks for
+    them (a preview changes nothing), and a value of the right shape for the rest."""
+    known = {"project": ids.get("project", ""), "model": ids.get("other_model") or ids.get("model", ""),
+             "scenario": MISSING, "name": f"Self-test {ids.get('sid', '')}", "question": "Self-test question",
+             "title": "Self-test", "recommendation": "Self-test", "template": "grid", "part": "forces"}
+    args: dict = {}
+    for p in tool["params"]:
+        if not p["required"] or p["name"] in ("confirm", "confirm_token"):
+            continue
+        n, kind = p["name"], str(p.get("type") or "")
+        if known.get(n):
+            args[n] = known[n]
+        elif "list" in kind:
+            args[n] = []
+        elif "dict" in kind:
+            args[n] = {}
+        elif "int" in kind or "float" in kind:
+            args[n] = 1
+        elif "bool" in kind:
+            args[n] = False
+        else:
+            args[n] = MISSING
+    return args
 
 
 def run(base: str, tokens: dict[str, str], ids: dict[str, str], record: Record, read_only_token: Callable[[], str] | None = None,
@@ -206,6 +242,37 @@ def run(base: str, tokens: dict[str, str], ids: dict[str, str], record: Record, 
             rec(t["name"], False, f"refused with the run's own data: {out}", ms, f"tools/call {t['name']} {json.dumps(args)[:300]}", raw)
         else:
             rec(t["name"], True, f"said: {out}"[:300] if kind == "refused" else f"answered ({len(json.dumps(out, default=str))} bytes)", ms)
+
+    # every tool that changes something after a preview (owner, 22 Nov 2026, 14:12: "in full test build tests for all MCP"):
+    # called as an AI calls it, without confirm, it must answer with a preview (a confirm token) or say in words why not,
+    # never crash and never change anything; called again with a confirm token that is not one it must refuse
+    for t in sorted((x for x in catalogue if x["changes"]), key=lambda x: (x["area"], x["name"])):
+        ckey = next((p["name"] for p in t["params"] if p["name"] in ("confirm", "confirm_token")), "")
+        if not ckey:
+            # it changes at once: called for something that is not there it must say so, and so changes nothing
+            need = [p["name"] for p in t["params"] if p["required"]]
+            if not any(n in AN_ID for n in need):
+                rec(f"{t['name']} (refuses what is not there)", None, "not called here: it changes at once and asks for no "
+                    "id to point at nothing (tried in the API suite's flows)")
+                continue
+            args = {**change_arguments(t, ids), **{n: MISSING for n in need if n in AN_ID}}
+            kind, out, raw, ms = tool(t["name"], args)
+            rec(f"{t['name']} (refuses what is not there)", kind == "refused",
+                f"{kind}: {str(out)[:250]}", ms, f"tools/call {t['name']} {json.dumps(args)[:300]}", raw)
+            continue
+        args = change_arguments(t, ids)
+        kind, out, raw, ms = tool(t["name"], args)
+        req = f"tools/call {t['name']} {json.dumps(args)[:300]}"
+        if kind == "crashed":
+            rec(f"{t['name']} (preview)", False, f"a server error: {out}", ms, req, raw)
+            continue
+        previewed = kind == "ok" and isinstance(out, dict) and bool(out.get("confirm"))
+        rec(f"{t['name']} (preview)", kind == "refused" or previewed,
+            (f"a preview, confirm token {str(out.get('confirm'))[:12]}..." if previewed else
+             f"said: {out}"[:300] if kind == "refused" else f"answered without a preview: {str(out)[:200]}"), ms, req, raw)
+        k2, o2, r2, ms2 = tool(t["name"], {**args, ckey: "pv_self-test-not-a-token"})
+        rec(f"{t['name']} (a wrong confirm token)", k2 == "refused", f"{k2}: {str(o2)[:200]}", ms2,
+            f"tools/call {t['name']} with a wrong confirm token", r2)
 
     # a change through MCP is the person's own uncommitted change (in the run's second model)
     m2, name = ids.get("other_model") or ids.get("model", ""), f"Self-test MCP application {ids.get('sid', '')}"

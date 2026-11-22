@@ -92,6 +92,24 @@ export function ViewsByPhase({ p, fixed }) {
 }
 
 // ------------------------------------------------------------------ Reports
+// the newest finished scenario planning study in the project report (Release 10, D857): the question, the
+// recommendation, the options across the futures and the signposts due
+function PlanningSummary({ p }) {
+  const { data } = useApi(`/api/v1/projects/${p.id}/scenario-planning`);
+  const r = data?.latest;
+  if (!r) return null;
+  const opt = r.results?.options;
+  return (
+    <section className="sp-report">
+      <h4>Scenario planning, version {r.version} <a className="small" href={`#/projects/${p.id}/planning`}>open</a></h4>
+      <p className="small"><b>{r.question}</b></p>
+      {r.recommendation && <p className="small">Recommendation{r.recommended ? ` (${r.recommended})` : ""}: {r.recommendation.split(/\n\s*\n/)[0]}</p>}
+      {opt?.in_words && <ul className="small">{opt.in_words.map((l, i) => <li key={i}>{l}</li>)}</ul>}
+      {data.signposts_due > 0 && <p className="status warn small">{data.signposts_due} signpost(s) due at this review.</p>}
+    </section>
+  );
+}
+
 // the project's own report (Home › Project report) and its models' reports (the Reports tab) (owner, 8 Nov 2026)
 export function ProjectReports({ p, part = "all" }) {
   const models = projectModels(p);
@@ -132,6 +150,7 @@ export function ProjectReports({ p, part = "all" }) {
             <td className="num">{tot("accepted_or_approved") || ""}</td><td className="num">{tot("rejected") || ""}</td><td className="num">{tot("checked_out") || ""}</td></tr>
         </tbody>
       </table>
+      {p.scenario_planning > 0 && <PlanningSummary p={p} />}
       <div className="split-2">
         <div>
           <h4>Waiting for approval ({open.length})</h4>

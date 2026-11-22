@@ -74,6 +74,17 @@ def attack(tools: dict | None, sec: dict | None) -> dict | None:
     return out
 
 
+def mcp(results: list[dict]) -> dict | None:
+    """The MCP suite's checks, for a card of their own on the full test's summary page (owner, 22 Nov 2026, 14:12: "they
+    should have there own cards"): the counts, and each check with its outcome (failures first)."""
+    rows = [r for r in results if r.get("suite") == "mcp"]
+    if not rows:
+        return None
+    count = {k: sum(1 for r in rows if r.get("outcome") == k) for k in ("passed", "failed", "warning", "skipped")}
+    return {**count, "checks": [{"name": str(r.get("name") or "").removeprefix("mcp: ")[:120], "outcome": r.get("outcome"),
+                                 "detail": str(r.get("detail") or "")[:200]} for r in rows][:400]}
+
+
 def make(detail: dict, folder: Path | None) -> dict[str, Any]:
     """The summary of a finished run from store.run_detail() and its folder's files."""
     run, hs, t = detail.get("run") or {}, detail.get("health") or {}, detail.get("tally") or {}
@@ -86,6 +97,7 @@ def make(detail: dict, folder: Path | None) -> dict[str, Any]:
         "health": hs.get("health") or "", "reason": str(hs.get("reason") or "")[:400],
         "by_suite": {s: {k: int(v.get(k) or 0) for k in ("passed", "failed", "warning", "skipped")}
                      for s, v in (hs.get("suites") or {}).items()},
+        "mcp": mcp(detail.get("results") or []),
         "coverage": coverage(_load(folder, "coverage.json")),
         "security": sec,
         "attack": attack(_load(folder, "attack-tools.json"), sec),
