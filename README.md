@@ -29,11 +29,9 @@ documentation**, refreshed at every start (D550 to D552). On the command line, `
 **All the documentation, listed with what each covers: [docs/index.md](docs/index.md).** Backup and restore
 commands: [below](#backup-and-restore-from-the-command-line) and in [docs/operations.md](docs/operations.md#backup-and-restore-from-the-command-line-d227).
 
-**Status: version 5.7.0, Release 5.7 (branding, customer journeys, the deck tools), accepted 17 Nov 2026** (tag `v5.7.0` on the `release` branch,
-published on the repository's GitHub Releases; release notes: [releases/5.7.0.md](releases/5.7.0.md); Release 5.6: [releases/5.6.0.md](releases/5.6.0.md); Release 5.5:
-[releases/5.5.0.md](releases/5.5.0.md); Release 5.1: [releases/5.1.0.md](releases/5.1.0.md); Release 5: [releases/5.0.0.md](releases/5.0.0.md); Release 4: [releases/4.0.0.md](releases/4.0.0.md); Release 3.5: [releases/3.5.0.md](releases/3.5.0.md); Release 3: [releases/3.0.0.md](releases/3.0.0.md); Release 2: [releases/2.0.0.md](releases/2.0.0.md);
-Release 1: [releases/1.0.0.md](releases/1.0.0.md)). Release 5.7 is built as 5.7.0, to accept ([releases/5.7.0.md](releases/5.7.0.md);
-the Release 5.7 rows in [docs/build-phases.md](docs/build-phases.md)). The releases in short are
+**Status: version 10.0.0, Release 10 (scenario planning and game theory through your AI), accepted 22 Nov 2026**
+(tag `v10.0.0`, published on the repository's GitHub Releases; release notes: [releases/10.0.0.md](releases/10.0.0.md);
+earlier releases' notes are in [releases](releases)). Next: Release 11, certificate mode. The releases in short are
 [below](#releases); every phase in detail: [docs/build-phases.md](docs/build-phases.md). Database design:
 [docs/database.md](docs/database.md). How it is built (for developers and AI agents):
 [docs/architecture.md](docs/architecture.md), [AGENTS.md](AGENTS.md); the high-level technical architecture (under 10 pages):
@@ -58,10 +56,22 @@ area by area: [docs/capabilities.md](docs/capabilities.md).
 | 5.5 | [5.5.0](releases/5.5.0.md) | Enterprise discovery run by your own AI through MCP (discovery projects, sources of every kind, Found in, runs tagged before and after, NOT FOR AI respected); architecture decision records and dispensations in the Governance Log with an Architecture Board; the Live browser full screen | released 16 Nov 2026 |
 | 5.6 | [5.6.0](releases/5.6.0.md) | The backup and restore test (`eax test backup-restore`: B1, content of every kind, B2, restore B1 and B2, every table and file compared), the restore drills as documents with a PDF, job priorities, updates and deployments from the published GitHub Releases only; the DR pack, the DR tool and the restore drill | accepted 17 Nov 2026 |
 | 5.7 | [5.7.0](releases/5.7.0.md) | The views' ArchiMate icons; logo and branding (four themes, your own as CSS); customer journey maps beside the canvas; a presentation deck with your own AI through MCP (content with sources, an outline, views as PNG, SVG or data); the backup and restore test on all of it | accepted 17 Nov 2026 |
-| 6 | | The key vault (OpenBao), once its details are agreed | planned |
-| 6.5 | | Server sync (migrations), DR sync, content promotion from dev to prod, a developer and author mode with its menus | planned |
-| 7 | | Help and videos | planned |
-| 8 | | Code quality and security: every SonarQube issue fixed, 80% code coverage, automated attack testing (black box and white box); held by the tests from then on | planned |
+| 6 | [6.7.0](releases/6.7.0.md) | No password in clear text inside the containers, certificates or passwords chosen at the start and rotated, two sites paired for content or DR, every set-up written down, your own certificate on the front door, Jenkins pipelines for every command | accepted 18 Nov 2026 |
+| 7 | [7.0.0](releases/7.0.0.md) | The documentation: a website inside the application and on its own, a How do I page for every task, 24 printed guides | accepted 18 Nov 2026 |
+| 7.9 | [7.9.0](releases/7.9.0.md) | Every problem has an error code, the same wherever it shows, and a guide to every code | accepted 19 Nov 2026 |
+| 8 | [8.0.0](releases/8.0.0.md) | Code quality and testing: one command runs every test, scans the code, attacks the installation and checks backup and restore; a summary page; code coverage measured | accepted 21 Nov 2026 |
+| 9 | [9.0.0](releases/9.0.0.md) | Your AI reads the documentation; your own themes; the authenticator reset from the user list; the restore drill in the full test; tests of every Jenkins pipeline and every reading command | accepted 22 Nov 2026 |
+| 10 | [10.0.0](releases/10.0.0.md) | Scenario planning and game theory run by your AI in a project, the working done by EA Explorer, a read-only Scenario planning tab; every MCP tool tried in the full test | accepted 22 Nov 2026 |
+| 11 | | Certificate (key-based) sign-in between the services, working and tested | next |
+| 12 | | Project and model templates from TOGAF and its Series Guides (Government, Agile with sprints, Digital, Risk and security, Data, Microservices and more) | planned |
+| 13 | | System Admin regrouped into fewer menus and tabs; every command-line option documented | planned |
+| 14 | | Stabilisation: every bug fixed and every test passing | planned |
+| 15 | | Every document checked and brought up to date | planned |
+| 16 | | Book: the project types guide | planned |
+| 17 | | Book: the Architect's Bible, in volumes | planned |
+| 18 | | Book: Scenario planning with your AI | planned |
+| 19 | | Every picture, printed guide and the website brought up to date; every feature listed on the website | planned |
+| 20 | | Learning videos and the YouTube channel | planned |
 
 ## Quick start (laptop)
 

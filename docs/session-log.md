@@ -474,3 +474,4 @@ source, and the pictures themselves read one by one and measured).
 - 14:40 Releases renumbered into the order they are built (D869): 10 to 20 in sequence; the bugs are R14.n.
 - 19:25 Release 9 accepted (D870): version 9.0.0, migration 0114, releases/9.0.0.md; tag commands given.
 - 19:30 Release 10 accepted (D871): version 10.0.0, migration 0115, releases/10.0.0.md; tag commands given. Next: Release 11, certificate mode.
+- 19:40 README.md brought up to date (owner: "The md file on https://github.com/gauravvermaea/EA-Explorer is not being updated, it shwos release 8. Please fix it."): the status is 10.0.0, the release table lists 6 to 10 as accepted with their notes and 11 to 20 in their new order. From now on every release's acceptance updates the README's status and table too.

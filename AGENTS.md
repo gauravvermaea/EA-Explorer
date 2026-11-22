@@ -54,6 +54,7 @@ draw.io, nginx, React screens. How it is built: [docs/architecture.md](docs/arch
   each installation shows the documents of the version it runs (D550); and (4) **no file in the repository needs Git
   LFS**: nothing over 50 MB (split larger files into parts with a manifest, joined when loaded).
 - **Commit and push often (owner, 22 Nov 2026, 09:46: "we need to do more frequent push to the repo"; D853)**: after
+- When a release is accepted, update README.md's status line and its release table in the same change as version.toml and the release notes (owner, 22 Nov 2026: the README still showed Release 8 on GitHub).
   each change is copied to the owner's folder (a story, a fix, a set of records), give him the git commands to commit
   and push it to main (`git add -A`, `git commit -m "<D or R number>: <what>"`, `git push origin main`); he runs them.
 - **No new or changed documentation for users until the last release (owner, 22 Nov 2026, 09:30: "Lets not make any
