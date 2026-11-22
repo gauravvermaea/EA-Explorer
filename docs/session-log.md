@@ -425,3 +425,6 @@ source, and the pictures themselves read one by one and measured).
   (inside EA Explorer); checked in a browser. Before the owner's `eax site pdfs`, so it is in the 8.0.0 website.
 ### 08:11 The Architect's Bible in parts (D845); the owner's shots and PDFs being checked
 - R11.6: one PDF and one source file per part, each well under 25 MB, so each can go into git.
+### 08:23 Pictures and PDFs checked; Release 14 for the pictures, guides and website (D846)
+- 26 guides printed 08:11 to 08:15 (26 new); those opened say 8.0.0; the website lists 26 with the new footer and
+  Questions. 233 of 283 pictures new; 48 project pictures skipped (from 18 Nov) and 2 API pictures blank: Release 14.
