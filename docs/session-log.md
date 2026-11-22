@@ -443,3 +443,15 @@ source, and the pictures themselves read one by one and measured).
 ### 09:51 `eax test jenkins` and `eax test commands` (D854, R9.13, R9.14); building the rest of Release 9
 - 10:00 R9.13 `eax test jenkins` and R9.14 `eax test commands` built and tested here; the Jenkins test's first run (with
   a stand-in Jenkins and the real agent code) found four pipelines that can never run: R12.18.
+- 10:20 R9.12 `eax images` built: every image (our Dockerfiles' bases and the others), the one here against the one
+  published (buildx imagetools, nothing downloaded), the fixable findings of the last security test; a report in
+  work/images; the schedule r9images every 3 months tells the admins when something is newer. Also in eax test commands.
+- 10:40 R9.7 built: the Users page's Authenticator column, ticks and "Set up the authenticator again..."; the API
+  (users.manage, new: User Admins and Super Admins); Keycloak's sessions ended; the hand checks in docs/manual-tests.md.
+- 11:05 R9.5 built: the themes people may pick, their own themes (designer or upload) when switched on, Download CSS;
+  routes under /api/v1/branding/my-... (never /api/v1/me, the personal service's prefix).
+- 11:30 R9.3 built: the AI's documentation tools (docs_list, docs_search, docs_read, docs_pdf, screen_help); the API's
+  /data/docs mount now has documents/ (the PDFs) and the help catalogue (docker-compose.yml: a clean restart).
+- 12:10 R9.10 built: the DR drill last in `eax test full` (`--no-dr`), into folders beside the installation, the smoke test on the DR copy, then the DR copy stopped and kept and the installation started again and signed in to (the drill's new `--smoke-after` and `--then-back`); a DR drill card on the summary page; Jenkins › eax-admin › Upkeep › full-test (D855).
+- 10:47 R12.19 fixed: ticking yourself on the Users list said My profile has your authenticator (it has not); it now says another admin, or a Super Admin on System Admin › Security. R9.7 is checked with a second user (mfatest).
+- 10:55 R12.20: `eax access mfa-off <user>` now also takes back the request to set up a new authenticator; `eax access mfa-off --all` switches MFA off for everyone (the setting, Keycloak, every authenticator), no rebuild needed; Jenkins eax-admin › Get back in › mfa-off-for-everyone.

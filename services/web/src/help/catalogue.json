@@ -4178,5 +4178,17 @@
   "button:Download this guide": "This guide as a Markdown file, with your values and the commands for the system you chose, to keep, print or send.",
   "button:tools": "Show, in the list below, the tools behind this tile.",
   "button:Every tool": "Show every tool again, not only one tile's.",
-  "button:Fix the safe ones": "Make the safe fixes the last check found (an index rebuilt, a constraint validated, a sequence moved on), after a backup when there is none from the last day: the maintenance page is up for a few minutes while it is taken."
+  "button:Fix the safe ones": "Make the safe fixes the last check found (an index rebuilt, a constraint validated, a sequence moved on), after a backup when there is none from the last day: the maintenance page is up for a few minutes while it is taken.",
+  "popup:Set up the authenticator again": {
+    "what": "Ask the people ticked to set up their authenticator app again, at once: for someone who lost their phone or has a new one (R9.7).",
+    "how": [
+      "Tick the people on the People tab, then Set up the authenticator again...; check the names here and choose Ask.",
+      "Their current codes stop working, they are signed out everywhere, and their next sign-in shows a QR code to scan with the new phone.",
+      "They are emailed when mail is set up; each is in the audit trail. Their tokens, API keys and certificates are not touched."
+    ],
+    "example": "Thandi lost her phone: tick thandi, Set up the authenticator again..., Ask. She signs in and scans the new QR code."
+  },
+  "field:My theme's name": "The name of a theme of your own, as it shows in your list (at most 60 characters); keeping one under the same name replaces it.",
+  "field:Upload a theme": "A CSS file of looks only (colours, fonts, sizes), for example one downloaded here or from another EA Explorer: nothing that loads from elsewhere or runs. Yours alone.",
+  "button:Keep it": "Keep the uploaded theme as one of your own (checked first; at most ten), then choose it in My theme above."
 }

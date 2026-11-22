@@ -106,7 +106,8 @@ def arguments(tool: dict, ids: dict, found: dict) -> tuple[dict | None, bool]:
              "target": "Self-test capability 1", "source_type": "ApplicationComponent", "target_type": "Capability",
              "entities": found.get("entities") or ["Self-test duplicate app", "Self-test duplicate ap"], "from_version": 1, "service": "api",
              "view": found.get("view") or "VP-01", "relationship": found.get("relationship", ""), "attribute": "name",
-             "code": "self_test_rule", "name": "Self-test rule", "kind": "relationship", "spec": {}}
+             "code": "self_test_rule", "name": "Self-test rule", "kind": "relationship", "spec": {},
+             "words": "backup restore", "key": "readme", "guide": "01-overview"}   # the documentation tools (R9.3)
     args, guessed = {}, False
     for p in tool["params"]:
         if not p["required"]:
@@ -126,6 +127,8 @@ def arguments(tool: dict, ids: dict, found: dict) -> tuple[dict | None, bool]:
     if tool["name"] == "model_through_view":
         args["view"] = found.get("view") or "VP-01"
         guessed = guessed or not found.get("view")         # no views listed in this installation
+    if tool["name"] == "screen_help":                     # the start page's on-screen help (R9.3)
+        args["key"] = "page:#/"
     if tool["name"] == "get_entity_as_of":
         args["at"] = datetime.now(UTC).isoformat(timespec="seconds")
     return args, guessed or tool["name"] in MAY_SAY_NONE

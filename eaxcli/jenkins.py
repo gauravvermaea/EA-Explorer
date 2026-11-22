@@ -61,7 +61,9 @@ DR_TOOLS = {
     "eax-drill": {"summary": "The restore drill (dr/eax-drill): backed up, shut down, a copy built and restored, compared, put back",
                   "params": [{"key": "--install", "type": "flag-value", "required": True, "placeholder": "the installation"},
                              {"key": "--dr", "type": "flag-value", "required": True, "placeholder": "folder for the DR copy"},
-                             {"key": "--temp", "type": "flag-value", "required": True, "placeholder": "a temp folder"}]},
+                             {"key": "--temp", "type": "flag-value", "required": True, "placeholder": "a temp folder"},
+                             {"key": "--smoke", "type": "flag"}, {"key": "--smoke-after", "type": "flag"},
+                             {"key": "--then-back", "type": "flag"}]},
 }
 # commands whose screens or questions are answered by the pipeline's fields (D748: "gets the flags to run without asking")
 UI_COMMANDS = {"menu", "screen", "console"}       # they run the command chosen in the pipeline
@@ -134,6 +136,9 @@ ADMIN_TASKS: list[dict] = [
      "argv": ["access", "unlock", _w("USER", "the administrator's user name")]},
     {"name": "admin-mfa-off", "group": "Get back in", "summary": "An administrator's authenticator removed (a lost phone)",
      "argv": ["access", "mfa-off", _w("USER", "the administrator's user name")], "confirm": True},
+    {"name": "mfa-off-for-everyone", "group": "Get back in",      # R12.20 (owner, 22 Nov 2026, 10:52)
+     "summary": "Multi-factor sign-in off for everyone: the setting off, every authenticator removed, nobody asked",
+     "argv": ["access", "mfa-off", "--all", "--yes"], "confirm": True},
     {"name": "allowed-addresses", "group": "Get back in", "summary": "The IP allow lists, place by place", "argv": ["allow", "show"]},
     {"name": "allow-an-address", "group": "Get back in", "summary": "An address or range let in (e.g. 10.20.0.0/16)",
      "argv": ["allow", "add", _w("PLACE", "where", choices=ALLOW_PLACES), _w("ADDRESS", "an address or range"),
@@ -199,6 +204,14 @@ ADMIN_TASKS: list[dict] = [
     {"name": "attack-test", "group": "Upkeep",                    # R8.2 (owner, 21 Nov 2026, 10:47: "Add pipeline in Jenkins to do attack")
      "summary": "The attack test: tools that try to break EA Explorer, each updated first (an hour or more)",
      "argv": ["test", "attack"]},
+    {"name": "full-test", "group": "Upkeep",                      # R9.10: the full test from Jenkins, the DR drill last
+     "summary": "The full test: dev check, self-test, backup and restore, SonarQube, then the DR drill (hours)",
+     "argv": ["test", "full",
+              _w("DEV_CHECK", "--no-dev-check to leave the dev check out", required=False, choices=["--no-dev-check"]),
+              _w("ATTACK", "--no-attack to leave the attack test out", required=False, choices=["--no-attack"]),
+              _w("SONAR", "--no-sonar to leave the SonarQube scan out", required=False, choices=["--no-sonar"]),
+              _w("DR_DRILL", "--no-dr to leave the DR drill out", required=False, choices=["--no-dr"])],
+     "confirm": True},
     {"name": "update", "group": "Upkeep", "summary": "To the newest release of your channel (a backup first)", "argv": ["update"],
      "confirm": True},
     {"name": "rollback", "group": "Upkeep", "summary": "Back to the release before, with its data as it was", "argv": ["rollback"],

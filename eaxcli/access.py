@@ -10,7 +10,10 @@ admin's password from its secret file; nothing goes over the network.
   eax access admins                    the administrators: their names, whether each is enabled, locked out, or has MFA
   eax access reset-password <user>     a new temporary password, shown once here; it must be changed at sign-in
   eax access unlock <user>             the account enabled and its sign-in lock (too many wrong passwords) lifted
-  eax access mfa-off <user>            the second factor (an authenticator app) removed: set up again at the next sign-in
+  eax access mfa-off <user>            the second factor (an authenticator app) removed, and no new one asked for
+                                       (unless the multi-factor setting wants this person to have one)
+  eax access mfa-off --all [--yes]     multi-factor sign-in switched off for everyone: the setting set to off, every
+                                       authenticator removed and nobody asked to set one up (R12.20)
 """
 
 from __future__ import annotations
@@ -21,6 +24,43 @@ import secrets as _random
 import subprocess
 
 from .core import EAX, ROOT, Failure, compose_args, say, setting
+
+# MFA off for everyone (R12.20; owner, 22 Nov 2026, 10:49: "Can we have a command in eax to disable mfa", "I want to run
+# it now"): run in the api container with the code already there, so it works without a rebuild. The setting is stored
+# as the Security page stores it, Keycloak is told as the Security page tells it, then every person's authenticator and
+# every request to set one up go too (the Security page's off only takes back what it asked for). Audited.
+MFA_OFF_ALL = r"""
+import json
+from sqlalchemy import text
+from eax import audit, keycloak_upkeep as ku, settings as st
+from eax.db import get_engine
+with get_engine().connect() as conn, conn.begin():
+    conn.execute(text("SELECT set_config('eax.actor', 'eax access', true)"))
+    before = st.values(conn).get("mfa_mode", "off")
+    st.store(conn, {"mfa_mode": "off"})
+kc = ku._kc()
+ku.apply_mfa("off", kc)
+people, codes, asked = [], 0, 0
+for u in ku._users(kc):
+    name = u.get("username", "")
+    if ku.skipped(name):
+        continue
+    actions = list(u.get("requiredActions") or [])
+    n = ku._remove_codes(kc, u["id"])
+    if ku.ACTION in actions:
+        attrs = dict(u.get("attributes") or {})
+        attrs.pop(ku.ASKED, None)
+        kc._call("PUT", "/users/" + u["id"], {"requiredActions": [a for a in actions if a != ku.ACTION], "attributes": attrs})
+        asked += 1
+    if n or ku.ACTION in actions:
+        people.append(name)
+    codes += n
+out = {"before": before, "mode": "off", "people": sorted(people), "codes_removed": codes, "no_longer_asked": asked}
+with get_engine().connect() as conn, conn.begin():
+    audit.record(conn, actor="eax access", action="security.mfa_off_all", object_type="setting", object_id="mfa_mode",
+                 details=out, source="eax")
+print(json.dumps(out))
+"""
 
 ADMIN_ROLES = ("eax-super-admin", "eax-it-admin")
 LOGIN = ('K=/opt/keycloak/bin/kcadm.sh; C=/tmp/eax-access-$$.config; trap "rm -f $C" EXIT; '
@@ -102,18 +142,46 @@ def unlock(name: str, run=subprocess.run) -> None:
 
 
 def mfa_off(name: str, run=subprocess.run) -> int:
-    """Every one-time-code credential removed; how many."""
+    """Every one-time-code credential removed, and the request to set one up taken back (R12.20: it was left, so the
+    next sign-in asked for a new authenticator straight away); how many codes."""
     u = _admin(name, run=run)
     creds = json.loads(_kc('$K get "users/$3/credentials" --config $C -r "$2"', _realm(), u["id"], run=run) or "[]")
     otp = [c["id"] for c in creds if c.get("type") == "otp"]
     for cid in otp:
         _kc('$K delete "users/$3/credentials/$4" --config $C -r "$2"', _realm(), u["id"], cid, run=run)
+    actions = list(u.get("requiredActions") or [])
+    if "CONFIGURE_TOTP" in actions:
+        _kc('$K update "users/$3" --config $C -r "$2" -f -', _realm(), u["id"],
+            stdin=json.dumps({"requiredActions": [a for a in actions if a != "CONFIGURE_TOTP"]}), run=run)
     return len(otp)
+
+
+def mfa_off_all(yes: bool = False, run=subprocess.run, ask=input) -> dict:
+    """Multi-factor sign-in off for everyone (R12.20), after the word OFF typed (or --yes)."""
+    if not yes:
+        say("This switches multi-factor sign-in off for everyone: the setting (System Admin > Security) set to off, "
+            "every authenticator removed and nobody asked to set one up. Anyone may add one again later.", "yellow")
+        if ask("Type OFF to go on: ").strip() != "OFF":
+            raise Failure("Nothing changed.")
+    p = run(compose_args(["exec", "-T", "api", "python", "-c", MFA_OFF_ALL]), cwd=ROOT, capture_output=True, text=True,
+            encoding="utf-8", errors="replace", check=False)
+    last = next((x for x in reversed((p.stdout or "").splitlines()) if x.strip().startswith("{")), "")
+    if p.returncode != 0 or not last:
+        raise Failure(f"MFA could not be switched off: {(p.stderr or p.stdout).strip()[-400:] or 'no answer'} "
+                      f"(is EA Explorer running? {EAX} status)")
+    return json.loads(last)
 
 
 def main(argv: list[str]) -> int:
     """eax access admins | reset-password <user> | unlock <user> | mfa-off <user>."""
     action, rest = (argv[0] if argv else "admins"), argv[1:]
+    if action == "mfa-off" and "--all" in rest:
+        r = mfa_off_all("--yes" in rest or "-y" in rest)
+        say(f"Multi-factor sign-in is off for everyone (it was {r['before']}): {r['codes_removed']} authenticator(s) "
+            f"removed, {r['no_longer_asked']} no longer asked to set one up"
+            + (f" ({', '.join(r['people'])})." if r["people"] else ".") + " Sign out and in again: no code is asked.")
+        return 0
+    rest = [a for a in rest if a not in ("--yes", "-y")]
     who = rest[0] if rest else setting("EAX_FIRST_ADMIN_USER", "eaadmin")
     if action == "admins":
         say("The administrators (eax access reset-password|unlock|mfa-off <user> to get one back in):")
@@ -132,6 +200,7 @@ def main(argv: list[str]) -> int:
         return 0
     if action == "mfa-off":
         n = mfa_off(who)
-        say(f"{who}: {n} authenticator(s) removed; a new one is set up at the next sign-in when MFA is required.")
+        say(f"{who}: {n} authenticator(s) removed and no new one asked for; when the multi-factor setting wants {who} "
+            f"to have one, they are asked again within the hour ({EAX} access mfa-off --all switches it off for everyone).")
         return 0
-    raise Failure(f"{EAX} access admins | reset-password <user> | unlock <user> | mfa-off <user>")
+    raise Failure(f"{EAX} access admins | reset-password <user> | unlock <user> | mfa-off <user> | mfa-off --all [--yes]")

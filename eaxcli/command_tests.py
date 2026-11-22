@@ -60,6 +60,7 @@ CASES: list[tuple[list[str], list[str], int, bool]] = [
     (["footprint", "--history", "7"], [], 120, False),
     (["test", "summary"], [], 180, False),
     (["diag"], [], 600, False),
+    (["images", "check", "--no-tell"], ["images"], 900, False),
 ]
 
 # every other command of the catalogue, and why it is not run here

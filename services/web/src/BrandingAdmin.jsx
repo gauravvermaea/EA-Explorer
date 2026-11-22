@@ -13,14 +13,18 @@ export default function BrandingAdmin() {
   const [form, setForm] = useState(null);
   const [msg, setMsg] = useState({ ok: true, text: "" });
   const [add, setAdd] = useState({ name: "", css: "", replace: "" });
-  useEffect(() => { if (data && !form) setForm({ theme: data.theme, personal: !!data.personal, product_name: data.product_name || "" }); }, [data, form]);
+  useEffect(() => { if (data && !form) setForm({ theme: data.theme, personal: !!data.personal, own: !!data.own, hidden: data.hidden || [], product_name: data.product_name || "" }); }, [data, form]);
   useEffect(() => () => { void endPreview(); }, []);     // leaving the page unsaved: back to the theme in use
   if (!b.loaded) return <p className="quiet">Loading…</p>;
   if (!data) return <p className="status bad">The branding could not be read.</p>;
   const say = (ok, text) => setMsg({ ok, text });
   const done = async (text) => { await loadBranding(); say(true, text); };
   const run = async (fn, text) => { try { await fn(); await done(text); } catch (e) { say(false, e.message); } };
-  const changed = form && (form.theme !== data.theme || form.personal !== !!data.personal || form.product_name !== (data.product_name || ""));
+  const changed = form && (form.theme !== data.theme || form.personal !== !!data.personal || form.own !== !!data.own
+    || [...form.hidden].sort().join() !== [...(data.hidden || [])].sort().join() || form.product_name !== (data.product_name || ""));
+  // R9.5 (D827): which themes people may pick (every one unless taken off; the organisation's always)
+  const offeredTo = (slug) => slug === form?.theme || !(form?.hidden || []).includes(slug);
+  const offer = (slug, on) => setForm({ ...form, hidden: on ? form.hidden.filter((x) => x !== slug) : [...form.hidden, slug] });
   const files = data.files || {};
   const upload = (key) => (e) => {
     const f = e.target.files?.[0]; e.target.value = "";
@@ -55,7 +59,11 @@ export default function BrandingAdmin() {
           </td></tr>
         <tr><th>Each person may pick their own</th><td>
           <label className="switch-label"><input type="checkbox" checked={form.personal} onChange={(e) => setForm({ ...form, personal: e.target.checked })} />
-            {" "}from the themes here, on My profile (the organisation's stays the default)</label></td></tr>
+            {" "}from the themes ticked below, on My profile (the organisation's stays the default)</label></td></tr>
+        <tr><th>People may make their own themes</th><td>
+          <label className="switch-label"><input type="checkbox" checked={form.own} disabled={!form.personal}
+            onChange={(e) => setForm({ ...form, own: e.target.checked })} />
+            {" "}with the theme designer or by uploading a CSS file, on My profile; each person's are theirs alone (off: they are kept, unused)</label></td></tr>
         <tr><th>Name in the top bar</th><td>
           <input value={form.product_name} maxLength={60} placeholder="EA Explorer" aria-label="Name in the top bar"
             onChange={(e) => setForm({ ...form, product_name: e.target.value })} />
@@ -64,7 +72,7 @@ export default function BrandingAdmin() {
       <div className="row-gap" style={{ marginTop: 10 }}>
         <button className="primary" disabled={!changed} onClick={() => run(async () => { await apiFetch("/api/v1/admin/branding", { method: "PUT", body: JSON.stringify(form) }); await endPreview(); },
           "Saved: every screen uses it from the next page they open.")}>Save</button>
-        {changed && <button onClick={() => { setForm({ theme: data.theme, personal: !!data.personal, product_name: data.product_name || "" }); void endPreview(); }}>Undo my edits</button>}
+        {changed && <button onClick={() => { setForm({ theme: data.theme, personal: !!data.personal, own: !!data.own, hidden: data.hidden || [], product_name: data.product_name || "" }); void endPreview(); }}>Undo my edits</button>}
       </div>
 
       <h2>Logo</h2>
@@ -91,7 +99,7 @@ export default function BrandingAdmin() {
         add it back under a name. A theme may hold only looks: nothing that loads from elsewhere (url, @import) or runs; an uploaded font
         is named by its family.</p>
       <table className="grid-table small">
-        <thead><tr><th>Theme</th><th>Kind</th><th>Changed</th><th /></tr></thead>
+        <thead><tr><th>Theme</th><th>Kind</th><th>Changed</th><th title="Who may pick it on My profile">People may pick it</th><th /></tr></thead>
         <tbody>
           {data.themes.map((t) => (
             <tr key={t.slug}>
@@ -99,6 +107,9 @@ export default function BrandingAdmin() {
                 {t.slug !== data.theme && <button className="linkish small" onClick={() => { setForm({ ...form, theme: t.slug }); void previewTheme(t.slug); }}> try it</button>}</td>
               <td>{t.built_in ? "ships with EA Explorer" : "added"}</td>
               <td className="small">{t.built_in ? "" : `${t.set_by || ""} ${t.set_at ? fmtDateTime(t.set_at) : ""}`}</td>
+              <td>{form && <input type="checkbox" aria-label={`People may pick ${t.name}`} checked={offeredTo(t.slug)}
+                disabled={!form.personal || t.slug === form.theme} title={t.slug === form.theme ? "The organisation's theme is always offered" : undefined}
+                onChange={(e) => offer(t.slug, e.target.checked)} />}</td>
               <td className="row-gap">
                 <button className="small" onClick={() => apiDownload(`/api/v1/branding/themes/${t.slug}.css?download=1`, `${t.slug}.css`).catch((e) => say(false, e.message))}>Download CSS</button>
                 {!t.built_in && <button className="small" onClick={() => setAdd({ name: t.name, css: "", replace: t.slug })}>Replace…</button>}
@@ -108,7 +119,11 @@ export default function BrandingAdmin() {
         </tbody>
       </table>
 
+      {form?.own && <p className="small quiet">Ticks here take effect with Save above.</p>}
+
       <ThemeDesigner themes={data.themes} fonts={data.fonts || []} />
+
+      {data.own && <OwnThemes run={run} />}
 
       <h3>{add.replace ? `Replace ${add.name}` : "Add a theme as CSS"}</h3>
       <div className="brand-add">
@@ -169,5 +184,29 @@ function Fonts({ fonts, run }) {
         <button className="primary" disabled={!f.file || !f.family.trim()} onClick={send}>Upload the font</button>
       </div>
     </div>
+  );
+}
+
+// R9.5 (D827): the themes people made for themselves; one that causes trouble can be removed
+function OwnThemes({ run }) {
+  const [list, setList] = useState(null);
+  const [err, setErr] = useState("");
+  const load = () => apiFetch("/api/v1/admin/branding/own-themes").then((r) => setList(r.themes || [])).catch((e) => setErr(e.message));
+  useEffect(() => { void load(); }, []);
+  const people = new Set((list || []).map((t) => t.username));
+  return (
+    <>
+      <h2>People's own themes</h2>
+      {err && <p className="status bad">{err}</p>}
+      {list && <p className="quiet">{people.size} {people.size === 1 ? "person keeps" : "people keep"} {list.length} {list.length === 1 ? "theme" : "themes"} of
+        their own. Remove one that causes trouble: whoever used it is on the organisation's theme again.</p>}
+      {list && list.length > 0 && <table className="grid-table small">
+        <thead><tr><th>Person</th><th>Theme</th><th>Size</th><th /></tr></thead>
+        <tbody>{list.map((t) => (
+          <tr key={`${t.username}/${t.slug}`}><td>{t.username}</td><td>{t.name}</td><td>{Math.ceil(t.size / 1024)} KB</td>
+            <td><button className="small" onClick={() => { if (window.confirm(`Remove ${t.username}'s theme ${t.name}?`))
+              void run(async () => { await apiFetch(`/api/v1/admin/branding/own-themes/${encodeURIComponent(t.username)}/${encodeURIComponent(t.slug)}`, { method: "DELETE" }); await load(); }, "Removed."); }}>Remove</button></td></tr>))}
+        </tbody></table>}
+    </>
   );
 }

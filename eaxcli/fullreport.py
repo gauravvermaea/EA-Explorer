@@ -11,6 +11,7 @@ summary; System admin > Self-test > Summary). One card a step:
   attack test        each scanner, whether it was brought up to date, its findings by severity
   backup and restore every check passed or not (backup-restore-<time>/report.json)
   SonarQube          to fix, issues, security hotspots, accepted in writing (sonar-<time>/summary.json)
+  DR drill           each step, the recovery time and the warnings (drill-<time>/report.md; R9.10)
 
 Each card links to its detailed report; once those files are deleted (eax test prune) the card's figures stay. The
 page needs nothing from outside (no script, no font, no picture). Standard library only."""
@@ -26,7 +27,8 @@ from pathlib import Path
 
 RUN_FOLDER = re.compile(r"^\d{8}T\d{6}Z$")
 KINDS = {"dev check": "dev", "self-test": "selftest", "backup and restore test": "backup", "SonarQube scan": "sonar",
-         "no test container left running": "containers"}
+         "DR drill": "dr", "no test container left running": "containers"}
+DRILL_ROW = re.compile(r"^\| (ok|warn|FAILED) \| (.*?) \| (\d+) \| (.*) \|\s*$")
 GOOD, NEAR, LOW, GREY = "#1a7f37", "#b7791f", "#c62828", "#8a8f98"
 
 
@@ -91,7 +93,27 @@ def gather(tests: Path, since: float, steps: list[tuple[str, bool, str]], *, ver
         out["sonar"] = {"folder": sq.name, **{k: s.get(k) for k in ("passed", "to_fix", "issues", "hotspots", "accepted",
                                                                     "by_severity", "by_kind")}}
         out["details"].append(sq.name)
+    dr = _newest(tests, lambda p: p.is_dir() and p.name.startswith("drill-"), since)
+    if dr:
+        out["dr"] = {"folder": dr.name, **drill_report(dr / "report.md")}
+        out["details"].append(dr.name)
     return out
+
+
+def drill_report(path: Path) -> dict:
+    """The DR drill's report.md read: its verdict, the recovery time, each step and the warnings (R9.10)."""
+    try:
+        text = path.read_text(encoding="utf-8-sig")
+    except OSError:
+        return {"passed": None, "verdict": "no report", "recovery": None, "steps": [], "warnings": 0}
+    lines = text.splitlines()
+    verdict = next((x.strip().strip("*").replace("**", "") for x in lines if x.startswith("**")), "")
+    rec = re.search(r"Recovery time[^:]*\): (\d+) minutes", text)
+    steps = [{"state": m.group(1), "step": m.group(2), "seconds": int(m.group(3))}
+             for m in (DRILL_ROW.match(x) for x in lines) if m]
+    return {"passed": bool(verdict) and not verdict.startswith("Failed"), "verdict": verdict[:300],
+            "recovery": int(rec.group(1)) if rec else None, "steps": steps,
+            "warnings": sum(1 for x in steps if x["state"] == "warn")}
 
 
 # ---------------------------------------------------------------- the page
@@ -196,6 +218,15 @@ def cards(s: dict) -> list[str]:
                 + f'<p>{_link(f"../{sq["folder"]}/report.md", "Every issue by file and line")}</p>'
                 if sq else f"<p>{html.escape((sst or {}).get('why') or '')}</p>")
         out.append(f'<section class="card"><h2>SonarQube {_state((sst or sq or {}).get("passed"))}</h2>{body}</section>')
+    dr, dst = s.get("dr"), steps.get("dr")
+    if dr or dst:
+        body = ((f'<p class="big">{html.escape(dr.get("verdict") or "")}</p>'
+                 + (f'<p>Recovery time: <b>{dr["recovery"]} minutes</b> (the installation shut down to the DR copy '
+                    'restored and signed in to)</p>' if dr.get("recovery") is not None else "")
+                 + _rows((x["step"], x["state"]) for x in dr.get("steps") or [])
+                 + f'<p>{_link(f"../{dr["folder"]}/report.md", "The whole report")}</p>')
+                if dr else f"<p>{html.escape((dst or {}).get('why') or '')}</p>")
+        out.append(f'<section class="card"><h2>DR drill {_state((dst or dr or {}).get("passed"))}</h2>{body}</section>')
     ct = steps.get("containers")
     if ct:
         out.append(f'<section class="card"><h2>Test containers {_state(ct.get("passed"))}</h2><p>'

@@ -557,6 +557,11 @@ SYSTEM_SCHEDULES = [
     # tab please add ability to clean up logs and all these test result files"): off until chosen on Scheduled upkeep
     {"id": "r12tests", "name": "Delete the test results' detailed files older than 14 days; the summaries stay (D825)",
      "argv": ["test", "prune", "--older-than", "14", "--yes"], "cron": "47 4 * * *", "enabled": False},
+    # the images in use against the ones published, on the first day of every third month (R9.12; owner, 22 Nov 2026:
+    # "Add a schedule to check for latets images every 3 months"; D841, D843): it only reads, so it is on; the admins
+    # are told when something newer is published
+    {"id": "r9images", "name": "Check for newer images every 3 months (R9.12)", "argv": ["images", "check"],
+     "cron": "23 5 1 1,4,7,10 *", "enabled": True},
 ]
 # off by default until rotation and renewal are fully tested (the owner, 18 Nov 2026, 10:58: "For now disable key and
 # certificate rotation by default until this is fully tested"): switched off once on installations that have them,

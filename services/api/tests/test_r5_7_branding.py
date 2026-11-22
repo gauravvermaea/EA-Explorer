@@ -83,8 +83,8 @@ def test_which_theme_a_person_sees_is_decided_on_the_screen():
     js = (WEB / "branding.jsx").read_text(encoding="utf-8")
     # break-glass and the rescue link always give the standard look; a removed theme gives the standard look
     assert "if (!data || breakGlass || rescued) return \"standard\";" in js
-    assert "data.personal && mine && offered.has(mine)" in js
-    assert "offered.has(data.theme) ? data.theme : \"standard\"" in js
+    assert "if (data.personal && mine) {" in js and "else if (offered.has(mine) && every.has(mine)) return mine;" in js   # only the themes offered (R9.5)
+    assert "every.has(data.theme) ? data.theme : \"standard\"" in js
     # the CSS goes in as text, never as HTML
     assert "el.textContent = css;" in js and "innerHTML" not in js
 
@@ -101,7 +101,7 @@ def test_the_screens_wire_it_in():
 def test_only_super_admins_change_it():
     src = (API / "eax" / "api" / "branding.py").read_text(encoding="utf-8")
     admin_parts = src.split('@blp.route("/admin/branding")', 1)[1]
-    assert admin_parts.count('@require_auth("settings.manage")') == 7          # with the fonts' two (D736)
+    assert admin_parts.count('@require_auth("settings.manage")') == 9          # with the fonts' two (D736) and people's own themes' two (R9.5)
     assert src.split('@blp.route("/admin/branding")', 1)[0].count('@require_auth("settings.manage")') == 0
 
 
@@ -188,7 +188,7 @@ def test_a_theme_chosen_is_shown_at_once_and_kept_by_save():
     assert "export async function previewTheme(" in js and "export async function endPreview(" in js
     assert "previewTheme(e.target.value)" in admin and "await endPreview()" in admin
     assert "useEffect(() => () => { void endPreview(); }, [])" in admin         # leaving unsaved goes back
-    assert "previewTheme(slug ||" in js and "chooseMine(trying)" in js       # My look: shown at once, Save keeps it
+    assert "apiText(cssUrl(slug)).then(previewCss)" in js and "chooseMine(trying)" in js   # My look: shown at once, Save keeps it (R9.5: own themes too)
 
 
 def test_the_theme_designer_copies_a_theme_and_changes_colours_fonts_and_corners():
@@ -223,7 +223,8 @@ def test_the_screens_load_uploaded_fonts_and_the_designer_offers_them():
     admin = (WEB / "BrandingAdmin.jsx").read_text(encoding="utf-8")
     assert "<Fonts fonts={data.fonts || []}" in admin and "/api/v1/admin/branding/fonts" in admin
     src = (API / "eax" / "api" / "branding.py").read_text(encoding="utf-8")
-    assert '@blp.route("/admin/branding/fonts")' in src and src.split('@blp.route("/admin/branding/fonts")', 1)[1].count('@require_auth("settings.manage")') == 2
+    fonts_part = src.split('@blp.route("/admin/branding/fonts")', 1)[1].split("each person's own look", 1)[0]
+    assert '@blp.route("/admin/branding/fonts")' in src and fonts_part.count('@require_auth("settings.manage")') == 2
 
 
 @needs_db

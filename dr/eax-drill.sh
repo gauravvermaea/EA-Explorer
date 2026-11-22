@@ -13,19 +13,22 @@
 # copy starting and the smoke test (only with --smoke) are WARNINGS. No test content is made. Then the DR copy is LEFT
 # RUNNING for you to test and the installation stays stopped (they share the ports; the owner, 18 Nov 2026, 07:46): back
 # with ./eax stop in the DR folder and ./eax up in the installation; the next drill removes the DR copy at its start and
-# starts the installation if it is stopped. The drill's backup is kept (pinned); the temp folder is deleted. Report:
+# starts the installation if it is stopped. With --then-back (R9.10, eax test full) the DR copy is stopped (kept) and
+# the installation started again instead; --smoke-after runs the smoke test on the DR copy only. The drill's backup is kept (pinned); the temp folder is deleted. Report:
 # <install>/work/tests/drill-<time>/.
 set -uo pipefail
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-INSTALL="" DR="" TEMP="" SMOKE=0
+INSTALL="" DR="" TEMP="" SMOKE=0 SMOKE_AFTER=0 THEN_BACK=0
 while [ $# -gt 0 ]; do
   case $1 in
     --install) INSTALL=$2; shift 2;; --dr) DR=$2; shift 2;; --temp) TEMP=$2; shift 2;;
     --smoke) SMOKE=1; shift;;   # the full smoke test before and after too (its findings are warnings)
+    --smoke-after) SMOKE_AFTER=1; shift;;   # the smoke test on the DR copy only (R9.10: eax test full)
+    --then-back) THEN_BACK=1; shift;;       # afterwards the DR copy stopped (kept) and the installation started again (R9.10)
     *) echo "Unknown option $1"; exit 2;;
   esac
 done
-[ -n "$INSTALL" ] && [ -n "$DR" ] && [ -n "$TEMP" ] || { echo "Usage: ./eax-drill.sh --install <folder> --dr <new folder> --temp <folder>"; exit 2; }
+[ -n "$INSTALL" ] && [ -n "$DR" ] && [ -n "$TEMP" ] || { echo "Usage: ./eax-drill.sh --install <folder> --dr <new folder> --temp <folder> [--smoke|--smoke-after] [--then-back]"; exit 2; }
 abs() { case $1 in /*) printf '%s' "${1%/}";; *) printf '%s/%s' "$(pwd)" "${1%/}";; esac; }
 INSTALL=$(abs "$INSTALL"); DR=$(abs "$DR"); TEMP=$(abs "$TEMP")
 inside() { case "$1/" in "$2/"*) return 0;; esac; return 1; }
@@ -53,7 +56,7 @@ LOG="$RUN/drill.log"
 # shellcheck source=dr-common.sh
 . "$HERE/dr-common.sh"
 START=$SECONDS
-ORIGINAL=$INSTALL VERSION="" BACKUPS="" CONFIG="" NAME="" COPY="" SHUT=0 QUIET_IN="" RECOVERY="" DR_STARTED=0
+ORIGINAL=$INSTALL VERSION="" BACKUPS="" CONFIG="" NAME="" COPY="" SHUT=0 QUIET_IN="" RECOVERY="" DR_STARTED=0 BACK=0
 
 finish() {
   local rc=$? extra=() notes=() n r diag=""
@@ -64,7 +67,21 @@ finish() {
   # the DR copy left as it is, running, for the owner to test; the installation left stopped (they share the ports)
   # (the owner, 18 Nov 2026, 07:46: "Leave the drill running and install stopped. I will manually remove it or delete it
   # and start back install as I see fit"); the next drill removes it at its start
-  if [ "$DR_STARTED" -eq 1 ]; then
+  # with --then-back (R9.10, eax test full): the DR copy stopped and kept, the installation running again; when the drill
+  # failed before it got there, the same is tried here
+  if [ "$DR_STARTED" -eq 1 ] && [ "$THEN_BACK" -eq 1 ]; then
+    [ -d "$DR/work/dr" ] && cp -R "$DR/work/dr" "$RUN/eax-dr" 2>/dev/null
+    if [ "$BACK" -eq 0 ]; then
+      say ""; say "> back to the installation (the DR copy stopped and kept)"
+      INSTALL=$DR; eax stop >/dev/null 2>&1; INSTALL=$ORIGINAL
+      if eax up --wait-all >/dev/null; then BACK=1; else notes+=("The installation could not be started again: in $DR run \`./eax stop\`, then in $ORIGINAL run \`./eax up\`."); fi
+    fi
+    if [ "$BACK" -eq 1 ]; then
+      notes+=("The DR copy is stopped and kept in $DR ($DR_PROJECT): to look at it, in $ORIGINAL run \`./eax stop\`, then in $DR run \`./eax up\`.")
+      notes+=("Your installation is running again.")
+    fi
+    notes+=("To remove the DR copy: in $ORIGINAL run \`./eax drill remove-copy $DR_PROJECT\` and delete $DR; the next drill does both at its start.")
+  elif [ "$DR_STARTED" -eq 1 ]; then
     [ -d "$DR/work/dr" ] && cp -R "$DR/work/dr" "$RUN/eax-dr" 2>/dev/null
     notes+=("The DR copy is left running in $DR ($DR_PROJECT), at the address your installation uses; your installation is stopped (they share the ports).")
     notes+=("Back to your installation: in $DR run \`./eax stop\`, then in $ORIGINAL run \`./eax up\`.")
@@ -181,6 +198,14 @@ compare() {
   echo "$(json_get keys_said "$EAX_JSON")"
 }
 signin() { eax drill signin || return 1; echo "signed in; $(json_get people "$EAX_JSON") people in $(json_get realm "$EAX_JSON"); the API answers"; }
+# --then-back (R9.10): the DR copy stopped and kept; the installation started again and signed in to
+stop_dr() { eax stop || return 1; echo "stopped; kept in $DR"; }
+back() {
+  eax up --wait-all || return 1
+  BACK=1
+  eax drill signin || return 1
+  echo "running again; signed in; $(json_get people "$EAX_JSON") people"
+}
 
 say "EA Explorer restore drill: $INSTALL backed up and shut down; a copy built from its own code in $DR and restored. Nothing is asked."
 step "checks (nothing touched yet)" checks
@@ -204,5 +229,10 @@ RECOVERY=$(((SECONDS - T0) / 60))
 soft_step "the key items compared with before" compare
 soft_step "the background back and the maintenance page off" quiet_off
 soft_step "the rest of the DR copy up (Reports, Documents, Diagrams)" eax up --wait-all
-[ "$SMOKE" -eq 1 ] && soft_step "the smoke test, after (asked for: findings are warnings)" smoke
+[ "$SMOKE" -eq 1 ] || [ "$SMOKE_AFTER" -eq 1 ] && soft_step "the smoke test, after (asked for: findings are warnings)" smoke
+if [ "$THEN_BACK" -eq 1 ]; then
+  step "the DR copy stopped (kept)" stop_dr
+  INSTALL=$ORIGINAL                # from here on, eax runs in the installation again
+  step "the installation started again and a real sign-in" back
+fi
 exit 0

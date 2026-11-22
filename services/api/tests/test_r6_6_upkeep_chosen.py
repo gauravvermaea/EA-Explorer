@@ -142,7 +142,7 @@ def test_rotation_and_renewal_switched_off_where_they_were_on_unless_an_admin_ch
     monkeypatch.setattr(CC, "S", st)
     CC.ensure_system_schedules()
     by = {s["id"]: s["enabled"] for s in st.items}
-    assert by == {"r6rotate": False, "r6certs": True, "x1": True, "r12tests": False}                  # an admin's choice kept
+    assert by == {"r6rotate": False, "r6certs": True, "x1": True, "r12tests": False, "r9images": True}   # an admin's choice kept; images: on (R9.12, it only reads)
     up = (REPO / "services/web/src/Upkeep.jsx").read_text()
     assert "schedules/r6certs/" in up
     assert 's["chosen"] = True' in (REPO / "eaxcli/schedules.py").read_text()

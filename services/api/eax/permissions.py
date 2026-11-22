@@ -46,6 +46,7 @@ GLOBAL_PERMISSIONS: dict[str, set[str]] = {
     "system.operate": {IT_ADMIN},          # jobs, audit log, SQL window, backups
     "users.read": {USER_ADMIN},            # the Users page: people, roles, which models (Model Admins: see access.py)
     "roles.map": {USER_ADMIN},             # map Keycloak roles to global roles
+    "users.manage": {USER_ADMIN},          # ask a person to set up their authenticator again, from the list (R9.7, D829)
     "keycloak.console": {KEYCLOAK_ADMIN},
     "models.all": set(),                   # read every model: Super Admin only
     "models.create": {MODEL_CREATOR},      # create a model and become its Model Admin (phase 4)

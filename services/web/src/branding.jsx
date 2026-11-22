@@ -7,11 +7,14 @@
 //     person's menu) puts it on in this browser until they choose again
 //   * the logo and the browser tab's icon, and the product name in the top bar
 import { useEffect, useState } from "react";
-import { apiBlobUrl, apiBytes, apiFetch, apiText, isBreakGlass } from "./auth";
+import { apiBlobUrl, apiBytes, apiDownload, apiFetch, apiText, isBreakGlass } from "./auth";
+import ThemeDesigner from "./ThemeDesigner";
 
 const STYLE_ID = "eax-theme";
 const LOOK_KEY = "eax.look";
-let state = { loaded: false, data: null, theme: "standard", mine: null, logo: null, favicon: null };
+let state = { loaded: false, data: null, theme: "standard", mine: null, own: [], fellBack: null, logo: null, favicon: null };
+// a person's own theme is chosen as own-theme.<slug> (R9.5, D827)
+export const OWN = "own-theme.";
 const listeners = new Set();
 const set = (patch) => { state = { ...state, ...patch }; listeners.forEach((f) => f(state)); };
 
@@ -24,11 +27,16 @@ export function setRescue(on) {
 
 // the theme this person sees: standard when rescued or on break-glass; theirs when allowed and still offered;
 // otherwise the organisation's
-export function themeFor(data, mine, { breakGlass = false, rescued = false } = {}) {
+// (R9.5, D827): only the themes the Super Admins offer (data.offered), or one of the person's own when they may make them
+export function themeFor(data, mine, { breakGlass = false, rescued = false, own = [] } = {}) {
   if (!data || breakGlass || rescued) return "standard";
-  const offered = new Set((data.themes || []).map((t) => t.slug));
-  if (data.personal && mine && offered.has(mine)) return mine;
-  return offered.has(data.theme) ? data.theme : "standard";
+  const every = new Set((data.themes || []).map((t) => t.slug));
+  const offered = new Set(data.offered || [...every]);
+  if (data.personal && mine) {
+    if (mine.startsWith(OWN)) { if (data.own && own.includes(mine.slice(OWN.length))) return mine; }
+    else if (offered.has(mine) && every.has(mine)) return mine;
+  }
+  return every.has(data.theme) ? data.theme : "standard";
 }
 
 function putStyle(css) {
@@ -45,12 +53,15 @@ function putFavicon(url) {
   link.href = url;
 }
 
+export const cssUrl = (slug) => (slug.startsWith(OWN) ? `/api/v1/branding/my-themes/${encodeURIComponent(slug.slice(OWN.length))}.css`
+  : `/api/v1/branding/themes/${encodeURIComponent(slug)}.css`);
+
 async function apply() {
-  const slug = themeFor(state.data, state.mine, { breakGlass: isBreakGlass(), rescued: rescue() });
+  const slug = themeFor(state.data, state.mine, { breakGlass: isBreakGlass(), rescued: rescue(), own: state.own.map((t) => t.slug) });
   set({ theme: slug });
   document.documentElement.dataset.eaxTheme = slug;
   if (slug === "standard") { putStyle(""); return; }
-  try { putStyle(await apiText(`/api/v1/branding/themes/${encodeURIComponent(slug)}.css`)); } catch { putStyle(""); }
+  try { putStyle(await apiText(cssUrl(slug))); } catch { putStyle(""); }
 }
 
 // try a theme on this screen only, at once, without saving (owner, 17 Nov 2026, 15:21: "When we select a theme it should
@@ -98,13 +109,17 @@ export async function loadBranding() {
   let data = null;
   try { data = await apiFetch("/api/v1/branding"); } catch { /* no API: the standard look */ }
   let mine = null;
+  let own = [];
   if (data?.personal) {
     try { mine = ((await apiFetch("/api/v1/me/settings")).settings || {}).theme || null; } catch { /* none */ }
+    if (data.own) { try { own = (await apiFetch("/api/v1/branding/my-themes")).themes || []; } catch { /* none */ } }
   }
+  // a theme of theirs no longer offered (or their own themes switched off): the organisation's, and they are told once
+  const fellBack = mine && themeFor(data, mine, { own: own.map((t) => t.slug) }) !== mine ? mine : null;
   const files = data?.files || {};
   const img = async (k) => (files[k] ? apiBlobUrl(`/api/v1/branding/${k}?v=${files[k].v}`).catch(() => null) : null);
   const [logo, favicon] = await Promise.all([img("logo"), img("favicon")]);
-  set({ loaded: true, data, mine, logo, favicon });
+  set({ loaded: true, data, mine, own, fellBack, logo, favicon });
   putFavicon(favicon);
   await loadFonts(data?.fonts);
   await apply();
@@ -113,9 +128,16 @@ export async function loadBranding() {
 // my own theme (null: the organisation's)
 export async function chooseMine(slug) {
   setRescue(false);
-  if (slug) await apiFetch("/api/v1/me/settings/theme", { method: "PUT", body: JSON.stringify({ value: slug }) });
-  else await apiFetch("/api/v1/me/settings/theme", { method: "DELETE" }).catch(() => {});
-  set({ mine: slug || null });
+  await apiFetch("/api/v1/branding/my-look", { method: "PUT", body: JSON.stringify({ theme: slug || null }) });
+  set({ mine: slug || null, fellBack: null });
+  await apply();
+}
+
+// my own themes again (after one is kept or removed)
+export async function reloadOwn() {
+  let own = [];
+  try { own = (await apiFetch("/api/v1/branding/my-themes")).themes || []; } catch { /* none */ }
+  set({ own });
   await apply();
 }
 
@@ -147,46 +169,95 @@ export function BrandMark() {
   );
 }
 
-// My profile > My look: the theme for me alone, when the Super Admins allow it; the standard look always
+// My profile > My look: the theme for me alone, when the Super Admins allow it, from those they offer (R9.5, D827); my own
+// themes (made in the designer or uploaded) when they allow that too; any theme I can see downloaded as CSS to share;
+// the standard look always
 export function MyLook() {
   const b = useBranding();
-  const [msg, setMsg] = useState("");
+  const [msg, setMsg] = useState({ ok: true, text: "" });
   const [trying, setTrying] = useState(undefined);     // a theme shown, not saved yet (undefined: none)
+  const [up, setUp] = useState({ name: "", css: "" });
   useEffect(() => () => { void endPreview(); }, []);         // leaving unsaved: back to the theme in use
   const data = b.data;
   if (!b.loaded) return null;
   const rescued = rescue();
   const org = (data?.themes || []).find((t) => t.slug === data?.theme);
+  const offered = (data?.themes || []).filter((t) => (data?.offered || []).includes(t.slug));
+  const own = data?.own ? b.own : [];
+  const say = (ok, text) => setMsg({ ok, text });
   const pick = (slug) => {                              // shown at once on this screen; Save keeps it
-    setTrying(slug); setMsg("");
-    void previewTheme(slug || themeFor(data, null, {}));
+    setTrying(slug); say(true, "");
+    void (slug ? apiText(cssUrl(slug)).then(previewCss).catch(() => {}) : previewTheme(themeFor(data, null, {})));
   };
   const save = async () => {
-    try { previewing = null; await chooseMine(trying); setTrying(undefined); setMsg("Saved: every screen uses it now."); }
-    catch (e) { setMsg(e.message); }
+    try { previewing = null; await chooseMine(trying); setTrying(undefined); say(true, "Saved: every screen uses it now."); }
+    catch (e) { say(false, e.message); }
   };
   const undo = () => { setTrying(undefined); void endPreview(); };
+  const download = (slug, name) => apiDownload(`${cssUrl(slug)}?download=1`, `${name || slug}.css`).catch((e) => say(false, e.message));
+  const readFile = (e) => {
+    const f = e.target.files?.[0]; e.target.value = "";
+    if (f) f.text().then((css) => setUp((u) => ({ ...u, css, name: u.name || f.name.replace(/\.css$/i, "") })));
+  };
+  const keep = async () => {
+    try { const r = await apiFetch("/api/v1/branding/my-themes", { method: "POST", body: JSON.stringify(up) });
+      setUp({ name: "", css: "" }); await reloadOwn(); say(true, `${r.name} kept as your own: choose it above to use it.`); }
+    catch (e) { say(false, e.message); }
+  };
+  const remove = async (t) => {
+    if (!window.confirm(`Remove your theme ${t.name}?`)) return;
+    try { await apiFetch(`/api/v1/branding/my-themes/${encodeURIComponent(t.slug)}`, { method: "DELETE" }); await loadBranding(); say(true, "Removed."); }
+    catch (e) { say(false, e.message); }
+  };
+  let told = false;
+  try { told = !b.fellBack || window.localStorage.getItem(`eax.look.told.${b.fellBack}`) === "1";
+    if (!told) window.localStorage.setItem(`eax.look.told.${b.fellBack}`, "1"); } catch { told = true; }
   return (
     <>
       <h2>My look</h2>
+      {!told && <p className="status bad">The theme you chose is no longer one you may use, so your screens use the organisation's.</p>}
       {rescued && <p className="status bad">This browser shows the standard look, whatever theme is chosen.
-        <button className="linkish" onClick={() => { setRescue(false); void apply(); setMsg(""); }}> Use the chosen theme again</button></p>}
+        <button className="linkish" onClick={() => { setRescue(false); void apply(); say(true, ""); }}> Use the chosen theme again</button></p>}
       {data?.personal ? <>
         <p className="quiet">Pick the theme your screens use. The organisation's is {org?.name || "Standard (light)"}; yours is for you alone.</p>
         <div className="row-gap">
           <select aria-label="My theme" value={(trying === undefined ? b.mine : trying) || ""} onChange={(e) => pick(e.target.value || null)}>
             <option value="">The organisation's ({org?.name || "Standard (light)"})</option>
-            {(data.themes || []).map((t) => <option key={t.slug} value={t.slug}>{t.name}</option>)}
+            {offered.map((t) => <option key={t.slug} value={t.slug}>{t.name}</option>)}
+            {own.map((t) => <option key={t.slug} value={OWN + t.slug}>{t.name} (mine)</option>)}
           </select>
           {trying !== undefined && <>
             <button className="primary" onClick={save}>Save</button>
             <button onClick={undo}>Undo</button>
             <span className="small quiet">Shown here to try it: Save keeps it.</span></>}
         </div>
+        <details className="my-themes">
+          <summary>Download a theme as CSS, to share it</summary>
+          <ul className="plain-list">
+            {offered.map((t) => <li key={t.slug}>{t.name} <button className="small" onClick={() => download(t.slug, t.slug)}>Download CSS</button></li>)}
+          </ul>
+        </details>
+        {data.own && <>
+          <h3>My own themes</h3>
+          <p className="quiet small">Yours alone: nobody else sees them. At most ten, each a CSS file of looks only (nothing that loads
+            from elsewhere or runs).</p>
+          {own.length ? <ul className="plain-list">
+            {own.map((t) => <li key={t.slug}>{t.name} <span className="quiet small">({Math.ceil(t.size / 1024)} KB)</span>{" "}
+              <button className="small" onClick={() => download(OWN + t.slug, t.slug)}>Download CSS</button>{" "}
+              <button className="small" onClick={() => remove(t)}>Remove</button></li>)}
+          </ul> : <p className="quiet small">None yet.</p>}
+          <div className="row-gap">
+            <input value={up.name} maxLength={60} placeholder="Name" aria-label="My theme's name" onChange={(e) => setUp({ ...up, name: e.target.value })} />
+            <label className="button-like">Upload a theme…<input type="file" accept=".css,text/css" hidden onChange={readFile} /></label>
+            <button className="primary" disabled={!up.name.trim() || !up.css} onClick={keep}>Keep it</button>
+            {up.css && <span className="small quiet">{Math.ceil(up.css.length / 1024)} KB read</span>}
+          </div>
+          <ThemeDesigner mine themes={offered} fonts={data.fonts || []} />
+        </>}
       </> : <p className="quiet">Everyone uses the organisation's theme ({org?.name || "Standard (light)"}); the Super Admins can let each
         person pick their own.</p>}
       {!rescued && <p className="small quiet">Hard to read? <a href="#/my-profile?look=standard">Use the standard look in this browser</a>.</p>}
-      {msg && <p className="status ok">{msg}</p>}
+      {msg.text && <p className={`status ${msg.ok ? "ok" : "bad"}`}>{msg.text}</p>}
     </>
   );
 }

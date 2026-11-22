@@ -263,6 +263,9 @@ services:
       - ./README.md:/data/docs/README.md:ro
       - ./eaxcli/help.txt:/data/docs/eaxcli/help.txt:ro
       - ./releases:/data/docs/releases:ro
+      # for the AI's documentation tools (R9.3, D796): the printed guides' PDFs and the on-screen help
+      - ./documents:/data/docs/documents:ro
+      - ./services/web/src/help/catalogue.json:/data/docs/help/catalogue.json:ro
     networks: [frontend, backend]
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/api/health').status==200 else 1)"]

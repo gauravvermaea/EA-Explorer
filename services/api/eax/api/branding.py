@@ -12,6 +12,11 @@ DELETE /admin/branding/themes/<slug> remove an added theme (Super Admins)
 GET    /branding/fonts/<slug>        an uploaded font's file, which the screens load for the themes (everyone signed in)
 POST   /admin/branding/fonts         a font file (multipart "file", with family, weight normal|bold, style normal|italic)
 DELETE /admin/branding/fonts/<slug>  remove an uploaded font (Super Admins)
+PUT    /branding/my-look              {theme}: my own theme, one offered or one of my own (null: the organisation's) (R9.5)
+GET    /branding/my-themes            my own themes, and whether I may make them; POST {name, css} keeps one (R9.5)
+DELETE /branding/my-themes/<slug>     removes one of my own themes
+GET    /branding/my-themes/<slug>.css one of my own themes' CSS (?download=1 to save it)
+GET    /admin/branding/own-themes     who keeps themes of their own (Super Admins); DELETE .../<user>/<slug> removes one
 """
 
 from __future__ import annotations
@@ -189,3 +194,95 @@ class FontAdmin(MethodView):
     def delete(self, slug):
         """Remove an uploaded font"""
         return _run(lambda c: B.delete_font(c, slug), write=True, action="branding.font.remove", details={"slug": slug})
+
+
+# ---------------------------------------------------------------- each person's own look (R9.5, D827)
+@blp.route("/branding/my-look")
+class MyLook(MethodView):
+    """/api/v1/branding/my-look: PUT {theme}: my own theme, one the Super Admins offer or one of my own; null or empty
+    for the organisation's. A theme that is not mine to pick is refused."""
+    @blp.doc(security=SECURITY)
+    @blp.arguments(FreeIn)
+    @blp.response(200, Free)
+    @require_auth()
+    def put(self, data):
+        """My own theme, one offered or one of my own (null: the organisation's)"""
+        return _run(lambda c: B.set_look(c, g.user.username, (data or {}).get("theme") or None), write=True)
+
+
+@blp.route("/branding/my-themes")
+class MyThemes(MethodView):
+    """/api/v1/branding/my-themes: GET my own themes and whether I may make them; POST {name, css} (or a multipart file
+    "file" with "name") keeps one, checked as an uploaded theme is (R9.5)."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth()
+    def get(self):
+        """My own themes, and whether I may make them"""
+        def read(c):
+            choice = B.get_choice(c)
+            return {"own": bool(choice.get("personal") and choice.get("own")), "themes": B.own_themes(c, g.user.username),
+                    "max": B.OWN_MAX, "max_kb": B.OWN_MAX_CSS // 1024}
+        return _run(read)
+
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth()
+    def post(self):
+        """Keep one of my own themes (made in the designer or uploaded)"""
+        f = request.files.get("file")
+        if f:
+            data = {"name": request.form.get("name"), "css": f.read(B.OWN_MAX_CSS + 1)}
+        else:
+            data = request.get_json(silent=True) or {}
+        return _run(lambda c: B.save_own(c, g.user.username, data.get("name"), data.get("css")), write=True)
+
+
+@blp.route("/branding/my-themes/<string:slug>")
+class MyTheme(MethodView):
+    """/api/v1/branding/my-themes/{slug}: DELETE one of my own themes (when I used it, the organisation's again)."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth()
+    def delete(self, slug):
+        """Remove one of my own themes"""
+        return _run(lambda c: B.delete_own(c, g.user.username, slug), write=True)
+
+
+@blp.route("/branding/my-themes/<string:slug>.css")
+class MyThemeCss(MethodView):
+    """/api/v1/branding/my-themes/{slug}.css: GET one of my own themes' CSS, checked again as it is read; ?download=1
+    to save it, to share or upload elsewhere."""
+    @blp.doc(security=SECURITY)
+    @require_auth()
+    def get(self, slug):
+        """One of my own themes' CSS"""
+        name, css = _run(lambda c: B.own_css(c, g.user.username, slug))
+        headers = {"Cache-Control": "no-store", **SAFE}
+        if request.args.get("download") in ("1", "true"):
+            headers["Content-Disposition"] = f'attachment; filename="{slug}.css"'
+        return Response(css, mimetype="text/css", headers=headers)
+
+
+@blp.route("/admin/branding/own-themes")
+class OwnThemesAdmin(MethodView):
+    """/api/v1/admin/branding/own-themes: GET who keeps themes of their own, each theme's name and size (Super Admins)."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth("settings.manage")
+    def get(self):
+        """Who keeps themes of their own"""
+        return {"themes": _run(B.own_in_use)}
+
+
+@blp.route("/admin/branding/own-themes/<string:username>/<string:slug>")
+class OwnThemeAdmin(MethodView):
+    """/api/v1/admin/branding/own-themes/{username}/{slug}: DELETE a person's own theme that causes trouble (Super
+    Admins); when they used it, they are on the organisation's again."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth("settings.manage")
+    def delete(self, username, slug):
+        """Remove a person's own theme"""
+        return _run(lambda c: B.remove_own_of(c, username.lower(), slug), write=True, action="branding.own_theme.remove",
+                    details={"username": username.lower(), "slug": slug})

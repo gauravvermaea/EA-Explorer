@@ -35,7 +35,8 @@
   Then the DR copy is LEFT RUNNING for you to test, and the installation stays stopped (they share the ports): the
   owner, 18 Nov 2026, 07:46: "Leave the drill running and install stopped. I will manually remove it or delete it and
   start back install as I see fit". Back: `.\eax stop` in the DR folder, `.\eax up` in the installation. The next
-  drill removes the DR copy at its start. When it fails before eax-dr starts, the installation is started again. The
+  drill removes the DR copy at its start. With -ThenBack (R9.10, eax test full) the DR copy is stopped (kept) and the
+  installation started again instead; -SmokeAfter runs the smoke test on the DR copy only. When it fails before eax-dr starts, the installation is started again. The
   drill's backup is kept (pinned). The temp folder is deleted; the report and the logs stay in the installation:
   work\tests\drill-<time>\report.md, with the recovery time.
 
@@ -46,7 +47,9 @@ param(
     [Parameter(Mandatory = $true)][string]$Install,
     [Parameter(Mandatory = $true)][string]$Dr,
     [Parameter(Mandatory = $true)][string]$Temp,
-    [switch]$Smoke      # the full smoke test before and after too (its findings are warnings): about ten minutes more
+    [switch]$Smoke,     # the full smoke test before and after too (its findings are warnings): about ten minutes more
+    [switch]$SmokeAfter,  # the smoke test on the DR copy only (R9.10: eax test full)
+    [switch]$ThenBack     # afterwards the DR copy stopped (kept) and the installation started again (R9.10)
 )
 $ErrorActionPreference = "Stop"
 $Install = [IO.Path]::GetFullPath($Install).TrimEnd('\', '/')
@@ -95,6 +98,7 @@ $BackupName = ""
 $copy = ""
 $shutDown = $false
 $drStarted = $false       # eax-dr began building the DR copy (it may be half built)
+$back = $false            # -ThenBack: the installation running again
 $quietWhere = ""          # the folder whose background is paused, so it is never left paused
 if (-not (Disposable-Temp $Temp)) {
     Write-Host "$Temp holds files other than an earlier drill's: give a new folder (the drill deletes it afterwards)" -ForegroundColor Red
@@ -172,7 +176,15 @@ try {
         "$($c.keys_said)" }
     SoftStep "the background back and the maintenance page off" { Eax @("drill", "quiet", "off") | Out-Null; $script:quietWhere = "" }
     SoftStep "the rest of the DR copy up (Reports, Documents, Diagrams)" { Eax @("up", "--wait-all") | Out-Null; "every container up" }
-    if ($Smoke) { SoftStep "the smoke test, after (asked for: findings are warnings)" { Smoke } }
+    if ($Smoke -or $SmokeAfter) { SoftStep "the smoke test, after (asked for: findings are warnings)" { Smoke } }
+    # -ThenBack (R9.10, eax test full): the DR copy stopped and kept; the installation started again and signed in to
+    if ($ThenBack) {
+        Step "the DR copy stopped (kept)" { Eax @("stop") | Out-Null; "stopped; kept in $Dr" }
+        $Install = $Original           # from here on, eax runs in the installation again
+        Step "the installation started again and a real sign-in" {
+            Eax @("up", "--wait-all") | Out-Null; $script:back = $true
+            $s = Eax @("drill", "signin"); "running again; signed in; $($s.people) people" }
+    }
     $exit = 0
 } catch {
     $exit = 1
@@ -187,7 +199,24 @@ try {
     # the DR copy left as it is, running, for the owner to test; the installation left stopped (they share the ports)
     # (the owner, 18 Nov 2026, 07:46: "Leave the drill running and install stopped. I will manually remove it or delete it
     # and start back install as I see fit"); the next drill removes it at its start
-    if ($drStarted) {
+    if ($drStarted -and $ThenBack) {
+        # -ThenBack (R9.10): the DR copy stopped and kept, the installation running again; tried here too when the drill
+        # failed before it got there
+        $drReports = Join-Path $Dr "work\dr"
+        if (Test-Path $drReports) { Copy-Item -Recurse -Force $drReports (Join-Path $Run "eax-dr") }
+        if (-not $back) {
+            Say "`n> back to the installation (the DR copy stopped and kept)" "Cyan"
+            $Install = $Dr; try { Eax @("stop") | Out-Null } catch { }
+            $Install = $Original
+            try { Eax @("up", "--wait-all") | Out-Null; $back = $true }
+            catch { $notes.Add("The installation could not be started again: in $Dr run ``.\eax stop``, then in $Original run ``.\eax up``.") }
+        }
+        if ($back) {
+            $notes.Add("The DR copy is stopped and kept in $Dr ($DrProject): to look at it, in $Original run ``.\eax stop``, then in $Dr run ``.\eax up``.")
+            $notes.Add("Your installation is running again.")
+        }
+        $notes.Add("To remove the DR copy: in $Original run ``.\eax drill remove-copy $DrProject`` and delete $Dr; the next drill does both at its start.")
+    } elseif ($drStarted) {
         $drReports = Join-Path $Dr "work\dr"
         if (Test-Path $drReports) { Copy-Item -Recurse -Force $drReports (Join-Path $Run "eax-dr") }
         $notes.Add("The DR copy is left running in $Dr ($DrProject), at the address your installation uses; your installation is stopped (they share the ports).")

@@ -143,6 +143,43 @@ def reset_device(username: str, kc: Keycloak | None = None) -> dict:
     return {"username": username, "removed": removed}
 
 
+def person(username: str, kc: Keycloak | None = None) -> dict:
+    """A person in Keycloak by user name: {id, username, email, roles (realm roles)}; UpkeepError when there is none."""
+    kc = _kc(kc)
+    s, found, _ = kc._call("GET", f"/users?exact=true&username={urllib.parse.quote(username)}")
+    if s != 200 or not found:
+        raise UpkeepError(f"No person {username} in Keycloak.")
+    u = found[0]
+    return {"id": u["id"], "username": u.get("username", username), "email": u.get("email") or "",
+            "roles": sorted(_roles(kc, u["id"]))}
+
+
+def force_setup(username: str, kc: Keycloak | None = None) -> dict:
+    """Ask a person to set up their authenticator again, at once (R9.7, D829): their codes removed, Configure OTP asked
+    for, and every session of theirs ended in Keycloak (signed out of the screens, Reports and Documents), so their next
+    sign-in, straight away, goes through the set-up first. Their tokens, API keys and certificates are not touched;
+    nor is the MFA setting (it works with MFA off too)."""
+    kc = _kc(kc)
+    out = reset_device(username, kc)
+    s, found, _ = kc._call("GET", f"/users?exact=true&username={urllib.parse.quote(username)}")
+    uid = found[0]["id"] if s == 200 and found else ""
+    signed_out = bool(uid) and kc._call("POST", f"/users/{uid}/logout")[0] in (200, 204)
+    return {**out, "signed_out": signed_out}
+
+
+def mfa_states(kc: Keycloak | None = None) -> dict[str, str]:
+    """Each person's authenticator: set up, asked (to set one up) or none, by user name (the service and test accounts
+    left out)."""
+    kc = _kc(kc)
+    out: dict[str, str] = {}
+    for u in _users(kc):
+        name = u.get("username", "")
+        if skipped(name):
+            continue
+        out[name] = "set up" if _has_code(kc, u["id"]) else "asked" if ACTION in (u.get("requiredActions") or []) else "none"
+    return out
+
+
 def mfa_status(kc: Keycloak | None = None) -> dict:
     """Who has a code set up, and who has been asked to set one up."""
     kc = _kc(kc)

@@ -174,8 +174,8 @@ def test_every_form_of_eax_has_the_errors_command():
         sys.path.insert(0, str(ROOT))
     from eaxcli import commands as C
     assert "### errors [<code-or-words>...]" in (ROOT / "eaxcli" / "help.txt").read_text(encoding="utf-8")
-    assert '"site", "errors", "sonar")) -or' in (ROOT / "eax.ps1").read_text(encoding="utf-8")    # sonar: D805
-    assert "|site|errors|sonar)" in (ROOT / "eax.sh").read_text(encoding="utf-8")
+    assert '"site", "errors", "sonar", "images")) -or' in (ROOT / "eax.ps1").read_text(encoding="utf-8")    # sonar: D805
+    assert "|site|errors|sonar|images)" in (ROOT / "eax.sh").read_text(encoding="utf-8")
     assert 'command == "errors"' in (ROOT / "eaxcli" / "main.py").read_text(encoding="utf-8")
     assert C.check_argv(["errors", "EAX-AUTH-001"]) == ["errors", "EAX-AUTH-001"]       # a code is a free word
     assert C.check_argv(["errors", "no", "backup"]) == ["errors", "no", "backup"]

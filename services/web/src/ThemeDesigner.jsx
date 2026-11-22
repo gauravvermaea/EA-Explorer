@@ -6,7 +6,7 @@
 // theme loads nothing from elsewhere, D729).
 import { useEffect, useState } from "react";
 import { apiFetch, apiText } from "./auth";
-import { endPreview, loadBranding, previewCss } from "./branding";
+import { endPreview, loadBranding, previewCss, reloadOwn } from "./branding";
 
 export const COLOURS = [
   ["--accent", "Accent: buttons, links, the selected tab"], ["--accent-soft", "Accent, soft: highlights"],
@@ -70,7 +70,8 @@ export function makeCss(base, t, fonts = FONTS) {
     + `button.primary { background: ${t.colours["--accent"]}; border-color: ${t.colours["--accent"]}; }\n`;
 }
 
-export default function ThemeDesigner({ themes, fonts: uploaded, onSaved }) {
+// mine (R9.5, D827): on My profile, a theme of the person's own, kept with their settings and seen by them alone
+export default function ThemeDesigner({ themes, fonts: uploaded, onSaved, mine = false }) {
   const fonts = withUploaded(uploaded);
   const [from, setFrom] = useState("");
   const [base, setBase] = useState("");
@@ -95,10 +96,14 @@ export default function ThemeDesigner({ themes, fonts: uploaded, onSaved }) {
   const set = (patch) => setT((x) => ({ ...x, ...patch }));
   const save = async (asNew) => {
     try {
-      const r = await apiFetch("/api/v1/admin/branding/themes", { method: "POST",
-        body: JSON.stringify({ name, css: makeCss(base, t, fonts), slug: asNew ? undefined : replace || undefined }) });
-      await endPreview(); await loadBranding();
-      setMsg({ ok: true, text: `${r.name} saved: choose it as the organisation's theme above, or let people pick it.` });
+      const r = mine
+        ? await apiFetch("/api/v1/branding/my-themes", { method: "POST", body: JSON.stringify({ name, css: makeCss(base, t, fonts) }) })
+        : await apiFetch("/api/v1/admin/branding/themes", { method: "POST",
+          body: JSON.stringify({ name, css: makeCss(base, t, fonts), slug: asNew ? undefined : replace || undefined }) });
+      await endPreview();
+      if (mine) await reloadOwn(); else await loadBranding();
+      setMsg({ ok: true, text: mine ? `${r.name} saved as your own: choose it above to use it.`
+        : `${r.name} saved: choose it as the organisation's theme above, or let people pick it.` });
       setReplace(r.slug);
       onSaved?.();
     } catch (e) { setMsg({ ok: false, text: e.message }); }

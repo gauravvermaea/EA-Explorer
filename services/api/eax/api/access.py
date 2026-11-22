@@ -19,6 +19,7 @@ from .. import keycloak_admin as kc
 from .. import repository as repo
 from ..auth import require_auth
 from ..db import get_engine
+from .models import Free, FreeIn
 
 blp = Blueprint("access", __name__, url_prefix="/api/v1",
                 description="Roles (mapped from Keycloak), people and who is assigned to which model")
@@ -270,6 +271,100 @@ class People(MethodView):
         return [{**p, "roles": permissions.app_roles(p["keycloak_roles"], mapping), "models": assigned.get(p["username"], []),
                  "projects": on_projects.get(str(p["username"]).lower(), []), "keycloak_url": kc.console_url(p["id"])}
                 for p in people]
+
+
+# ---------------------------------------------------------------- the authenticator set up again (R9.7, D829)
+def mfa_refusal(actor: str, actor_roles, break_glass: bool, target: dict) -> str:
+    """Why this person may not ask the target to set up their authenticator again ("" when they may) (pure): never
+    themselves from the list (another admin can, or a Super Admin on System Admin › Security; R12.19), a Super Admin only
+    by another Super Admin, never a service or
+    test account; a break-glass session may reset anyone (the way back in when an admin lost their phone)."""
+    from .. import keycloak_upkeep as ku
+    name = str(target.get("username") or "").lower()
+    if ku.skipped(name):
+        return "a service or test account has no authenticator to set up"
+    if break_glass:
+        return ""
+    if name == str(actor or "").lower():
+        return ("not yourself from the list: ask another admin, or (a Super Admin) use System Admin › Security › "
+                "Reset the authenticator of")
+    target_is_super = ("eax-super-admin" in set(target.get("roles") or [])
+                       or permissions.SUPER_ADMIN in set(target.get("app_roles") or []))
+    if target_is_super and permissions.SUPER_ADMIN not in set(actor_roles or []):
+        return "a Super Admin's authenticator is reset only by another Super Admin"
+    return ""
+
+
+def mfa_reset_mail(person: dict, by: str, at: str) -> tuple[str, str]:
+    """The email a person gets when an admin asks them to set up their authenticator again (subject, body)."""
+    return ("EA Explorer: set up your authenticator again",
+            f"Hello {person.get('username')},\n\n{by} asked you to set up your authenticator app again for EA Explorer "
+            f"({at} UTC). You have been signed out; the next time you sign in, EA Explorer shows a QR code to scan with "
+            "your authenticator app, then asks for a code from it. Codes from your old phone no longer work.\n\n"
+            "If you did not expect this, tell your EA Explorer administrator.\n")
+
+
+@blp.route("/people/mfa")
+class PeopleMfa(MethodView):
+    """/api/v1/people/mfa: GET each person's authenticator: set up, asked (to set one up) or none (User Admins and
+    Super Admins; R9.7)."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth("users.read")
+    def get(self):
+        """Each person's authenticator: set up, asked (to set one up) or none, by user name (R9.7)"""
+        from .. import keycloak_upkeep as ku
+        try:
+            return {"states": ku.mfa_states()}
+        except ku.UpkeepError as exc:
+            abort(503, message=f"Keycloak could not be asked: {exc}")
+
+
+@blp.route("/people/mfa-reset")
+class PeopleMfaReset(MethodView):
+    """/api/v1/people/mfa-reset: POST {usernames: [...]} asks each to set up their authenticator again, at once: their
+    codes removed, signed out everywhere, the set-up at their next sign-in; emailed and audited (R9.7, D829)."""
+    @blp.doc(security=SECURITY)
+    @blp.arguments(FreeIn)
+    @blp.response(200, Free)
+    @require_auth("users.manage")
+    def post(self, data):
+        """Asks each person named to set up their authenticator again, at once: their codes removed, signed out
+        everywhere, the set-up at their next sign-in; each emailed (when mail is set up) and audited (R9.7, D829)"""
+        from datetime import UTC, datetime
+
+        from .. import alerts
+        from .. import keycloak_upkeep as ku
+        names = [str(x).strip().lower() for x in ((data or {}).get("usernames") or []) if str(x).strip()]
+        if not names:
+            abort(400, message="usernames: whose authenticator to set up again.")
+        if len(names) > 100:
+            abort(400, message="At most 100 people at once.")
+        at = datetime.now(UTC).strftime("%Y-%m-%d %H:%M")
+        done, refused = [], []
+        for name in dict.fromkeys(names):
+            try:
+                target = ku.person(name)
+                target["app_roles"] = permissions.app_roles(target["roles"], permissions.role_map())
+            except ku.UpkeepError as exc:
+                refused.append({"username": name, "why": str(exc)})
+                continue
+            why = mfa_refusal(g.user.username, g.user.roles, bool(getattr(g.user, "break_glass", False)), target)
+            if why:
+                refused.append({"username": name, "why": why})
+                continue
+            try:
+                out = ku.force_setup(name)
+            except ku.UpkeepError as exc:
+                refused.append({"username": name, "why": str(exc)})
+                continue
+            subject, body = mfa_reset_mail(target, g.user.username, at)
+            mailed = alerts.send_email([target["email"]], subject, body) if target.get("email") else "no email address"
+            with get_engine().begin() as conn:
+                audit.record(conn, actor=g.user.username, action="security.mfa_reset", object_type="person",
+                             object_id=name, details={**out, "from": "users list", "emailed": mailed == "", "mail": mailed})
+            done.append({**out, "emailed": mailed == "", "mail": mailed})
+        return {"done": done, "refused": refused}
 
 
 # ---------------------------------------------------------------- who is assigned to a model

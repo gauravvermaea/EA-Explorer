@@ -36,7 +36,7 @@ def test_the_order_and_the_options():
                                      'full_step("backup and restore test"', 'full_step("SonarQube scan"', "full_summary(steps, began)")]
     assert order == sorted(order)
     assert 'if last and "--no-dev-check" not in rest:' in body and "if not no_sonar:" in body
-    assert 'rest = [a for a in rest if a not in ("--no-dev-check", "--no-sonar")]' in body   # not passed to the helper
+    assert 'rest = [a for a in rest if a not in ("--no-dev-check", "--no-sonar", "--no-dr")]' in body   # not passed to the helper
 
 
 def test_the_help_and_the_fields_say_so():

@@ -348,6 +348,16 @@ $ {eax} sign 5.0.0 --key ~/.eax/eax-release-signing
 OK when it is signed by a trusted key and every file is as signed; REFUSED with why otherwise (exit code 1).
 $ {eax} verify 5.0.0
 
+### images [check] [--no-tell]
+> Every image EA Explorer uses: the one here, whether a newer one is published, its fixable findings.
+For our own images, the image each Dockerfile builds on; for the others (PostgreSQL, Keycloak, Superset...), the image
+itself. Each is compared with the one published now under the same name (read from the registry, nothing downloaded),
+with the fixable high and critical findings of the last security test. Nothing is changed: to take the newer images,
+clean-restart (it fetches them and builds on them), then test full. A schedule runs it on the first day of every third
+month (System Admin > Command centre > Schedules) and tells the Super Admins and IT Admins when something is newer
+(R9.12); --no-tell does not. The report: work/images/check-<time>.md.
+$ {eax} images
+
 ### update [--status] [--retry] [--channel prod|rc] [--to <version>] [--at <time>] [--url <link>] [--yes]
 > Moves to a newer published GitHub release: a full backup first, then one release at a time.
 Without options it is guided: it shows the installed version and the channels, lists the published releases above the
@@ -421,7 +431,10 @@ and IT Admins.
           every page and every journey in a headless browser, the job queue, the reports, the backup checks, the attack
           test below where it may run (a laptop, or EAX_ATTACK_ALLOWED=yes; --no-attack or --ci leaves it out, an hour
           or two more), the backup and restore test below (it asks nothing; --ci leaves it out), and last the SonarQube
-          scan (eax test sonar; --no-sonar leaves it out). Each step runs whatever the one before found; a list of every
+          scan (eax test sonar; --no-sonar leaves it out), then the DR drill (R9.10; --no-dr leaves it out): dr/eax-drill
+          on this installation into the folders beside it (<folder>-drill-dr and <folder>-drill-temp), the smoke test
+          on the DR copy, then the DR copy stopped and kept and this installation started again and signed in to.
+          Each step runs whatever the one before found; a list of every
           step ends it, and one summary page with a card a step (D825): work/tests/full-<time>/index.html, kept in
           the database too (eax test summary; System Admin > Self-test > Summary). With --ci only the self-test runs.
   security  only the security suite (part of full, R5.17): the front door's headers, the dependencies, the code and
@@ -662,7 +675,7 @@ $ {eax} setup
 $ {eax} setup server
 $ {eax} setup external-db --host db.example.org
 
-### access [admins|reset-password|unlock|mfa-off] [USER]
+### access [admins|reset-password|unlock|mfa-off] [USER] [--all] [--yes]
 > Gets an administrator back in, from the machine: a new password, the account unlocked, or MFA removed.
 Only for the administrators (the first admin and anyone with the Super Admin or IT Admin role in Keycloak), only to get
 back in: people and their roles are managed in EA Explorer and Keycloak. It works inside Keycloak's container, nothing
@@ -670,10 +683,13 @@ over the network. USER: the first admin when not given.
   admins           the administrators and whether each is enabled (the default).
   reset-password   a new temporary password, shown once; it must be changed at the next sign-in.
   unlock           the account enabled and its lock after wrong passwords lifted.
-  mfa-off          the authenticator removed (a lost phone): set up again at the next sign-in.
+  mfa-off          the authenticator removed (a lost phone) and no new one asked for, unless the multi-factor
+                   setting wants this person to have one. With --all: multi-factor sign-in off for everyone (the
+                   setting set to off, every authenticator removed, nobody asked); asks you to type OFF unless --yes.
 $ {eax} access
 $ {eax} access reset-password eaadmin
 $ {eax} access unlock eaadmin
+$ {eax} access mfa-off --all
 
 ### settings [parts|export|import|copies|undo] [FILE] [--parts LIST] [--yes]
 > Exports or imports the settings and admin configuration as one file, the parts you choose.

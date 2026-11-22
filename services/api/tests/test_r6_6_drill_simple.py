@@ -118,8 +118,12 @@ def test_only_the_restore_and_the_sign_in_fail_the_drill():
     ps, sh = (DR / "eax-drill.ps1").read_text(), (DR / "eax-drill.sh").read_text()
     for t in (ps, sh):
         assert "drill content" not in t.replace('"drill", "content', "drill content")     # no test content made
-    hard_ps = [line.split('"')[1] for line in ps.splitlines() if line.strip().startswith("Step \"")]
+    # the two steps of going back (R9.10) come only with --then-back, after the drill itself
+    back = ("the DR copy stopped (kept)", "the installation started again and a real sign-in")
+    hard_ps = [line.split('"')[1] for line in ps.splitlines() if line.strip().startswith("Step \"")
+               and line.split('"')[1] not in back]
     hard_sh = [line.split('"')[1] for line in sh.splitlines() if line.startswith("step \"")]
+    assert all(f'step "{b}"' in sh and f'Step "{b}"' in ps for b in back)
     for hard in (hard_ps, hard_sh):
         assert [h.split(":")[0].split(" (")[0] for h in hard] == [
             "checks", "an earlier drill's DR copy and leftovers removed and the folders made",

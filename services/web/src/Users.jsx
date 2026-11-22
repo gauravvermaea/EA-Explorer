@@ -4,6 +4,43 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch, can, roleName, needsRole } from "./auth";
 import { downloadCsv } from "./exporting";
+import { Modal } from "./ModelOps";
+
+// R9.7 (owner, 21 Nov 2026: "force one user setup authenticator from user list if they lost phone or something"; D829)
+const MFA_SHOWN = { "set up": "set up", asked: "asked to set up", none: "none" };
+
+function MfaReset({ people, onClose, onDone }) {
+  const [busy, setBusy] = useState(false);
+  const [out, setOut] = useState(null);
+  const [error, setError] = useState("");
+  async function go() {
+    setBusy(true); setError("");
+    try { setOut(await apiFetch("/api/v1/people/mfa-reset", { method: "POST", body: JSON.stringify({ usernames: people }) })); onDone(); }
+    catch (err) { setError(err.message); }
+    setBusy(false);
+  }
+  return (
+    <Modal title="Set up the authenticator again" onClose={onClose}
+      actions={out ? <button onClick={onClose}>Close</button>
+        : <><button onClick={onClose}>Cancel</button><button className="primary" disabled={busy} onClick={go}>{busy ? "Asking..." : `Ask ${people.length === 1 ? "them" : `these ${people.length}`}`}</button></>}>
+      {!out && <>
+        <p>Ask <strong>{people.join(", ")}</strong> to set up their authenticator app again, now:</p>
+        <ul>
+          <li>the codes of their current authenticator stop working;</li>
+          <li>they are signed out everywhere (the screens, Reports and Documents);</li>
+          <li>their next sign-in shows a QR code to scan with their new phone, then asks for a code;</li>
+          <li>they are emailed (when mail is set up), and it is recorded in the audit trail.</li>
+        </ul>
+        <p className="quiet">Their tokens, API keys and certificates are not touched. It works whatever the multi-factor setting is.</p>
+      </>}
+      {out && <>
+        {out.done.length > 0 && <p className="status ok">Asked: {out.done.map((d) => `${d.username}${d.signed_out ? "" : " (not signed out)"}${d.emailed ? ", emailed" : ""}`).join("; ")}.</p>}
+        {out.refused.map((r) => <p key={r.username} className="status bad">{r.username}: {r.why}</p>)}
+      </>}
+      {error && <p className="status bad">{error}</p>}
+    </Modal>
+  );
+}
 
 // R3.3 (owner, 13 Nov 2026: "Just Have list of projects and roles on them and another List of models with roles on it. Two
 // different tables. Remove tree just two lists in columns"): each person's projects and models, one per line, with roles.
@@ -38,6 +75,11 @@ function People() {
   const [q, setQ] = useState("");
   useEffect(() => { const t = setTimeout(() => setQ(search), 300); return () => clearTimeout(t); }, [search]);
   const { data, error } = useLoad(`/api/v1/people${q ? `?search=${encodeURIComponent(q)}` : ""}`);
+  const mfa = useLoad("/api/v1/people/mfa");
+  const manage = can("users.manage");
+  const [picked, setPicked] = useState([]);
+  const [asking, setAsking] = useState(false);
+  const pick = (u, on) => setPicked((x) => (on ? [...x, u] : x.filter((y) => y !== u)));
   const [role, setRole] = useState("");
   const rows = useMemo(() => (data || []).filter((p) => !role || (role === "none" ? !p.roles.length : p.roles.includes(role))), [data, role]);
   return (
@@ -54,6 +96,8 @@ function People() {
           ...rows.map((p) => [p.username, p.name || "", p.email || "", p.roles.map(roleName).join("; "), p.keycloak_roles.join("; "),
             (p.projects || []).map((x) => `${x.name} (${(x.roles || [x.role]).map(projectRoleName).join(", ")})`).join("; "),
             p.models.map((m) => `${m.name} (${(m.roles || [m.role]).join(", ")})`).join("; ")])], "people and roles")}>CSV</button>
+        {manage && <button disabled={!picked.length} onClick={() => setAsking(true)}
+          title="Ask the people ticked to set up their authenticator app again (a lost or new phone)">Set up the authenticator again...</button>}
         <span className="er-spacer" />
         <span className="quiet">{data ? `${rows.length} shown${data.length >= 100 ? " (first 100: search to narrow)" : ""}` : ""}</span>
       </div>
@@ -62,11 +106,14 @@ function People() {
       {!data && !error && <p className="quiet">Reading people from Keycloak...</p>}
       {data && (
         <table className="grid-table">
-          <thead><tr><th>Person</th><th>Global roles</th><th>Keycloak roles</th><th>Projects and roles</th><th>Models and roles</th><th /></tr></thead>
+          <thead><tr>{manage && <th aria-label="Pick" />}<th>Person</th><th>Authenticator</th><th>Global roles</th><th>Keycloak roles</th><th>Projects and roles</th><th>Models and roles</th><th /></tr></thead>
           <tbody>
             {rows.map((p) => (
               <tr key={p.id} className={p.enabled ? "" : "retired"}>
+                {manage && <td><input type="checkbox" aria-label={`Pick ${p.username}`} checked={picked.includes(p.username)}
+                  onChange={(e) => pick(p.username, e.target.checked)} /></td>}
                 <td><strong>{p.username}</strong>{p.name && <><br /><span className="quiet">{p.name}</span></>}{p.email && <><br /><span className="quiet small">{p.email}</span></>}</td>
+                <td className="small">{mfa.data ? (MFA_SHOWN[(mfa.data.states || {})[p.username]] || <span className="quiet">-</span>) : <span className="quiet">{mfa.error ? "not known" : "..."}</span>}</td>
                 <td>{p.roles.length ? p.roles.map((r) => <span key={r} className="rchip on">{roleName(r)}</span>) : <span className="quiet">none</span>}</td>
                 <td className="quiet small">{p.keycloak_roles.filter((r) => !["offline_access", "uma_authorization"].includes(r) && !r.startsWith("default-roles-")).join(", ")}</td>
                 <td className="small"><RoleList items={p.projects} name={projectRoleName} link={(x) => `#/projects/${x.id}/organisation`} /></td>
@@ -77,6 +124,7 @@ function People() {
           </tbody>
         </table>
       )}
+      {asking && <MfaReset people={picked} onClose={() => setAsking(false)} onDone={() => { setPicked([]); mfa.reload(); }} />}
     </>
   );
 }

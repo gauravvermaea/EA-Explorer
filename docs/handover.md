@@ -4,12 +4,20 @@ The state of the work, for whoever picks it up next: a person or another AI with
 13 Nov 2026: "what happens if I need another ai to work on this"). **Updated at the end of every working session.**
 Read [AGENTS.md](../AGENTS.md) first, run `eax dev check`, then read this.
 
-Last updated: 22 Nov 2026, 09:50. **Release 8 is published as 8.0.0 (D851)**; **Release 9 is next** (R9.3 to R9.12;
-R9.11 built). Bugs are in Release 12 (D820), the documents review in Release 13 (D821), **every picture, PDF and the
-website in Release 14, the last (D846); until then no documentation for users is changed (D850, AGENTS.md)**;
+Last updated: 22 Nov 2026, 12:15. **Release 8 is published as 8.0.0 (D851)**; **Release 9 is built, to be run**
+(D852: R9.3, R9.5, R9.7, R9.10, R9.12, R9.13, R9.14 built 22 Nov 2026; R9.11 built earlier; R9.1 and R9.2, the videos,
+when they are made). Bugs are in Release 12 (D820), the documents review in Release 13 (D821), **every picture, PDF and
+the website in Release 14, the last (D846); until then no documentation for users is changed (D850, AGENTS.md)**;
 certificate mode (it does not work in 8.0.0: the API cannot open its key) in Release 15 (D847). The repository stays
-as it is unless git cannot cope (D849). The video list (R9.1) is a Sheet of 269 videos:
+as it is unless git cannot cope (D849). Push after each change (D853). The video list (R9.1) is a Sheet of 269 videos:
 https://claude.ai/artifact/Q8wQGUwysndaMamrCuPVa1
+
+**Release 9, to be run by the owner in one go (22 Nov 2026: "build all these I will test eevrything in one go")**:
+`.\eax clean-restart` (docker-compose.yml, the api, web and ops images changed), `.\eax jenkins up`, `.\eax test
+jenkins` (R9.13), `.\eax test commands` (R9.14), `.\eax images` (R9.12), the hand checks of R9.7 in
+docs/manual-tests.md, the themes (R9.5: System admin > Branding, then My look), an MCP client asking docs_search
+(R9.3), and last `.\eax test full` (R9.10: the DR drill is now its last step; hours). What fails goes to Release 12.
+Known before the run: R12.18 (four Jenkins pipelines that can never run, found by eax test jenkins).
 
 **Pick up here (the owner's full test of 21 Nov 2026, 16:24 to about 20:20, after a clean restart):**
 - Dev check: 2,288 passed, 3 failed, then pytest-cov INTERNALERROR (two coverage measurers; fixed, R12.7): the 3
@@ -108,7 +116,7 @@ theory, D788). Small items: docs/todo.md › Later: carried out of Release 7.
 
 ## Open questions
 
-- R9.3: how the documents reach the API (above); asked when Release 9 comes up.
+- None open. (R9.3's question was answered: the documents are mounted into the api container, read-only.)
 
 ## The laptop and GitHub
 

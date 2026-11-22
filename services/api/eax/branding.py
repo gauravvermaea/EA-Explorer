@@ -27,7 +27,12 @@ from .metamodel_edit import EditError
 from .model_icons import sniff
 
 SETTING = "branding"
-DEFAULT = {"theme": "standard", "personal": False, "product_name": ""}
+# hidden: the themes people may not pick for themselves (R9.5, D827: every theme offered unless taken off, a new one too;
+# the organisation's own always offered); own: people may make or upload their own themes (off by default)
+DEFAULT = {"theme": "standard", "personal": False, "product_name": "", "hidden": [], "own": False}
+OWN_KEY = "own-theme."          # a person's own theme, in their own settings: own-theme.<slug> = {name, css}
+OWN_MAX = 10                    # themes a person may keep
+OWN_MAX_CSS = 60 * 1024         # a person's theme is kept with their settings (at most 64 KB each)
 THEMES_DIR = Path(__file__).resolve().parent / "branding_themes"
 # the four agreed first (owner, 16 Nov 2026, 16:15): standard light (today's look), dark, high contrast, muted corporate;
 # then twelve colours (17 Nov, 15:21)
@@ -230,13 +235,112 @@ def delete_font(conn, slug: str) -> dict:
     return {"removed": slug}
 
 
+def offered(choice: dict, every: list[dict]) -> list[str]:
+    """The themes people may pick for themselves (pure): every theme but those taken off, the organisation's always."""
+    hidden = set(choice.get("hidden") or [])
+    return [t["slug"] for t in every if t["slug"] not in hidden or t["slug"] == choice.get("theme")]
+
+
 def state(conn) -> dict:
-    """What every screen needs: the theme in use, whether people may pick, the name, the logo, the themes offered."""
+    """What every screen needs: the theme in use, whether people may pick (and which), whether they may make their own,
+    the name, the logo, the themes."""
     c = get_choice(conn)
-    have = {t["slug"] for t in themes(conn)}
+    every = themes(conn)
+    have = {t["slug"] for t in every}
     if c["theme"] not in have:          # a theme removed: the standard look, never nothing
         c["theme"] = "standard"
-    return {**c, "themes": themes(conn), "files": files(conn), "fonts": fonts(conn)}
+    return {**c, "themes": every, "offered": offered(c, every), "files": files(conn), "fonts": fonts(conn)}
+
+
+# ---------------------------------------------------------------- each person's own look (R9.5, D827)
+def may_use(conn, username: str, slug: str) -> bool:
+    """Whether a person may use this theme now: one offered (when people may pick), or one of their own (when people
+    may make their own)."""
+    c = get_choice(conn)
+    if not c.get("personal"):
+        return False
+    if slug.startswith(OWN_KEY):
+        return bool(c.get("own")) and slug[len(OWN_KEY):] in {t["slug"] for t in own_themes(conn, username)}
+    return slug in offered(c, themes(conn))
+
+
+def set_look(conn, username: str, slug: str | None) -> dict:
+    """A person's own choice of theme (None: the organisation's); refused when it is not theirs to pick."""
+    from . import personal as P
+    if not slug:
+        P.delete_setting(conn, username, "theme")
+        return {"theme": None}
+    if not may_use(conn, username, slug):
+        raise BrandingError("That theme is not one you may pick: choose one offered on My look.", 403)
+    P.put_setting(conn, username, "theme", slug)
+    return {"theme": slug}
+
+
+def own_themes(conn, username: str) -> list[dict]:
+    """A person's own themes: slug, name, size (theirs only)."""
+    from . import personal as P
+    out = []
+    for k, v in P.get_settings(conn, username).items():
+        if k.startswith(OWN_KEY) and isinstance(v, dict):
+            out.append({"slug": k[len(OWN_KEY):], "name": str(v.get("name") or k[len(OWN_KEY):]),
+                        "size": len(str(v.get("css") or "").encode("utf-8"))})
+    return sorted(out, key=lambda t: t["name"].lower())
+
+
+def own_css(conn, username: str, slug: str) -> tuple[str, str]:
+    """(name, css) of one of a person's own themes, checked again as it is read (a value put there by other means is
+    never served unchecked)."""
+    from . import personal as P
+    v = P.get_settings(conn, username).get(OWN_KEY + slug)
+    if not isinstance(v, dict):
+        raise BrandingError("You have no such theme.", 404)
+    return str(v.get("name") or slug), check_css(v.get("css"))
+
+
+def save_own(conn, username: str, name: Any, css: Any) -> dict:
+    """Keeps a theme of a person's own (made in the designer or uploaded): checked as an uploaded theme is, small, at
+    most OWN_MAX of them; saving under the same name replaces it."""
+    from . import personal as P
+    c = get_choice(conn)
+    if not (c.get("personal") and c.get("own")):
+        raise BrandingError("Making your own themes is not switched on (System Admin > Branding).", 403)
+    name = re.sub(r"\s+", " ", str(name or "")).strip()
+    if not name or len(name) > 60:
+        raise BrandingError("Name the theme (at most 60 characters).")
+    css = check_css(css)
+    if len(css.encode("utf-8")) > OWN_MAX_CSS:
+        raise BrandingError(f"Your own theme is at most {OWN_MAX_CSS // 1024} KB.")
+    slug = slug_of(name)
+    have = {t["slug"] for t in own_themes(conn, username)}
+    if slug not in have and len(have) >= OWN_MAX:
+        raise BrandingError(f"You keep at most {OWN_MAX} themes of your own: remove one first.")
+    P.put_setting(conn, username, OWN_KEY + slug, {"name": name, "css": css})
+    return {"slug": slug, "name": name, "size": len(css.encode("utf-8"))}
+
+
+def delete_own(conn, username: str, slug: str) -> dict:
+    """Removes a theme of a person's own; when they were using it, they are back on the organisation's."""
+    from . import personal as P
+    if OWN_KEY + slug not in P.get_settings(conn, username):
+        raise BrandingError("You have no such theme.", 404)
+    P.delete_setting(conn, username, OWN_KEY + slug)
+    if P.get_settings(conn, username).get("theme") == OWN_KEY + slug:
+        P.delete_setting(conn, username, "theme")
+    return {"removed": slug}
+
+
+def own_in_use(conn) -> list[dict]:
+    """Super Admins: who keeps themes of their own, each with its name and size (to remove one that causes trouble)."""
+    from . import personal as P
+    rows = P.rows(conn, "SELECT username, key, value FROM personal.settings WHERE key LIKE :k ORDER BY username, key",
+                  k=OWN_KEY + "%")
+    return [{"username": r["username"], "slug": r["key"][len(OWN_KEY):], "name": str((r["value"] or {}).get("name") or ""),
+             "size": len(str((r["value"] or {}).get("css") or "").encode("utf-8"))} for r in rows]
+
+
+def remove_own_of(conn, username: str, slug: str) -> dict:
+    """Super Admins: a person's own theme removed (they are back on the organisation's if they used it)."""
+    return delete_own(conn, username, slug)
 
 
 def set_choice(conn, data: dict, by: str) -> dict:
@@ -248,6 +352,12 @@ def set_choice(conn, data: dict, by: str) -> dict:
         c["theme"] = slug
     if "personal" in data:
         c["personal"] = bool(data.get("personal"))
+    if "own" in data:
+        c["own"] = bool(data.get("own"))
+    if "hidden" in data:
+        have = {t["slug"] for t in themes(conn)}
+        hidden = [str(x) for x in (data.get("hidden") or []) if str(x) in have and str(x) != c["theme"]]
+        c["hidden"] = sorted(set(hidden))
     if "product_name" in data:
         name = re.sub(r"\s+", " ", str(data.get("product_name") or "")).strip()
         if len(name) > 60:

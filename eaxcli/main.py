@@ -140,6 +140,26 @@ def full_step(title: str, run) -> tuple[str, bool, str]:
     return title, code in (0, None), "" if code in (0, None) else f"ended with {code}"
 
 
+def drill_folders(root: Path = ROOT) -> tuple[Path, Path]:
+    """The DR drill's two folders in the full test (R9.10): beside the installation, never inside it, the same every time
+    (the drill empties both at its start and keeps only its own leftovers in them)."""
+    return root.parent / f"{root.name}-drill-dr", root.parent / f"{root.name}-drill-temp"
+
+
+def dr_drill(run=None) -> int:
+    """The full test's last step (R9.10): the restore drill (dr/eax-drill) on this installation, the smoke test on the
+    DR copy, then the DR copy stopped and kept and this installation started again and signed in to (--then-back)."""
+    import subprocess
+
+    from . import jenkins as J
+    dr, temp = drill_folders()
+    say(f"The restore drill: this installation backed up and shut down, a DR copy built in {dr} and restored, the smoke "
+        "test on it, then the DR copy stopped (kept) and this installation started again. About 30 to 60 minutes.")
+    argv = J.command_line(["eax-drill", "--install", str(ROOT), "--dr", str(dr), "--temp", str(temp),
+                           "--smoke-after", "--then-back"])
+    return (run or subprocess.run)(argv, cwd=ROOT, check=False).returncode
+
+
 def full_summary(steps: list[tuple[str, bool, str]], began: float | None = None, keep=None, containers=None) -> int:
     """Every step of the full test in one list at the end; 1 when any failed. With began: the summary page too
     (work/tests/full-<time>/index.html, D825), kept in the database by keep(folder) (the api container's)."""
@@ -617,13 +637,13 @@ def dispatch(command: str, rest: list[str], wait_all: bool) -> None:
             # check be part pf full test along with sonar this way one full test will do everything excpt performance
             # ttest. Its ok if we can only do this from command line"; D823): the dev check first (its unit tests'
             # coverage joins the run's own, D807), the self-test with the attack test, the backup and restore test,
-            # SonarQube last; --no-dev-check and --no-sonar leave one out
+            # SonarQube; --no-dev-check and --no-sonar leave one out; then the DR drill (R9.10), --no-dr leaves it out
             steps: list[tuple[str, bool, str]] = []
             began = time.time()                       # each step's files made since then go on the summary page (D825)
-            no_sonar = "--no-sonar" in rest
+            no_sonar, no_dr = "--no-sonar" in rest, "--no-dr" in rest
             if last and "--no-dev-check" not in rest:
                 steps.append(full_step("dev check", lambda: dev_cli_main(["check"])))
-            rest = [a for a in rest if a not in ("--no-dev-check", "--no-sonar")]
+            rest = [a for a in rest if a not in ("--no-dev-check", "--no-sonar", "--no-dr")]
             # always prepare the runner first (D584): seconds when it is current, rebuilt when the code or version changed
             say("Preparing the test runner... (the first time about 5 to 15 minutes; seconds when it is current)")
             compose(["--profile", "test", "build", "testrunner"])
@@ -639,6 +659,8 @@ def dispatch(command: str, rest: list[str], wait_all: bool) -> None:
                 if not no_sonar:
                     from . import sonar as sonar_
                     steps.append(full_step("SonarQube scan", lambda: sonar_.main([])))
+                if not no_dr:
+                    steps.append(full_step("DR drill", dr_drill))
                 return full_summary(steps, began)
             if failed:
                 raise failed
@@ -777,6 +799,9 @@ def main(argv: list[str]) -> int:
         if command == "sonar":                  # SonarQube's own pages, the last scan's results, nothing scanned (D805)
             from . import sonar
             return sonar.dashboard(rest)
+        if command == "images":                 # the images in use and the ones published, every 3 months (R9.12, D841)
+            from . import images
+            return images.main(rest)
         if command == "errors":                 # what an error code means and what to do (Release 7.9, D787)
             from . import problems
             return problems.errors_main(rest)

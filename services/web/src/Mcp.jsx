@@ -183,6 +183,8 @@ export const AI_TILES = [
     areas: [] },
   { title: "Discover the enterprise", say: "Your sources read and what is found proposed for a model",
     page: "discover-the-enterprise-with-ai", areas: ["Enterprise discovery"] },
+  { title: "Ask about EA Explorer itself", say: "The guides, the help of any screen and the error codes, read for you",
+    page: "get-help-on-any-screen", areas: ["EA Explorer's own documentation"] },
   { title: "Look after the installation", say: "Its state, what slows it, usage, housekeeping and test results",
     page: "look-after-the-installation-with-ai", areas: ["Running the installation", "The platform's test results"], admins: true },
 ];
