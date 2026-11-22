@@ -432,3 +432,4 @@ source, and the pictures themselves read one by one and measured).
 - Clean restart in certificate mode: the API restarts with "could not load private key file /eax-certs/client.key";
   sign-in without roles; second tier not started. Likely the API user's group is not 10001 (Dockerfile). Not fixed:
   Release 15. Release 8 goes out in password mode, its notes say so.
+- 08:46: static.yml left as it is (D848): the published site shows the version only; inside EA Explorer the build too.
