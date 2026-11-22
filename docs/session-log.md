@@ -428,3 +428,7 @@ source, and the pictures themselves read one by one and measured).
 ### 08:23 Pictures and PDFs checked; Release 14 for the pictures, guides and website (D846)
 - 26 guides printed 08:11 to 08:15 (26 new); those opened say 8.0.0; the website lists 26 with the new footer and
   Questions. 233 of 283 pictures new; 48 project pictures skipped (from 18 Nov) and 2 API pictures blank: Release 14.
+### 08:41 Certificate mode fails; Release 15 for it (D847)
+- Clean restart in certificate mode: the API restarts with "could not load private key file /eax-certs/client.key";
+  sign-in without roles; second tier not started. Likely the API user's group is not 10001 (Dockerfile). Not fixed:
+  Release 15. Release 8 goes out in password mode, its notes say so.
