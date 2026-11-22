@@ -473,3 +473,4 @@ source, and the pictures themselves read one by one and measured).
 - 15:10 Release 10 built (D867): migration 0113 (proj.sp_runs, proj.sp_signpost_marks), eax/game_theory.py, eax/scenario_planning.py, the MCP wizard (eax/mcp_scenario_planning.py, 10 tools and a prompt), the read-only Scenario planning tab and Project report section, the deck, the project backup, the Protea sample (two versions), the help; and R10.5 (D868): every MCP tool tried in the full test with its own card. Unit tests for the engine, the study and the MCP tools as an AI calls them.
 - 14:40 Releases renumbered into the order they are built (D869): 10 to 20 in sequence; the bugs are R14.n.
 - 19:25 Release 9 accepted (D870): version 9.0.0, migration 0114, releases/9.0.0.md; tag commands given.
+- 19:30 Release 10 accepted (D871): version 10.0.0, migration 0115, releases/10.0.0.md; tag commands given. Next: Release 11, certificate mode.

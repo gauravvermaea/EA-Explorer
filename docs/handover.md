@@ -4,8 +4,8 @@ The state of the work, for whoever picks it up next: a person or another AI with
 13 Nov 2026: "what happens if I need another ai to work on this"). **Updated at the end of every working session.**
 Read [AGENTS.md](../AGENTS.md) first, run `eax dev check`, then read this.
 
-Last updated: 22 Nov 2026, 15:15. Release 9 is accepted and published as **9.0.0** (D870; the code holds Release 10 too, not yet
-accepted). **Release 10 is built, to be run** (D867, D868: scenario
+Last updated: 22 Nov 2026, 15:15. Releases 9 and 10 are accepted, as **9.0.0** and **10.0.0** (D870, D871). Next: Release 11,
+certificate mode. **Release 10 is built, to be run** (D867, D868: scenario
 planning and game theory through the AI, the read-only Scenario planning tab, the sample; and every MCP tool tried in
 the full test with its own card). The releases are numbered in the order they are built (D869): **10** scenario planning
 (built), **11** certificate mode (next), **12** templates (settled, D858, D859), **13** System Admin regrouped and every
