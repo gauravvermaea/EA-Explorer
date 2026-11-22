@@ -433,3 +433,13 @@ source, and the pictures themselves read one by one and measured).
   sign-in without roles; second tier not started. Likely the API user's group is not 10001 (Dockerfile). Not fixed:
   Release 15. Release 8 goes out in password mode, its notes say so.
 - 08:46: static.yml left as it is (D848): the published site shows the version only; inside EA Explorer the build too.
+### 09:10 to 09:50 Release 8 published as 8.0.0 (D849 to D851)
+- Smoke test passed in password mode; committed and tagged v8.0.0; the GitHub release's text one paragraph.
+- The push was very large (PDFs twice, a website folder per version, pictures): left as it is unless git cannot cope.
+- No documentation for users changed until Release 14 (AGENTS.md). The self-test's hold seen in the owner's own
+  browser is by design; the test's own browsers are not held (checked in run 1's output).
+- 09:47: Release 9 narrowed to R9.3, R9.5, R9.7, R9.10, R9.12 (D852); R9.8, R9.9 to Release 14, R9.4 to Release 15,
+  R9.6 dropped. Pushes more often: the git commands after each change (D853).
+### 09:51 `eax test jenkins` and `eax test commands` (D854, R9.13, R9.14); building the rest of Release 9
+- 10:00 R9.13 `eax test jenkins` and R9.14 `eax test commands` built and tested here; the Jenkins test's first run (with
+  a stand-in Jenkins and the real agent code) found four pipelines that can never run: R12.18.

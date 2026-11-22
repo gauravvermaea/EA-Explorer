@@ -383,6 +383,17 @@ class Runs:
         threading.Thread(target=wait, daemon=True).start()
         return rid
 
+    def probe(self, argv: list[str], by: str, probe: str) -> str:
+        """A probe from `eax test jenkins` (R9.13, D854): checked as a run is, recorded in runs.log with the probe's id,
+        its output and end written at once; nothing is run."""
+        rid = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + "-" + _random.token_hex(3)
+        with self.lock, open(self.folder.parent / "runs.log", "a", encoding="utf-8") as f:
+            f.write(f"{datetime.now(UTC).isoformat()}\t{rid}\t{by}\t{' '.join(argv)}\tprobe={probe}\n")
+        (self.folder / f"{rid}.log").write_text(f"Probe {probe}: {shown(argv)} (checked, not run)\n", encoding="utf-8")
+        (self.folder / f"{rid}.json").write_text(json.dumps({"exit": 0, "ended": datetime.now(UTC).isoformat(),
+                                                             "probe": probe}), encoding="utf-8")
+        return rid
+
     def read(self, rid: str, start: int = 0) -> dict:
         """A run's output from a byte onwards, and whether it ended and with what exit code."""
         if not rid.replace("-", "").replace("T", "").replace("Z", "").isalnum():
@@ -399,9 +410,18 @@ class Runs:
                 "exit": done["exit"] if done else None}
 
 
+PROBE = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
+
+
+def shown(argv: list[str]) -> str:
+    """The command as a person reads it: eax <command> ..., or the DR tool's own name."""
+    return " ".join(argv) if argv[0] in DR_TOOLS else " ".join(["eax", *argv])
+
+
 def handle(body: dict, token: str, given: str, runs: Runs) -> tuple[int, dict]:
     """One request from Jenkins: the token, the pipeline, its fields, the typed name when it changes everything; then
-    the run started (pure but for starting it)."""
+    the run started (pure but for starting it). With a probe id (`eax test jenkins`, R9.13, D854) every check is the
+    same, and the run is recorded but not started."""
     if not token or not hmac.compare_digest(given or "", token):
         return 401, {"message": "Not Jenkins: the agent's token does not match."}
     name = str(body.get("pipeline") or "")
@@ -417,7 +437,12 @@ def handle(body: dict, token: str, given: str, runs: Runs) -> tuple[int, dict]:
         if str(values.get("CONFIRM") or "").strip() != installation():
             return 403, {"message": f"This changes everything: type the installation's name ({installation()}) in CONFIRM."}
     by = str(body.get("by") or "?")[:80]
-    return 202, {"run": runs.start(argv, by), "command": " ".join(["eax", *argv]) if argv[0] not in DR_TOOLS else " ".join(argv)}
+    probe = str(body.get("probe") or "")
+    if probe:
+        if not PROBE.match(probe):
+            return 400, {"message": "A probe id is letters, digits, dots, dashes and underscores."}
+        return 202, {"run": runs.probe(argv, by, probe), "command": shown(argv), "probe": probe}
+    return 202, {"run": runs.start(argv, by), "command": shown(argv)}
 
 
 def agent(port: int | None = None) -> int:
@@ -455,7 +480,7 @@ def agent(port: int | None = None) -> int:
             if not hmac.compare_digest(self.headers.get("X-Eax-Token", ""), token):
                 return self._send(401, {"message": "Not Jenkins."})
             if self.path == "/health":
-                return self._send(200, {"ok": True, "installation": installation()})
+                return self._send(200, {"ok": True, "installation": installation(), "probe": True})
             if self.path.startswith("/runs/"):
                 rid, _, q = self.path[len("/runs/"):].partition("?from=")
                 try:

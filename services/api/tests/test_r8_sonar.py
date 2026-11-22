@@ -152,7 +152,7 @@ def test_eax_test_sonar_in_every_form_with_the_token_never_on_the_command_line()
     from eaxcli import sonar as X
     assert 'rest[:1] == ["sonar"]' in (ROOT / "eaxcli/main.py").read_text(encoding="utf-8")
     assert '$RestArgs -contains "sonar"' in (ROOT / "eax.ps1").read_text(encoding="utf-8")
-    assert '*" sonar "*) exec "$BASH" ./eaxpy.sh' in (ROOT / "eax.sh").read_text(encoding="utf-8")
+    assert '*" sonar "*|' in (ROOT / "eax.sh").read_text(encoding="utf-8")
     assert "sonar [--keep|--open|--reset]" in (ROOT / "eaxcli/help.txt").read_text(encoding="utf-8")
     assert C.check_argv(["test", "sonar", "--keep"]) == ["test", "sonar", "--keep"]
     assert X.scanner_args()[-3:] == ["-e", "SONAR_TOKEN", "sonar-scanner"]       # the value comes from the environment

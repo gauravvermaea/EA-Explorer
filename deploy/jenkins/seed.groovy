@@ -28,6 +28,8 @@ spec.pipelines.each { p ->
         else { stringParam(key, '', (f.required ? 'Needed: ' : '') + (f.placeholder ?: f.key)) }
       }
       if (p.confirm) { stringParam('CONFIRM', '', "Type the installation's name (${spec.installation}) to go on") }
+      // eax test jenkins (R9.13, D854): a probe id here makes the agent check and record the command, and run nothing
+      stringParam('EAX_PROBE', '', 'Leave empty. Used by eax test jenkins: the command is checked and recorded, not run.')
     }
     definition {
       cps {
@@ -45,7 +47,7 @@ spec.pipelines.each { p ->
                     KEYS.each { k, original -> if (params[k] != null && params[k] != '' && params[k] != false) { values[original] = params[k] } }
                     def cause = currentBuild.getBuildCauses('hudson.model.Cause\$UserIdCause')
                     def who = cause ? cause[0].userId : 'schedule'
-                    writeJSON file: 'request.json', json: [pipeline: '${p.name}', values: values, by: who]
+                    writeJSON file: 'request.json', json: [pipeline: '${p.name}', values: values, by: who, probe: (params.EAX_PROBE ?: '')]
                     def started = sh(returnStdout: true, script: 'curl -sS -X POST -H "X-Eax-Token: \$(cat /run/secrets/EAX_JENKINS_AGENT_TOKEN)" -H "Content-Type: application/json" --data @request.json "\$EAX_AGENT_URL/run"').trim()
                     def run = readJSON text: started
                     if (!run.run) { error("Not started: " + (run.message ?: started)) }

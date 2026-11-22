@@ -563,6 +563,12 @@ def dispatch(command: str, rest: list[str], wait_all: bool) -> None:
             "Chromium, scanners.")
         compose(["--profile", "test", "build", "testrunner"])
         say("The test runner is built.")
+    elif command == "test" and rest[:1] == ["jenkins"]:   # every Jenkins pipeline probed, nothing run (R9.13, D854)
+        from . import jenkins_test
+        return jenkins_test.run(rest[1:])
+    elif command == "test" and rest[:1] == ["commands"]:  # each safe eax command run and checked (R9.14, D854)
+        from . import command_tests
+        return command_tests.run(rest[1:])
     elif command == "test" and rest[:1] == ["sonar"]:   # the SonarQube scan of the whole repository (Release 8, D792)
         from . import sonar
         sonar.main(rest[1:])

@@ -53,6 +53,16 @@ draw.io, nginx, React screens. How it is built: [docs/architecture.md](docs/arch
   (Documentation) and as a folder in the Enterprise library, refreshed from the release's own docs at start-up, so
   each installation shows the documents of the version it runs (D550); and (4) **no file in the repository needs Git
   LFS**: nothing over 50 MB (split larger files into parts with a manifest, joined when loaded).
+- **Commit and push often (owner, 22 Nov 2026, 09:46: "we need to do more frequent push to the repo"; D853)**: after
+  each change is copied to the owner's folder (a story, a fix, a set of records), give him the git commands to commit
+  and push it to main (`git add -A`, `git commit -m "<D or R number>: <what>"`, `git push origin main`); he runs them.
+- **No new or changed documentation for users until the last release (owner, 22 Nov 2026, 09:30: "Lets not make any
+  new documentation pdf website changes and so on till the last release"; D850)**: the printed guides (PDFs), their
+  pictures, the website, the How do I pages and the role guides are not changed until Release 14, which brings them all
+  up to date at once; new guides (the Architect's Bible, the scenario planning guide, the project types guide, the
+  certificate mode guides) are written then. Still kept current as work goes on: the working records (decisions,
+  build-phases, handover, session log, todo), the release notes, `eaxcli/help.txt`, and the on-screen help catalogue
+  (the build fails when a screen has no help). The rule below applies again in Release 14.
 - **The printed guides and the website move together (owner, 21 Nov 2026, 16:53: "When u make new pdf etc, ensure
   website is also updated"; D833)**: whenever a PDF, a printed guide or any page it is made from is made or changed,
   the website is built again in the same change (`tools/build_manuals.py`, then `tools/build_website.py`), so its

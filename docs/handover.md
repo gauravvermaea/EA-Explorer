@@ -4,11 +4,11 @@ The state of the work, for whoever picks it up next: a person or another AI with
 13 Nov 2026: "what happens if I need another ai to work on this"). **Updated at the end of every working session.**
 Read [AGENTS.md](../AGENTS.md) first, run `eax dev check`, then read this.
 
-Last updated: 21 Nov 2026, 21:10. **Release 8 is accepted and closed (D839)**: SonarQube scanning, coverage
-measured (57.7%, self-test only), the attack test, Jenkins, the full test's summary page; its SonarQube fixes are now
-R12.17. Bugs are in Release 12 (D820), the documents in Release 13 (D821); Release 9 is next: R9.4 to R9.11 (D826 to
-D834, D838). Last built: the website's Questions page and How do I under Documentation (D838); the ? menu was removed and brought back the next morning (D840); the
-owner runs `.\eax site pdfs`, `.\eax site build` and a clean rebuild. The video list (R9.1) is a Sheet of 269 videos:
+Last updated: 22 Nov 2026, 09:50. **Release 8 is published as 8.0.0 (D851)**; **Release 9 is next** (R9.3 to R9.12;
+R9.11 built). Bugs are in Release 12 (D820), the documents review in Release 13 (D821), **every picture, PDF and the
+website in Release 14, the last (D846); until then no documentation for users is changed (D850, AGENTS.md)**;
+certificate mode (it does not work in 8.0.0: the API cannot open its key) in Release 15 (D847). The repository stays
+as it is unless git cannot cope (D849). The video list (R9.1) is a Sheet of 269 videos:
 https://claude.ai/artifact/Q8wQGUwysndaMamrCuPVa1
 
 **Pick up here (the owner's full test of 21 Nov 2026, 16:24 to about 20:20, after a clean restart):**

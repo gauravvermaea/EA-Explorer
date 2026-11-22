@@ -811,7 +811,7 @@ unknown_command() {
 # ------------------------------------------------------------------ commands
 # eax test --reset-survival: settings outlive a real reset (D561); eax test backup-restore, restore and full: the backup
 # and restore test runs one command after another from eax itself (R5.6-B1): one Python program for every form
-if [ "$CMD" = "test" ]; then case " $* " in *" --reset-survival "*|*" backup-restore "*|*" restore "*|*" full "*|*" sonar "*) exec "$BASH" ./eaxpy.sh "$@" ;; esac; fi
+if [ "$CMD" = "test" ]; then case " $* " in *" --reset-survival "*|*" backup-restore "*|*" restore "*|*" full "*|*" sonar "*|*" test jenkins "*|*" test commands "*) exec "$BASH" ./eaxpy.sh "$@" ;; esac; fi
 case "$CMD" in
   help|-h|--help|/\?) show_help "${2:-}" "${3:-}"; exit $? ;;
   document)       shift; document "$@"; exit 0 ;;

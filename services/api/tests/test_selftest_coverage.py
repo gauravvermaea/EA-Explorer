@@ -355,7 +355,7 @@ def test_eax_test_has_two_choices_and_clean():
     for scripts and CI."""
     text = (ROOT / "eaxcli" / "help.txt").read_text(encoding="utf-8")
     entry = store.test_entry(text)
-    assert entry["syntax"].startswith("test [smoke|full|jobs|mcp|reports|security|performance|attack|sonar [--keep|--open|--reset]|backup|backup-restore|restore|failed")   # backup-restore: R5.6-B1; sonar: R8 (D792); attack: R8.2
+    assert entry["syntax"].startswith("test [smoke|full|jobs|mcp|reports|security|performance|attack|sonar [--keep|--open|--reset]|backup|backup-restore|restore|jenkins [--only NAMES]|commands [--only NAMES]|failed")   # backup-restore: R5.6-B1; sonar: R8 (D792); attack: R8.2; jenkins, commands: R9.13, R9.14
     names = [o["flag"].split()[0] for o in entry["options"]]
     assert names == ["smoke", "full", "backup", "backup-restore", "failed", "watch", "stop", "api", "delete", "prune", "summary", "clean"], names   # restore: R3.8; watch, stop: R3.2   # ui-review removed: D770
     assert entry["examples"] == ["{eax} test", "{eax} test full", "{eax} test performance --size medium --users 50", "{eax} test attack", "{eax} test backup", "{eax} test backup-restore", "{eax} test api GET /api/v1/models --as architect", "{eax} test watch", "{eax} test watch --browser", "{eax} test stop 12", "{eax} test failed",

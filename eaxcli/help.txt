@@ -405,7 +405,7 @@ $ {eax} import --all
 > Checks that Docker is running and the config and compose files are valid. Starts nothing.
 $ {eax} check
 
-### test [smoke|full|jobs|mcp|reports|security|performance|attack|sonar [--keep|--open|--reset]|backup|backup-restore|restore|failed [run] [--warnings]|watch [run] [--log|--browser]|stop [run]|api <method> <path>|delete <run|all> [--older-than DAYS]|prune <run|full-N|all> [--older-than DAYS]|summary [full-N]|clean] [--yes]
+### test [smoke|full|jobs|mcp|reports|security|performance|attack|sonar [--keep|--open|--reset]|backup|backup-restore|restore|jenkins [--only NAMES]|commands [--only NAMES]|failed [run] [--warnings]|watch [run] [--log|--browser]|stop [run]|api <method> <path>|delete <run|all> [--older-than DAYS]|prune <run|full-N|all> [--older-than DAYS]|summary [full-N]|clean] [--yes]
 > Test this installation: smoke or full; only what failed last time; or delete the test data.
 The same two tests as System Admin > Tools > Self-test (owner, 12 Nov 2026, D592: "Smoke or Full. Not too many
 options"); a run started in either place shows in both. Each run first removes any test data earlier runs left
@@ -470,6 +470,14 @@ and IT Admins.
           random names; the test's data and both backups are removed when it passes. It asks nothing; it says
           plainly first that anything done on this installation while it runs is lost (about an hour; everyone is locked out while each
           restore runs). The report: work/tests/backup-restore-<time>/report.md. The command line only.
+  jenkins  every Jenkins pipeline started through Jenkins' own API as a probe (R9.13): the agent checks each as a
+          real run and records the command in work/jenkins/runs.log, but runs nothing; each recorded command is
+          compared with the one the pipeline should start. What the command does is not tested here. Needs eax
+          jenkins up. --only: those pipelines. The report: work/tests/jenkins-<time>/report.md. The command line only.
+  commands  each eax command that is safe on a running installation run for real, as typed here, its exit code and
+          its words checked (R9.14); the others (wipe, restore, update, the screens, the long tests) are listed in
+          the report with why they are not run. --only: those commands. The report:
+          work/tests/commands-<time>/report.md. The command line only.
   failed  only the checks that failed in the last finished run (or in the run named: failed 12), as the same roles,
           in fresh test data; --warnings repeats its warnings too. Quicker while fixing; the report shows each check
           then and now, and when all pass the earlier run is marked as followed up. A full run is still what counts
