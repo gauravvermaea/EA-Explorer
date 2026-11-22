@@ -681,6 +681,7 @@ def render(page: Page, pages: list[Page], sources: dict[str, str]) -> str:
 </main>
 <footer class="foot">
   <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="{html.escape(version())}">Version {html.escape(version())}</span>
   <a href="{YOUTUBE}" target="_blank" rel="noopener">Videos on YouTube ↗</a>
   <a href="{GITHUB}" target="_blank" rel="noopener">The code on GitHub ↗</a>
   <span class="printed-from">Printed from the EA Explorer website: {html.escape(page.out)}</span>

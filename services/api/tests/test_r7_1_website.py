@@ -86,7 +86,10 @@ def test_the_site_can_be_copied_anywhere_and_works_offline():
         assert not re.search(r"<script(?![^>]*\bsrc=)[^>]*>", text), f"{name}: a script in the page"
         assert "search-index.js" in text and "https://www.youtube.com/@ea-explorer-os" in text, name
     js = (REPO / "docs/site/assets/site.js").read_text(encoding="utf-8")
-    assert "fetch(" not in js and "XMLHttpRequest" not in js
+    # nothing fetched but the footer's build (D844): only over http, and the page needs neither answer
+    assert "XMLHttpRequest" not in js and js.count("fetch(") == 1 and 'location.protocol.indexOf("http") === 0' in js
+    assert js.count("sget(") == 2 and 'sget((document.body.getAttribute("data-root") || "") + "assets/build.json")' in js
+    assert 'sget("/api/v1/heartbeat")' in js
     assert "window.EAX_SEARCH" in made["assets/search-index.js"]
 
 

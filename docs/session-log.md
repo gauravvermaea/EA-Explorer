@@ -420,3 +420,6 @@ source, and the pictures themselves read one by one and measured).
 - The owner's clean restart stopped at down: Remove-Extras' docker format had double quotes, which Windows PowerShell
   5.1 drops. Fixed in eax.ps1 with a test; then the clean restart again (password mode for now).
 - 07:52: the clean restart keeps fetching the newest images; the 3-monthly check is as well (D843, R9.12).
+### 08:00 The website's version and build in its footer (D844)
+- Footer "Version 8.0.0 · build <commit>": the build stamped when published (GitHub Pages) or from the app's heartbeat
+  (inside EA Explorer); checked in a browser. Before the owner's `eax site pdfs`, so it is in the 8.0.0 website.

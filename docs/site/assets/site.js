@@ -1,6 +1,24 @@
 // The EA Explorer website (tools/build_website.py, D776): Print or save as PDF, and the search that works offline
-// (assets/search-index.js, made with the site; nothing is fetched, so it works from a file share or a laptop too).
+// (assets/search-index.js, made with the site; nothing is fetched for it, so it works from a file share or a laptop
+// too). The only thing ever asked for is the footer's build (D844), over http only, and the page works without it.
 (function () {
+  // the version and build in the footer, like the application's (owner, 22 Nov 2026, 07:57, D844): the build is the
+  // commit the site was published from, so it is filled in here, never when the site is made (before the commit):
+  // on GitHub Pages from assets/build.json (written by .github/workflows/static.yml); inside EA Explorer, where there
+  // is none, from the application's own public heartbeat; opened from a file, the version alone
+  var sb = document.querySelector(".site-build");
+  if (sb && window.fetch && location.protocol.indexOf("http") === 0) {
+    var sv = sb.getAttribute("data-version");
+    var sshow = function (b) {
+      if (b && b.build && (!b.version || b.version === sv)) { sb.textContent = "Version " + sv + " \u00b7 build " + b.build; }
+    };
+    var sget = function (url) {
+      return fetch(url, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+    };
+    sget((document.body.getAttribute("data-root") || "") + "assets/build.json").then(function (b) {
+      if (b) { sshow(b); } else if (location.pathname.indexOf("/site/") === 0) { sget("/api/v1/heartbeat").then(sshow); }
+    });
+  }
   document.querySelectorAll("button.print").forEach(function (b) {
     b.addEventListener("click", function () { window.print(); });
   });
