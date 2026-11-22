@@ -407,6 +407,13 @@ class Runs:
                                                              "probe": probe}), encoding="utf-8")
         return rid
 
+    def refused(self, by: str, probe: str, why: str) -> None:
+        """A probe the agent refused, recorded too (R12.22): `eax test jenkins` waits for every probe in runs.log, and a
+        refused one never came, so it waited its full 30 minutes for the pipelines that cannot run."""
+        why = " ".join(str(why).split())[:300]
+        with self.lock, open(self.folder.parent / "runs.log", "a", encoding="utf-8") as f:
+            f.write(f"{datetime.now(UTC).isoformat()}\t-\t{by}\t\tprobe={probe}\trefused={why}\n")
+
     def read(self, rid: str, start: int = 0) -> dict:
         """A run's output from a byte onwards, and whether it ended and with what exit code."""
         if not rid.replace("-", "").replace("T", "").replace("Z", "").isalnum():
@@ -437,6 +444,15 @@ def handle(body: dict, token: str, given: str, runs: Runs) -> tuple[int, dict]:
     same, and the run is recorded but not started."""
     if not token or not hmac.compare_digest(given or "", token):
         return 401, {"message": "Not Jenkins: the agent's token does not match."}
+    code, answer = _checked(body, runs)
+    probe = str(body.get("probe") or "")
+    if code != 202 and probe and PROBE.match(probe):          # a refused probe is recorded too (R12.22)
+        runs.refused(str(body.get("by") or "?")[:80], probe, answer.get("message") or f"HTTP {code}")
+    return code, answer
+
+
+def _checked(body: dict, runs: Runs) -> tuple[int, dict]:
+    """handle() once the token is right: the pipeline, its fields, the typed name; then the run or the probe."""
     name = str(body.get("pipeline") or "")
     known = {p["name"]: p for p in pipelines()}
     if name not in known:

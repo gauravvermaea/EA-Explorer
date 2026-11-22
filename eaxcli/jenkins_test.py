@@ -79,12 +79,18 @@ def job_path(p: dict) -> str:
     return "".join(f"/job/{urllib.parse.quote(x, safe='')}" for x in parts)
 
 
+REFUSED = "refused: "
+
+
 def recorded(log_text: str, run: str) -> dict[str, str]:
     """From runs.log, each probe of this run: its id -> the command the agent recorded."""
     out: dict[str, str] = {}
     for line in log_text.splitlines():
         cols = line.split("\t")
         if len(cols) >= 5 and cols[4].startswith(f"probe={run}-"):
+            if len(cols) >= 6 and cols[5].startswith("refused="):        # the agent refused it (R12.22)
+                out[cols[4][len("probe="):]] = REFUSED + cols[5][len("refused="):]
+                continue
             argv = cols[3].split(" ")
             out[cols[4][len("probe="):]] = J.shown(argv) if argv and argv[0] else ""
     return out
@@ -176,16 +182,33 @@ def run(argv: list[str], jenkins: Jenkins | None = None, sleep=time.sleep, wait_
             row.update(outcome="failed", why=f"Jenkins did not start it (HTTP {code})")
             continue
         started[probe] = row
-    say(f"{len(started)} of {len(pipes)} pipelines started as probes; waiting for each to reach the agent...")
+    # Jenkins runs them a couple at a time, about 6 seconds each (the owner's first run, 22 Nov 2026: 71 in 7 minutes),
+    # so the wait is said and the count shown every 30 seconds: a long quiet wait looked hung (R12.21)
+    say(f"{len(started)} of {len(pipes)} pipelines started as probes; waiting for each to reach the agent "
+        f"(Jenkins runs them a couple at a time: about {max(1, round(len(started) * 6 / 60))} minutes)...")
     log = WORK / "jenkins" / "runs.log"
     end = time.time() + wait_minutes * 60
     seen: dict[str, str] = {}
+    loops, told, quiet = 0, -1, 0
     while started and len(seen) < len(started) and time.time() < end:
         sleep(5)
+        loops += 1
+        before = len(seen)
         seen = recorded(log.read_text(encoding="utf-8", errors="replace") if log.exists() else "", run_id)
+        quiet = 0 if len(seen) > before else quiet + 1
+        if quiet >= 36:                          # 3 minutes and none more (R12.22): the rest never will
+            say(f"  none more for 3 minutes: {len(started) - len(seen)} never reached the agent")
+            break
+        if loops % 6 == 0 and len(seen) != told and len(seen) < len(started):
+            told = len(seen)
+            say(f"  {told} of {len(started)} reached the agent so far "
+                f"(about {max(1, round((len(started) - told) * 6 / 60))} minutes left)")
     for probe, row in started.items():
         if probe not in seen:
             row.update(outcome="failed", why="it never reached the agent (see the pipeline's run in Jenkins)")
+            continue
+        if seen[probe].startswith(REFUSED):
+            row.update(outcome="failed", why="the agent refused it: " + seen[probe][len(REFUSED):])
             continue
         row["recorded"] = seen[probe]
         ok = seen[probe] == row["expected"]

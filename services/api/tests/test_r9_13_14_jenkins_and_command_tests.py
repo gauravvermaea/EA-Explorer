@@ -200,3 +200,53 @@ def test_the_launchers_and_the_help_know_both():
     text = (REPO / "eaxcli" / "help.txt").read_text(encoding="utf-8")
     assert "jenkins [--only NAMES]|commands [--only NAMES]" in text and "  jenkins  every Jenkins pipeline" in text
     assert all(ord(c) < 128 for c in text + ps1)
+
+
+def test_r12_21_the_wait_shows_its_progress_so_it_never_looks_hung(monkeypatch, tmp_path):
+    """R12.21 (owner, 22 Nov 2026, 11:09: "122 of 124 pipelines started as probes; waiting for each to reach the
+    agent... hung for a very long"): Jenkins runs the probes a couple at a time, so the wait is long; it now says how
+    long, and how many have reached the agent every 30 seconds."""
+    runs = _setup(monkeypatch, tmp_path)
+    said = []
+    monkeypatch.setattr(JT, "say", lambda m, *a, **k: said.append(m))
+    real = JT.recorded
+    calls = {"n": 0}
+
+    def slowly(text, run):                       # the probes reach the agent a few at a time
+        calls["n"] += 1
+        got = real(text, run)
+        keep = sorted(got)[: min(len(got), calls["n"])]
+        return {k: got[k] for k in keep}
+    monkeypatch.setattr(JT, "recorded", slowly)
+    JT.run(["--only", "status,url,check,logs,services,backups,restores,databases,diag,errors"],
+           jenkins=_FakeJenkins(runs), sleep=lambda s: None, wait_minutes=5)
+    assert any("minutes)..." in m and "a couple at a time" in m for m in said)
+    progress = [m for m in said if "reached the agent so far" in m]
+    assert progress and "minutes left" in progress[0]
+
+
+def test_r12_22_a_refused_probe_is_recorded_so_the_test_does_not_wait_for_it(monkeypatch, tmp_path):
+    """R12.22 (owner, 22 Nov 2026, 11:17: "still running"): the four pipelines the agent refuses (R12.18) never reached
+    runs.log, so eax test jenkins waited its full 30 minutes for them. A refused probe is now recorded with why, and the
+    test reports it at once; the wait also stops after 3 minutes with none more."""
+    runs = _setup(monkeypatch, tmp_path)
+    slept = []
+    JT.run(["--only", "status,admin-start"], jenkins=_FakeJenkins(runs), sleep=slept.append, wait_minutes=30)
+    assert len(slept) <= 2                                   # no long wait for the refused one
+    report = json.loads(next((tmp_path / "tests").glob("jenkins-*/report.json")).read_text())
+    rows = {r["pipeline"]: r for r in report["pipelines"]}
+    assert rows["status"]["outcome"] == "passed"
+    assert rows["admin-start"]["outcome"] == "failed" and rows["admin-start"]["why"].startswith("the agent refused it: ")
+    assert "CONFIRM" in rows["admin-start"]["why"]
+    log = (tmp_path / "jenkins" / "runs.log").read_text()
+    assert "\trefused=" in log and log.count("\n") == 2
+
+
+def test_r12_22_the_wait_stops_when_nothing_more_comes(monkeypatch, tmp_path):
+    runs = _setup(monkeypatch, tmp_path)
+    monkeypatch.setattr(JT, "recorded", lambda text, run: {})   # nothing ever reaches the agent
+    slept = []
+    JT.run(["--only", "status"], jenkins=_FakeJenkins(runs), sleep=slept.append, wait_minutes=30)
+    assert len(slept) == 36                                  # 3 minutes, not 30
+    report = json.loads(next((tmp_path / "tests").glob("jenkins-*/report.json")).read_text())
+    assert report["pipelines"][0]["why"].startswith("it never reached the agent")
