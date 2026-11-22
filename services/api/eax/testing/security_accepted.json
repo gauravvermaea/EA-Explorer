@@ -28,6 +28,111 @@
       "reason": "SQL built from text, as Semgrep's rules name it (the attack test, R8.2): accepted for good by the owner, as bandit B608 is. Not a finding to fix.",
       "until": "2099-12-31",
       "by": "owner, 19 Nov 2026, 18:24: \"SQL built from text is ok with what we want to do, so ignore them all\" (D800, D817)"
+    },
+    {
+      "id": "gitleaks:generic-api-key",
+      "where": "services/api/tests/",
+      "reason": "Gitleaks: a made-up key or token in a test (or the placeholder text of the Farm screen's key box), in the git history; never a real secret (the full test of 21 Nov 2026). To be looked at again by the date.",
+      "until": "2027-05-21",
+      "by": "owner, 21 Nov 2026, 20:29: \"accept all, log them as a decision\" (D835)"
+    },
+    {
+      "id": "gitleaks:private-key",
+      "where": "services/api/tests/",
+      "reason": "Gitleaks: a made-up key or token in a test (or the placeholder text of the Farm screen's key box), in the git history; never a real secret (the full test of 21 Nov 2026). To be looked at again by the date.",
+      "until": "2027-05-21",
+      "by": "owner, 21 Nov 2026, 20:29: \"accept all, log them as a decision\" (D835)"
+    },
+    {
+      "id": "gitleaks:private-key",
+      "where": "services/web/src/Farm.jsx",
+      "reason": "Gitleaks: a made-up key or token in a test (or the placeholder text of the Farm screen's key box), in the git history; never a real secret (the full test of 21 Nov 2026). To be looked at again by the date.",
+      "until": "2027-05-21",
+      "by": "owner, 21 Nov 2026, 20:29: \"accept all, log them as a decision\" (D835)"
+    },
+    {
+      "id": "semgrep:dockerfile.security.missing-user.missing-user",
+      "where": "deploy/deployer/Dockerfile",
+      "reason": "Semgrep: the container runs as root by design: the deployer, backup and operations helper drive Docker through its socket and read every data volume, which needs root (the full test of 21 Nov 2026). To be looked at again by the date.",
+      "until": "2027-05-21",
+      "by": "owner, 21 Nov 2026, 20:29: \"accept all, log them as a decision\" (D835)"
+    },
+    {
+      "id": "semgrep:dockerfile.security.missing-user-entrypoint.missing-user-entrypoint",
+      "where": "services/backup/Dockerfile",
+      "reason": "Semgrep: the container runs as root by design: the deployer, backup and operations helper drive Docker through its socket and read every data volume, which needs root (the full test of 21 Nov 2026). To be looked at again by the date.",
+      "until": "2027-05-21",
+      "by": "owner, 21 Nov 2026, 20:29: \"accept all, log them as a decision\" (D835)"
+    },
+    {
+      "id": "semgrep:dockerfile.security.last-user-is-root.last-user-is-root",
+      "where": "services/ops/Dockerfile",
+      "reason": "Semgrep: the container runs as root by design: the deployer, backup and operations helper drive Docker through its socket and read every data volume, which needs root (the full test of 21 Nov 2026). To be looked at again by the date.",
+      "until": "2027-05-21",
+      "by": "owner, 21 Nov 2026, 20:29: \"accept all, log them as a decision\" (D835)"
+    },
+    {
+      "id": "semgrep:python.lang.security.unverified-ssl-context.unverified-ssl-context",
+      "where": "services/api/eax/console_cli.py",
+      "reason": "Semgrep: certificate checks skipped only when asked (--insecure), for the laptop's own self-signed certificate (the full test of 21 Nov 2026). To be looked at again by the date.",
+      "until": "2027-05-21",
+      "by": "owner, 21 Nov 2026, 20:29: \"accept all, log them as a decision\" (D835)"
+    },
+    {
+      "id": "semgrep:python.lang.security.unverified-ssl-context.unverified-ssl-context",
+      "where": "testbench/shared.py",
+      "reason": "Semgrep: certificate checks skipped only when asked (--insecure), for the laptop's own self-signed certificate (the full test of 21 Nov 2026). To be looked at again by the date.",
+      "until": "2027-05-21",
+      "by": "owner, 21 Nov 2026, 20:29: \"accept all, log them as a decision\" (D835)"
+    },
+    {
+      "id": "semgrep:generic.secrets.security.detected-username-and-password-in-uri.detected-username-and-password-in-uri",
+      "where": "deploy/templates/eaexplorer.laptop.env",
+      "reason": "Semgrep: the laptop config template's default sign-in in a URL, a laptop-only default (the full test of 21 Nov 2026). To be looked at again by the date.",
+      "until": "2027-05-21",
+      "by": "owner, 21 Nov 2026, 20:29: \"accept all, log them as a decision\" (D835)"
+    },
+    {
+      "id": "semgrep:generic.secrets.security.detected-google-gcm-service-account.detected-google-gcm-service-account",
+      "where": "services/api/eax/machine_access.py",
+      "reason": "Semgrep: a false match (the full test of 21 Nov 2026): text in machine_access.py that looks like a Google service account key and is not one. To be looked at again by the date.",
+      "until": "2027-05-21",
+      "by": "owner, 21 Nov 2026, 20:29: \"accept all, log them as a decision\" (D835)"
+    },
+    {
+      "id": "semgrep:python.flask.security.injection.nan-injection.nan-injection",
+      "where": "services/api/eax/api/admin.py",
+      "reason": "Semgrep: a false match (the full test of 21 Nov 2026): the days value of the resource history, already refused when it is nan, infinite or not above 0 (math.isfinite, D823). To be looked at again by the date.",
+      "until": "2027-05-21",
+      "by": "owner, 21 Nov 2026, 20:29: \"accept all, log them as a decision\" (D835)"
+    },
+    {
+      "id": "semgrep:python.lang.security.audit.dangerous-subprocess-use-tainted-env-args.dangerous-subprocess-use-tainted-env-args",
+      "where": "eaxcli/menu.py",
+      "reason": "Semgrep: a false match (the full test of 21 Nov 2026): the menu starts only a PowerShell from its allow list (POWERSHELLS, D823). To be looked at again by the date.",
+      "until": "2027-05-21",
+      "by": "owner, 21 Nov 2026, 20:29: \"accept all, log them as a decision\" (D835)"
+    },
+    {
+      "id": "semgrep:python.lang.security.audit.dangerous-subprocess-use-tainted-env-args.dangerous-subprocess-use-tainted-env-args",
+      "where": "docs/images/db-tables-generate.py",
+      "reason": "Semgrep: the script that draws the documentation's pictures (docs/images), not part of the product (the full test of 21 Nov 2026). To be looked at again by the date.",
+      "until": "2027-05-21",
+      "by": "owner, 21 Nov 2026, 20:29: \"accept all, log them as a decision\" (D835)"
+    },
+    {
+      "id": "bandit:B402",
+      "where": "eax/discovery_projects.py",
+      "reason": "Bandit: Discovery can read from an FTP server when someone adds one as a source; FTP sends its password unencrypted, the person adding it chooses it (the full test of 21 Nov 2026). To be looked at again by the date.",
+      "until": "2027-05-21",
+      "by": "owner, 21 Nov 2026, 20:29: \"accept all, log them as a decision\" (D835)"
+    },
+    {
+      "id": "bandit:B321",
+      "where": "eax/discovery_projects.py",
+      "reason": "Bandit: Discovery can read from an FTP server when someone adds one as a source; FTP sends its password unencrypted, the person adding it chooses it (the full test of 21 Nov 2026). To be looked at again by the date.",
+      "until": "2027-05-21",
+      "by": "owner, 21 Nov 2026, 20:29: \"accept all, log them as a decision\" (D835)"
     }
   ]
 }

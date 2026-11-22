@@ -4,12 +4,41 @@ The state of the work, for whoever picks it up next: a person or another AI with
 13 Nov 2026: "what happens if I need another ai to work on this"). **Updated at the end of every working session.**
 Read [AGENTS.md](../AGENTS.md) first, run `eax dev check`, then read this.
 
-Last updated: 21 Nov 2026, 13:45. Release 8 is in build: SonarQube (D792 to D805), the attack test (R8.2, D817; its
-first run 21 Nov, D823), `eax test full` doing everything but the benchmark from the command line (D823), code coverage
-as a ring (D824) and the full test's summary page with the summaries kept and the detailed files deletable (R8.4, D825).
-Bugs go to Release 12 (D820), the documents to Release 13 (D821). Next: the owner's `.\eax clean-restart`, then
-`.\eax test full`; the AI reads work/tests/full-<time>/ and fixes what it found. Still waiting: the owner's word on the
-attack findings that are by design (D823). Working notes: docs/session-log.md.
+Last updated: 21 Nov 2026, 21:10. **Release 8 is accepted and closed (D839)**: SonarQube scanning, coverage
+measured (57.7%, self-test only), the attack test, Jenkins, the full test's summary page; its SonarQube fixes are now
+R12.17. Bugs are in Release 12 (D820), the documents in Release 13 (D821); Release 9 is next: R9.4 to R9.11 (D826 to
+D834, D838). Last built: the website's Questions page and How do I under Documentation (D838); the ? menu was removed and brought back the next morning (D840); the
+owner runs `.\eax site pdfs`, `.\eax site build` and a clean rebuild. The video list (R9.1) is a Sheet of 269 videos:
+https://claude.ai/artifact/Q8wQGUwysndaMamrCuPVa1
+
+**Pick up here (the owner's full test of 21 Nov 2026, 16:24 to about 20:20, after a clean restart):**
+- Dev check: 2,288 passed, 3 failed, then pytest-cov INTERNALERROR (two coverage measurers; fixed, R12.7): the 3
+  failures were not named and no unit coverage saved. Next: the owner runs `.\eax dev check` again (no rebuild).
+- Self-test run 6 (work/tests/20261121T142504Z): 2,797 passed, 5 failed, 28 warnings, 89 skipped. Failed: 4 in reports
+  (VP-25 and VP-15 not loaded in 60 s, DR-03 no chart, "every report opens" page crashed), probably memory: the
+  installation peaked at 11.1 GB on an 11.6 GB Docker host with swap full (memory.md); and the security gate.
+- Security gate: 182 high or critical. 21 by design or false matches accepted in writing by the owner (D835,
+  security_accepted.json, until 21 May 2027, each kept to its file). The other 161 are package updates for R12.4:
+  Superset 151 (124 in linux-libc-dev, the kernel headers, to remove from the image; pyasn1, urllib3, jaraco.context),
+  web 7 (nginx 1.30.7, libxml2), ops 2 (Go libraries in the Docker CLI), backup 1 (libxml2).
+- Attack test: all five scanners at their newest, every attack and forged token refused; ZAP full 2 medium,
+  Schemathesis 317 medium (no 5xx), Nuclei 9 low, Semgrep 113 high and 86 medium, Gitleaks 7 high.
+- Backup and restore: passed in 40.1 min (restore 6.3 min).
+- SonarQube did not finish: the clean restart lost work/tests/sonar/admin, the test reset SonarQube and the log stops
+  while preparing it; so no summary page either (it is written at the very end). Next: `.\eax test sonar`.
+- Code coverage: 57.7% of 56,584 lines from the self-test alone (api 75.7%, seed 72.8%, core 52.2%), not joined with
+  the unit tests; coverage.json keeps the lines run file by file, so it can be joined with the next dev check's
+  unit-coverage.json without another full test. Biggest gaps: projects.py, model_ops.py, pairing.py, quality.py,
+  project_backup.py, project_work.py, metamodel_edit.py.
+- Built today, to take effect at the next clean restart: R12.6 (no test container left running) and the D835
+  acceptances (in the api image). Then: fix the 3 unit failures and the 4 report failures (Release 12).
+**The owner moves to the next release with these bugs open (21 Nov 2026, 20:34: "no more testing I will move to next
+release"; D836)**, every one in Release 12 of docs/build-phases.md: R12.1 (why the morning's full test stopped, part
+done), R12.2 (two slow reports, the Architect's project page), R12.3 (jobs deferred twice), R12.4 (the 161 package
+updates), R12.5 (coverage to 90%), R12.8 (3 unit tests), R12.9 (4 reports), R12.10 (SonarQube after a clean restart),
+R12.11 (certs switch's remembered choice), R12.12 (28 warnings), R12.13 (today's work not yet run on the owner's
+installation), R12.14 (dms and reports-init shown with a problem; D837), R12.15 (the final coverage figure on screen), R12.16 (two SonarQube scans at once), R12.17 (every SonarQube issue, from Release 8; D839). Before calling anything fixed: a test that fails without it, and the owner's run that shows it.
+Working notes: docs/session-log.md.
 
 ## How the owner works
 

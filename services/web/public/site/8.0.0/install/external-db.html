@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your own database server · EA Explorer</title>
+<meta name="description" content="Your own database server">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html" class="here">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Your own database server</h1>
+    <p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    
+    
+    
+    <p>EA Explorer on a PostgreSQL server your DBA manages (R6.6.2).</p>
+<p>On screen: System Admin &gt; Setup &gt; Your own database server, where you fill in your values and get every command ready to copy. On the machine: <code>eax setup external-db</code> with <code>--set KEY=VALUE</code> for each value. In Jenkins: the <code>setup</code> pipeline with <code>external-db</code>.</p>
+<h2 id="your-values">Your values</h2>
+<div class="table"><table><thead><tr><th>Value</th><th>What it is</th><th>For example</th></tr></thead><tbody><tr><td><code>&lt;DB_HOST&gt;</code></td><td>Your database server's name</td><td><code>db.example.org</code></td></tr><tr><td><code>&lt;DB_PORT&gt;</code></td><td>Its port</td><td><code>5432</code></td></tr></tbody></table></div>
+<h2 id="steps">Steps</h2>
+<h3 id="1-your-dba-prepares-the-server">1. Your DBA prepares the server</h3>
+<p>deploy/external-db/prepare.sql: the databases, the logins, their rights.</p>
+<h3 id="2-point-ea-explorer-at-it">2. Point EA Explorer at it</h3>
+<p><code>&lt;DB_HOST&gt;</code>, port <code>&lt;DB_PORT&gt;</code>: tested before it is saved.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax setup external-db --host &lt;DB_HOST&gt; --port &lt;DB_PORT&gt;</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh setup external-db --host &lt;DB_HOST&gt; --port &lt;DB_PORT&gt;</code></pre>
+<h3 id="3-start">3. Start</h3>
+<p>The db container passes connections through; nothing else changes.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax restart</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh restart</code></pre>
+<h3 id="4-backups-still-run">4. Backups still run</h3>
+<p>EA Explorer's own backups, over the network; your DBA's on top.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax backup</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh backup</code></pre>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: install/external-db.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

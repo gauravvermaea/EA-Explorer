@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OData feeds EA Explorer publishes · EA Explorer</title>
+<meta name="description" content="Every model as live tables any OData client reads: the addresses, signing in, and what each table holds.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html" class="here">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>OData feeds EA Explorer publishes</h1>
+    <p class="who">For: Developers, Practising architects</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">Every model as live tables any OData client reads: the addresses, signing in, and what each table holds.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-odata">Why OData</a></li><li><a href="#the-addresses">The addresses</a></li><li><a href="#signing-in">Signing in</a></li><li><a href="#read-next">Read next</a></li></ul></nav>
+    <h2 id="why-odata">Why OData</h2>
+<p>OData is an open standard for publishing tables over HTTP. Power BI, Excel and many reporting and integration tools read it with no code, so publishing the model as OData puts the architecture wherever your organisation already reports, always current.</p>
+<h2 id="the-addresses">The addresses</h2>
+<div class="table"><table><thead><tr><th>Address</th><th>What it is</th></tr></thead><tbody><tr><td><code>/api/v1/odata/models/&lt;model&gt;/</code></td><td>The service document: every table of the model</td></tr><tr><td><code>/api/v1/odata/models/&lt;model&gt;/$metadata</code></td><td>The tables' columns and types</td></tr><tr><td><code>/api/v1/odata/models/&lt;model&gt;/&lt;table&gt;</code></td><td>One table's rows, paged</td></tr><tr><td><code>/api/v1/odata/governance/</code></td><td>The Governance Log: decisions, dispensations and reviews</td></tr></tbody></table></div>
+<p>The model's <strong>Reports › OData</strong> tab shows its own address to copy.</p>
+<h2 id="signing-in">Signing in</h2>
+<p>HTTP Basic with your user name and password, or your user name and a personal token as the password (the way for single sign-on users). A service account's API key works for unattended refreshes. What you may read is what your roles allow: the feed shows only models and rows you could see on the screens.</p>
+<h2 id="read-next">Read next</h2>
+<ul><li><a href="../integrate/build-reports-on-odata.html">Build your own reports on the feeds</a></li><li><a href="../how-do-i/read-a-model-in-power-bi.html">Read a model in Power BI</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: integrate/odata-feeds.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

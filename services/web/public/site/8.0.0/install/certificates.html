@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Real certificates · EA Explorer</title>
+<meta name="description" content="Real certificates">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html" class="here">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Real certificates</h1>
+    <p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    
+    
+    
+    <p>The front door's certificate: your organisation's, uploaded.</p>
+<p>On screen: System Admin &gt; Setup &gt; Real certificates, where you fill in your values and get every command ready to copy. On the machine: <code>eax setup certificates</code> with <code>--set KEY=VALUE</code> for each value. In Jenkins: the <code>setup</code> pipeline with <code>certificates</code>.</p>
+<h2 id="your-values">Your values</h2>
+<div class="table"><table><thead><tr><th>Value</th><th>What it is</th><th>For example</th></tr></thead><tbody><tr><td><code>&lt;HOSTNAME&gt;</code></td><td>The name people open EA Explorer at</td><td><code>ea.example.org</code></td></tr><tr><td><code>&lt;CERT_FILE&gt;</code></td><td>The certificate file (PEM)</td><td><code>C:/certs/ea.crt</code></td></tr><tr><td><code>&lt;KEY_FILE&gt;</code></td><td>Its private key file (PEM, no password)</td><td><code>C:/certs/ea.key</code></td></tr><tr><td><code>&lt;CHAIN_FILE&gt;</code></td><td>The chain file (the issuers' certificates) (may be left out)</td><td><code>C:/certs/chain.crt</code></td></tr></tbody></table></div>
+<h2 id="steps">Steps</h2>
+<h3 id="1-ask-for-one">1. Ask for one</h3>
+<p>Covering <code>&lt;HOSTNAME&gt;</code>, reports.<code>&lt;HOSTNAME&gt;</code> and docs.<code>&lt;HOSTNAME&gt;</code>; with its private key (no password) and the chain.</p>
+<h3 id="2-put-it-in">2. Put it in</h3>
+<p>From files on this machine (or upload it on System Admin &gt; Secrets &gt; Front door certificate): checked, used at once, no restart, the one before kept.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax certs front install --cert &lt;CERT_FILE&gt; --key &lt;KEY_FILE&gt; --chain &lt;CHAIN_FILE&gt;</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh certs front install --cert &lt;CERT_FILE&gt; --key &lt;KEY_FILE&gt; --chain &lt;CHAIN_FILE&gt;</code></pre>
+<h3 id="3-check-it">3. Check it</h3>
+<p>The names it covers, who issued it, when it ends; undo puts the one before back.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax certs front</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh certs front</code></pre>
+<h3 id="4-expiry">4. Expiry</h3>
+<p>Alerts 30 days before and on the day.</p>
+<h3 id="5-laptops-trust-your-authority">5. Laptops trust your authority</h3>
+<p>Company laptops trust your organisation's authority already, or IT adds it.</p>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: install/certificates.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

@@ -41,11 +41,16 @@ def test_the_areas_and_where_they_sit():
     docs = MENU[MENU.index('key: "docs"'):]
     assert docs.index('href: "/site/index.html"') < docs.index('href: "#/documentation"'), "the website comes first"
     # owner, 21:46: "Call it Reposiory & Content Framework"
+    # the ? menu on the right (back: owner, 22 Nov 2026, 07:38, D840); How do I first under Documentation (D838)
     assert {k: place for k, _, place in keys if place} == {"me": "right", "help": "right", "farm": "left"}
+    assert docs.index('{ label: "How do I", items: [') < docs.index('href: "/site/index.html" }')
     me = MENU[MENU.index('key: "me"'):MENU.index('key: "work"')]
     for x in ("Home", "My tasks", "My profile and skills", "My tokens and keys", 'action: "sign-out"'):
         assert x in me, x
-    assert '"Help for this page (F1)", action: "help"' in MENU and '"Documentation: every document", href: "#/documentation"' in MENU
+    helpm = MENU[MENU.index('key: "help"'):MENU.index('key: "ai"')]
+    assert '"Help for this page (F1)", action: "help"' in helpm and '"Documentation: every document", href: "#/documentation"' in helpm
+    assert '"Help for this page (F1)", action: "help"' in docs and '"Every document", href: "#/documentation"' in docs
+    assert 'href: "/site/index.html#to=faq.html"' in docs and 'href: "/site/index.html#to=how-do-i/index.html"' in docs
     assert '{ label: "Sites", href: "#/farm", dynamic: "farm-sites" }' in MENU   # Local is the first site (R2.1, D646)
 
 

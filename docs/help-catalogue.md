@@ -4,7 +4,7 @@ Every page, tab, sub-tab, pop-up, wizard step, field and button of EA Explorer h
 catalogue**: `services/web/src/help/catalogue.json`. A test fails the build when anything on a screen has no entry.
 
 ## What people see
-- **? Help** in the top bar, or **F1** anywhere, opens the help panel beside the page. It shows the help for what is on
+- **? Help** in the top bar, **Documentation › How do I › Help for this page**, or **F1** anywhere, opens the help panel beside the page. It shows the help for what is on
   the screen, most specific first: the pop-up open, the wizard step, the sub-tab, the tab, then the page. Each entry
   says what it is for, how to use it and gives a short example. A search box finds help on any screen.
 - **?** in the head of every pop-up opens the panel at that pop-up's help.

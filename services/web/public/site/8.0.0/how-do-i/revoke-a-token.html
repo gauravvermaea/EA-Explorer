@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Revoke a token or API key · EA Explorer</title>
+<meta name="description" content="Calls with it are refused at once.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html" class="here">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Revoke a token or API key</h1>
+    <p class="who">For: Developers, System Admin, Practising architects</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">Calls with it are refused at once.</p>
+    <figure class="shot"><img src="../shots/revoke-a-token.png" alt="The screen: Revoke a token or API key" loading="lazy"><figcaption>The screen: <code>#/admin/machine-access</code></figcaption></figure>
+    
+    <h2 id="why-do-this">Why do this</h2>
+<p>When a token may have leaked, or the system using it is retired, revoking it stops every call with it immediately.</p>
+<p>Systems that talk to EA Explorer need identities of their own, limited to what they do, so their access can be watched and stopped without affecting people. This is part of keeping integration safe as well as useful.</p>
+<p><strong>In TOGAF terms:</strong> Outside the method: this keeps the repository connected to the systems that feed it, so the Architecture Repository stays current. See <a href="../concepts/ea-explorer-and-togaf.html">EA Explorer and the TOGAF Standard</a>.</p>
+<p><strong>The goal:</strong> A token can no longer be used, at once.</p>
+<h2 id="steps">Steps</h2>
+<ol><li>Open <strong>Home › My tokens and keys</strong> (or Machine access for a service account).</li><li>Find it; <strong>Revoke</strong>.</li><li>Confirm; it cannot be used again.</li></ol>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: how-do-i/revoke-a-token.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

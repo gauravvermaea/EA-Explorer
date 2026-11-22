@@ -3,15 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="refresh" content="0; url=7.9.0/index.html">
+<script>/* index.html#to=faq.html opens that page of the newest copy (the screens' links, D838); a page of the site only */
+var m = /^#to=([A-Za-z0-9_][A-Za-z0-9_./-]*\.html(#[A-Za-z0-9_-]+)?)$/.exec(window.location.hash || "");
+if (m && m[1].indexOf("..") < 0 && m[1].indexOf("//") < 0) { window.location.replace("8.0.0/" + m[1]); }</script>
+<meta http-equiv="refresh" content="0; url=8.0.0/index.html">
 <title>EA Explorer: the website</title>
-<link rel="stylesheet" href="7.9.0/assets/site.css">
+<link rel="stylesheet" href="8.0.0/assets/site.css">
 </head>
 <body>
 <main class="page"><article>
 <h1>EA Explorer: the website</h1>
-<p>Opening the website for EA Explorer 7.9.0. Each release has its own copy:</p>
-<ul class="cards-list"><li><a href="7.9.0/index.html">EA Explorer 7.9.0</a> (newest)</li><li><a href="7.0.0/index.html">EA Explorer 7.0.0</a></li><li><a href="6.7.0/index.html">EA Explorer 6.7.0</a></li></ul>
+<p>Opening the website for EA Explorer 8.0.0. Each release has its own copy:</p>
+<ul class="cards-list"><li><a href="8.0.0/index.html">EA Explorer 8.0.0</a> (newest)</li><li><a href="7.9.0/index.html">EA Explorer 7.9.0</a></li><li><a href="7.0.0/index.html">EA Explorer 7.0.0</a></li><li><a href="6.7.0/index.html">EA Explorer 6.7.0</a></li></ul>
 </article></main>
 </body>
 </html>

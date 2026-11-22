@@ -4,6 +4,39 @@
   document.querySelectorAll("button.print").forEach(function (b) {
     b.addEventListener("click", function () { window.print(); });
   });
+  // Questions (the FAQ, D838): every question once; a role tab and the filter show the ones that match
+  var faq = document.querySelector(".faq-page");
+  if (faq) {
+    document.documentElement.classList.add("js");
+    var ftabs = faq.querySelectorAll(".role-tabs button"), ffilter = faq.querySelector(".filter");
+    var fnone = faq.querySelector(".filter-none"), fcount = faq.querySelector(".faq-count"), role = "all";
+    var fapply = function () {
+      var words = (ffilter.value || "").toLowerCase().split(/\s+/).filter(Boolean), shown = 0;
+      faq.querySelectorAll(".group").forEach(function (g) {
+        var any = false;
+        g.querySelectorAll("li[data-words]").forEach(function (li) {
+          var mine = role === "all" || (" " + (li.getAttribute("data-roles") || "") + " ").indexOf(" " + role + " ") >= 0;
+          var text = li.getAttribute("data-words") || "";
+          var ok = mine && words.every(function (w) { return text.indexOf(w) >= 0; });
+          li.hidden = !ok; if (ok) { any = true; shown++; }
+        });
+        g.hidden = !any;
+      });
+      fnone.hidden = shown > 0;
+      if (fcount) { fcount.textContent = shown + (shown === 1 ? " question" : " questions"); }
+    };
+    var fpick = function (code) {
+      role = code;
+      ftabs.forEach(function (b) { b.setAttribute("aria-selected", b.getAttribute("data-tab") === code ? "true" : "false"); });
+      try { history.replaceState(null, "", "#" + code); } catch (e) { /* a file opened from disk: no history */ }
+      fapply();
+    };
+    ftabs.forEach(function (b) { b.addEventListener("click", function () { fpick(b.getAttribute("data-tab")); }); });
+    ffilter.addEventListener("input", fapply);
+    var fstart = (window.location.hash || "").slice(1);
+    fpick(faq.querySelector('.role-tabs button[data-tab="' + fstart + '"]') ? fstart : "all");
+  }
+
   // How do I: tabs by role and a filter over the tiles (works without them too: every role's tiles one after another)
   var howto = document.querySelector(".howto");
   if (howto) {
@@ -20,7 +53,7 @@
       var words = (filter.value || "").toLowerCase().split(/\s+/).filter(Boolean), shown = 0;
       howto.querySelectorAll(".role-pane.on .group").forEach(function (g) {
         var any = false;
-        g.querySelectorAll("li").forEach(function (li) {
+        g.querySelectorAll("li[data-words]").forEach(function (li) {
           var text = li.getAttribute("data-words") || "";
           var ok = words.every(function (w) { return text.indexOf(w) >= 0; });
           li.hidden = !ok; if (ok) { any = true; shown++; }

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Webhooks · EA Explorer</title>
+<meta name="description" content="EA Explorer tells your system the moment something happens, signed so you know it is genuine.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html" class="here">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Webhooks</h1>
+    <p class="who">For: Developers, System Admin</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">EA Explorer tells your system the moment something happens, signed so you know it is genuine.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-webhooks">Why webhooks</a></li><li><a href="#what-you-receive">What you receive</a></li><li><a href="#setting-one-up">Setting one up</a></li><li><a href="#read-next">Read next</a></li></ul></nav>
+    <h2 id="why-webhooks">Why webhooks</h2>
+<p>Polling an API to see whether anything changed is slow and wasteful. A webhook turns it round: EA Explorer calls your address when something happens (a notification in a category you choose), so your system can react at once: open a ticket, post to a channel, start a job.</p>
+<h2 id="what-you-receive">What you receive</h2>
+<p>One plain JSON body per event, with headers:</p>
+<div class="table"><table><thead><tr><th>Header</th><th>What it is</th></tr></thead><tbody><tr><td><code>X-EAX-Event</code></td><td>The kind of event</td></tr><tr><td><code>X-EAX-Delivery</code></td><td>This delivery's id</td></tr><tr><td><code>X-EAX-Signature</code></td><td><code>sha256=</code> and the HMAC-SHA256 of the body with the webhook's shared secret</td></tr></tbody></table></div>
+<p>Check the signature with the shared secret before trusting the body. A receiver that fails is retried with back-off, up to eight times over about two hours, and every delivery is logged.</p>
+<h2 id="setting-one-up">Setting one up</h2>
+<p>System Admins add the address, the categories and the shared secret on <strong>System Admin › System settings › Webhooks</strong>. See <a href="../how-do-i/receive-webhooks.html">Receive webhooks</a>.</p>
+<h2 id="read-next">Read next</h2>
+<ul><li><a href="../integrate/overview.html">Integrating with EA Explorer: the map</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: integrate/webhooks.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

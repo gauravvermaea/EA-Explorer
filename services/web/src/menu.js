@@ -1,6 +1,6 @@
 // The top menu (R2.0, D586 to D591): the site picker on the left (Farm Admin), the main areas across the top (Architecture
-// Work, Model Admin, Project Admin, Repository, System Admin), and on the right ? (help and documentation) and the person's
-// own menu (User and Profile in one, with Sign out); each a drop-down with sub-menus where needed. Every
+// Work, Model Admin, Project Admin, Repository, System Admin, Documentation with How do I first), and on the right ? (help
+// and documentation) and the person's own menu (User and Profile in one, with Sign out); each a drop-down with sub-menus where needed. Every
 // screen, tab and wizard of EA Explorer is under one of them (tests/test_menu_reachable.py checks nothing is left out).
 // An item a person may not use is hidden (D588); an area with nothing left is hidden too.
 //
@@ -167,8 +167,10 @@ export function menuTree() {
         { label: "Project library", href: "#/project-library", part: "projects" },
       ].filter(Boolean) },
     ] },
+    // the ? menu, back (owner, 22 Nov 2026, 07:38: "Bring back ?", D840): as before, with the Questions page added
     { key: "help", label: "?", title: "Help and documentation", place: "right", items: [
       { label: "Help for this page (F1)", action: "help" },
+      { label: "Questions: quick steps, guide and video ↗", href: "/site/index.html#to=faq.html" },
       { label: "Website: role guides and How do I ↗", href: "/site/index.html" },   // R7.1 (D776): the website, served here
       { label: "Documentation: every document", href: "#/documentation" },
       { label: "Printed guides (PDF)", href: "#/documentation?guides=1" },   // the 24 printed guides (D785)
@@ -242,7 +244,13 @@ export function menuTree() {
     ] },
     // Documentation across the top (owner, 18 Nov 2026, 18:24: "Please make site or documentation as top level menu
     // item"): the website first (role guides, How do I, concepts, reports), then the documents; everyone may use it
+    // How do I is the first sub-menu here (owner, 21 Nov 2026, 20:53, D838); the ? menu stays too (22 Nov 2026, D840)
     { key: "docs", label: "Documentation", title: "The website and every document", items: [
+      { label: "How do I", items: [
+        { label: "Help for this page (F1)", action: "help" },
+        { label: "Questions: quick steps, guide and video ↗", href: "/site/index.html#to=faq.html" },
+        { label: "How do I pages, by role ↗", href: "/site/index.html#to=how-do-i/index.html" },
+      ] },
       { label: "Website: role guides, How do I, concepts and reports ↗", href: "/site/index.html" },
       { label: "Every document", href: "#/documentation" },
       { label: "Printed guides (PDF)", href: "#/documentation?guides=1" },   // the 24 printed guides (D785)

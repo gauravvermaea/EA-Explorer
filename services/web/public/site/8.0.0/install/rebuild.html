@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Building an environment from a backup · EA Explorer</title>
+<meta name="description" content="Building an environment from a backup">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html" class="here">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Building an environment from a backup</h1>
+    <p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    
+    
+    
+    <p>A new machine made from a backup or a DR pack, nothing lost.</p>
+<p>On screen: System Admin &gt; Setup &gt; Building an environment from a backup, where you fill in your values and get every command ready to copy. On the machine: <code>eax setup rebuild</code> with <code>--set KEY=VALUE</code> for each value. In Jenkins: the <code>setup</code> pipeline with <code>rebuild</code>.</p>
+<h2 id="your-values">Your values</h2>
+<div class="table"><table><thead><tr><th>Value</th><th>What it is</th><th>For example</th></tr></thead><tbody><tr><td><code>&lt;PACK&gt;</code></td><td>The folder for the DR pack</td><td><code>D:/dr-packs</code></td></tr><tr><td><code>&lt;INSTALL&gt;</code></td><td>The folder EA Explorer is put in on the new machine</td><td><code>C:/EA-Explorer</code></td></tr></tbody></table></div>
+<h2 id="steps">Steps</h2>
+<h3 id="1-the-pack">1. The pack</h3>
+<p>A DR pack (eax dr-pack) or a backup folder, with its env file.</p>
+<h3 id="2-docker-on-the-new-machine">2. Docker on the new machine</h3>
+<p>The new machine guide.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax check</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh check</code></pre>
+<h3 id="3-build-and-restore">3. Build and restore</h3>
+<p>On the new machine, from the pack in <code>&lt;PACK&gt;</code> into <code>&lt;INSTALL&gt;</code>: the code, the config, the restore, compared.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\dr\eax-dr.ps1 -Pack &lt;PACK&gt; -Install &lt;INSTALL&gt;</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./dr/eax-dr.sh --pack &lt;PACK&gt; --install &lt;INSTALL&gt;</code></pre>
+<h3 id="4-check-it">4. Check it</h3>
+<p>The integrity check and the key items.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax db integrity</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh db integrity</code></pre>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: install/rebuild.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

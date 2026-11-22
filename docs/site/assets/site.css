@@ -109,3 +109,12 @@ blockquote p { margin: 4px 0; }
 .cards-list.printed li { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
 .cards-list.printed .who { color: var(--quiet); font-size: 14px; }
 .cards-list.printed a.download { align-self: flex-start; padding: 5px 12px; border-radius: 6px; background: var(--accent); color: #fff; text-decoration: none; font-size: 14px; }
+
+/* Questions (the FAQ, D838): every How do I page as a question that opens to its quick steps, documents and video */
+.faq { list-style: none; padding: 0; margin: 0; }
+.faq > li { border: 1px solid var(--line); border-radius: 8px; background: var(--card); margin: 0 0 8px; }
+.faq > li[hidden] { display: none; }
+.faq summary { cursor: pointer; padding: 10px 14px; font-weight: 600; }
+.faq .answer { padding: 0 14px 12px; }
+.faq .answer h4 { margin: 10px 0 4px; font-size: 13px; color: var(--quiet); text-transform: uppercase; letter-spacing: .03em; }
+.faq .answer ol, .faq .answer ul { margin: 4px 0 4px 20px; padding: 0; }

@@ -388,3 +388,35 @@ source, and the pictures themselves read one by one and measured).
 - Scanners now named, labelled, removed at their time limit and swept; eax up and down remove leftovers; the full test
   checks none is left. The probe never starts under pytest --cov.
 - AGENTS.md: the website is built again whenever a PDF or guide changes.
+### 20:16 The DR drill in the full test, and the full test from Jenkins: R9.10 (D834)
+- Planned for Release 9: the drill last, after SonarQube; the smoke test run on the DR copy, then the DR copy
+  stopped but kept and this installation started again; Full test in Jenkins' eax-admin folder. Not built.
+### 20:35 The full test of 21 Nov read; 21 by-design findings accepted (D835)
+- Self-test 2,797 passed, 5 failed (4 reports, probably memory: 11.1 GB of 11.6 GB, swap full; the gate); backup and
+  restore passed; attack refused everything; SonarQube did not finish (its admin password lost with the clean
+  restart); coverage 57.7% from the self-test alone.
+- 21 findings accepted until 21 May 2027, each to its file; the 161 package updates stay for R12.4.
+- docs/handover.md has the whole picture and the next steps for the next AI.
+### 20:40 Testing stops; the known bugs listed in Release 12 (D836)
+- R12.8 to R12.13 added (3 unit tests, 4 reports, SonarQube after a clean restart, certs switch, 28 warnings, today's
+  work not yet run). The handover lists every open one.
+### 20:50 Every open bug in Release 12 (D837); the How do I videos list
+- The last open bug outside Release 12 (dms and reports-init on Containers, todo.md) moved as R12.14.
+- A Sheet of 201 How do I videos from the printed guides (guides 04, 07, 08, 09, 10, 22), for R9.1.
+### 21:00 Coverage, SonarQube, Release 8 closed (D838, D839)
+- Coverage stays 57.7% (self-test only): no unit coverage was saved. Two SonarQube scans ran at once (the full test's
+  and `eax test sonar`) and neither reached SonarQube (R12.16). The final joined figure on screen is R12.15.
+- The Questions page and How do I under Documentation built and copied; the ? menu gone (D838, R9.11).
+- The video Sheet corrected: 269 videos (was 201), 23 guides, about 347 minutes.
+- Release 8 accepted and closed; its SonarQube fixes are R12.17 (D839).
+### 22 Nov 2026, 07:40 The ? menu back (D840)
+- Owner: "Bring back ?". The ? menu is on the top bar again, as before, with Questions added; Documentation keeps How
+  do I. So the screenshots still match and need not be taken again for the menu.
+### 07:40 to 07:50 Release 8 made ready to publish as 8.0.0; images every 3 months (D841)
+- version.toml 8.0.0, migration 0112_release_8_0_0, releases/8.0.0.md, capabilities.md; `release.py check v8.0.0`
+  consistent; the unit tests as before. The owner: certificate-mode test, then `eax site pdfs`, then tag v8.0.0.
+- No fresh base images for this test; a clean restart will stop fetching them, and a check every 3 months: R9.12 (D841).
+### 07:50 `eax down` failed with exit 1 (D842)
+- The owner's clean restart stopped at down: Remove-Extras' docker format had double quotes, which Windows PowerShell
+  5.1 drops. Fixed in eax.ps1 with a test; then the clean restart again (password mode for now).
+- 07:52: the clean restart keeps fetching the newest images; the 3-monthly check is as well (D843, R9.12).

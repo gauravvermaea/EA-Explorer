@@ -199,16 +199,16 @@ function WhatItCanDo() {
       <div className="grid ai-tiles">
         {tiles.map((x) => (
           <div key={x.page} className="tile live">
-            <h3><a href={`/site/how-do-i/${x.page}.html`} target="_blank" rel="noopener">{x.title}</a></h3>
+            <h3><a href={`/site/index.html#to=how-do-i/${x.page}.html`} target="_blank" rel="noopener">{x.title}</a></h3>
             <p>{x.say}</p>
             <p className="small">
-              <a href={`/site/how-do-i/${x.page}.html`} target="_blank" rel="noopener">How to do it</a>
+              <a href={`/site/index.html#to=how-do-i/${x.page}.html`} target="_blank" rel="noopener">How to do it</a>
               {x.areas.length > 0 && <>{" · "}<button className="linkish" onClick={() => setAreas(x.areas)}>tools</button></>}
             </p>
           </div>))}
       </div>
-      <p className="small"><a href="/site/how-do-i/connect-your-ai-assistant.html" target="_blank" rel="noopener">Connect your AI assistant</a>
-        {" · "}<a href="/site/how-do-i/index.html#user" target="_blank" rel="noopener">Every How do I page</a></p>
+      <p className="small"><a href="/site/index.html#to=how-do-i/connect-your-ai-assistant.html" target="_blank" rel="noopener">Connect your AI assistant</a>
+        {" · "}<a href="/site/index.html#to=how-do-i/index.html#user" target="_blank" rel="noopener">Every How do I page</a></p>
       <h2 id="every-tool">Every tool</h2>
       <ToolList only={areas} onAll={() => setAreas(null)} />
     </>

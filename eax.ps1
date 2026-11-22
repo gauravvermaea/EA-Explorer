@@ -447,13 +447,17 @@ function Remove-Extras {
     if ($running.Count -eq 0) { $names += "testrunner" }
     Invoke-Compose ($all + @("rm", "-s", "-f") + $names) -NoThrow -Quiet | Out-Null
     # a test's own containers (scanners, k6) its run left behind; a run still going (its heartbeat fresh) keeps them
-    $listed = @(Invoke-Quiet docker @("ps", "-a", "--filter", "label=eaexplorer.test", "--format", '{{.Names}} {{.Label "eaexplorer.test"}}') | Where-Object { $_ })
+    # no double quotes in the format: Windows PowerShell 5.1 drops them on the way to docker, which then refuses the
+    # format and ends with 1, failing down and up (owner, 22 Nov 2026, 07:49); so every label, and ours read from them
+    $listed = @(Invoke-Quiet docker @("ps", "-a", "--filter", "label=eaexplorer.test", "--format", "{{.Names}} {{.Labels}}") | Where-Object { $_ })
     foreach ($line in $listed) {
-        $name, $folder = ("$line".Trim() -split " ", 2)
+        $name, $labels = ("$line".Trim() -split " ", 2)
+        $folder = if ("$labels" -match '(?:^|,)eaexplorer\.test=([^,]*)') { $Matches[1] } else { "" }
         $beat = if ($folder -and $folder -match '^[A-Za-z0-9._-]+$') { Join-Path (Join-Path (Join-Path $WorkDir "tests") $folder) ".alive" } else { "" }
         $fresh = $beat -and (Test-Path $beat) -and (((Get-Date) - (Get-Item $beat).LastWriteTime).TotalSeconds -lt 180)
         if (-not $fresh) { Invoke-Quiet docker @("rm", "-f", $name) | Out-Null }
     }
+    $global:LASTEXITCODE = 0   # tidying up is best effort: what it could not remove never fails down or up
 }
 # start-later: the second tier (run by Start-Later): the rest without touching the core, then the switched-off ones created
 function Invoke-Later {

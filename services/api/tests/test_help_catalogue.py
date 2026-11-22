@@ -50,7 +50,7 @@ def test_help_is_wired_into_the_screens():
     web = ROOT / "services" / "web" / "src"
     app = (web / "App.jsx").read_text(encoding="utf-8")
     assert "<HelpPanel />" in app
-    # the ? menu's Help for this page (F1): the Classic row's own ? button went with R2.25 (D606)
+    # ? › Help for this page (F1), and Documentation › How do I (D838, D840)
     assert '{ label: "Help for this page (F1)", action: "help" }' in (web / "menu.js").read_text(encoding="utf-8")
     assert "openHelp({ popup: title })" in (web / "ModelOps.jsx").read_text(encoding="utf-8")   # ? on every pop-up
     panel = (web / "help" / "HelpPanel.jsx").read_text(encoding="utf-8")

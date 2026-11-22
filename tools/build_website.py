@@ -77,6 +77,7 @@ SHOTS = SRC / "shots"
 DOCUMENTS = ROOT / "documents"          # the printed guides, made by eax site pdfs (D783, D785, D790)
 MANUALS = ROOT / "docs" / "manuals" / "manuals.json"
 YOUTUBE = "https://www.youtube.com/@ea-explorer-os"
+VIDEOS = ROOT / "docs" / "site" / "videos.json"   # a How do I page's video, once it is out: {"tag-a-model": "https://..."}
 GITHUB = "https://github.com/gauravvermaea/EA-Explorer"
 
 ROLES = [   # (code, the name people know it by, one line)
@@ -108,7 +109,7 @@ GROUP_ORDER = ["Start here", "The practice", "Getting around", "Working with con
                "Access for systems", "People and access", "Security", "Backups and recovery", "Running it",
                "Surveys and maturity", "AI", "Connectors", "Reading and reporting", "Running locally", "The code"]
 SECTIONS = [("index.html", "Home"), ("roles/index.html", "Your role"), ("concepts/index.html", "Concepts"),
-            ("how-do-i/index.html", "How do I"), ("guides/index.html", "Guides"),
+            ("how-do-i/index.html", "How do I"), ("faq.html", "Questions"), ("guides/index.html", "Guides"),
             ("printed-guides/index.html", "Printed guides"), ("reports/index.html", "Reports"),
             ("integrate/index.html", "Integrate"),
             ("platform/index.html", "Platform"),
@@ -346,6 +347,8 @@ def collect() -> list[Page]:
                           meta.get("summary", ""), meta.get("roles", []), meta.get("group", "Other"), str(p.relative_to(ROOT)),
                           screens=[meta[k] for k in ("screen", "screen2") if meta.get(k)],
                           does=[meta.get(d, "") for k, d in (("screen", "do"), ("screen2", "do2")) if meta.get(k)]))
+    pages.append(Page("faq.html", "Questions: how do I...?", "Every question with its quick steps, the guide to read and "
+                      "its video. Choose your role, or type to find a question.", "faq.html", printable=False))
     pages.append(Page("how-do-i/index.html", "How do I", "One task on each page, step by step, ready to print or save as "
                       "PDF. Choose your role, or type to find a task.", "how-do-i/index.html", printable=False))
     # Concepts, Integrate, Platform: the ideas behind the work and the developers' sections (the owner, 16:36: "pages
@@ -479,7 +482,100 @@ def _role_tasks(pages: list[Page], role: str, frm: str) -> str:
     return out + ('<h2 id="your-tasks">How do I: your tasks</h2>' + _tiles(tasks, frm) if tasks else "")
 
 
+# ---------------------------------------------------------------- Questions (the FAQ)
+# owner, 21 Nov 2026, 20:51: "build a FAQ / How do I page ... Have some sort of by role tabs + search ... in questions
+# 1. Give quick steps on the question in How do I 2. Point to the document 3. Point to the video (comming)"; "Also add
+# them to website" (D838)
+def _guides_of_tasks(pages: list[Page]) -> dict[str, list[dict]]:
+    """Each How do I page's printed guides (docs/manuals/manuals.json: a chapter names a page, or the How do I pages of a
+    topic and role), as {its address: [guide]}."""
+    if not MANUALS.is_file():
+        return {}
+    tasks = [p for p in pages if p.out.startswith("how-do-i/") and p.out != "how-do-i/index.html"]
+    by: dict[str, list[dict]] = {}
+    files = {g["id"]: g for g in printed_guides()}
+    for g in json.loads(MANUALS.read_text(encoding="utf-8"))["manuals"]:
+        for ch in g.get("chapters", []):
+            for src in ch.get("sources", []):
+                hits = []
+                if src.startswith("howdoi:"):
+                    q = dict(kv.split("=", 1) for kv in src[7:].split(";") if "=" in kv)
+                    if "pages" in q:                       # a list of pages by name: howdoi:pages=a,b,c
+                        names = {f"how-do-i/{n.strip()}.html" for n in q["pages"].split(",")}
+                        hits = [t for t in tasks if t.out in names]
+                    else:                                  # the pages of a topic, for a role: howdoi:group=X;role=Y
+                        hits = [t for t in tasks if t.group == q.get("group") and ("role" not in q or q["role"] in t.roles)]
+                elif "how-do-i/" in src:
+                    stem = src.split("how-do-i/", 1)[1].split(".md", 1)[0]
+                    hits = [t for t in tasks if t.out == f"how-do-i/{stem}.html"]
+                for t in hits:
+                    if all(x["id"] != g["id"] for x in by.get(t.out, [])):
+                        by.setdefault(t.out, []).append({**files.get(g["id"], {"id": g["id"], "title": g["title"],
+                                                                               "file": "", "bytes": 0}), "chapter": ch["title"]})
+    return by
+
+
+def videos() -> dict[str, str]:
+    """The How do I videos that are out (docs/site/videos.json): {page name: its address}; the rest are coming."""
+    try:
+        got = json.loads(VIDEOS.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return {k: v for k, v in (got.get("videos") or {}).items() if isinstance(v, str) and v.startswith("https://")}
+
+
+def _quick_steps(page: Page) -> str:
+    """The page's steps, as its How do I page has them (or what it is for, where it has no steps)."""
+    m = re.search(r"^## Steps\s*\n(.*?)(?=^## |\Z)", page.body_md, re.M | re.S)
+    md = m.group(1).strip() if m else ""
+    if not re.search(r"^\s*\d+\.\s", md, re.M):
+        return f'<p>{html.escape(page.summary)}</p>'
+    body, _heads = markdown(md, lambda u: u)
+    return re.sub(r'<a href="[^"]*">(.*?)</a>', r"\1", body)          # the steps only: their links are on the page
+
+
+def _question(t: Page, frm: str, guides: list[dict], video: str) -> str:
+    q = t.title[0].lower() + t.title[1:]
+    words = " ".join([t.title, t.summary, t.group, re.sub(r"[`*#>|\[\]()_]", " ", t.body_md)[:600]]).lower()
+    docs = [f'<a href="{_rel(frm, t.out)}">How do I: {html.escape(t.title)}</a> (with pictures, to print)']
+    for g in guides:
+        name = f'{g["id"].split("-")[0]}. {html.escape(g["title"])}'
+        docs.append((f'<a href="{_rel(frm, "manuals/" + g["file"])}" download>{name} (PDF)</a>' if g.get("bytes") else
+                     f'<a href="{_rel(frm, "printed-guides/index.html")}">{name}</a>')
+                    + f' <span class="quiet small">chapter {html.escape(g["chapter"])}</span>')
+    vid = (f'<a href="{html.escape(video)}" target="_blank" rel="noopener">Watch the video ↗</a>' if video else
+           '<span class="quiet">Coming soon</span>')
+    return (f'<li data-roles="{html.escape(" ".join(t.roles))}" data-words="{html.escape(re.sub(r"\s+", " ", words))}">'
+            f'<details><summary>How do I {html.escape(q)}?</summary>'
+            f'<div class="answer"><h4>Quick steps</h4>{_quick_steps(t)}<h4>Read more</h4><ul>'
+            + "".join(f"<li>{d}</li>" for d in docs) + f'</ul><h4>Video</h4><p>{vid}</p></div></details></li>')
+
+
+def _faq_html(page: Page, pages: list[Page]) -> str:
+    """Every How do I page as a question, once, by topic: the role tabs and the filter show only those that match (each
+    question carries its roles and words); each opens to its quick steps, the page and printed guides to read, and its
+    video (or coming soon)."""
+    every = [p for p in pages if p.out.startswith("how-do-i/") and p.out != "how-do-i/index.html"]
+    guides, vids = _guides_of_tasks(pages), videos()
+    by: dict[str, list[Page]] = {}
+    for t in sorted(every, key=lambda t: t.title):
+        by.setdefault(t.group or "Other", []).append(t)
+    body = "".join(
+        f'<section class="group"><h3>{html.escape(g)}</h3><ul class="faq">'
+        + "".join(_question(t, page.out, guides.get(t.out, []), vids.get(t.out[9:-5], "")) for t in by[g]) + "</ul></section>"
+        for g in sorted(by, key=lambda g: (GROUP_ORDER.index(g) if g in GROUP_ORDER else len(GROUP_ORDER), g)))
+    tabs = [("all", "Every question")] + [(c, n) for c, n, _l in ROLES if _tasks_of(pages, c)]
+    bar = ('<div class="howto-tools"><input type="search" class="filter" placeholder="Type to find a question" '
+           'aria-label="Find a question"><p class="filter-none quiet" hidden>No question matches.</p></div>'
+           '<div class="role-tabs" role="tablist">' + "".join(
+               f'<button type="button" role="tab" data-tab="{c}"{" aria-selected=\"true\"" if c == "all" else ""}>{n}</button>'
+               for c, n in tabs) + "</div>")
+    return f'<div class="faq-page">{bar}<p class="faq-count quiet small"></p>{body}</div>'
+
+
 def _index_html(page: Page, pages: list[Page]) -> str:
+    if page.out == "faq.html":
+        return _faq_html(page, pages)
     if page.out == "roles/index.html":
         return '<ul class="cards">' + "".join(
             f'<li><a href="{code}.html"><strong>{name}</strong><span>{line}</span></a></li>' for code, name, line in ROLES) + "</ul>"
@@ -624,8 +720,8 @@ def releases_on_disk() -> list[str]:
 
 
 def front_page(releases: list[str]) -> str:
-    """site/index.html: opens the newest release's copy at once (no script: a refresh the page itself asks for) and
-    lists every copy kept."""
+    """site/index.html: opens the newest release's copy at once (a refresh the page itself asks for) and lists every copy
+    kept; with #to=<page> (the screens' links, D838) it opens that page of the newest copy."""
     newest = releases[0]
     rows = "".join(f'<li><a href="{r}/index.html">EA Explorer {html.escape(r)}</a>{" (newest)" if r == newest else ""}</li>'
                    for r in releases)
@@ -634,6 +730,9 @@ def front_page(releases: list[str]) -> str:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script>/* index.html#to=faq.html opens that page of the newest copy (the screens' links, D838); a page of the site only */
+var m = /^#to=([A-Za-z0-9_][A-Za-z0-9_./-]*\\.html(#[A-Za-z0-9_-]+)?)$/.exec(window.location.hash || "");
+if (m && m[1].indexOf("..") < 0 && m[1].indexOf("//") < 0) {{ window.location.replace("{newest}/" + m[1]); }}</script>
 <meta http-equiv="refresh" content="0; url={newest}/index.html">
 <title>EA Explorer: the website</title>
 <link rel="stylesheet" href="{newest}/assets/site.css">

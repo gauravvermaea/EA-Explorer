@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Add a data quality rule · EA Explorer</title>
+<meta name="description" content="A rule for the model&#x27;s data, no SQL needed.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html" class="here">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Add a data quality rule</h1>
+    <p class="who">For: Model Admin</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">A rule for the model&#x27;s data, no SQL needed.</p>
+    <figure class="shot"><img src="../shots/add-a-quality-rule.png" alt="The screen: Add a data quality rule" loading="lazy"><figcaption>The screen: <code>#/metamodel/{m}/quality</code></figcaption></figure>
+    
+    <h2 id="why-do-this">Why do this</h2>
+<p>A quality rule states what good data looks like for one type: an owner is required, a retirement date comes after the go-live date. Errors stop a commit until fixed; warnings let it through but count against the score. Rules turn the Model Admin's expectations into checks that run for everyone. See <a href="../concepts/data-quality.html">Data quality: why it matters and how it is measured</a>.</p>
+<p>Quality is not a one-off clean-up but a habit: rules catch problems as they are saved, the score shows the trend, and owners fix what is theirs. A model people trust is one they keep using.</p>
+<p><strong>In TOGAF terms:</strong> Supports every ADM phase: the content framework is only useful if its building blocks are complete and correct. See <a href="../concepts/ea-explorer-and-togaf.html">EA Explorer and the TOGAF Standard</a>.</p>
+<p><strong>The goal:</strong> Bad values are caught as they are saved, not months later.</p>
+<blockquote class="before"><p><strong>Before you start</strong> You need the Model Admin role on the model.</p></blockquote>
+<h2 id="steps">Steps</h2>
+<ol><li>Open the model's <strong>Quality</strong>.</li><li><strong>New quality rule</strong>: pick the kind, the type and the condition.</li><li>Choose error (blocks commits) or warning; <strong>Save</strong>.</li></ol>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: how-do-i/add-a-quality-rule.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

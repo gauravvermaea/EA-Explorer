@@ -18,11 +18,13 @@ EA Explorer covers a lot of ground. A few habits (search, help on every screen, 
 
 ## Steps
 
-1. Press **F1**, or **?** › Help for this page: a panel beside the page explains what is on the screen (the pop-up, the
-   wizard step, the tab or the page), with a search over all the help.
+1. Press **F1**, or **?** › Help for this page: a panel beside the page explains what is on the
+   screen (the pop-up, the wizard step, the tab or the page), with a search over all the help.
 2. Hover over a button, tab or field for a short tooltip.
-3. **?** › Documentation: every document that ships with your version, each printable.
-4. This website: **?** › Website, with every How do I page and the role guides.
+3. **?** › Questions (or Documentation › How do I › Questions): every question for your role, with its quick steps, the guide to read
+   and its video.
+4. **?** › Documentation: every document that ships with your version, each printable; **?** › Website for every How
+   do I page and the role guides.
 
 ## Related
 

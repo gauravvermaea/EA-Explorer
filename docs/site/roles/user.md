@@ -42,7 +42,7 @@ You do the content work of the ADM: describing the baseline and target in phases
 | Projects | Open a project | Its phases and steps, models, deliverables, stakeholders, key questions and documents |
 | Your tasks | Me › My tasks, Notifications, Surveys to answer | Requests, approvals, reviews and surveys waiting for you |
 | AI | AI (MCP) | Connect your own AI assistant; it works as you, with your permissions |
-| Help | **?** or F1 | Help for what is on the screen, every document, and this site |
+| Help | **?** or F1 | Help for what is on the screen, the questions, every document, and this site |
 
 ## How it is put together
 

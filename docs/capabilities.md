@@ -1,4 +1,4 @@
-# What EA Explorer does today (version 7.9.0)
+# What EA Explorer does today (version 8.0.0)
 
 One page for anyone weighing EA Explorer up: what is **built and in the box today**, area by area, and what is still
 **planned**, with its build phase. "Planned" adds to what is already there; it does not mean an area is missing.
@@ -16,6 +16,13 @@ Every phase in detail: [build-phases.md](build-phases.md). Decisions: [decisions
 | Documents and libraries | Document management (Mayan EDMS) inside projects, the reference library, the enterprise and project libraries with search |
 | Integration | A REST API (OpenAPI), signed webhooks, Excel and CSV in and out with mappings, model packages, the MCP server; discovery: OData feeds read, pushes taken and documents read by AI, proposed as deliveries to review (Release 3, in progress) |
 | Operations | One command (`eax`, full screen or numbered menu) and a console, start-up in two tiers, health, tagged backups and restores, every service switchable, a file explorer in every container |
+
+## New in Release 8 (8.0.0, released 22 Nov 2026)
+
+EA Explorer **tests itself harder**: `eax test full` runs the dev check, the self-test, an **attack test** that tries to
+break it (OWASP ZAP, Schemathesis, Nuclei, Semgrep, Gitleaks), the backup and restore test and a **SonarQube** scan, and
+writes one **summary page**; code coverage is measured and shown as a ring; test containers never stay running. On the
+website, a **Questions** page by role with quick steps, the guide to read and the video; How do I under Documentation.
 
 ## New in Release 7.9 (7.9.0, released 19 Nov 2026)
 
@@ -88,7 +95,7 @@ Sign out) and **?** (help for this page, every document, getting started, releas
 API). What a person may not use is not shown. **Classic** (the menus as they were in 1.0, kept for now: System admin,
 Model admin, Project admin, Architecture work, Architecture repository, Reference library and Everything else, and the
 older row below: Start, Models, Projects, Repository, Library, Enterprise library, Reference library, Compare, Gap
-analysis, Common analysis, Change log, MCP, Administration and API; with ? Help, Documentation and Sign out).
+analysis, Common analysis, Change log, MCP, Administration and API; with ? Help, Documentation (How do I first) and Sign out).
 
 ## Documentation
 - **Documentation** (beside your name, for everyone signed in): every document that ships with the version you run,
@@ -109,7 +116,7 @@ Built ([navigation.md](navigation.md), D478–D481; changed in R2.0, D589–D590
   help's pages) or content (models, projects, entities as you type), and Search everything; near spellings work.
 
 ## On-screen help
-- **? Help** (top bar) or **F1** anywhere: a help panel beside the page for what is on the screen (the pop-up, the wizard step, the sub-tab, the tab, the page), with a search over all the help (D531)
+- **? Help** (top bar), **Documentation › How do I** or **F1** anywhere: a help panel beside the page for what is on the screen (the pop-up, the wizard step, the sub-tab, the tab, the page), with a search over all the help (D531)
 - **?** on every pop-up; a short **tooltip** on every button, tab and field (D531)
 - One help catalogue for all of it, and a test that fails the build when a screen has no help ([help-catalogue.md](help-catalogue.md), D530, D532)
 
