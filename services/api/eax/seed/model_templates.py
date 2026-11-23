@@ -31,7 +31,9 @@ TEMPLATES = [
      "stream map, roadmap. Structure only: start a model from it."),
     ("digital", "Digital transformation model template",
      "For a digital transformation that starts from the customer and the business model (The Open Group's Digital "
-     "Practitioner Body of Knowledge, C196, and the TOGAF Digital Business Reference Model). Element types: products, "
+     "Practitioner Body of Knowledge, C196, and the TOGAF Digital Business Reference Model, G21H). Use the Digital Business "
+     "Reference Model (TOGAF DBRM) from the library in phase B: its domains, core elements and the competencies behind "
+     "each digital pillar are a checklist for the target. Element types: products, "
      "value streams and their stages, capabilities with their maturity, business and data objects, applications and "
      "platforms, and the work packages and plateaus between transitions; customer journeys on the project. Views: value "
      "stream map, capability heat map, roadmap. Structure only: start a model from it."),

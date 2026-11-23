@@ -7,6 +7,7 @@ The seed (eax.seed.__main__) loads any that are missing, on a fresh install and 
 
 from . import (
     industry_banking,
+    industry_dbrm,
     industry_government,
     industry_grm,
     industry_healthcare,
@@ -71,6 +72,13 @@ MODELS = [
      "the functions shared across departments and judge the impact of change. Descriptions are EA Explorer's own: "
      "read the guide for its full text (www.opengroup.org/library/g21d). Read-only: copy it to start a model.",
      industry_grm, "Government Reference Model (TOGAF GRM)"),
+    # Release 12 (R12.3, D879): the TOGAF Series Guide's Digital Business Reference Model, for digital transformation
+    ("dbrm", "Digital business", "2025",
+     "The Digital Business Reference Model from the TOGAF Series Guide (G21H, 2025): four domains (Digital, Strategy, "
+     "Structural, Operational), ten core elements and their parts, and the DPBoK competencies that enable each Digital "
+     "Enablement pillar. Used in phase B of a digital transformation. Descriptions are EA Explorer's own: read the "
+     "guide for its full text (www.opengroup.org/library/g21h). Read-only: copy it to start a model.",
+     industry_dbrm, "Digital Business Reference Model (TOGAF DBRM)"),
 ]
 
 

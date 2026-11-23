@@ -139,7 +139,7 @@ def test_industry_reference_models_are_consistent():
     from eax.seed import industries as IND
     allowed = {(s, r, t) for s, r, t, _ in build.expand_allowed()}
     assert [c for c, *_ in IND.MODELS] == ["healthcare", "manufacturing", "pharmaceuticals", "retail", "banking", "government",
-                                           "logistics", "minerals_mining", "telecommunications", "meridian", "grm"]
+                                           "logistics", "minerals_mining", "telecommunications", "meridian", "grm", "dbrm"]
     for code, name, _version, desc, mod, *_named in IND.MODELS:
         # the insurance worked example is Meridian Assurance Group (the owner's invented insurer, D549): Meridian may stay
         banned = r"objective" if code == "meridian" else r"meridian|objective"
@@ -147,6 +147,8 @@ def test_industry_reference_models_are_consistent():
         assert len(types) == len(mod.ENTITIES), (code, "keys are unique")
         if code == "grm":   # the TOGAF GRM is a taxonomy (sectors, functions, services, drivers; R12.1): no capabilities
             assert set(types.values()) == {"Function", "Service", "Driver"}, code
+        elif code == "dbrm":  # the TOGAF DBRM is a structure of groupings (domains, elements, parts; R12.3)
+            assert set(types.values()) == {"Grouping"}, code
         else:
             assert sum(1 for t in types.values() if t == "Capability") >= 50, code
             assert {"ValueStream", "ApplicationComponent", "BusinessObject"} <= set(types.values()), code
@@ -174,5 +176,5 @@ def test_industry_reference_models_load():
                          with_togaf10=False, with_industries=True)
     assert sql.count("INSERT INTO core.models") == len(IND.MODELS)
     guids = {build.gid("model", IND.key(c)) for c, *_ in IND.MODELS}
-    assert len(guids) == len(IND.MODELS) == 11 and build.INSURANCE_ID not in guids
+    assert len(guids) == len(IND.MODELS) == 12 and build.INSURANCE_ID not in guids
     assert "'Meridian Assurance (insurance worked example)'" in sql and "'Banking reference model'" in sql
