@@ -17,10 +17,32 @@
 # the installation started again instead; --smoke-after runs the smoke test on the DR copy only. The drill's backup is kept (pinned); the temp folder is deleted. Report:
 # <install>/work/tests/drill-<time>/.
 set -uo pipefail
+usage() {
+  cat <<'USAGE'
+eax-drill: the restore drill. The installation is backed up and shut down, a copy is built with eax-dr in a new
+folder from the installation's own code and restored there, then signed in to. Asks nothing. It fails only when the
+restore cannot be done or nobody can sign in; the rest are warnings. The DR copy is left running and the installation
+stopped (they share the ports), unless --then-back.
+Usage:
+  eax-drill --install <running installation> --dr <new folder> --temp <folder> [--smoke|--smoke-after] [--then-back]
+Options:
+  --install <folder>  the running installation to back up and shut down (always needed)
+  --dr <folder>       a new folder for the DR copy (always needed)
+  --temp <folder>     a folder for the backup's copy, deleted at the end (always needed)
+  --smoke             the smoke test before and after too (its findings are warnings; about ten minutes more)
+  --smoke-after       the smoke test on the DR copy only (as eax test full runs it)
+  --then-back         afterwards the DR copy stopped (kept) and the installation started again (as eax test full)
+  --help              this help (also -h)
+In PowerShell (eax-drill.ps1, eax-drill.cmd) the same options are -Install, -Dr, -Temp, -Smoke, -SmokeAfter,
+-ThenBack and -Help.
+The report: <install>/work/tests/drill-<time>/.
+USAGE
+}
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 INSTALL="" DR="" TEMP="" SMOKE=0 SMOKE_AFTER=0 THEN_BACK=0
 while [ $# -gt 0 ]; do
   case $1 in
+    -h|--help) usage; exit 0;;   # every option and what it does (R13.4)
     --install) INSTALL=$2; shift 2;; --dr) DR=$2; shift 2;; --temp) TEMP=$2; shift 2;;
     --smoke) SMOKE=1; shift;;   # the full smoke test before and after too (its findings are warnings)
     --smoke-after) SMOKE_AFTER=1; shift;;   # the smoke test on the DR copy only (R9.10: eax test full)
@@ -28,7 +50,7 @@ while [ $# -gt 0 ]; do
     *) echo "Unknown option $1"; exit 2;;
   esac
 done
-[ -n "$INSTALL" ] && [ -n "$DR" ] && [ -n "$TEMP" ] || { echo "Usage: ./eax-drill.sh --install <folder> --dr <new folder> --temp <folder> [--smoke|--smoke-after] [--then-back]"; exit 2; }
+[ -n "$INSTALL" ] && [ -n "$DR" ] && [ -n "$TEMP" ] || { usage; exit 2; }
 abs() { case $1 in /*) printf '%s' "${1%/}";; *) printf '%s/%s' "$(pwd)" "${1%/}";; esac; }
 INSTALL=$(abs "$INSTALL"); DR=$(abs "$DR"); TEMP=$(abs "$TEMP")
 inside() { case "$1/" in "$2/"*) return 0;; esac; return 1; }

@@ -22,10 +22,36 @@
 #   "The DR should let us in as soon as the web is up"); then the rest waited for and the smoke test.
 #   Report: <install>/work/dr/dr-<time>/.
 set -uo pipefail
+usage() {
+  cat <<'USAGE'
+eax-dr: builds a whole EA Explorer from an infrastructure backup (disaster recovery). Asks nothing.
+Usage:
+  eax-dr --pack <DR pack> --install <folder>
+  eax-dr --backup <folder> --install <folder> --env <file> --code <folder>
+  eax-dr --backup <folder> --install <folder> --env <file> --version <x.y.z> [--repo <GitHub link>]
+Options:
+  --pack <folder>     a DR pack (eax dr-pack): its backup, version, env file and code, checked first
+  --backup <folder>   the infrastructure backup to restore
+  --install <folder>  where to build it: a new or empty folder (always needed)
+  --version <x.y.z>   the release to build (a pack's own unless given)
+  --env <file>        the env file to use (a pack's own unless given: a new machine's name, say)
+  --code <folder>     a copy of EA Explorer's code (eax drill code, or a pack's code): no GitHub
+  --repo <link>       the GitHub repository the code comes from (EA Explorer's unless given)
+  --github            the code from GitHub even when the pack carries it
+  --project <name>    its own Docker name (eaexplorer unless given): keeps a copy apart from an installation here
+  --keep-quiet        the background stays paused after the restore (eax-drill uses it)
+  --no-smoke          no smoke test at the end (eax-drill runs its own)
+  --help              this help (also -h)
+In PowerShell (eax-dr.ps1, eax-dr.cmd) the same options are -Pack, -Backup, -Install, -Version, -Env, -Code, -Repo,
+-GitHub, -Project, -KeepQuiet, -NoSmoke and -Help.
+The report: <install>/work/dr/dr-<time>/.
+USAGE
+}
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 PACK="" BACKUP="" INSTALL="" VERSION="" ENV_FILE="" REPO="" PROJECT=eaexplorer KEEP_QUIET=0 NO_SMOKE=0 FINGERPRINT="" CODE="" GITHUB=0
 while [ $# -gt 0 ]; do
   case $1 in
+    -h|--help) usage; exit 0;;   # every option and what it does (R13.4)
     --pack) PACK=$2; shift 2;;   # a DR pack (eax dr-pack): the backup, version and env file from it, checked
     --backup) BACKUP=$2; shift 2;; --install) INSTALL=$2; shift 2;; --version) VERSION=${2#v}; shift 2;;
     --env) ENV_FILE=$2; shift 2;; --repo) REPO=$2; shift 2;;

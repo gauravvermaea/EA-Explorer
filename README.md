@@ -29,9 +29,9 @@ documentation**, refreshed at every start (D550 to D552). On the command line, `
 **All the documentation, listed with what each covers: [docs/index.md](docs/index.md).** Backup and restore
 commands: [below](#backup-and-restore-from-the-command-line) and in [docs/operations.md](docs/operations.md#backup-and-restore-from-the-command-line-d227).
 
-**Status: version 12.0.0, Release 12 (project and model templates from TOGAF and its Series Guides), closed as an unstable release, 23 Nov 2026**
-(tag `v12.0.0`, published on the repository's GitHub Releases; release notes: [releases/12.0.0.md](releases/12.0.0.md), with its known issues;
-earlier releases' notes are in [releases](releases)). Next: Release 13, System Admin regrouped and every command-line option documented; then Release 14, stabilisation (every test passing, coverage at its target). The releases in short are
+**Status: version 13.0.0, Release 13 (System Admin regrouped, every command-line option documented), accepted 23 Nov 2026**
+(tag `v13.0.0`, published on the repository's GitHub Releases; release notes: [releases/13.0.0.md](releases/13.0.0.md);
+earlier releases' notes are in [releases](releases)). Next: Release 14, stabilisation (every test passing, coverage at its target). The releases in short are
 [below](#releases); every phase in detail: [docs/build-phases.md](docs/build-phases.md). Database design:
 [docs/database.md](docs/database.md). How it is built (for developers and AI agents):
 [docs/architecture.md](docs/architecture.md), [AGENTS.md](AGENTS.md); the high-level technical architecture (under 10 pages):
@@ -64,7 +64,7 @@ area by area: [docs/capabilities.md](docs/capabilities.md).
 | 10 | [10.0.0](releases/10.0.0.md) | Scenario planning and game theory run by your AI in a project, the working done by EA Explorer, a read-only Scenario planning tab; every MCP tool tried in the full test | accepted 22 Nov 2026 |
 | 11 | [11.0.0](releases/11.0.0.md) | Certificate (key-based) sign-in between the services, working and tested; switched from System Admin › Secrets and kept across clean restarts | accepted 22 Nov 2026 |
 | 12 | [12.0.0](releases/12.0.0.md) | Project and model templates from TOGAF and its Series Guides: Agile sprints, Digital transformation, EA capability, Risk and security, Data governance; eight new types; a project plan with RACI and approval gates; a risk register; ready-made surveys; TOGAF skills and guides; every connection checked in the heartbeat | closed as unstable 23 Nov 2026 |
-| 13 | | System Admin regrouped into fewer menus and tabs; every command-line option documented | planned |
+| 13 | [13.0.0](releases/13.0.0.md) | System Admin in seven groups with multi-level tabs like Projects, the same in the menu, every page and tab with its own address; every command-line option documented, the DR tools' --help, and a test that keeps it so | accepted 23 Nov 2026 |
 | 14 | | Stabilisation: every bug fixed, every test passing and code coverage at its target | planned |
 | 15 | | Every document checked and brought up to date | planned |
 | 16 | | Every picture, printed guide and the website brought up to date; every feature listed on the website | planned |

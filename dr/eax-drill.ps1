@@ -44,13 +44,39 @@
   .\dr\eax-drill.ps1 -Install C:\Users\gaura\Github\EA-Enterpise -Dr C:\EA-DR\drill1 -Temp C:\EA-DR\temp
 #>
 param(
-    [Parameter(Mandatory = $true)][string]$Install,
-    [Parameter(Mandatory = $true)][string]$Dr,
-    [Parameter(Mandatory = $true)][string]$Temp,
+    [string]$Install = "",
+    [string]$Dr = "",
+    [string]$Temp = "",
     [switch]$Smoke,     # the full smoke test before and after too (its findings are warnings): about ten minutes more
     [switch]$SmokeAfter,  # the smoke test on the DR copy only (R9.10: eax test full)
-    [switch]$ThenBack     # afterwards the DR copy stopped (kept) and the installation started again (R9.10)
+    [switch]$ThenBack,    # afterwards the DR copy stopped (kept) and the installation started again (R9.10)
+    [switch]$Help,           # every option and what it does (R13.4; also -h)
+    [Parameter(ValueFromRemainingArguments = $true)][string[]]$Rest   # --help, /? and anything not known
 )
+function Show-Usage {
+  @(
+    'eax-drill: the restore drill. The installation is backed up and shut down, a copy is built with eax-dr in a new',
+    'folder from the installation''s own code and restored there, then signed in to. Asks nothing. It fails only when the',
+    'restore cannot be done or nobody can sign in; the rest are warnings. The DR copy is left running and the installation',
+    'stopped (they share the ports), unless --then-back.',
+    'Usage:',
+    '  eax-drill --install <running installation> --dr <new folder> --temp <folder> [--smoke|--smoke-after] [--then-back]',
+    'Options:',
+    '  --install <folder>  the running installation to back up and shut down (always needed)',
+    '  --dr <folder>       a new folder for the DR copy (always needed)',
+    '  --temp <folder>     a folder for the backup''s copy, deleted at the end (always needed)',
+    '  --smoke             the smoke test before and after too (its findings are warnings; about ten minutes more)',
+    '  --smoke-after       the smoke test on the DR copy only (as eax test full runs it)',
+    '  --then-back         afterwards the DR copy stopped (kept) and the installation started again (as eax test full)',
+    '  --help              this help (also -h)',
+    'In PowerShell (eax-drill.ps1, eax-drill.cmd) the same options are -Install, -Dr, -Temp, -Smoke, -SmokeAfter,',
+    '-ThenBack and -Help.',
+    'The report: <install>/work/tests/drill-<time>/.'
+  ) | ForEach-Object { Write-Host $_ }
+}
+if ($Help -or ($Rest | Where-Object { $_ -in @('--help', '-h', '/?', '-?') })) { Show-Usage; exit 0 }
+if ($Rest) { Write-Host "Unknown option $($Rest[0])" -ForegroundColor Red; Show-Usage; exit 2 }
+if (-not $Install -or -not $Dr -or -not $Temp) { Show-Usage; exit 2 }
 $ErrorActionPreference = "Stop"
 $Install = [IO.Path]::GetFullPath($Install).TrimEnd('\', '/')
 $Dr = [IO.Path]::GetFullPath($Dr).TrimEnd('\', '/')

@@ -129,7 +129,9 @@ Ctrl+C stops following; nothing is stopped. Every container's log is also kept o
 folder EAX_LOGS_DIR names), across clean-restart and updates (R2.32). `logs backup [tag]` zips those and eax's own
 logs (work/logs) into work/backups/logs; `logs clean` deletes them and the log backups when older than N days (default
 14 on a laptop, 90 on a server; also every night, System Admin > Settings "Delete logs older than"), asking first
-(--yes skips it) (R2.30).
+(--yes skips it) (R2.30). With logs backup, --outside-work puts the zip in the kept-backups folder beside the logs
+folder (outside work/, so a clean-restart keeps it) and --then-clear deletes the container logs and the web log once
+they are zipped (clean-run and clean-restart do both).
 $ {eax} logs
 $ {eax} logs api
 $ {eax} logs backup before-upgrade
@@ -207,7 +209,7 @@ $ {eax} dev check --quick --web
 ### estimate --users N --models N [--size small|medium|large] --projects N [--documents N] [--override FILE] [--json]
 > The server sizing estimate: RAM, CPU and disk, per container too. A best estimate, it says so.
 For a server (or a container platform) before it is made: people at once, models and their size, projects and the
-documents each, what is switched on (--no-reports, --no-documents), backups kept (--backups N), headroom (--headroom,
+documents each, what is switched on (--no-reports, --no-documents, --no-mcp, --no-discovery), backups kept (--backups N), headroom (--headroom,
 0.3) and a platform's node (--node-gb, --node-cores). It answers the server's RAM, cores and disk (a year on), each
 container's memory to reserve and its limit, the copies to run, the settings and the nodes, with its assumptions. It
 needs nothing running. --override FILE writes a compose override with the limits (R5.19; System Admin > Sizing).
@@ -309,7 +311,8 @@ $ {eax} app-backup month-end
 
 ### restore-model
 > Restores one model from an application backup, as a new model or over itself.
-Lists the backups and the models in them to choose from. Needs the api container running.
+Lists the backups and the models in them to choose from. Needs the api container running. Without questions: the
+backup's run and the model's backup file, then --new <name> (a new model of that name) or --over (over itself).
 
 ### restore-app [run|tag|latest] [--yes]
 > Restores every model of an application backup, each over itself (each backed up first).
@@ -522,6 +525,17 @@ and IT Admins.
   clean   deletes the test data of every run, for good (asks you to type DELETE; --yes skips that). The reports stay.
           --dry-run lists what it would delete (models with their counts, projects, accounts) and deletes nothing.
           Each run removes its own test data when it ends (passed, failed or stopped); lists leave test data out.
+Options for smoke and full (also the Command centre's and Jenkins' fields): --smoke and --detailed choose the level
+(--detailed is the self-test part of full, without the dev check, the attack and backup and restore tests, SonarQube
+and the DR drill); --suite S runs only that suite (api, ui, db, jobs, mcp, security, reports, performance, attack,
+backup or all; give it more than once for more); --role R runs the checks as that test role only (architect,
+super-admin, ...) and --area A only that area's checks. These only read: --status (the run going on now and its
+step), --last (the last finished run and its failed checks), --report (where the last run's report is) and --fixtures
+(the test data kept, run by run). --clean run|all deletes the test data of that run or of every run (as test clean).
+--build only (re)builds the test runner image, as the Self-test page's Build button, and runs nothing.
+--reset-survival --confirm <installation name> is the reset-survival test: markers written into persist/, a real
+clean-restart (it DELETES all data), then the markers and every persist/ file checked byte for byte; never part of
+smoke or full.
 A run can start right after up or clean-restart: it waits only for the services it tests (up to 10 minutes), never
 for the sample data or the industry packs; a switched-off service's checks are skipped.
 The report: work/tests/<run>/report.html (and the Self-test page's History). The exit code is 1 when a test failed.
@@ -817,7 +831,9 @@ $ {eax} debug api
 
 ### help [command|--all]
 > This overview; one command in full, with examples; or --all for every command in full.
-Also: {eax} <command> --help (or -h, or /?).
+Also: {eax} <command> --help (or -h, or /?). help --groups lists the groups of commands; help --group N shows the
+commands of group N in full; help --search <word> shows in full every command whose help has the word (eax
+document's console uses all three).
 $ {eax} help stop
 $ {eax} help --all
 
@@ -851,7 +867,8 @@ It signs in and opens pages (and the tab or dialog a page names): nothing is sav
 installation with the demo data, then make the website again (shots does that itself).
   build     the website made again from docs/site, docs/guides and releases.
   check     the same in memory: what is wrong (a link to nowhere, a page with no screen); nothing written.
-  shots     the pictures taken (--only: those pages, by file name; --missing: only those not taken yet).
+  shots     the pictures taken (--only: those pages, by file name; --missing: only those not taken yet; --width and
+            --height: the browser window, 1280 by 800 unless given).
   pdfs      the 24 printed guides as PDFs in documents/ (in git), then the website again with them under
             Printed guides (--only: those guides, by id, e.g. 01-overview). Run shots first: the PDFs use its pictures.
 $ {eax} site build

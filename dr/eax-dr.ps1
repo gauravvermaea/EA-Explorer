@@ -44,7 +44,7 @@
 param(
     [string]$Pack = "",                # a DR pack (eax dr-pack): the backup, version and env file from it, checked
     [string]$Backup = "",
-    [Parameter(Mandatory = $true)][string]$Install,
+    [string]$Install = "",
     [string]$Version = "",
     [Alias("Env")][string]$EnvFile = "",
     [string]$Repo = "",
@@ -52,8 +52,38 @@ param(
     [switch]$GitHub,                   # the code from GitHub even when the pack carries it
     [string]$Project = "eaexplorer",   # its Docker name: another one keeps a copy apart from an installation on this machine
     [switch]$KeepQuiet,          # eax-drill: the background stays paused after the restore, for its own comparison
-    [switch]$NoSmoke             # eax-drill: it runs the smoke test itself
+    [switch]$NoSmoke,            # eax-drill: it runs the smoke test itself
+    [switch]$Help,           # every option and what it does (R13.4; also -h)
+    [Parameter(ValueFromRemainingArguments = $true)][string[]]$Rest   # --help, /? and anything not known
 )
+function Show-Usage {
+  @(
+    'eax-dr: builds a whole EA Explorer from an infrastructure backup (disaster recovery). Asks nothing.',
+    'Usage:',
+    '  eax-dr --pack <DR pack> --install <folder>',
+    '  eax-dr --backup <folder> --install <folder> --env <file> --code <folder>',
+    '  eax-dr --backup <folder> --install <folder> --env <file> --version <x.y.z> [--repo <GitHub link>]',
+    'Options:',
+    '  --pack <folder>     a DR pack (eax dr-pack): its backup, version, env file and code, checked first',
+    '  --backup <folder>   the infrastructure backup to restore',
+    '  --install <folder>  where to build it: a new or empty folder (always needed)',
+    '  --version <x.y.z>   the release to build (a pack''s own unless given)',
+    '  --env <file>        the env file to use (a pack''s own unless given: a new machine''s name, say)',
+    '  --code <folder>     a copy of EA Explorer''s code (eax drill code, or a pack''s code): no GitHub',
+    '  --repo <link>       the GitHub repository the code comes from (EA Explorer''s unless given)',
+    '  --github            the code from GitHub even when the pack carries it',
+    '  --project <name>    its own Docker name (eaexplorer unless given): keeps a copy apart from an installation here',
+    '  --keep-quiet        the background stays paused after the restore (eax-drill uses it)',
+    '  --no-smoke          no smoke test at the end (eax-drill runs its own)',
+    '  --help              this help (also -h)',
+    'In PowerShell (eax-dr.ps1, eax-dr.cmd) the same options are -Pack, -Backup, -Install, -Version, -Env, -Code, -Repo,',
+    '-GitHub, -Project, -KeepQuiet, -NoSmoke and -Help.',
+    'The report: <install>/work/dr/dr-<time>/.'
+  ) | ForEach-Object { Write-Host $_ }
+}
+if ($Help -or ($Rest | Where-Object { $_ -in @('--help', '-h', '/?', '-?') })) { Show-Usage; exit 0 }
+if ($Rest) { Write-Host "Unknown option $($Rest[0])" -ForegroundColor Red; Show-Usage; exit 2 }
+if (-not $Install) { Show-Usage; exit 2 }
 $ErrorActionPreference = "Stop"
 $Fingerprint = ""
 $EnvGiven = [bool]$EnvFile      # an env file given beside a pack (a new machine's name): the pack's own is not checked
