@@ -2,6 +2,7 @@
 // Standards (by area, mandatory ones from the base locked), Governance log (a tab per kind of record, kinds of one's
 // own), Architecture charter (sections, approve); and Project admin's hierarchy of project bases.
 import { Suspense, useMemo, useState } from "react";
+import RiskRegister from "./RiskRegister";
 import ProjectTree, { flatten } from "./ProjectTree";
 import { apiFetch, apiUpload } from "./auth";
 import { refreshAll, useApi } from "./ModelViews";
@@ -229,6 +230,7 @@ export function GovernanceTab({ p }) {
         <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search the log" aria-label="Search the log" />
         {k?.own && can && <button className="linkish small push-right" onClick={() => act(() => apiFetch(url, { method: "POST", body: JSON.stringify({ remove_kind: k.name }) })).then((ok) => ok && setKind("*"))}>Remove the kind {k.name}</button>}
       </div>
+      {kind === "Risk" && <RiskRegister p={p} />}
       {!recs.length ? <p className="quiet">Nothing logged{kind === "*" ? "" : ` as ${kind.toLowerCase()}`} yet.</p> : (
         <table className="grid-table">
           <thead><tr><th>Ref</th><th>Title</th>{kind === "*" && <th>Kind</th>}<th>Status</th><th>Approval</th><th>Owner</th><th>Date</th><th>Ends / review</th><th>About</th></tr></thead>

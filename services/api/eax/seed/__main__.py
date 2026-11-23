@@ -37,6 +37,7 @@ from .build import (
     UPGRADE_ATTRS,
     gid,
     history_demo_steps,
+    model_upgrade_sql,
     root_upgrade_sql,
     seed_sql,
 )
@@ -111,6 +112,8 @@ def main() -> int:
             if have < len(UPGRADE_ATTRS):
                 conn.execute(root_upgrade_sql())
                 print("EA Explorer: added the Release 12 attributes to the ArchiMate 4 root")
+            # and to every existing model made from it, its copies and their copies (D886): only what each lacks
+            conn.execute(model_upgrade_sql())
         if templates and not need["ArchiMate 4 template"]:
             conn.execute(seed_sql(with_template=False, with_insurance=False, with_sample=False, with_principles=False,
                                   with_togaf10=False, with_model_templates=templates))
@@ -139,6 +142,8 @@ def main() -> int:
     # in the projects' database (EAX_PROJECTS_DB_URL when proj has been moved to its own, D266)
     with (psycopg.connect(settings.projects_db_url) if settings.projects_db_url else psycopg.connect(settings.migrator_conninfo)) as pconn:
         pconn.execute(project_library.library_sql())
+        # every existing project brought up to date with the library (Release 12, D884, D889)
+        pconn.execute(project_library.project_upgrade_sql())
         # the project bases: Empty project, TOGAF 10 project, Organisation base (phase 13.1, D303)
         from .. import project_bases
         pconn.execute(project_bases.bases_sql(TOGAF10_ID))

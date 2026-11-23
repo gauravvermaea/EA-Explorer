@@ -17,6 +17,8 @@ GET    /surveys/<s>/answer                     the survey to answer, with my sav
 PUT    /surveys/<s>/answer                     save {answers} or send {answers, submit: true}
 GET    /surveys/<s>/results                    results by question and progress (who runs it)
 GET    /surveys/<s>/xlsx                       the results and every response as Excel
+GET    /surveys/starters                       the ready-made surveys to start from (Release 12, R12.6)
+POST   /surveys/starters/<code>                a draft from one ({model, under} for the business capability assessment)
 GET    /maturity                               every assessment, the trend and the evidence now (Super Admin)
 POST   /maturity                               a new assessment {title, recipients, targets, weights, closes_at, send}
 GET    /maturity/questions                     the starting questions (nine elements, six levels)
@@ -32,6 +34,7 @@ from sqlalchemy.exc import DBAPIError
 
 from .. import audit
 from .. import maturity as mt
+from .. import survey_starters as ss
 from .. import surveys as sv
 from ..auth import require_auth
 from ..db import get_engine
@@ -89,6 +92,47 @@ class Surveys(MethodView):
     def post(self, data):
         """A new survey, as a draft"""
         return _write(lambda c: sv.create(c, g.user, data or {}), "survey.create", _title)
+
+
+@blp.route("/surveys/starters")
+class SurveyStarters(MethodView):
+    """/api/v1/surveys/starters: GET the ready-made surveys to start from (Release 12, R12.6)."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth()
+    def get(self):
+        """The ready-made surveys: EA capability maturity, business capabilities, technology readiness, data management"""
+        return {"starters": ss.listing()}
+
+
+@blp.route("/surveys/starters/business-capability/capabilities")
+class SurveyCapabilities(MethodView):
+    """/api/v1/surveys/starters/business-capability/capabilities?model=: GET a model's capabilities, to choose one to
+    assess what is under it."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth()
+    def get(self):
+        """A model's capabilities"""
+        def go(c):
+            try:
+                m, caps = ss.capabilities(c, request.args.get("model", ""))
+            except ss.repo.NotFound as exc:
+                raise EditError(str(exc), 404) from exc
+            return {"model": m["name"], "capabilities": [{"id": x["id"], "name": x["name"]} for x in caps], "most": ss.MAX_CAPABILITIES}
+        return _read(go)
+
+
+@blp.route("/surveys/starters/<string:code>")
+class SurveyStart(MethodView):
+    """/api/v1/surveys/starters/{code}: POST makes a draft from a ready-made survey ({model, under} for capabilities)."""
+    @blp.doc(security=SECURITY)
+    @blp.arguments(FreeIn)
+    @blp.response(200, Free)
+    @require_auth()
+    def post(self, data, code):
+        """A draft survey from a ready-made one, to change in the designer"""
+        return _write(lambda c: ss.start(c, g.user, code, data), "survey.create", _title)
 
 
 @blp.route("/surveys/people")

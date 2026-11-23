@@ -62,6 +62,48 @@ export default function SurveysPage({ route }) {
   return <SurveyList />;
 }
 
+// the capability to assess what is under it (a model has more than a survey takes, or only part is wanted)
+function Under({ model, value, onChange }) {
+  const { data } = useApi(`/api/v1/surveys/starters/business-capability/capabilities?model=${model}`);
+  if (!data) return null;
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)} aria-label="Assess what is under this capability">
+      <option value="">{data.capabilities.length > data.most ? `all ${data.capabilities.length} (more than ${data.most}: choose one)` : `all ${data.capabilities.length} capabilities`}</option>
+      {data.capabilities.map((c) => <option key={c.id} value={c.id}>under {c.name}</option>)}
+    </select>
+  );
+}
+
+// ---------------------------------------------------------------- ready-made surveys to start from (Release 12, R12.6)
+// a draft made in one step, then changed in the designer like any survey; the maturity assessment has its own page
+function Starters({ onMade, onError }) {
+  const { data } = useApi("/api/v1/surveys/starters");
+  const { data: models } = useApi("/api/v1/models");
+  const [pick, setPick] = useState({});
+  if (!data) return null;
+  const start = async (code) => {
+    try {
+      const s = await apiFetch(`/api/v1/surveys/starters/${code}`, { method: "POST", body: JSON.stringify(pick[code] || {}) });
+      onMade(s.id);
+    } catch (e) { onError(e.message); }
+  };
+  return (
+    <details className="ba-box small">
+      <summary>Start from a ready-made survey</summary>
+      <ul className="plain">{data.starters.map((s) => (
+        <li key={s.code}><b>{s.title}</b> <span className="quiet">{s.description}</span>{" "}
+          {s.needs === "maturity" ? <a href="#/maturity">on the Maturity page ›</a> : <>
+            {s.needs === "model" && <select value={pick[s.code]?.model || ""} aria-label="The model whose capabilities are assessed"
+              onChange={(e) => setPick({ ...pick, [s.code]: { model: e.target.value } })}>
+              <option value="">Which model?</option>
+              {(Array.isArray(models) ? models : models?.models || []).map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select>}{" "}
+            {s.needs === "model" && pick[s.code]?.model && <Under model={pick[s.code].model} value={pick[s.code].under || ""}
+              onChange={(u) => setPick({ ...pick, [s.code]: { ...pick[s.code], under: u } })} />}{" "}
+            <button disabled={s.needs === "model" && !pick[s.code]?.model} onClick={() => start(s.code)}>Start a draft</button></>}</li>))}</ul>
+    </details>
+  );
+}
+
 // ---------------------------------------------------------------- the list
 function SurveyList() {
   const { data, error } = useApi("/api/v1/surveys");
@@ -90,6 +132,7 @@ function SurveyList() {
       {data.may_create && <div className="row-gap">
         <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="A new survey's title" aria-label="New survey title" style={{ minWidth: 320 }} />
         <button className="primary" disabled={!title.trim()} onClick={make}>＋ New survey</button></div>}
+      {data.may_create && <Starters onMade={(id) => { refreshAll(); go(`#/surveys/${id}`); }} onError={(t) => setMsg({ ok: false, text: t })} />}
       <div className="tabs" role="tablist">
         {tabs.map(([k, n]) => <button key={k} role="tab" aria-selected={on === k} className={`tab${on === k ? " on" : ""}`} onClick={() => setTab(k)}>
           {n} <span className="small quiet">{(data[k] || []).length || ""}</span></button>)}

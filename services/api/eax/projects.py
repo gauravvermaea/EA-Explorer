@@ -256,6 +256,8 @@ def mark_phase(conn, project: Any, user, phase: str, complete: bool, note: str =
     if not name:
         raise EditError(f"No phase {phase}.", 404)
     if complete:
+        from . import pm
+        pm.check_gate(conn, p, phase)         # an approval gate chosen by the architect (Release 12, D889)
         conn.execute(text("""INSERT INTO proj.phase_states (project_id, cycle, phase, completed_by, note) VALUES (:p, :c, :ph, :u, :n)
                              ON CONFLICT (project_id, cycle, phase) DO UPDATE SET completed_by = :u, completed_at = now(), note = :n"""),
                      {"p": p["id"], "c": p["cycle"], "ph": phase, "u": user.username, "n": (note or "").strip()[:1000]})
@@ -336,6 +338,8 @@ def detail(conn, project: Any, user) -> dict:
     out["scenario_planning"] = spl.count(conn, p)
     from . import agile
     out["agile"] = agile.count(conn, p)        # an Agile project's sprints and backlog (Release 12, D879); None otherwise
+    from . import pm
+    out["plan"] = pm.count(conn, p)           # the project plan: RACI, gates, milestones, status (Release 12, D889)
     names = {r["code"]: r["name"] for r in _rows(core(conn), "SELECT code, name FROM core.viewpoints")}
     out["views"] = [{"code": v["code"], "name": names.get(v["code"], v["code"])} for v in
                          _rows(conn, "SELECT view AS code FROM proj.project_views WHERE project_id = :p ORDER BY view", p=p["id"])]
@@ -369,10 +373,15 @@ def detail(conn, project: Any, user) -> dict:
                                             coalesce(parent_step_id, id), parent_step_id NULLS FIRST, seq, id""", p=p["id"], c=p["cycle"])
     out["items"] = _rows(conn, """SELECT i.guid::text AS id, i.phase, i.name, i.kind, i.type, i.library_id, i.chosen, i.folder,
                                          i.approved_folder, i.placeholder, i.templates, i.note, i.not_needed_reason, i.not_needed_by, i.content_area,
-                                         i.not_needed_at, i.added_by, i.mayan_cabinet_id IS NOT NULL AS stored,
+                                         i.not_needed_at, i.added_by, i.mayan_cabinet_id IS NOT NULL AS stored, i.live_view,
                                          (SELECT count(*) FROM proj.documents d WHERE d.item_id = i.id AND d.archived_at IS NULL AND d.deleted_at IS NULL) AS documents
                                     FROM proj.items i WHERE i.project_id = :p AND i.cycle = :c ORDER BY i.phase, i.folder""",
                               p=p["id"], c=p["cycle"])
+    # an always-live map or catalogue (Release 12, D889): how its view opens (diagram, catalog, matrix or heat map)
+    from .report_defs import VIEWS as _VIEWS
+    _how = {v["code"]: v.get("default_view") or "diagram" for v in _VIEWS}
+    for it in out["items"]:
+        it["live_view_as"] = _how.get(it.get("live_view") or "", "diagram") if it.get("live_view") else None
     out["libraries"] = _rows(conn, """SELECT l.guid::text AS id, l.name, l.kind, l.state, l.shared FROM proj.project_libraries pl
                                         JOIN proj.template_libraries l ON l.id = pl.library_id
                                        WHERE pl.project_id = :p ORDER BY pl.sort_order""", p=p["id"])
@@ -547,6 +556,8 @@ def create(conn, user, d: dict, sample: bool = False) -> dict:
         pbm.take_all_new(conn, {**p, "base_id": base["id"]}, user, steps=True)
     _items(conn, p, d)
     item_templates(conn, p, d)
+    from . import pm
+    pm.from_wizard(conn, p, user, d.get("management"))     # RACI, approval gates, the roadmap's period (Release 12, D884, D889)
     reader_roles(conn, p, user)
     from . import governance as gov
     gov.charter_from_wizard(conn, p, user, d.get("charter"))      # the wizard's Charter step (owner, 8 Nov 2026)
@@ -855,10 +866,10 @@ def _items(conn, p: dict, d: dict) -> None:
     import json
     chosen = d.get("items")
     kinds = {k: v for k, v in (d.get("kinds") or {}).items() if v in ("Deliverable", "Artifact")}
-    conn.execute(text("""INSERT INTO proj.items (project_id, phase, name, kind, type, library_id, chosen, folder, approved_folder)
+    conn.execute(text("""INSERT INTO proj.items (project_id, phase, name, kind, type, library_id, chosen, folder, approved_folder, live_view)
                          SELECT :p, i.phase, i.name, coalesce(CAST(:k AS jsonb) ->> i.id, i.kind), i.type, i.id,
                                 CASE WHEN CAST(:all AS boolean) THEN i.default_pick ELSE i.id = ANY (CAST(:ids AS text[])) END,
-                                i.work_folder, i.approved_folder
+                                i.work_folder, i.approved_folder, i.live_view
                            FROM proj.lib_items i WHERE NOT i.retired"""),
                  {"p": p["id"], "k": json.dumps(kinds), "all": chosen is None, "ids": list(chosen or [])})
     _items_own(conn, p, d.get("own_items") or [])

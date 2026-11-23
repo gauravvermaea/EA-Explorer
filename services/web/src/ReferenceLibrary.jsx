@@ -15,6 +15,21 @@ export default function ReferenceLibraryPage({ route }) {
   return <section className="page">{id ? <EntryPage id={id} /> : <Library />}</section>;
 }
 
+// the TOGAF guides EA Explorer follows, with their pages at The Open Group (Release 12, R12.9): references only, no text
+function Guides() {
+  const { data } = useApi("/api/v1/reference-library/guides");
+  if (!data) return null;
+  return (
+    <details className="ba-box">
+      <summary><b>The TOGAF guides EA Explorer follows</b> <span className="small quiet">{data.guides.length}, at The Open Group</span></summary>
+      <table className="grid small"><thead><tr><th>Number</th><th>Guide</th><th>What EA Explorer uses it for</th><th>Where</th></tr></thead>
+        <tbody>{data.guides.map((g) => (
+          <tr key={g.code}><td>{g.code}</td><td><a href={g.url} target="_blank" rel="noreferrer">{g.title}</a></td><td>{g.used_for}</td>
+            <td className="quiet">{g.where}</td></tr>))}</tbody></table>
+    </details>
+  );
+}
+
 function Library() {
   // opened on a folder from the repository map (D324): #/reference-library?folder=...
   const [folder, setFolder] = useState(() => decodeURIComponent((window.location.hash.match(/[?&]folder=([^&]+)/) || [])[1] || ""));
@@ -23,7 +38,8 @@ function Library() {
   const [tag, setTag] = useState("");
   const [kind, setKind] = useState("");
   const [deep, setDeep] = useState(false);
-  const [dlg, setDlg] = useState(null);
+  // the first-run setup's guides step opens the zip upload (Release 12, R12.12): #/reference-library?upload=guides
+  const [dlg, setDlg] = useState(() => (/[?&]upload=guides/.test(window.location.hash) ? { k: "guides" } : null));
   const [msg, setMsg] = useState({ ok: true, text: "" });
   const url = `/api/v1/reference-library?folder=${encodeURIComponent(folder)}&q=${encodeURIComponent(query)}&tag=${encodeURIComponent(tag)}&kind=${kind}&deep=${deep}`;
   const { data, error } = useApi(url);
@@ -40,6 +56,7 @@ function Library() {
       <p className="quiet">The organisation's reference material, for everyone: standards, regulations, reference architectures, research, useful web
         pages. Search finds words inside the documents too. Every version of a file is kept. Super Admins add and change it; a project links to an
         entry from its Reference tab. (Each project's own reference material stays on its Reference tab.)</p>
+      <Guides />
       {msg.text && <p className={`status ${msg.ok ? "ok" : "bad"}`}>{msg.text}</p>}
       <form className="row-gap filters" onSubmit={(e) => { e.preventDefault(); setQuery(q.trim()); }}>
         <input type="search" value={q} onChange={(e) => { setQ(e.target.value); if (!e.target.value) setQuery(""); }} placeholder="Search titles, tags and inside documents" aria-label="Search" style={{ minWidth: 320 }} />
@@ -52,6 +69,7 @@ function Library() {
         {can && <span className="push-right row-gap">
           <button type="button" className="primary" onClick={() => setDlg({ k: "file" })}>⬆ Add documents</button>
           <button type="button" onClick={() => setDlg({ k: "link" })}>🔗 Add a link</button>
+          <button type="button" title="Your organisation's own guides, as a zip: its folders are kept" onClick={() => setDlg({ k: "guides" })}>⬆ Guides as a zip</button>
           <button type="button" onClick={() => { const n = window.prompt(`A new folder${folder ? ` in ${folder}` : ""}`, "");
             if (n && n.trim()) void act(() => apiFetch("/api/v1/reference-library/folders", { method: "POST", body: JSON.stringify({ path: folder ? `${folder}/${n.trim()}` : n.trim() }) })).then((r) => r && setFolder(r.path)); }}>＋ Folder</button>
         </span>}
@@ -89,8 +107,39 @@ function Library() {
           )}
         </div>
       </div>
-      {dlg && <AddDialog k={dlg.k} folder={folder} folders={data.folders} onClose={(m) => { setDlg(null); if (m) setMsg({ ok: true, text: m }); }} />}
+      {dlg && dlg.k === "guides" && can && <GuidesZipDialog onClose={(m) => { setDlg(null); if (m) setMsg({ ok: true, text: m }); }} />}
+      {dlg && dlg.k !== "guides" && <AddDialog k={dlg.k} folder={folder} folders={data.folders} onClose={(m) => { setDlg(null); if (m) setMsg({ ok: true, text: m }); }} />}
     </div>
+  );
+}
+
+// the organisation's own guides as a zip (Release 12, R12.12, D885): unpacked into the library, its folders kept, each file
+// stored in Documents; uploading it again after changes keeps a new version of what changed
+function GuidesZipDialog({ onClose }) {
+  const [file, setFile] = useState(null);
+  const [folder, setFolder] = useState("Organisation guides");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  async function save() {
+    setErr(""); setBusy(true);
+    try {
+      const fd = new FormData(); fd.append("file", file); fd.append("folder", folder);
+      const r = await apiUpload("/api/v1/reference-library/guides-zip", fd);
+      refreshAll(); onClose(r.message);
+    } catch (e) { setErr(e.message); setBusy(false); }
+  }
+  return (
+    <Modal title="Your organisation's guides, as a zip" onClose={() => onClose()} wide
+      actions={<><button onClick={() => onClose()}>Cancel</button><button className="primary" disabled={!file || busy} onClick={save}>{busy ? "Unpacking and storing…" : "Upload"}</button></>}>
+      {err && <p className="status bad">{err}</p>}
+      <p className="quiet small">Put your guides in folders as you see fit and zip them. Each file is stored in Documents, keeps its folder, is
+        tagged Organisation guide and is found by search like any document here. Upload the same zip again after changes: what changed gets a new
+        version, the rest stays as it is. At most 500 files and 500 MB at a time.</p>
+      <div className="ed-form">
+        <Field label="The zip"><input type="file" accept=".zip,application/zip" onChange={(e) => setFile(e.target.files[0] || null)} /></Field>
+        <Field label="Into the folder"><input value={folder} onChange={(e) => setFolder(e.target.value)} /></Field>
+      </div>
+    </Modal>
   );
 }
 

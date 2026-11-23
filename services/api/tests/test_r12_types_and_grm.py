@@ -20,7 +20,8 @@ from eax.seed import industry_grm as GRM
 ROOT = Path(__file__).resolve().parents[3]
 SEED_MAIN = (ROOT / "services" / "api" / "eax" / "seed" / "__main__.py").read_text(encoding="utf-8")
 NEW_ATTRS = {"Likelihood", "Impact", "InherentRisk", "RiskTreatment", "ResidualRisk", "SecurityProperty", "DataSteward",
-             "SystemOfRecord", "QualityDimension", "AcceptanceCriteria", "AssessmentKind", "RequirementKind", "BacklogLevel"}
+             "SystemOfRecord", "QualityDimension", "AcceptanceCriteria", "AssessmentKind", "RequirementKind", "BacklogLevel",
+             "BuildingBlock"}   # the building blocks of phases E and F (D889)
 GONE = {"Risk", "Threat", "SecurityRequirement", "DataDomain", "QualityRule", "AnalyticsProduct", "Epic", "Feature"}
 
 

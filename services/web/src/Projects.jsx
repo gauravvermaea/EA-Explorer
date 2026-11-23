@@ -9,6 +9,7 @@
 import OtherDocsTab from "./OtherDocs";
 import ScenarioPlanningTab from "./ScenarioPlanning";
 import SprintsTab from "./Sprints";
+import ProjectPlanTab from "./ProjectPlan";
 import ScenariosTab from "./Scenarios";
 import PinButton from "./PinButton";
 import { Fragment, useEffect, useMemo, useState } from "react";
@@ -608,6 +609,7 @@ const EMPTY = {
   principles: [], own_principles: [], existing_principles: [], removed_principles: [],
   removed: {}, own_steps: [], picks: null, kinds: {}, templates: {}, placeholders: {}, notes: {}, areas: {}, own_items: [], members: [], signoff: { "": [] }, signoff_quorum: "",
   libraries: null, template: "", stakeholders: [],
+  management: { raci: "none", gates: [] },     // RACI and approval gates, chosen at setup (Release 12, D884, D889)
 };
 
 // the wizard's state from a live project (edit) or from the project a new one derives from (D274: derive)
@@ -767,6 +769,7 @@ function Wizard({ parent, editId, template, startAt }) {
       charter: Object.keys(d.charter || {}).length ? d.charter : undefined,
       own_items: d.own_items.filter((i) => i.name.trim()),
       members: d.members.filter((m) => m.username.trim()), signoff: d.signoff, signoff_quorum: d.signoff_quorum ?? "",
+      management: editId ? undefined : d.management || undefined,
     };
   }
   async function uploadFiles(projectId) {
@@ -1831,7 +1834,27 @@ function People({ d, set, lib, me, live }) {
         {lib.phases.filter((p) => !(p.code in d.signoff)).map((p) => <option key={p.code} value={p.code}>{p.name}</option>)}
       </select>
       <Quorum value={d.signoff_quorum ?? ""} onChange={(v) => set("signoff_quorum", v)} />
+      {!live && <Management d={d} set={set} lib={lib} />}
     </div>
+  );
+}
+
+// how the project records who is responsible, and its approval gates (Release 12, D884, D889): offered, nothing forced
+// (D880); changed later on the Project plan tab
+const RACI_CHOICES = [["none", "No RACI"], ["phase", "Per phase"], ["deliverable", "Per deliverable"], ["step", "Per step"]];
+function Management({ d, set, lib }) {
+  const m = d.management || { raci: "none", gates: [] };
+  const flip = (code) => set("management", { ...m, gates: m.gates.includes(code) ? m.gates.filter((g) => g !== code) : [...m.gates, code] });
+  return (
+    <fieldset className="ba-box">
+      <legend>Project management</legend>
+      <p className="small quiet">Both can be changed later on the Project plan tab.</p>
+      <div className="field">Who is Responsible, Accountable, Consulted and Informed (RACI)
+        <div>{RACI_CHOICES.map(([k, l]) => <label key={k} className={`choice${m.raci === k ? " on" : ""}`}>
+          <input type="radio" name="raci" checked={m.raci === k} onChange={() => set("management", { ...m, raci: k })} /> {l}</label>)}</div></div>
+      <div className="field">Approval gates <span className="small quiet">a gated phase is complete only when each of its deliverables has an approved document</span>
+        <div>{lib.phases.map((ph) => <label key={ph.code} className="choice"><input type="checkbox" checked={m.gates.includes(ph.code)} onChange={() => flip(ph.code)} /> {ph.code}</label>)}</div></div>
+    </fieldset>
   );
 }
 
@@ -1877,12 +1900,12 @@ function Review({ d, lib, purpose, problems }) {
 const TABS = [["home", "Home"], ["phases", "Phases"], ["report", "Project report"], ["base", "Base"], ["charter", "Charter"], ["archrepo", "Enterprise Repository (Project Scope)"], ["content", "Content framework"],
   ["tasks", "Tasks"], ["models", "Models"], ["organisation", "Organisation"], ["stakeholders", "Stakeholders"], ["questions", "Key questions"], ["canvas", "Business model canvas"], ["journeys", "Customer journeys"], ["business", "Business artifacts"], ["otherdocs", "Other views and documents"], ["principles", "Principles"],
   ["standards", "Standards"], ["governance", "Governance log"], ["library", "Library"], ["views", "Views"], ["reports", "Model reports"], ["quality", "Quality"], ["calendar", "Calendar"], ["sheets", "Sheets"],
-  ["analysis", "Gaps and comparison"], ["scenarios", "Scenarios"], ["planning", "Scenario planning"], ["sprints", "Sprints"], ["signoff", "Sign-off"]];
+  ["analysis", "Gaps and comparison"], ["scenarios", "Scenarios"], ["planning", "Scenario planning"], ["sprints", "Sprints"], ["projectplan", "Project plan"], ["signoff", "Sign-off"]];
 
 // the project page's groups (D478), the same in the Grouped and Menu styles
 const PROJECT_GROUPS = [
   ["overview", "Overview", "⌂", ["home", "report", "tasks", "calendar", "signoff"]],
-  ["plan", "Plan", "◷", ["phases", "sprints", "charter", "base"]],
+  ["plan", "Plan", "◷", ["phases", "projectplan", "sprints", "charter", "base"]],
   ["business", "Business", "◎", ["organisation", "stakeholders", "questions", "canvas", "journeys", "business"]],
   // the project's repository and its content framework side by side (owner, 11 Nov 2026, R2.0: "arch repo and content f/w will be top level and in project both")
   ["architecture", "Architecture", "◫", ["archrepo", "content", "models", "views", "reports", "quality", "analysis", "scenarios"]],
@@ -1973,6 +1996,7 @@ function ProjectPage({ id, tab, sub }) {
         {tab === "scenarios" && <ScenariosTab p={p} />}
         {tab === "planning" && <ScenarioPlanningTab p={p} />}
         {tab === "sprints" && p.agile && <SprintsTab p={p} />}
+        {tab === "projectplan" && <ProjectPlanTab p={p} />}
       </div>
       </PageNav>
       {finish && <FinishDialog p={p} onClose={() => setFinish(false)} />}
@@ -2505,6 +2529,8 @@ function RepoTable({ p, codes, phase, compact = false }) {
                       <td><button className="linkish repo-twisty" aria-expanded={isOpen} aria-label={`${isOpen ? "Close" : "Open"} ${i.name}`} onClick={() => toggle(i.id)}>{isOpen ? "▾" : "▸"}</button></td>
                       <td><button className="linkish repo-classname" onClick={() => toggle(i.id)}><b>{i.name}</b></button>
                         {codes.length > 1 && <span className="chip small">{i.phase}</span>}{i.type && <span className="small quiet"> {i.type}</span>}
+                        {i.live_view && p.home_model && <a className="chip small" title="Always live: shown from the primary working model as it is now"
+                          href={`#/metamodel/${p.home_model}/views/${encodeURIComponent(i.live_view)}/${i.live_view_as || "diagram"}`}>live view</a>}
                         {!i.chosen && <span className="rag off" title={`${i.not_needed_by || ""} ${i.not_needed_at ? fmtDateTime(i.not_needed_at) : ""}`}>
                           won't need{i.not_needed_reason ? `: ${i.not_needed_reason}` : ""}</span>}</td>
                       <td><span className={`kind-toggle ${kindClass(i.kind)}`} title={i.kind}>{kindLetter(i.kind)}</span></td>

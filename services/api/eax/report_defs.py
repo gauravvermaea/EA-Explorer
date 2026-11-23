@@ -405,9 +405,16 @@ VIEWS += [
                                                      "PhysicalApplicationComponent"],
          ["Aggregation", "Composition", "Realization", "Triggering", "Association"], "Priority",
          ["product_owner", "enterprise_architect", "solution_architect"], "Architecture Backlog"),
+        # the building blocks chosen in phases E and F, live from the model (D889)
+        (58, "Building blocks", "Implementation and migration", "catalog", "Deciding, informing",
+         "The architecture and solution building blocks chosen, and the work packages that bring each in",
+         "Enterprise and solution architects, the Architecture Board", ["Service", "ApplicationComponent", "ApplicationInterface", "Node",
+                                                                        "Device", "SystemSoftware", "DataObject", "WorkPackage"],
+         ["Realization", "Association", "Aggregation"], "BuildingBlock",
+         ["enterprise_architect", "solution_architect", "architecture_board"], "Building Blocks"),
     ]
 ]
-assert len(VIEWS) == 57
+assert len(VIEWS) == 58
 
 
 def _f(code, family, group, title, view, about, audiences, **extra):
@@ -539,7 +546,8 @@ REPORTS += [
     _f("QR-01", _Q, "Data quality", "Data quality across models", "quality_runs",
        "Each model's quality score and its parts (completeness, rules passed, freshness), and how they moved over time.",
        ["enterprise_architect", "architecture_board", "model_owner", "cio"]),
-    _f("QR-02", _Q, "Data quality", "Completeness by type and owner", "quality_groups",
+    # renamed in Release 12 (D887): SR-26 has the name "Completeness by type and owner"; this one covers more
+    _f("QR-02", _Q, "Data quality", "Quality by type and owner", "quality_groups",
        "Completeness, failing rules, stale entities and orphans by entity type and by owner, weakest first.",
        ["model_owner", "enterprise_architect", "data_steward"]),
     _f("QR-03", _Q, "Data quality", "What to fix", "quality_findings",
@@ -612,5 +620,5 @@ VIEW_REPORTS: dict[str, list[str]] = {
     "VP-47": ["SR-04", "TM-06"], "VP-48": ["TC-06"], "VP-49": ["SR-05"],
     # Release 12 (D879): the nearest reports there are; their own reports come with the samples (R12.7)
     "VP-50": ["SR-23", "TC-04"], "VP-51": ["TC-04"], "VP-52": ["TC-04", "TM-07"], "VP-53": ["TM-07", "SR-04"],
-    "VP-54": ["SR-04", "SR-26"], "VP-55": ["SR-04", "SR-26"], "VP-56": ["SR-11", "SR-04"], "VP-57": ["TC-08", "SR-09"],
+    "VP-54": ["SR-04", "SR-26"], "VP-55": ["SR-04", "SR-26"], "VP-56": ["SR-11", "SR-04"], "VP-57": ["TC-08", "SR-09"], "VP-58": ["TC-08"],
 }

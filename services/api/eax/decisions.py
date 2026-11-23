@@ -59,7 +59,8 @@ NEEDS = {ADR: (("title", "a title"), ("record_type", "the record type"), ("owner
          DISP: (("title", "a title"), ("owner", "its owner"), ("sponsor", "its sponsor"), ("expires_on", "its expiry date"))}
 RECORD_TYPES = ("Architecture", "Business", "Data", "Application", "Technology", "Security", "Integration", "Other")
 LINK_KINDS = ("element", "principle", "standard", "requirement", "record")
-RELATIONS = {"element": ("affects",), "principle": ("governed-by",), "standard": ("governed-by",), "requirement": ("meets",),
+# a Risk record "describes" the risk Assessment in a model it is the governance record of (Release 12, D887)
+RELATIONS = {"element": ("affects", "describes"), "principle": ("governed-by",), "standard": ("governed-by",), "requirement": ("meets",),
              "record": ("supersedes", "depends-on")}
 
 

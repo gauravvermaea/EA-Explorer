@@ -57,10 +57,17 @@ governance records and the charter (`eax/governance.py`), canvases (`eax/canvase
 (`eax/project_tasks.py`), calendars (`eax/calendars.py`), iterations (`eax/iterations.py`) and its own reference
 library (`eax/references.py`). The organisation's repository brings every project together (`eax/org_repository.py`).
 A project can be backed up and restored on its own (`eax/project_backup.py`).
+Release 12 adds: an Agile project's sprints (`eax/agile.py`, the Sprints tab), every project's plan with RACI, approval
+gates, milestones and status (`eax/pm.py`, the Project plan tab), the risk register read from the Governance log and
+the models (`eax/risk_register.py`), the model and project templates (`eax/seed/model_templates.py`,
+`eax/seed/project_templates.json`), and the start-up scripts that bring existing projects and models up to date
+(`project_upgrade_sql` in `eax/seed/project_library.py`, `model_upgrade_sql` in `eax/seed/build.py`). Their MCP tools
+are in `eax/mcp_release12.py`.
 
 ## Documents and libraries
 
-The enterprise reference library (`eax/reference_library.py`) and the library service (`services/library`: pages,
+The enterprise reference library (`eax/reference_library.py`; an organisation's own guides come in as a zip, folders
+kept, Release 12; the TOGAF guides EA Explorer follows are listed from `eax/guides.py`) and the library service (`services/library`: pages,
 links and files in folders, with history); the documents shipped with each version (`eax/shipped_docs.py`), shown under
 Documentation; sample templates (`eax/sample_documents.py`); industry packs (`eax/industry_packs.py`).
 

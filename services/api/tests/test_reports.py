@@ -113,7 +113,7 @@ def test_phase_8_2_reports():
     assert {f"VP-{i:02d}" for i in range(1, 26)} <= codes
     assert {"TC-01", "TC-08", "TM-07", "TM-09", "DR-01", "DR-04"} <= codes
     assert {f"AU-{a}" for a, _n, _g in AUDIENCES} <= codes
-    assert len(VIEWS) == 57 and all("Grouping" in v["element_types"] for v in VIEWS[:26])   # 27 to 49: TOGAF (D345); 50 to 57: Release 12 (D879)
+    assert len(VIEWS) == 58 and all("Grouping" in v["element_types"] for v in VIEWS[:26])   # 27 to 49: TOGAF (D345); 50 to 57: Release 12 (D879)
     for r in REPORTS:
         assert r["audiences"], r["code"]          # every report is for someone (D153)
         charts = sr.charts_for(r)
@@ -133,3 +133,11 @@ def test_every_report_says_how_to_use_and_read_it():
         assert len(g["use"]) > 30 and len(g["read"]) > 30 and "{" not in g["use"] + g["read"], r["code"]
         note = sr.dashboard(r, sr.charts_for(r))["position"]["MARKDOWN-0"]["meta"]["code"]
         assert "How to use it:" in note and "How to read it:" in note, r["code"]
+
+
+def test_no_two_reports_share_a_name():
+    """Release 12 (D887): SR-26 and QR-02 were both "Completeness by type and owner"; QR-02 is "Quality by type and owner"."""
+    names = [r["title"] for r in REPORTS]
+    assert len(names) == len(set(names)), sorted({n for n in names if names.count(n) > 1})
+    by = {r["code"]: r["title"] for r in REPORTS}
+    assert by["SR-26"] == "Completeness by type and owner" and by["QR-02"] == "Quality by type and owner"

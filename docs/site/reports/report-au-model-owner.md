@@ -7,7 +7,7 @@ roles: user, model-admin
 
 ## What it shows
 
-**What it gathers:** [[report-mo|MO Model overview]], [[report-sr-26|SR-26 Completeness by type and owner]], [[report-sr-27|SR-27 Orphans and missing relationships]], [[report-sr-28|SR-28 Duplicate candidates]], [[report-sr-29|SR-29 Change activity]], [[report-hm|HM Pick-list heatmaps]], [[report-qr-01|QR-01 Data quality across models]], [[report-qr-02|QR-02 Completeness by type and owner]], [[report-qr-03|QR-03 What to fix]], [[report-qr-04|QR-04 Failing rules]], [[report-kr-01|KR-01 KPI trends]].
+**What it gathers:** [[report-mo|MO Model overview]], [[report-sr-26|SR-26 Completeness by type and owner]], [[report-sr-27|SR-27 Orphans and missing relationships]], [[report-sr-28|SR-28 Duplicate candidates]], [[report-sr-29|SR-29 Change activity]], [[report-hm|HM Pick-list heatmaps]], [[report-qr-01|QR-01 Data quality across models]], [[report-qr-02|QR-02 Quality by type and owner]], [[report-qr-03|QR-03 What to fix]], [[report-qr-04|QR-04 Failing rules]], [[report-kr-01|KR-01 KPI trends]].
 
 ## Why it matters
 

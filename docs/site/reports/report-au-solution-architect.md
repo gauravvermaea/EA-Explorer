@@ -7,7 +7,7 @@ roles: user
 
 ## What it shows
 
-**What it gathers:** [[report-sr-06|SR-06 Interface and integration catalogue]], [[report-sr-15|SR-15 Application interaction matrix]], [[report-sr-22|SR-22 Impact analysis]], [[report-vp-02|VP-02 Application Structure view]], [[report-vp-05|VP-05 Layered view]], [[report-vp-11|VP-11 Application Cooperation view]], [[report-vp-13|VP-13 Implementation and Deployment view]], [[report-vp-16|VP-16 Requirements Realization view]], [[report-vp-52|VP-52 Security requirements view]], [[report-vp-57|VP-57 Agile backlog view]], [[report-tc-04|TC-04 Requirements catalogue]], [[report-dr-01|DR-01 Dependencies of an entity]], [[report-dr-02|DR-02 Dependency matrix between two types]], [[report-dr-04|DR-04 Dependency counts and hot spots]], [[report-gr-03|GR-03 TOGAF gap matrix]].
+**What it gathers:** [[report-sr-06|SR-06 Interface and integration catalogue]], [[report-sr-15|SR-15 Application interaction matrix]], [[report-sr-22|SR-22 Impact analysis]], [[report-vp-02|VP-02 Application Structure view]], [[report-vp-05|VP-05 Layered view]], [[report-vp-11|VP-11 Application Cooperation view]], [[report-vp-13|VP-13 Implementation and Deployment view]], [[report-vp-16|VP-16 Requirements Realization view]], [[report-vp-52|VP-52 Security requirements view]], [[report-vp-57|VP-57 Agile backlog view]], [[report-vp-58|VP-58 Building blocks view]], [[report-tc-04|TC-04 Requirements catalogue]], [[report-dr-01|DR-01 Dependencies of an entity]], [[report-dr-02|DR-02 Dependency matrix between two types]], [[report-dr-04|DR-04 Dependency counts and hot spots]], [[report-gr-03|GR-03 TOGAF gap matrix]].
 
 ## Why it matters
 

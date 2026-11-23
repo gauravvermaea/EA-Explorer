@@ -31,7 +31,7 @@ commands: [below](#backup-and-restore-from-the-command-line) and in [docs/operat
 
 **Status: version 11.0.0, Release 11 (certificate mode, working and tested), accepted 22 Nov 2026**
 (tag `v11.0.0`, published on the repository's GitHub Releases; release notes: [releases/11.0.0.md](releases/11.0.0.md);
-earlier releases' notes are in [releases](releases)). Next: Release 12, project and model templates from TOGAF and its Series Guides. The releases in short are
+earlier releases' notes are in [releases](releases)). Next: Release 12, project and model templates from TOGAF and its Series Guides (built, being tested). The releases in short are
 [below](#releases); every phase in detail: [docs/build-phases.md](docs/build-phases.md). Database design:
 [docs/database.md](docs/database.md). How it is built (for developers and AI agents):
 [docs/architecture.md](docs/architecture.md), [AGENTS.md](AGENTS.md); the high-level technical architecture (under 10 pages):
@@ -63,7 +63,7 @@ area by area: [docs/capabilities.md](docs/capabilities.md).
 | 9 | [9.0.0](releases/9.0.0.md) | Your AI reads the documentation; your own themes; the authenticator reset from the user list; the restore drill in the full test; tests of every Jenkins pipeline and every reading command | accepted 22 Nov 2026 |
 | 10 | [10.0.0](releases/10.0.0.md) | Scenario planning and game theory run by your AI in a project, the working done by EA Explorer, a read-only Scenario planning tab; every MCP tool tried in the full test | accepted 22 Nov 2026 |
 | 11 | [11.0.0](releases/11.0.0.md) | Certificate (key-based) sign-in between the services, working and tested; switched from System Admin › Secrets and kept across clean restarts | accepted 22 Nov 2026 |
-| 12 | | Project and model templates from TOGAF and its Series Guides (Agile with sprints, Digital Transformation, setting up an EA capability, Risk and security, Data governance; the Government Reference Model in the library) | next |
+| 12 | | Project and model templates from TOGAF and its Series Guides (Agile with sprints, Digital Transformation, setting up an EA capability, Risk and security, Data governance; the Government and Digital Business Reference Models in the library); a project plan with RACI and approval gates, a risk register, maps always live, building blocks, ready-made surveys, TOGAF roles and skill levels, your own guides from a zip | built, being tested |
 | 13 | | System Admin regrouped into fewer menus and tabs; every command-line option documented | planned |
 | 14 | | Stabilisation: every bug fixed and every test passing | planned |
 | 15 | | Every document checked and brought up to date | planned |

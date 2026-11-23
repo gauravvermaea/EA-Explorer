@@ -844,6 +844,7 @@ from . import (  # noqa: E402,F401
     mcp_more,
     mcp_operations,
     mcp_ops,
+    mcp_release12,
     mcp_scenario_planning,
     mcp_scenarios,
     mcp_tests,

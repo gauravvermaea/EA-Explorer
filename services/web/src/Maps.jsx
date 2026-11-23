@@ -128,16 +128,16 @@ function vsPicture(streams, attr, scale) {
 const TYPE_COLOUR = { Plateau: "#8e7cc3", WorkPackage: "#2f7d9b", Deliverable: "#e69138" };
 const DAY = 86400000;
 
-// the roadmap as a picture (D407, D408): year marks and lines, then one bar per item placed by its dates (in its type's
-// notation, coloured as the screen colours it)
-function roadmapPicture(items, lo, hi, years, colour, by) {
+// the roadmap as a picture (D407, D408): its marks (years, or the quarters or months chosen) and lines, then one bar per
+// item placed by its dates, cut to the period shown (in its type's notation, coloured as the screen colours it)
+function roadmapPicture(items, lo, hi, ticks, colour, by) {
   const LW = 240, TW = 1100, RH = 40;
-  const xOf = (ms) => LW + ((ms - lo) / (hi - lo)) * TW;
+  const xOf = (ms) => LW + ((Math.min(Math.max(ms, lo), hi) - lo) / (hi - lo)) * TW;
   const t = (d) => new Date(`${d}T00:00:00Z`).getTime();
   const bottom = 40 + items.length * RH;
-  const nodes = years.flatMap((y) => [
-    { id: `y_${y}`, label: String(y), x: xOf(Date.UTC(y, 0, 1)) + 4, y: 0, w: 60, h: 24, shape: "text", fontSize: 12, keepSize: true },
-    { id: `yl_${y}`, label: "", x: xOf(Date.UTC(y, 0, 1)), y: 24, w: 1, h: bottom - 24, fill: "d9dee5", stroke: "d9dee5", keepSize: true },
+  const nodes = ticks.flatMap((k) => [
+    { id: `y_${k.ms}`, label: k.label, x: xOf(k.ms) + 4, y: 0, w: 60, h: 24, shape: "text", fontSize: 12, keepSize: true },
+    { id: `yl_${k.ms}`, label: "", x: xOf(k.ms), y: 24, w: 1, h: bottom - 24, fill: "d9dee5", stroke: "d9dee5", keepSize: true },
   ]);
   items.forEach((i, k) => {
     const y = 40 + k * RH;
@@ -149,23 +149,42 @@ function roadmapPicture(items, lo, hi, years, colour, by) {
   return { title: "Roadmap", nodes, edges: [] };
 }
 
-export function Roadmap({ model }) {
+// the marks along a roadmap's period (Release 12, D889: the period is free): years, quarters or months
+function roadmapTicks(lo, hi, marks) {
+  const out = [];
+  const d0 = new Date(lo);
+  const step = marks === "month" ? 1 : marks === "quarter" ? 3 : 12;
+  let y = d0.getUTCFullYear(), m = marks === "year" ? 0 : Math.floor(d0.getUTCMonth() / step) * step;
+  for (let ms = Date.UTC(y, m, 1); ms < hi; ) {
+    if (ms >= lo) out.push({ ms, label: marks === "year" ? String(y) : marks === "quarter" ? `Q${m / 3 + 1} ${y}` : `${new Date(ms).toLocaleString(undefined, { month: "short", timeZone: "UTC" })} ${y}` });
+    m += step; if (m >= 12) { y += Math.floor(m / 12); m %= 12; }
+    ms = Date.UTC(y, m, 1);
+  }
+  return out;
+}
+
+export function Roadmap({ model, from = "", to = "", marks = "year" }) {
   const { data, error } = useApi(`/api/v1/models/${model}/maps/roadmap`);
   const [colourBy, setColourBy] = useState("type");
-  const items = useMemo(() => (data ? data.items.filter((i) => i.start_date && i.end_date) : []), [data]);
+  // the period shown: free (Release 12, D889); a project's plan gives its own, and it can be changed here for a look
+  const [period, setPeriod] = useState({ from: from || "", to: to || "", marks: marks || "year" });
+  const dated = useMemo(() => (data ? data.items.filter((i) => i.start_date && i.end_date) : []), [data]);
+  const items = useMemo(() => dated.filter((i) => (!period.from || i.end_date >= period.from) && (!period.to || i.start_date <= period.to)), [dated, period]);
   const scale = useMemo(() => heatScale(items, colourBy === "priority" ? "Priority" : "Architecture State",
     (i) => (colourBy === "priority" ? i.priority : i.architecture_state)), [items, colourBy]);
   if (error) return <p className="status bad">{error}</p>;
   if (!data) return <p>Loading the roadmap...</p>;
   if (!data.items.length) return <p className="quiet">This model has no work packages, deliverables or plateaus yet.</p>;
   const undated = data.items.filter((i) => !i.start_date || !i.end_date);
-  if (!items.length) return <p className="quiet">None of the {data.items.length} work packages, deliverables or plateaus has a start and an end date yet.</p>;
+  if (!dated.length) return <p className="quiet">None of the {data.items.length} work packages, deliverables or plateaus has a start and an end date yet.</p>;
   const t = (d) => new Date(`${d}T00:00:00Z`).getTime();
-  const lo = new Date(Date.UTC(new Date(Math.min(...items.map((i) => t(i.start_date)))).getUTCFullYear(), 0, 1)).getTime();
-  const hi = new Date(Date.UTC(new Date(Math.max(...items.map((i) => t(i.end_date)))).getUTCFullYear() + 1, 0, 1)).getTime();
-  const pct = (ms) => `${(100 * (ms - lo)) / (hi - lo)}%`;
-  const years = [];
-  for (let y = new Date(lo).getUTCFullYear(); y < new Date(hi).getUTCFullYear(); y += 1) years.push(y);
+  const span = items.length ? items : dated;
+  const lo = period.from ? t(period.from) : new Date(Date.UTC(new Date(Math.min(...span.map((i) => t(i.start_date)))).getUTCFullYear(), 0, 1)).getTime();
+  const hi = period.to ? t(period.to) + DAY : new Date(Date.UTC(new Date(Math.max(...span.map((i) => t(i.end_date)))).getUTCFullYear() + 1, 0, 1)).getTime();
+  if (hi <= lo) return <p className="status bad">The roadmap's end comes after its start.</p>;
+  const clip = (ms) => Math.min(Math.max(ms, lo), hi);
+  const pct = (ms) => `${(100 * (clip(ms) - lo)) / (hi - lo)}%`;
+  const ticks = roadmapTicks(lo, hi, period.marks);
   const now = Date.now();
   const groups = [["Plateau", "Plateaus"], ["WorkPackage", "Work packages"], ["Deliverable", "Deliverables"]];
   const colour = (i) => (colourBy === "type" ? TYPE_COLOUR[i.type_code]
@@ -178,14 +197,18 @@ export function Roadmap({ model }) {
         </select></label>
         {colourBy === "type" ? Object.entries(TYPE_COLOUR).map(([k, c]) => <span key={k} className="legend-chip"><span className="heat-swatch" style={{ background: c }} />{k.replace("WorkPackage", "Work package")}</span>)
           : <Legend legend={scale.legend} attribute={colourBy === "priority" ? "Priority" : "Architecture state"} />}
-        <PictureActions model={model} picture={() => roadmapPicture(items, lo, hi, years, colour, colourBy)} />
+        <span className="small">From <input type="date" value={period.from} onChange={(e) => setPeriod({ ...period, from: e.target.value })} aria-label="Roadmap from" />{" "}
+          to <input type="date" value={period.to} onChange={(e) => setPeriod({ ...period, to: e.target.value })} aria-label="Roadmap to" />{" "}
+          <select value={period.marks} onChange={(e) => setPeriod({ ...period, marks: e.target.value })} aria-label="Roadmap marks">
+            <option value="year">by year</option><option value="quarter">by quarter</option><option value="month">by month</option></select></span>
+        <PictureActions model={model} picture={() => roadmapPicture(items, lo, hi, ticks, colour, colourBy)} />
         <button onClick={() => downloadCsv([["Type", "ID", "Name", "Start", "End", "Owner", "Priority", "Architecture state", "Delivers"],
           ...data.items.map((i) => [i.entity_type, i.display_id, i.name, i.start_date || "", i.end_date || "", i.owner || "", i.priority || "",
             i.architecture_state || "", i.delivers.map((d) => d.name).join("; ")])], "Roadmap")}>CSV</button>
       </div>
       <div className="rm-grid">
         <div className="rm-row rm-axis"><div className="rm-label" />
-          <div className="rm-track">{years.map((y) => <span key={y} className="rm-year" style={{ left: pct(Date.UTC(y, 0, 1)) }}>{y}</span>)}
+          <div className="rm-track">{ticks.map((k) => <span key={k.ms} className="rm-year" style={{ left: pct(k.ms) }}>{k.label}</span>)}
             {now > lo && now < hi && <span className="rm-today" style={{ left: pct(now) }} title="Today" />}</div></div>
         {groups.map(([code, label]) => {
           const list = items.filter((i) => i.type_code === code);
@@ -196,7 +219,7 @@ export function Roadmap({ model }) {
               <div key={i.id} className="rm-row">
                 <div className="rm-label"><a href={`#/metamodel/${model}/entity/${i.id}`}>{i.name}</a></div>
                 <div className="rm-track">
-                  {years.map((y) => <span key={y} className="rm-gridline" style={{ left: pct(Date.UTC(y, 0, 1)) }} />)}
+                  {ticks.map((k) => <span key={k.ms} className="rm-gridline" style={{ left: pct(k.ms) }} />)}
                   {now > lo && now < hi && <span className="rm-today" style={{ left: pct(now) }} />}
                   <a className="rm-bar" href={`#/metamodel/${model}/entity/${i.id}`}
                     style={{ left: pct(t(i.start_date)), width: `calc(${pct(t(i.end_date) + DAY)} - ${pct(t(i.start_date))})`, background: colour(i) }}
@@ -209,6 +232,7 @@ export function Roadmap({ model }) {
         })}
       </div>
       {undated.length > 0 && <p className="quiet">Not on the roadmap (no start or end date): {undated.map((i) => i.name).join(", ")}.</p>}
+      {dated.length > items.length && <p className="quiet small">{dated.length - items.length} outside the period shown.</p>}
     </div>
   );
 }

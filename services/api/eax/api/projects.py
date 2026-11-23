@@ -66,6 +66,8 @@ PUT    /projects/<p>/organisation/<id>             change one; DELETE takes one 
 
 The organisation's reference library (phase 13.0.8, D300): everyone reads, Super Admins change
 GET    /reference-library                          folders, tags, entries (?folder, q searches inside documents, tag, kind)
+GET    /reference-library/guides                   the TOGAF guides EA Explorer follows (Release 12, R12.9)
+POST   /reference-library/guides-zip               the organisation's own guides as a zip, folders kept (R12.12)
 POST   /reference-library/folders | /links | /files  add; GET/PUT/DELETE /reference-library/<e>; POST .../versions; GET .../file
 
 Tasks (D298): a scratchpad, no dates
@@ -333,7 +335,8 @@ class MySkills(MethodView):
     def put(self, data):
         """{skills: [tags]}: your skills, replaced (free tags, at most 40)"""
         from .. import skills as sk
-        return _run(lambda c: sk.set_mine(c, g.user, (data or {}).get("skills") or []), write=True, action="skills.set",
+        return _run(lambda c: sk.set_mine(c, g.user, (data or {}).get("skills") or [], (data or {}).get("togaf_roles"),
+                                          (data or {}).get("togaf_levels")), write=True, action="skills.set",
                     obj=g.user.username)
 
 
@@ -2477,6 +2480,18 @@ class RefLibrary(MethodView):
         return _run(lambda c: rl.browse(c, g.user, a.get("folder", ""), a.get("q", ""), a.get("tag", ""), a.get("kind", ""), a.get("deep") == "true"))
 
 
+@blp.route("/reference-library/guides")
+class RefLibraryGuides(MethodView):
+    """/api/v1/reference-library/guides: GET the TOGAF guides EA Explorer follows, with their pages (Release 12, R12.9)."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth()
+    def get(self):
+        """The TOGAF guides EA Explorer follows: number, title, page and what each is used for"""
+        from .. import guides
+        return {"guides": guides.listing()}
+
+
 @blp.route("/reference-library/pick")
 class RefLibraryPick(MethodView):
     """/api/v1/reference-library/pick: GET entries a project may link to (?q=)."""
@@ -2533,6 +2548,22 @@ class RefLibraryFiles(MethodView):
         name, data = _file()
         return _run(lambda c: rl.add_file(c, g.user, _form("folder", "title", "description", "source", "tags", "note"), name, data),
                     write=True, action="reference_library.added", obj="")
+
+
+@blp.route("/reference-library/guides-zip")
+class RefLibraryGuidesZip(MethodView):
+    """/api/v1/reference-library/guides-zip: POST the organisation's own guides as a zip: multipart "file", with folder
+    (Organisation guides unless given), source and tags; its folders are kept and each file is stored in Documents
+    (Release 12, R12.12; Super Admins)."""
+    @blp.doc(security=SECURITY)
+    @blp.response(201, Free)
+    @require_auth()
+    def post(self):
+        """The organisation's guides as a zip: unpacked into the Reference library, folders kept (Super Admins)"""
+        from .. import reference_library as rl
+        _name, data = _file()
+        return _run(lambda c: rl.add_zip(c, g.user, data, _form("folder", "source", "tags")),
+                    write=True, action="reference_library.guides_zip", obj="")
 
 
 @blp.route("/reference-library/<string:eid>")

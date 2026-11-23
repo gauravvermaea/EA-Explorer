@@ -1,5 +1,5 @@
 ---
-title: QR-02 Completeness by type and owner
+title: QR-02 Quality by type and owner
 summary: Completeness, failing rules, stale entities and orphans by entity type and by owner, weakest first.
 group: Data quality
 roles: user, model-admin
@@ -25,7 +25,7 @@ Scores run from 0 to 100: half completeness, almost a third the share of entitie
 
 ## Where to find it
 
-Open a model, **Reports › Reports**, and choose **Completeness by type and owner**; it opens its dashboard for that model. Every chart can be filtered, and most rows have **Open** to go to the entity in EA Explorer. The same data is in the model's OData feed for your own tools ([[odata-feeds]]).
+Open a model, **Reports › Reports**, and choose **Quality by type and owner**; it opens its dashboard for that model. Every chart can be filtered, and most rows have **Open** to go to the entity in EA Explorer. The same data is in the model's OData feed for your own tools ([[odata-feeds]]).
 
 For developers and report builders: it reads `rpt.quality_groups`; its dashboard is `eax-qr02`.
 

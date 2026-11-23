@@ -27,6 +27,9 @@ STEPS = [
      "#/project-admin/library"),
     ("charter", "The organisation's architecture charter", "Filled in from the seed: read it, change it, approve it.", ""),
     ("principles", "The organisation's principles", "Areas, the principles, and which are enforced in every project.", "#/project-admin/principles"),
+    # the organisation's own guides (owner, 23 Nov 2026, R12.12, D885): optional, "in a folder structure they see fit"
+    ("guides", "Your organisation's guides (optional)", "Upload your own guides as a zip: their folders are kept, each file is "
+     "stored in Documents and shown in the Reference library for everyone.", "#/reference-library?upload=guides"),
     ("backups", "When backups run", "The infrastructure and application backups, and how many are kept.", "#/admin/backups"),
     # the owner, 18 Nov 2026, 10:21: "The user needs to be able to enable the key rotation and all these schedules as one
     # of the initial configuration tasks": what can take EA Explorer down for a moment is off until chosen here
@@ -69,6 +72,8 @@ def _seen(conn) -> dict[str, bool]:
             ch = pj._one(pc, """SELECT c.state FROM proj.charters c JOIN proj.projects p ON p.id = c.project_id WHERE p.base_kind = 'org'""")
             seen["charter"] = bool(ch and ch["state"] == "Approved")
             seen["_org"] = orgr.org_base(pc)
+            seen["guides"] = bool(pj._one(pc, "SELECT 1 AS x FROM proj.org_ref_entries WHERE :t = ANY (tags) LIMIT 1",
+                                          t="Organisation guide"))
     except Exception:  # noqa: BLE001 - projects may be switched off or not set up
         pass
     return seen

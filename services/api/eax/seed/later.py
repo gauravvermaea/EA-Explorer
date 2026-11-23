@@ -148,6 +148,8 @@ def plan(settings, with_sample: bool) -> list[tuple[str, object]]:
         steps.append(("Sample scenario planning: a scenario committed, one with what-ifs pending, an assessment", sample_scenarios))
         steps.append(("Sample scenario planning study: futures, signposts, players and games, two versions (Release 10)", sample_planning))
         steps.append(("Sample ADM iterations: full, development then transition, governance, custom, none chosen", sample_iterations))
+        steps.append(("Release 12 samples: project plans, an Agile backlog with Sprint zero, a risk register, data governance, "
+                      "building blocks", sample_release_12))
         steps.append(("Sample update history: succeeded, rolled back, not started, scheduled", sample_updates))
         steps.append(("Sample archive: a model archived and one deleted, a project archived", sample_archive))
         steps.append(("Sample derived entity types: Server > Windows Server > Database Server", sample_derived))
@@ -332,6 +334,13 @@ def sample_planning() -> None:
     """Laptop (Release 10, R10.4, D857): a scenario planning study in Protea build or buy, two versions, made once."""
     from . import sample_planning as sp
     for line in sp.run():
+        _say(line)
+
+
+def sample_release_12() -> None:
+    """Laptop (Release 12, R12.7, D879): what the Release 12 samples hold, made once (eax/seed/sample_r12.py)."""
+    from . import sample_r12 as sr
+    for line in sr.run():
         _say(line)
 
 

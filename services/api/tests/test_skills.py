@@ -21,7 +21,10 @@ def test_repository_lists_every_user_with_their_own_skills(monkeypatch):
                                                 {"username": "service-account-x", "name": "", "enabled": True}]))
     monkeypatch.setattr(sk, "of", lambda conn, names: {"ann": ["Cloud", "TOGAF"]})
     monkeypatch.setattr(sk, "all_tags", lambda conn: ["Cloud", "TOGAF"])
+    # TOGAF roles and skill levels beside the skills (Release 12, R12.8)
+    monkeypatch.setattr(sk, "togaf_of", lambda conn, names: {"ann": {"togaf_roles": ["Data Architect"], "togaf_levels": {"data": 4}}})
     out = sk.repository(None, SimpleNamespace(username="Bob"))
+    assert out["by_role"]["Data Architect"] == ["ann"] and out["by_category"]["data"]["4"] == ["ann"]
     assert [u["username"] for u in out["users"]] == ["ann", "bob"]            # every user, service accounts left out
     assert out["without"] == 1 and out["me"] == "bob"
     assert [(s["skill"], s["people"]) for s in out["skills"]] == [("Cloud", ["ann"]), ("TOGAF", ["ann"])]

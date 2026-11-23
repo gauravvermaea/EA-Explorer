@@ -849,6 +849,53 @@
   "field:Demo: what was shown, and to whom": "The first part of the review: what the sprint showed its stakeholders.",
   "field:Retrospective: how the team worked, and what changes next sprint": "The third part of the review: how the team worked, and what it will change.",
   "field:change to": "The project's usual sprint length in days (1 to 90); each sprint can still have its own dates.",
+  "tab:Project plan": {
+    "what": "The project's plan: how it records RACI and its approval gates (chosen at setup), a start and end for each phase, its milestones, who is responsible, its status reports, and the roadmap of its primary working model for the period chosen.",
+    "how": [
+     "Give each phase a start and an end; a phase past its end and not complete shows late.",
+     "Add milestones and tick them when done; a milestone past its date and not done shows late.",
+     "When the project records RACI, choose who is Responsible, Accountable, Consulted and Informed for each phase, deliverable or step: one person is Accountable.",
+     "A phase that is an approval gate is only complete when each of its deliverables has an approved document."
+    ]
+  },
+  "button:Save the settings": "Saves how RACI is recorded, the approval gates and the roadmap's period. Only the Project Admin or Lead Architect changes them.",
+  "button:Report": "Records how the project stands: red, amber or green, with a summary and the next steps.",
+  "field:RACI": "How the project records who is Responsible, Accountable, Consulted and Informed: not at all, per phase, per deliverable or per step.",
+  "field:How RACI is recorded": "How the project records who is Responsible, Accountable, Consulted and Informed: not at all, per phase, per deliverable or per step. What was recorded one way is kept if you change it, and shows again if you go back.",
+  "field:Approval gates": "The phases that are only complete once each of their deliverables has an approved document. None by default.",
+  "field:Roadmap from": "Any start and end for the roadmap, and its marks by month, quarter or year; empty shows all of it.",
+  "field:Milestone name": "A milestone's name; give it a date and, if you like, the phase it belongs to.",
+  "field:Status summary": "A line or two on where the project is.",
+  "button:Log it": "Logs this risk of the project's models in the Governance log: a Risk record with its name and owner, a draft, linked to the risk it describes.",
+  "button:Link": "Links this Risk record to the risk in the project's models it describes.",
+  "field:My level in *": "Your proficiency in this category of architecture skill: 1 Background, 2 Aware, 3 Knowledgeable or 4 Expert (the TOGAF guides' levels). Leave it as not said if you would rather not say.",
+  "tab:By TOGAF role": {
+    "what": "The people who hold each TOGAF architect role, with their level in each category of architecture skill.",
+    "how": [
+     "Each person says which roles they hold and their levels on My profile; a level is 1 Background, 2 Aware, 3 Knowledgeable or 4 Expert."
+    ]
+  },
+  "button:Start a draft": "Makes a draft survey from this ready-made one; change its questions in the designer before you send it.",
+  "button:⬆ Guides as a zip": "Uploads your organisation's own guides as one zip: its folders are kept, each file is stored in Documents and tagged Organisation guide. Upload it again after changes: what changed gets a new version.",
+  "field:Into the folder": "The Reference library folder the zip's folders go under: Organisation guides unless you choose another.",
+  "field:Roadmap to": "The roadmap's last day; empty to show it to its end.",
+  "field:Roadmap marks": "How the roadmap's time line is marked: by month, by quarter or by year.",
+  "field:Milestone date": "The day the milestone is due; past it and not done, it shows late.",
+  "field:Milestone phase": "The ADM phase the milestone belongs to, if any.",
+  "field:Start of *": "The day the phase is planned to start.",
+  "field:End of *": "The day the phase is planned to end; past it and not complete, the phase shows late.",
+  "field:Next steps": "What happens next, in a line.",
+  "field:The risk * describes": "The risk in the project's models (an Assessment of kind Risk) that this Risk record is the governance record of.",
+  "field:The model whose capabilities are assessed": "The model whose capabilities the survey asks about, one section each.",
+  "field:Assess what is under this capability": "All the model's capabilities (40 at most), or only those directly under one capability.",
+  "field:The zip": "One zip holding your guides in the folders you want them in.",
+  "popup:Your organisation's guides, as a zip": {
+    "what": "Your organisation's own guides, uploaded as one zip into the Reference library, their folders kept.",
+    "how": [
+     "Put the guides in folders as you see fit, zip them and choose the zip; each file is stored in Documents and tagged Organisation guide.",
+     "Upload the same zip again after changes: what changed gets a new version, the rest stays as it is."
+    ]
+  },
   "tab:Scenarios": {
     "what": "Scenario models of the project compared with the baseline, and recorded assessments.",
     "how": [

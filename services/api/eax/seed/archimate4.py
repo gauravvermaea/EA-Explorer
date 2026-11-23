@@ -321,6 +321,8 @@ LISTS = {
     "AssessmentKind": ["Risk", "Threat", "Vulnerability", "Finding"],
     "RequirementKind": ["Functional", "Non-functional", "Security", "Data quality", "Regulatory"],
     "BacklogLevel": ["Epic", "Feature", "Story"],
+    # an element chosen as a building block in phases E and F (TOGAF 10, the building blocks; D889)
+    "BuildingBlock": ["Architecture building block", "Solution building block"],
 }
 
 # ---------------------------------------------------------------- attributes
@@ -393,6 +395,7 @@ ATTRS = [
     ("AssessmentKind", "Assessment Kind", "List", "AssessmentKind", "", "Risk, threat, vulnerability or finding"),
     ("RequirementKind", "Requirement Kind", "List", "RequirementKind", "", "Functional, non-functional, security, data quality or regulatory"),
     ("BacklogLevel", "Backlog Level", "List", "BacklogLevel", "", "For a work package in an Agile backlog: epic, feature or story"),
+    ("BuildingBlock", "Building Block", "List", "BuildingBlock", "", "Chosen as an architecture or a solution building block (phases E and F)"),
 ]
 
 ALL_TYPES = [t[0] for t in ENTITY_TYPES]
@@ -450,6 +453,10 @@ MAP["Grouping"] += [("DataSteward", "N", "Governance"), ("DataClassification", "
 for t in ["BusinessObject", "DataObject"]:
     MAP[t] += [("DataSteward", "N", "Governance"), ("SystemOfRecord", "N", "Governance")]
 MAP["WorkPackage"] += [("BacklogLevel", "N", "Agile"), ("AcceptanceCriteria", "N", "Agile")]
+# the building blocks chosen in phases E and F (D889): the parts of the architecture that are bought, built or reused
+BUILDING_BLOCK_TYPES = ["Service", "ApplicationComponent", "ApplicationInterface", "Node", "Device", "SystemSoftware", "DataObject"]
+for t in BUILDING_BLOCK_TYPES:
+    MAP[t] += [("BuildingBlock", "N", "Architecture")]
 
 # ---------------------------------------------------------------- rules
 # AttrCode, TypeCode('' = all), RuleType, Param1, Param2, Severity, Message

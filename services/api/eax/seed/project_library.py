@@ -57,6 +57,81 @@ def _ins(table: str, cols: list[str], rows: list[list], conflict: str) -> str:
 CF_ITEMS: dict[str, str] = json.loads((HERE / "content_framework_map.json").read_text(encoding="utf-8"))["document_types"]
 
 
+# ---------------------------------------------------------------- Release 12: the base improvements (R12.4, D879, D889)
+# Steps and document types added to the library for every project, new and existing (D884: existing projects are
+# brought up to date at start, see project_upgrade_sql). The wording is EA Explorer's own; the guides are named.
+R12_STEPS = [
+    ("A", "Plan the architecture project: its phases, milestones, who is responsible (RACI) and how status is reported",
+     "TOGAF Series Guide: Project Management and the ADM (G188)"),
+    ("RM", "Use business scenarios to find and test requirements",
+     "TOGAF Series Guide: Business Scenarios (G176)"),
+    ("E", "Choose the building blocks each work package brings in, reusing those that exist",
+     "TOGAF 10: Building blocks; TOGAF Series Guide: Business Architecture building blocks (G248)"),
+    ("F", "Confirm the building blocks each project of the migration plan delivers",
+     "TOGAF 10: Building blocks"),
+]
+# (id, phase, name, kind, type, work folder, approved folder, live view)
+R12_ITEMS = [
+    ("G172", "RM", "Business Scenario Register", "Artifact", "Catalog",
+     "09_ADM_Phase_Workspaces/RM_Requirements/Artifacts/172_Business_Scenario_Register", "07_Architecture_Requirements_Repository", "VP-49"),
+    ("G173", "E", "Building Block Selection", "Artifact", "Catalog",
+     "09_ADM_Phase_Workspaces/E_Opportunities/Artifacts/173_Building_Block_Selection", "08_Solutions_Landscape", "VP-58"),
+    ("G174", "F", "Building Blocks by Project", "Artifact", "Catalog",
+     "09_ADM_Phase_Workspaces/F_Migration/Artifacts/174_Building_Blocks_by_Project", "03_Architecture_Landscape/01_Strategic_Architecture",
+     "VP-58"),
+]
+# the maps and catalogues that are always live (D879, D889): shown from the project's primary working model by their view,
+# beside any file the project keeps for them
+LIVE_VIEWS = {"G047": "VP-01", "G045": "VP-47", "G036": "VP-19", "G020": "VP-49", "G113": "VP-58", "G120": "VP-58",
+              **{i[0]: i[7] for i in R12_ITEMS}}
+
+
+def r12_library_sql() -> str:
+    """The Release 12 steps and document types, each added once (after the phase's last step), and the live views set
+    where a library item has none yet (a Super Admin's choice is kept)."""
+    out = []
+    for phase, name, source in R12_STEPS:
+        out.append("INSERT INTO proj.lib_steps (phase, seq, name, source, marking, note)\n"
+                   f"SELECT {lit(phase)}, coalesce(max(seq), 0) + 1, {lit(name)}, {lit(source)}, 'Added', '' FROM proj.lib_steps WHERE phase = {lit(phase)}\n"
+                   "ON CONFLICT (phase, name) DO NOTHING;\n")
+    out.append(_ins("proj.lib_items", ["id", "phase", "name", "kind", "type", "default_pick", "work_folder", "approved_folder", "templates",
+                                       "content_area"],
+                    [[i, ph, n, k, t, True, w, a, "", ""] for i, ph, n, k, t, w, a, _v in R12_ITEMS], "(id)"))
+    out.append("UPDATE proj.lib_items i SET live_view = v.vp FROM (VALUES\n" + _values([[k, v] for k, v in LIVE_VIEWS.items()])
+               + "\n) AS v (id, vp) WHERE i.id = v.id AND i.live_view = '';\n")
+    return "".join(out)
+
+
+def project_upgrade_sql() -> str:
+    """Every existing project brought up to date with the library (D884: "Redo all existing projects and update them
+    with this on script level"): the library's steps and document types it lacks, in the phases it has (a phase a
+    project does not run is left alone); its items' live views; its repository built again where it has new document
+    types; and its project management settings (RACI none, no gates: as it was). Each statement only adds what is missing, so it runs at every start and changes nothing twice."""
+    return """
+INSERT INTO proj.steps (project_id, cycle, phase, seq, name, library_id)
+SELECT p.id, p.cycle, s.phase,
+       (SELECT coalesce(max(x.seq), 0) + 1 FROM proj.steps x WHERE x.project_id = p.id AND x.cycle = p.cycle AND x.phase = s.phase),
+       s.name, s.id
+  FROM proj.projects p JOIN proj.lib_steps s ON NOT s.retired
+ WHERE EXISTS (SELECT 1 FROM proj.steps h WHERE h.project_id = p.id AND h.cycle = p.cycle AND h.phase = s.phase)
+   AND NOT EXISTS (SELECT 1 FROM proj.steps h WHERE h.project_id = p.id AND h.cycle = p.cycle AND h.library_id = s.id);
+WITH added AS (
+  INSERT INTO proj.items (project_id, cycle, phase, name, kind, type, library_id, chosen, folder, approved_folder, live_view)
+  SELECT p.id, p.cycle, i.phase, i.name, i.kind, i.type, i.id, i.default_pick, i.work_folder, i.approved_folder, i.live_view
+    FROM proj.projects p JOIN proj.lib_items i ON NOT i.retired
+   WHERE EXISTS (SELECT 1 FROM proj.items h WHERE h.project_id = p.id AND h.cycle = p.cycle AND h.phase = i.phase)
+     AND NOT EXISTS (SELECT 1 FROM proj.items h WHERE h.project_id = p.id AND h.cycle = p.cycle AND h.library_id = i.id)
+  RETURNING project_id)
+-- a project given new document types has its repository built again, so their folders are there (as queue_rebuild)
+UPDATE proj.projects SET repo_state = CASE WHEN repo_state = 'building' THEN repo_state ELSE 'pending' END,
+       repo_again = (repo_state = 'building'), repo_tries = 0
+ WHERE id IN (SELECT project_id FROM added);
+UPDATE proj.items t SET live_view = i.live_view FROM proj.lib_items i
+ WHERE t.library_id = i.id AND t.live_view = '' AND i.live_view <> '';
+INSERT INTO proj.pm_settings (project_id) SELECT id FROM proj.projects ON CONFLICT (project_id) DO NOTHING;
+"""
+
+
 def library_sql(d: dict | None = None) -> str:
     """The deliverables library as SQL to load."""
     d = d or data()
@@ -106,6 +181,7 @@ def library_sql(d: dict | None = None) -> str:
         out.append("INSERT INTO proj.lib_item_sources (item_id, source, phase, name, kind, type, marking, note, files, location)\n"
                    "SELECT v.* FROM (VALUES\n" + _values(src) + "\n) AS v (item_id, source, phase, name, kind, type, marking, note, files, location)\n"
                    "WHERE NOT EXISTS (SELECT 1 FROM proj.lib_item_sources s WHERE s.item_id = v.item_id);\n")
+    out.append(r12_library_sql())
     return "".join(out)
 
 

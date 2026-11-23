@@ -82,6 +82,12 @@ TABLES = [
     ("sprints", "project_id = :p", {}),
     ("backlog_items", "project_id = :p", {"item_id": "items", "sprint_id": "sprints"}),
     ("sprint_decisions", "sprint_id IN (SELECT id FROM proj.sprints WHERE project_id = :p)", {"sprint_id": "sprints", "backlog_id": "backlog_items"}),
+    # the project plan (Release 12, D889): settings, phases' plan, milestones, RACI (by phase, deliverable or step), status
+    ("pm_settings", "project_id = :p", {}),
+    ("phase_plans", "project_id = :p", {}),
+    ("milestones", "project_id = :p", {}),
+    ("raci", "project_id = :p", {"item_id": "items", "step_id": "steps"}),
+    ("status_reports", "project_id = :p", {}),
     ("charters", "project_id = :p", {}),
     ("phase_states", "project_id = :p", {}),
     ("iteration_changes", "project_id = :p", {}),          # the ADM iteration per cycle (D571-D574)

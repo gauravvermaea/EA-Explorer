@@ -86,8 +86,10 @@ def create_app(testing: bool = False) -> Flask:
     from .api.model_wizards import blp as model_wizards_blp
     from .api.models import blp as models_blp
     from .api.notifications import blp as notifications_blp
+    from .api.pm import blp as plan_blp
     from .api.projects import blp as projects_blp
     from .api.quality import blp as quality_blp
+    from .api.risk_register import blp as risk_blp
     from .api.sheets import blp as sheets_blp
     from .api.sql import blp as sql_blp
     from .api.startup import blp as startup_blp
@@ -100,7 +102,7 @@ def create_app(testing: bool = False) -> Flask:
                 metamodel_edit_blp, models_blp, content_blp, grids_blp, views_blp, commits_blp,
                 versions_blp, change_log_blp, admin_blp, sql_blp, tasks_blp, sheets_blp, notifications_blp, backups_blp,
                 quality_blp, icons_blp, trees_blp, startup_blp, projects_blp, model_wizards_blp, commons_blp, drawn_views_blp, kpi_reports_blp,
-                agile_blp):
+                agile_blp, plan_blp, risk_blp):
         api.register_blueprint(blp)
     # machine access and operations (phases 25 and 35, F3 of batch 1)
     from .api.machine_access import blp as machine_access_blp

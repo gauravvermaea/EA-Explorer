@@ -199,6 +199,78 @@ def add_file(conn, user, d: dict, file_name: str, content: bytes) -> dict:
     return {"id": r["guid"], "message": f"{m['title']} added to the reference library."}
 
 
+# ---------------------------------------------------------------- the organisation's own guides, as a zip (Release 12, R12.12)
+GUIDES_FOLDER = "Organisation guides"
+GUIDE_TAG = "Organisation guide"
+ZIP_MAX_FILES, ZIP_MAX_BYTES, ZIP_MAX_RATIO = 500, 500 * 1024 * 1024, 200
+
+
+def zip_files(content: bytes) -> list[tuple[str, str, bytes]]:
+    """The files of an uploaded zip as (folder inside it, file name, bytes), checked first: no path that climbs out or
+    starts at the root, no more than 500 files or 500 MB unpacked, nothing that unpacks to 200 times its size; the
+    folders a computer adds of its own (__MACOSX, hidden files) are left out."""
+    import io
+    import posixpath
+    import zipfile
+    try:
+        z = zipfile.ZipFile(io.BytesIO(content))
+    except zipfile.BadZipFile as exc:
+        raise EditError("That is not a zip file.") from exc
+    items = [i for i in z.infolist() if not i.is_dir()]
+    items = [i for i in items if not any((p.startswith(".") and p not in (".", "..")) or p == "__MACOSX"
+                                         for p in i.filename.replace("\\", "/").split("/"))]
+    if not items:
+        raise EditError("The zip holds no files.")
+    if len(items) > ZIP_MAX_FILES:
+        raise EditError(f"The zip holds {len(items)} files: {ZIP_MAX_FILES} at most at a time.")
+    total = sum(i.file_size for i in items)
+    if total > ZIP_MAX_BYTES:
+        raise EditError(f"The zip unpacks to {total // (1024 * 1024)} MB: {ZIP_MAX_BYTES // (1024 * 1024)} MB at most at a time.")
+    out = []
+    for i in items:
+        name = i.filename.replace("\\", "/")
+        norm = posixpath.normpath(name)
+        if name.startswith("/") or norm.startswith("..") or "/../" in f"/{norm}/" or ":" in name.split("/")[0]:
+            raise EditError(f"The zip has a path that leaves its folder ({name}): it is not unpacked.")
+        if i.compress_size and i.file_size / i.compress_size > ZIP_MAX_RATIO:
+            raise EditError(f"{name} unpacks to far more than its size in the zip: it is not unpacked.")
+        folder, _, file_name = norm.rpartition("/")
+        out.append((folder, file_name, z.read(i)))
+    return out
+
+
+def add_zip(conn, user, content: bytes, d: dict | None = None) -> dict:
+    """The organisation's own guides, uploaded as a zip (owner, 23 Nov 2026: "People should be able to upload it as a
+    zip we need to unpack it in the folder and upload it", D885): unpacked into the Reference library under a folder
+    (Organisation guides unless another is given) keeping the zip's folders, each file stored in Documents (Mayan) and
+    tagged "Organisation guide". A file already there with the same name in the same folder gets a new version when it
+    has changed, and is left alone when it has not, so the same zip can be uploaded again after changes."""
+    _need_write(user)
+    d = d or {}
+    base = clean_folder(d.get("folder") or GUIDES_FOLDER) or GUIDES_FOLDER
+    files = zip_files(content)
+    tags = _tags([GUIDE_TAG, *(_tags(d.get("tags")) or [])])
+    added = updated = same = 0
+    for folder, file_name, data in files:
+        where = clean_folder(f"{base}/{folder}" if folder else base)
+        have = _one(conn, """SELECT e.guid::text AS guid, v.size_bytes, e.mayan_document_id FROM proj.org_ref_entries e
+                               LEFT JOIN proj.org_ref_versions v ON v.entry_id = e.id AND v.version = e.version
+                              WHERE e.folder = :f AND e.kind = 'file' AND e.file_name = :n""", f=where, n=file_name[:300])
+        if have:
+            if have.get("size_bytes") == len(data) and text_of(file_name, data) == (_one(
+                    conn, "SELECT search_text FROM proj.org_ref_entries WHERE guid = CAST(:g AS uuid)", g=have["guid"]) or {}).get("search_text"):
+                same += 1
+                continue
+            new_version(conn, user, have["guid"], file_name, data, "From the guides zip")
+            updated += 1
+            continue
+        add_file(conn, user, {"folder": where, "source": d.get("source") or "The organisation", "tags": tags}, file_name, data)
+        added += 1
+    parts = [f"{added} added"] + ([f"{updated} updated (a new version kept)"] if updated else []) + ([f"{same} unchanged"] if same else [])
+    return {"folder": base, "added": added, "updated": updated, "unchanged": same,
+            "message": f"The guides are in the Reference library under {base}: {', '.join(parts)}."}
+
+
 def new_version(conn, user, eid: str, file_name: str, content: bytes, note: str = "") -> dict:
     """Adds a new version of a reference library file."""
     from . import mayan

@@ -23,7 +23,7 @@ def test_views_use_archimate4_types():
         assert set(v["relationship_types"]) <= rels, v["code"]
         assert v["heat_attribute"] in attrs | on_demand, v["code"]
         assert v["concerns"] and v["stakeholders"] and v["purpose"], v["code"]
-    assert [v["code"] for v in VIEWS] == [f"VP-{i:02d}" for i in range(1, 58)]   # 50 to 57: Release 12 (D879)
+    assert [v["code"] for v in VIEWS] == [f"VP-{i:02d}" for i in range(1, 59)]   # 50 to 58: Release 12 (D879, D889)
     cats = {v["category"].split(":")[0] for v in VIEWS}
     assert cats == {"Basic", "Motivation", "Strategy", "Implementation and migration", "TOGAF business architecture",
                     "Risk and security", "Data governance", "Agile"}   # Release 12 (D879)
@@ -45,7 +45,7 @@ def test_demo_estate_keeps_to_the_metamodel():
 
 def test_catalog_sql_loads_every_view_and_audience():
     sql = catalog_sql()
-    assert sql.count("INSERT INTO core.viewpoints") == 57
+    assert sql.count("INSERT INTO core.viewpoints") == 58
     assert "togaf_artifact" in sql and "'Business Capabilities catalog'" in sql
     assert all(f"'{c}'" in sql for c, _n, _g in AUDIENCES)
     links = sql[sql.index("INSERT INTO core.report_audience_links"):]

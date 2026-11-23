@@ -7,7 +7,7 @@ roles: user, model-admin
 
 ## What it shows
 
-**What it gathers:** [[report-sr-27|SR-27 Orphans and missing relationships]], [[report-sr-28|SR-28 Duplicate candidates]], [[report-hm|HM Pick-list heatmaps]], [[report-vp-03|VP-03 Information Structure view]], [[report-vp-47|VP-47 Information Map view]], [[report-vp-53|VP-53 Classified information view]], [[report-vp-54|VP-54 Data ownership view]], [[report-vp-55|VP-55 Data quality view]], [[report-vp-56|VP-56 Data lineage view]], [[report-qr-02|QR-02 Completeness by type and owner]], [[report-qr-03|QR-03 What to fix]], [[report-qr-04|QR-04 Failing rules]].
+**What it gathers:** [[report-sr-27|SR-27 Orphans and missing relationships]], [[report-sr-28|SR-28 Duplicate candidates]], [[report-hm|HM Pick-list heatmaps]], [[report-vp-03|VP-03 Information Structure view]], [[report-vp-47|VP-47 Information Map view]], [[report-vp-53|VP-53 Classified information view]], [[report-vp-54|VP-54 Data ownership view]], [[report-vp-55|VP-55 Data quality view]], [[report-vp-56|VP-56 Data lineage view]], [[report-qr-02|QR-02 Quality by type and owner]], [[report-qr-03|QR-03 What to fix]], [[report-qr-04|QR-04 Failing rules]].
 
 ## Why it matters
 

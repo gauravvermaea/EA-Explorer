@@ -315,9 +315,101 @@ def root_upgrade_sql() -> str:
             + metamodel_sql(TEMPLATE_KEY, None, missing_only=True))
 
 
+def model_upgrade_sql() -> str:
+    """The Release 12 attributes given to every existing model made from the ArchiMate 4 root, its copies and their
+    copies (owner, 23 Nov 2026, D886: "Existing models also get the new attributes by script"; D887). A model's
+    metamodel is its own copy of the root's; each of its types is traced back to the root's type it came from (its
+    origin_guid, through copies of copies). A model gets the Release 12 pick lists, attributes, their places on its
+    types, their rules and the Control-Influence-Assessment relationship where it lacks them. Whatever a model already has
+    with the same code, or once had and deleted, is left as it is: a model's owner may have changed or removed it.
+    Run after root_upgrade_sql; each statement only adds what is missing, so it changes nothing the second time."""
+    codes = "ARRAY[" + ", ".join(lit(c) for c in UPGRADE_ATTRS) + "]::text[]"
+    places = " OR ".join(f"(rt.code = {lit(t)} AND ra.code = {lit(a)})" for t, a in UPGRADE_PLACES)
+    return f"""
+SELECT set_config('eax.actor', 'system:seed', true);
+SELECT set_config('eax.history_label', 'Release 12 attributes in existing models', true);
+DROP TABLE IF EXISTS pg_temp.r12_types;
+CREATE TEMP TABLE r12_types AS
+WITH RECURSIVE root AS (SELECT id FROM core.models WHERE guid = {lit(TEMPLATE_ID)}),
+up (type_id, model_id, cur_guid, cur_origin, depth) AS (
+    SELECT t.id, t.model_id, t.guid, t.origin_guid, 0 FROM core.entity_types t
+     WHERE NOT t.is_deleted AND t.model_id <> (SELECT id FROM root) AND t.origin_guid IS NOT NULL
+    UNION ALL
+    SELECT u.type_id, u.model_id, s.guid, s.origin_guid, u.depth + 1
+      FROM up u JOIN core.entity_types s ON s.guid = u.cur_origin WHERE u.depth < 25)
+SELECT u.type_id, u.model_id, r.id AS root_type_id
+  FROM up u JOIN core.entity_types r ON r.guid = u.cur_guid AND r.model_id = (SELECT id FROM root)
+  JOIN core.models m ON m.id = u.model_id AND NOT m.is_deleted;
+-- the pick lists the new attributes use
+INSERT INTO core.pick_lists (model_id, code, name, description, origin_guid, status_code)
+SELECT DISTINCT m.model_id, p.code, p.name, p.description, p.guid, p.status_code
+  FROM (SELECT DISTINCT model_id FROM r12_types) m
+  CROSS JOIN core.attribute_types a JOIN core.pick_lists p ON p.id = a.pick_list_id
+ WHERE a.model_id = (SELECT id FROM core.models WHERE guid = {lit(TEMPLATE_ID)}) AND a.code = ANY ({codes})
+   AND NOT EXISTS (SELECT 1 FROM core.pick_lists x WHERE x.model_id = m.model_id AND x.code = p.code);
+INSERT INTO core.pick_list_values (model_id, pick_list_id, value, description, sort_order, origin_guid, status_code)
+SELECT d.model_id, d.id, v.value, v.description, v.sort_order, v.guid, v.status_code
+  FROM core.pick_lists d JOIN core.pick_lists r ON r.guid = d.origin_guid
+  JOIN core.pick_list_values v ON v.pick_list_id = r.id AND NOT v.is_deleted
+ WHERE d.model_id IN (SELECT model_id FROM r12_types)
+   AND r.model_id = (SELECT id FROM core.models WHERE guid = {lit(TEMPLATE_ID)})
+   AND NOT EXISTS (SELECT 1 FROM core.pick_list_values x WHERE x.pick_list_id = d.id)
+ON CONFLICT (pick_list_id, value) DO NOTHING;
+-- the attributes
+INSERT INTO core.attribute_types (model_id, code, name, description, data_type_code, pick_list_id, unit, column_name, origin_guid, status_code)
+SELECT m.model_id, a.code, a.name, a.description, a.data_type_code, dp.id, a.unit, a.column_name, a.guid, a.status_code
+  FROM (SELECT DISTINCT model_id FROM r12_types) m
+  CROSS JOIN core.attribute_types a
+  LEFT JOIN core.pick_lists sp ON sp.id = a.pick_list_id
+  LEFT JOIN core.pick_lists dp ON dp.model_id = m.model_id AND dp.code = sp.code AND NOT dp.is_deleted
+ WHERE a.model_id = (SELECT id FROM core.models WHERE guid = {lit(TEMPLATE_ID)}) AND a.code = ANY ({codes}) AND NOT a.is_deleted
+   AND NOT EXISTS (SELECT 1 FROM core.attribute_types x WHERE x.model_id = m.model_id AND (x.code = a.code OR x.column_name = a.column_name));
+-- their places on the model's types
+INSERT INTO core.item_attributes (model_id, attribute_type_id, entity_type_id, is_required, section, sort_order, default_value, help_text,
+                                  origin_guid, status_code)
+SELECT t.model_id, da.id, t.type_id, i.is_required, i.section, i.sort_order, i.default_value, i.help_text, i.guid, i.status_code
+  FROM core.item_attributes i
+  JOIN core.attribute_types ra ON ra.id = i.attribute_type_id
+  JOIN core.entity_types rt ON rt.id = i.entity_type_id
+  JOIN r12_types t ON t.root_type_id = i.entity_type_id
+  JOIN core.attribute_types da ON da.model_id = t.model_id AND da.code = ra.code AND NOT da.is_deleted
+ WHERE i.model_id = (SELECT id FROM core.models WHERE guid = {lit(TEMPLATE_ID)}) AND NOT i.is_deleted
+   AND (ra.code = ANY ({codes}) OR {places})
+   AND NOT EXISTS (SELECT 1 FROM core.item_attributes x WHERE x.entity_type_id = t.type_id AND x.attribute_type_id = da.id);
+-- their rules (Likelihood and Impact from 1 to 5)
+INSERT INTO core.validation_rules (model_id, attribute_type_id, field_name, entity_type_id, rule_type_code, param1, param2, severity, message,
+                                   sort_order, origin_guid, status_code)
+SELECT da.model_id, da.id, v.field_name, NULL, v.rule_type_code, v.param1, v.param2, v.severity, v.message, v.sort_order, v.guid, v.status_code
+  FROM core.validation_rules v
+  JOIN core.attribute_types ra ON ra.id = v.attribute_type_id AND ra.code = ANY ({codes})
+  JOIN core.attribute_types da ON da.code = ra.code AND da.origin_guid = ra.guid AND da.model_id IN (SELECT model_id FROM r12_types)
+ WHERE v.model_id = (SELECT id FROM core.models WHERE guid = {lit(TEMPLATE_ID)}) AND NOT v.is_deleted AND v.entity_type_id IS NULL
+   AND NOT EXISTS (SELECT 1 FROM core.validation_rules x WHERE x.model_id = da.model_id AND x.attribute_type_id = da.id
+                                                          AND x.rule_type_code = v.rule_type_code);
+-- a control reduces a risk (an Assessment): the one relationship Release 12 allows
+INSERT INTO core.allowed_relationships (model_id, relationship_type_id, source_type_id, target_type_id, note, origin_guid, status_code)
+SELECT s.model_id, dr.id, s.type_id, g.type_id, ar.note, ar.guid, ar.status_code
+  FROM core.allowed_relationships ar
+  JOIN core.relationship_types rr ON rr.id = ar.relationship_type_id AND rr.code = 'Influence'
+  JOIN core.entity_types rs ON rs.id = ar.source_type_id AND rs.code = 'Control'
+  JOIN core.entity_types rt ON rt.id = ar.target_type_id AND rt.code = 'Assessment'
+  JOIN r12_types s ON s.root_type_id = rs.id
+  JOIN r12_types g ON g.root_type_id = rt.id AND g.model_id = s.model_id
+  JOIN core.relationship_types dr ON dr.model_id = s.model_id AND dr.code = 'Influence' AND NOT dr.is_deleted
+ WHERE ar.model_id = (SELECT id FROM core.models WHERE guid = {lit(TEMPLATE_ID)}) AND NOT ar.is_deleted
+   AND NOT EXISTS (SELECT 1 FROM core.allowed_relationships x WHERE x.model_id = s.model_id AND x.relationship_type_id = dr.id
+                                                              AND x.source_type_id = s.type_id AND x.target_type_id = g.type_id);
+DROP TABLE IF EXISTS pg_temp.r12_types;
+"""
+
+
+# existing attributes Release 12 places on more types (D887): given to existing models with the new ones
+UPGRADE_PLACES = [("Assessment", "Url"), ("Requirement", "Target"), ("Requirement", "Measure"), ("Grouping", "DataClassification")]
+
 # the attributes root_upgrade_sql adds: when the root lacks one, the upgrade runs
 UPGRADE_ATTRS = ["Likelihood", "Impact", "InherentRisk", "RiskTreatment", "ResidualRisk", "SecurityProperty", "DataSteward",
-                 "SystemOfRecord", "QualityDimension", "AcceptanceCriteria", "AssessmentKind", "RequirementKind", "BacklogLevel"]
+                 "SystemOfRecord", "QualityDimension", "AcceptanceCriteria", "AssessmentKind", "RequirementKind", "BacklogLevel",
+                 "BuildingBlock"]
 
 
 def sample_content_sql(k: str = SAMPLE_KEY) -> str:
