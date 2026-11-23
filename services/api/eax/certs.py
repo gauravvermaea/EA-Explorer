@@ -31,7 +31,9 @@ DEFAULT_DAYS = 30
 # the services that sign in with a certificate: the logins PostgreSQL lets each use (pg_ident.conf), and the group that
 # may read its key (root owns it, 0640)
 CLIENTS: dict[str, dict] = {
-    "api": {"logins": ["eax_app", "eax_migrator", "eax_report"], "gid": 10001,
+    # mayan: the API reads Documents' own API token from Documents' database (eax/mayan.py _db_token), as it does with
+    # the mayan password in password mode; without it Documents never answered in certificate mode (23 Nov 2026, D893)
+    "api": {"logins": ["eax_app", "eax_migrator", "eax_report", "mayan"], "gid": 10001,
             "what": "the API, the job runner and the self-test"},
     "library": {"logins": ["eax_library"], "gid": 10002, "what": "the library service"},
     "views": {"logins": ["eax_views"], "gid": 10003, "what": "the drawn views service"},

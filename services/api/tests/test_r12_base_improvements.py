@@ -258,3 +258,14 @@ def test_the_release_12_screens_have_browser_journeys():
     said = [s.get("expect") for s in plan["steps"]]
     assert "is an approval gate" in said and "Status reported: amber" in said     # the gate refuses; the status is kept
     assert plan["steps"][-1] == {"expect_not": "RACI, per phase", "timeout": 5000}  # put back as it was
+
+
+def test_tables_use_the_table_class_not_the_card_grid():
+    """The owner, 23 Nov 2026, of the Project plan tab: "This screen needs to be better": its tables had the class grid
+    (a grid of cards), so the headings sat in one cell and the rows were squeezed. Tables use grid-table."""
+    import re as _re
+    bad = [f"{f.name}:{n}" for f in sorted(WEB.glob("*.jsx")) for n, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1)
+           if _re.search(r'<table className="grid[ "]', line)]
+    assert not bad, bad
+    tab = (WEB / "ProjectPlan.jsx").read_text(encoding="utf-8")
+    assert 'className="grid-table small plan-phases"' in tab and "plan-bar" in tab and "Time line" in tab

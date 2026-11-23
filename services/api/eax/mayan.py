@@ -127,11 +127,17 @@ def _multipart(fields: dict, file_name: str, content: bytes, ctype: str = "appli
 
 def ping() -> bool:
     """Whether Documents answers."""
+    return not why_not_up()
+
+
+def why_not_up() -> str:
+    """Why Documents does not answer ("" when it does): shown on the start-up status, so a fault (a refused sign-in to
+    its database, say) is seen at once and not taken for a slow start (D893)."""
     try:
         _json("GET", "/document_types/?page_size=1")
-        return True
-    except MayanError:
-        return False
+        return ""
+    except MayanError as exc:
+        return str(exc) or "it does not answer"
 
 
 # ---------------------------------------------------------------- cabinets (folders)

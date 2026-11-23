@@ -42,6 +42,9 @@ function Settings({ p, plan, onSaved, onError }) {
   );
 }
 
+// the phases: when each is planned, how long, where it sits on the project's time line, its state and its gate
+const DAY_MS = 86400000;
+const ms = (d) => new Date(`${d}T00:00:00Z`).getTime();
 function Phases({ p, plan, onSaved, onError }) {
   const [edit, setEdit] = useState({});
   const save = async (code) => {
@@ -51,27 +54,38 @@ function Phases({ p, plan, onSaved, onError }) {
       setEdit({ ...edit, [code]: undefined }); onSaved(r.message);
     } catch (e) { onError(e.message); }
   };
+  const planned = plan.phases.filter((x) => x.starts_on && x.ends_on);
+  const lo = planned.length ? Math.min(...planned.map((x) => ms(x.starts_on))) : 0;
+  const hi = planned.length ? Math.max(...planned.map((x) => ms(x.ends_on) + DAY_MS)) : 1;
+  const today = Date.now();
+  const pct = (t) => `${Math.max(0, Math.min(100, (100 * (t - lo)) / (hi - lo)))}%`;
   return (
     <section className="ba-box">
-      <h4>The phases</h4>
-      <table className="grid small"><thead><tr><th>Phase</th><th>Start</th><th>End</th><th>State</th><th>Gate</th></tr></thead>
+      <h4>The phases <span className="small quiet">{planned.length} of {plan.phases.length} planned</span></h4>
+      <table className="grid-table small plan-phases">
+        <thead><tr><th>Phase</th><th>Planned</th><th className="num">Days</th><th style={{ width: "30%" }}>Time line</th><th>State</th><th>Gate</th><th /></tr></thead>
         <tbody>{plan.phases.map((ph) => {
           const e = edit[ph.code];
+          const days = ph.starts_on && ph.ends_on ? Math.round((ms(ph.ends_on) - ms(ph.starts_on)) / DAY_MS) + 1 : null;
           return (
             <tr key={ph.code}>
-              <td><b>{ph.code}</b> {ph.name}</td>
-              {e ? <>
-                <td><input type="date" value={e.starts_on || ""} onChange={(x) => setEdit({ ...edit, [ph.code]: { ...e, starts_on: x.target.value } })} aria-label={`Start of ${ph.code}`} /></td>
-                <td><input type="date" value={e.ends_on || ""} onChange={(x) => setEdit({ ...edit, [ph.code]: { ...e, ends_on: x.target.value } })} aria-label={`End of ${ph.code}`} />{" "}
-                  <button onClick={() => save(ph.code)}>Save</button> <button className="linkish" onClick={() => setEdit({ ...edit, [ph.code]: undefined })}>Cancel</button></td>
-              </> : <>
-                <td>{ph.starts_on ? fmtDate(ph.starts_on) : <span className="quiet">–</span>}</td>
-                <td>{ph.ends_on ? fmtDate(ph.ends_on) : <span className="quiet">–</span>}
-                  {plan.may_change && <> <button className="linkish" onClick={() => setEdit({ ...edit, [ph.code]: { starts_on: ph.starts_on || "", ends_on: ph.ends_on || "" } })}>change</button></>}</td>
+              <td><b style={{ whiteSpace: "nowrap" }}>{ph.code}</b> {ph.name.replace(/^Phase [A-Z-]+:\s*/, "")}</td>
+              {e ? <td colSpan={3}>
+                <input type="date" value={e.starts_on || ""} onChange={(x) => setEdit({ ...edit, [ph.code]: { ...e, starts_on: x.target.value } })} aria-label={`Start of ${ph.code}`} /> to{" "}
+                <input type="date" value={e.ends_on || ""} onChange={(x) => setEdit({ ...edit, [ph.code]: { ...e, ends_on: x.target.value } })} aria-label={`End of ${ph.code}`} />{" "}
+                <button onClick={() => save(ph.code)}>Save</button> <button className="linkish" onClick={() => setEdit({ ...edit, [ph.code]: undefined })}>Cancel</button>
+                <span className="quiet"> (both empty: no plan)</span></td> : <>
+                <td style={{ whiteSpace: "nowrap" }}>{ph.starts_on ? <>{fmtDate(ph.starts_on)} – {fmtDate(ph.ends_on)}</> : <span className="quiet">not planned</span>}</td>
+                <td className="num">{days ?? ""}</td>
+                <td>{ph.starts_on && <div className="plan-track" title={`${fmtDate(ph.starts_on)} to ${fmtDate(ph.ends_on)}`}>
+                  <span className={`plan-bar${ph.complete ? " done" : ph.late ? " late" : ""}`}
+                    style={{ left: pct(ms(ph.starts_on)), width: `calc(${pct(ms(ph.ends_on) + DAY_MS)} - ${pct(ms(ph.starts_on))})` }} />
+                  {today > lo && today < hi && <span className="plan-today" style={{ left: pct(today) }} title="Today" />}</div>}</td>
               </>}
               <td>{ph.complete ? <span className="rag good">complete</span> : ph.late ? <span className="rag bad">late</span> : <span className="quiet">open</span>}</td>
-              <td>{ph.gate ? (ph.waiting.length ? <span className="rag amber" title={ph.waiting.join("\n")}>{ph.waiting.length} to approve</span>
+              <td>{ph.gate ? (ph.waiting.length ? <span className="rag amber" title={`Waiting for approval:\n${ph.waiting.join("\n")}`}>{ph.waiting.length} to approve</span>
                 : <span className="rag good">ready</span>) : <span className="quiet">–</span>}</td>
+              <td>{plan.may_change && !e && <button className="linkish" onClick={() => setEdit({ ...edit, [ph.code]: { starts_on: ph.starts_on || "", ends_on: ph.ends_on || "" } })}>change</button>}</td>
             </tr>
           );
         })}</tbody></table>
@@ -89,7 +103,7 @@ function Milestones({ p, plan, onSaved, onError }) {
     <section className="ba-box">
       <h4>Milestones</h4>
       {!plan.milestones.length ? <p className="quiet small">No milestones yet.</p>
-        : <table className="grid small"><thead><tr><th>Milestone</th><th>Due</th><th>Phase</th><th>Done</th><th /></tr></thead>
+        : <table className="grid-table small"><thead><tr><th>Milestone</th><th>Due</th><th>Phase</th><th>Done</th><th /></tr></thead>
           <tbody>{plan.milestones.map((m) => (
             <tr key={m.id}><td><b>{m.name}</b>{m.note && <div className="quiet">{m.note}</div>}</td>
               <td>{fmtDate(m.due_on)} {m.late && <span className="rag bad">late</span>}</td><td>{m.phase || <span className="quiet">–</span>}</td>
@@ -126,7 +140,7 @@ function Raci({ p, plan, onSaved, onError }) {
       <h4>RACI, per {word}</h4>
       <p className="small quiet">{Object.entries(plan.letters).map(([k, l]) => `${k}: ${l}`).join(" · ")}. One person is Accountable.
         {raci.no_accountable ? ` ${raci.no_accountable} with no one Accountable yet.` : ""}</p>
-      <table className="grid small"><thead><tr><th>{word[0].toUpperCase() + word.slice(1)}</th><th>Who</th><th /></tr></thead>
+      <table className="grid-table small"><thead><tr><th>{word[0].toUpperCase() + word.slice(1)}</th><th>Who</th><th /></tr></thead>
         <tbody>{raci.rows.map((r) => (
           <tr key={r.ref}><td>{r.name}</td>
             <td>{open === r.ref

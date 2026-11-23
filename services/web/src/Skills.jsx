@@ -42,7 +42,7 @@ function TogafSkills({ togaf, value, onChange }) {
         {" "}{togaf.levels.map((l) => `${l.level} ${l.name}`).join(", ")}. Leave a category blank if you would rather not say.</p>
       <div>{togaf.roles.map((r) => <label key={r} className={`choice${value.roles.includes(r) ? " on" : ""}`}>
         <input type="checkbox" checked={value.roles.includes(r)} onChange={() => flip(r)} /> {r}</label>)}</div>
-      <table className="grid small"><tbody>{togaf.categories.map((c) => (
+      <table className="grid-table small"><tbody>{togaf.categories.map((c) => (
         <tr key={c.key}><td><b>{c.name}</b> <span className="quiet">{c.covers}</span></td>
           <td><select value={value.levels[c.key] || ""} aria-label={`My level in ${c.name}`}
             onChange={(e) => onChange({ ...value, levels: { ...value.levels, [c.key]: e.target.value ? Number(e.target.value) : undefined } })}>
@@ -111,7 +111,7 @@ function TogafRepository({ data, label, byName }) {
       {!anyone && <p className="quiet">No one has said which TOGAF roles they hold yet. Say yours on <a href="#/my-profile">My profile</a>.</p>}
       {data.togaf.roles.filter((r) => data.by_role[r].length).map((r) => (
         <div key={r} className="ba-box"><h3>{r} <span className="small quiet">{data.by_role[r].length}</span></h3>
-          <table className="grid small"><thead><tr><th>Person</th>{cats.map((c) => <th key={c.key} title={c.covers}>{c.name}</th>)}</tr></thead>
+          <table className="grid-table small"><thead><tr><th>Person</th>{cats.map((c) => <th key={c.key} title={c.covers}>{c.name}</th>)}</tr></thead>
             <tbody>{data.by_role[r].map((u) => { const p = byName[u] || { username: u, togaf_levels: {} }; return (
               <tr key={u}><td>{label(p)}</td>{cats.map((c) => <td key={c.key} title={lvl[p.togaf_levels?.[c.key]] || "not said"}>
                 {p.togaf_levels?.[c.key] || <span className="quiet">–</span>}</td>)}</tr>); })}</tbody></table></div>))}

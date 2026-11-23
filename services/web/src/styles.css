@@ -3007,3 +3007,11 @@ label.check.inline { display: inline-flex; margin-right: 8px; }
 .full-ring { text-align: center; }
 .full-summary .pill, .full-card .pill { font-size: 12px; border-radius: 10px; padding: 2px 8px; margin-left: 6px; color: #fff; vertical-align: middle; }
 .full-summary .pill.good { background: #1a7f37; } .full-summary .pill.bad { background: #c62828; } .full-summary .pill.none { background: #8a8f98; }
+
+/* a project's plan (Release 12): each phase's bar on the project's time line, today marked */
+.plan-phases td { vertical-align: middle; }
+.plan-track { position: relative; height: 12px; background: var(--bg); border-radius: 6px; min-width: 120px; }
+.plan-bar { position: absolute; top: 2px; height: 8px; border-radius: 4px; background: var(--accent); min-width: 3px; }
+.plan-bar.done { background: var(--ok); }
+.plan-bar.late { background: var(--bad); }
+.plan-today { position: absolute; top: -2px; width: 2px; height: 16px; background: #555; }

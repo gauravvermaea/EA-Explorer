@@ -41,7 +41,7 @@ export default function RiskRegister({ p }) {
         {data.high ? <> <span className="rag bad">{data.high} high after controls</span></> : null}
         {data.no_control ? <> <span className="rag amber">{data.no_control} with no control</span></> : null}</p>
       {msg && <p className={`status ${msg.ok ? "good" : "bad"}`}>{msg.m}</p>}
-      {data.entries.length > 0 && <table className="grid small">
+      {data.entries.length > 0 && <table className="grid-table small">
         <thead><tr><th>Ref</th><th>Record</th><th>Status</th><th>Owner</th><th>Review</th><th>The risk in the architecture</th></tr></thead>
         <tbody>{data.entries.map((e) => (
           <tr key={e.record.id}>
@@ -59,7 +59,7 @@ export default function RiskRegister({ p }) {
           </tr>))}</tbody></table>}
       {data.not_logged.length > 0 && <>
         <h5>In the models, not in the log yet</h5>
-        <table className="grid small"><tbody>{data.not_logged.map((a) => (
+        <table className="grid-table small"><tbody>{data.not_logged.map((a) => (
           <tr key={a.id}><td><Risk a={a} /></td><td>{a.Owner || <span className="quiet">no owner</span>}</td>
             <td>{data.may_log && <button onClick={() => call(base, { model: a.model, element: a.id })}>Log it</button>}</td></tr>))}</tbody></table></>}
       {!data.entries.length && !data.not_logged.length && <p className="quiet small">{data.models ? "No risks yet: an Assessment whose Assessment Kind is Risk in one of the project's models, or a Risk record here." : "The project has no model yet."}</p>}

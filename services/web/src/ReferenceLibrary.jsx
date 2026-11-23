@@ -22,7 +22,7 @@ function Guides() {
   return (
     <details className="ba-box">
       <summary><b>The TOGAF guides EA Explorer follows</b> <span className="small quiet">{data.guides.length}, at The Open Group</span></summary>
-      <table className="grid small"><thead><tr><th>Number</th><th>Guide</th><th>What EA Explorer uses it for</th><th>Where</th></tr></thead>
+      <table className="grid-table small"><thead><tr><th>Number</th><th>Guide</th><th>What EA Explorer uses it for</th><th>Where</th></tr></thead>
         <tbody>{data.guides.map((g) => (
           <tr key={g.code}><td>{g.code}</td><td><a href={g.url} target="_blank" rel="noreferrer">{g.title}</a></td><td>{g.used_for}</td>
             <td className="quiet">{g.where}</td></tr>))}</tbody></table>
