@@ -8,6 +8,7 @@
 // Deliverables are signed off (D276); a finished project is frozen, or merged into another (D277).
 import OtherDocsTab from "./OtherDocs";
 import ScenarioPlanningTab from "./ScenarioPlanning";
+import SprintsTab from "./Sprints";
 import ScenariosTab from "./Scenarios";
 import PinButton from "./PinButton";
 import { Fragment, useEffect, useMemo, useState } from "react";
@@ -985,7 +986,7 @@ function RoleSlots({ d, set, models, tpl }) {
       {picking && <PickModels d={d} set={(k, v) => set(k, place(v.map((m) => m)))} models={models}
         role={picking.role} how={picking.how} single={!picking.many} onClose={() => setPicking(null)} />}
       {making && <NewModel models={models} projectName={d.name} allowed={making.slot.starts.filter((x) => x !== "existing")}
-        defaultStart={making.slot.default_start !== "existing" ? making.slot.default_start : null} defaultSource={sourceDefault}
+        defaultStart={making.slot.default_start !== "existing" ? making.slot.default_start : null} defaultSource={making.slot.template_model || sourceDefault}
         roleLabel={making.slot.label} start={making.index >= 0 ? d.models[making.index] : null}
         onClose={() => setMaking(null)}
         onDone={(m) => {
@@ -1876,12 +1877,12 @@ function Review({ d, lib, purpose, problems }) {
 const TABS = [["home", "Home"], ["phases", "Phases"], ["report", "Project report"], ["base", "Base"], ["charter", "Charter"], ["archrepo", "Enterprise Repository (Project Scope)"], ["content", "Content framework"],
   ["tasks", "Tasks"], ["models", "Models"], ["organisation", "Organisation"], ["stakeholders", "Stakeholders"], ["questions", "Key questions"], ["canvas", "Business model canvas"], ["journeys", "Customer journeys"], ["business", "Business artifacts"], ["otherdocs", "Other views and documents"], ["principles", "Principles"],
   ["standards", "Standards"], ["governance", "Governance log"], ["library", "Library"], ["views", "Views"], ["reports", "Model reports"], ["quality", "Quality"], ["calendar", "Calendar"], ["sheets", "Sheets"],
-  ["analysis", "Gaps and comparison"], ["scenarios", "Scenarios"], ["planning", "Scenario planning"], ["signoff", "Sign-off"]];
+  ["analysis", "Gaps and comparison"], ["scenarios", "Scenarios"], ["planning", "Scenario planning"], ["sprints", "Sprints"], ["signoff", "Sign-off"]];
 
 // the project page's groups (D478), the same in the Grouped and Menu styles
 const PROJECT_GROUPS = [
   ["overview", "Overview", "⌂", ["home", "report", "tasks", "calendar", "signoff"]],
-  ["plan", "Plan", "◷", ["phases", "charter", "base"]],
+  ["plan", "Plan", "◷", ["phases", "sprints", "charter", "base"]],
   ["business", "Business", "◎", ["organisation", "stakeholders", "questions", "canvas", "journeys", "business"]],
   // the project's repository and its content framework side by side (owner, 11 Nov 2026, R2.0: "arch repo and content f/w will be top level and in project both")
   ["architecture", "Architecture", "◫", ["archrepo", "content", "models", "views", "reports", "quality", "analysis", "scenarios"]],
@@ -1936,7 +1937,7 @@ function ProjectPage({ id, tab, sub }) {
         try { const r = await apiFetch(`/api/v1/projects/${id}/repository`, { method: "POST" }); setMsg(r.message); setTimeout(refreshAll, 4000); }
         catch (e) { setMsg(e.message); }
       } : null} />
-      <PageNav page="project" tabs={TABS.filter(([k]) => (k !== "archrepo" || partOn("repository")) && (k !== "scenarios" || hasScenarios(p)) && (k !== "planning" || p.scenario_planning > 0)).map(([k, l]) => [k, l, k === "signoff" ? mine || null : k === "questions" ? waitingQs || null : null])}
+      <PageNav page="project" tabs={TABS.filter(([k]) => (k !== "archrepo" || partOn("repository")) && (k !== "scenarios" || hasScenarios(p)) && (k !== "planning" || p.scenario_planning > 0) && (k !== "sprints" || !!p.agile)).map(([k, l]) => [k, l, k === "signoff" ? mine || null : k === "questions" ? waitingQs || null : null])}
         groups={PROJECT_GROUPS} active={projectTabOf(tab)} href={(k) => `#/projects/${id}/${k}`} ctx={{ id, p }}
         subLabel={tab === "reference" ? "Reference" : tab === "gaps" ? "Gap analyses" : tab === "compare" ? "Compare two models" : ""}
         crumbs={[{ label: "Architecture work", href: "#/work" }, { label: p.name, href: `#/projects/${id}` }]}>
@@ -1971,6 +1972,7 @@ function ProjectPage({ id, tab, sub }) {
         {["analysis", "gaps", "compare"].includes(tab) && <AnalysisTab p={p} start={tab} />}
         {tab === "scenarios" && <ScenariosTab p={p} />}
         {tab === "planning" && <ScenarioPlanningTab p={p} />}
+        {tab === "sprints" && p.agile && <SprintsTab p={p} />}
       </div>
       </PageNav>
       {finish && <FinishDialog p={p} onClose={() => setFinish(false)} />}

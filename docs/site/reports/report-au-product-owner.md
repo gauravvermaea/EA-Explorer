@@ -7,7 +7,7 @@ roles: user
 
 ## What it shows
 
-**What it gathers:** [[report-sr-14|SR-14 Capability against value stream]], [[report-vp-07|VP-07 Product view]], [[report-vp-12|VP-12 Service Realization view]], [[report-vp-20|VP-20 Value Stream view]], [[report-vp-32|VP-32 Value Stream catalog view]], [[report-vp-48|VP-48 Product Lifecycle diagram view]], [[report-tc-06|TC-06 Product and service catalogue]].
+**What it gathers:** [[report-sr-14|SR-14 Capability against value stream]], [[report-vp-07|VP-07 Product view]], [[report-vp-12|VP-12 Service Realization view]], [[report-vp-20|VP-20 Value Stream view]], [[report-vp-32|VP-32 Value Stream catalog view]], [[report-vp-48|VP-48 Product Lifecycle diagram view]], [[report-vp-57|VP-57 Agile backlog view]], [[report-tc-06|TC-06 Product and service catalogue]].
 
 ## Why it matters
 

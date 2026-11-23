@@ -1614,6 +1614,670 @@
           "concerns": "Compliance with principles and standards; reuse"
         }
       ]
+    },
+    {
+      "code": "agile",
+      "name": "Agile architecture in sprints",
+      "icon": "🏃",
+      "description": "Architecture done in sprints: a backlog drawn from the project's requirements; each sprint picks backlog items and agrees the ADM phases it runs, its steps and its deliverables (the minimum viable architecture for that sprint), and who accepts them; at the sprint's end each deliverable is accepted or goes back to the backlog.",
+      "purpose": "project",
+      "depth": "segment",
+      "domains": [
+        "business",
+        "data",
+        "application",
+        "technology"
+      ],
+      "phases": null,
+      "views": [
+        "VP-57",
+        "VP-19",
+        "VP-20",
+        "VP-24"
+      ],
+      "goals": true,
+      "primary": "target",
+      "skip": [],
+      "slots": [
+        {
+          "role": "current",
+          "label": "Current state",
+          "help": "The model of how things are today.",
+          "starts": [
+            "existing",
+            "empty",
+            "copy"
+          ],
+          "default_start": "existing",
+          "min": 0,
+          "many": false,
+          "how": "added"
+        },
+        {
+          "role": "target",
+          "label": "Target state",
+          "help": "The architecture the sprints build towards, release by release: usually started from the Agile model template.",
+          "starts": [
+            "empty",
+            "child",
+            "copy"
+          ],
+          "default_start": "empty",
+          "min": 1,
+          "many": false,
+          "how": "added",
+          "template": "agile"
+        },
+        {
+          "role": "transition",
+          "label": "Releases",
+          "help": "A transition state per release, numbered in order. Optional.",
+          "starts": [
+            "child",
+            "copy"
+          ],
+          "default_start": "child",
+          "min": 0,
+          "many": true,
+          "how": "added"
+        },
+        {
+          "role": "reference",
+          "label": "Reference models",
+          "help": "Models read for context only.",
+          "starts": [
+            "existing"
+          ],
+          "default_start": "existing",
+          "min": 0,
+          "many": true,
+          "how": "referred"
+        }
+      ],
+      "agile": {
+        "sprint_days": 14
+      },
+      "finish": "Merge the target state into the current state as each release goes live.",
+      "sort": 150,
+      "stakeholders": [
+        {
+          "name": "Product owner",
+          "category": "project",
+          "power": "H",
+          "interest": "H",
+          "concerns": "What the backlog holds and in what order",
+          "role_title": "Product Owner"
+        },
+        {
+          "name": "Delivery teams",
+          "category": "project",
+          "power": "M",
+          "interest": "H",
+          "concerns": "The architecture runway they build on; decisions made in time"
+        },
+        {
+          "name": "Lead architect",
+          "category": "project",
+          "power": "H",
+          "interest": "H",
+          "concerns": "Just enough architecture, just in time",
+          "role_title": "Lead Architect"
+        },
+        {
+          "name": "Architecture board",
+          "category": "corporate",
+          "power": "H",
+          "interest": "H",
+          "concerns": "Compliance with principles and standards; reuse"
+        }
+      ],
+      "reference": [
+        {
+          "title": "The TOGAF Standard",
+          "url": "https://www.opengroup.org/togaf",
+          "folder": "TOGAF",
+          "description": "The TOGAF Standard and its Series Guides, from The Open Group."
+        },
+        {
+          "title": "TOGAF Series Guide: Applying the TOGAF ADM using Agile Sprints (G210)",
+          "url": "https://www.opengroup.org/library/g210",
+          "folder": "TOGAF Series Guides",
+          "description": "The ADM run as sprints. Downloading needs a free Open Group account."
+        },
+        {
+          "title": "TOGAF Series Guide: Enabling Enterprise Agility (G20F)",
+          "url": "https://www.opengroup.org/library/g20f",
+          "folder": "TOGAF Series Guides",
+          "description": "Architecture for an agile enterprise. Downloading needs a free Open Group account."
+        }
+      ]
+    },
+    {
+      "code": "digital-transformation",
+      "name": "Digital transformation",
+      "icon": "✨",
+      "description": "From the customer and the business model to the platforms: the business model as is and to be, customer journeys and value streams, the capabilities they need and how mature each is, the data and digital platforms, the operating model change, and a roadmap of transitions with the benefits of each. The seven levers of change frame the assessment; the Digital Business Reference Model is used in phase B.",
+      "purpose": "strategy",
+      "depth": "strategic",
+      "domains": [
+        "business",
+        "data",
+        "application",
+        "technology"
+      ],
+      "phases": null,
+      "views": [
+        "VP-20",
+        "VP-19",
+        "VP-31",
+        "VP-39",
+        "VP-21",
+        "VP-24",
+        "VP-26"
+      ],
+      "goals": true,
+      "primary": "target",
+      "skip": [],
+      "slots": [
+        {
+          "role": "current",
+          "label": "Current state",
+          "help": "How the business and its platforms are today.",
+          "starts": [
+            "existing",
+            "empty",
+            "copy"
+          ],
+          "default_start": "existing",
+          "min": 1,
+          "many": false,
+          "how": "added"
+        },
+        {
+          "role": "target",
+          "label": "Target state",
+          "help": "The digital business to be: usually started from the Digital transformation model template.",
+          "starts": [
+            "empty",
+            "child",
+            "copy"
+          ],
+          "default_start": "child",
+          "min": 1,
+          "many": false,
+          "how": "added",
+          "template": "digital"
+        },
+        {
+          "role": "transition",
+          "label": "Transition states",
+          "help": "The steps between, each with its benefits. Optional.",
+          "starts": [
+            "child",
+            "copy"
+          ],
+          "default_start": "child",
+          "min": 0,
+          "many": true,
+          "how": "added"
+        },
+        {
+          "role": "reference",
+          "label": "Reference models",
+          "help": "Models read for context only.",
+          "starts": [
+            "existing"
+          ],
+          "default_start": "existing",
+          "min": 0,
+          "many": true,
+          "how": "referred"
+        }
+      ],
+      "finish": "Merge the target state into the current state when it is reached.",
+      "sort": 160,
+      "stakeholders": [
+        {
+          "name": "Chief Executive",
+          "category": "corporate",
+          "power": "H",
+          "interest": "M",
+          "concerns": "The business model and growth",
+          "role_title": "CEO"
+        },
+        {
+          "name": "Chief Digital Officer",
+          "category": "corporate",
+          "power": "H",
+          "interest": "H",
+          "concerns": "Customer experience, digital products and platforms",
+          "role_title": "CDO"
+        },
+        {
+          "name": "Customers",
+          "category": "outside",
+          "power": "M",
+          "interest": "H",
+          "concerns": "Their journeys: easier, faster, available when they need it"
+        },
+        {
+          "name": "Business unit executives",
+          "category": "end-user",
+          "power": "H",
+          "interest": "M",
+          "concerns": "Impact on their operations, people and targets"
+        },
+        {
+          "name": "Architecture board",
+          "category": "corporate",
+          "power": "H",
+          "interest": "H",
+          "concerns": "Compliance with principles and standards; reuse"
+        }
+      ],
+      "reference": [
+        {
+          "title": "The TOGAF Standard",
+          "url": "https://www.opengroup.org/togaf",
+          "folder": "TOGAF",
+          "description": "The TOGAF Standard and its Series Guides, from The Open Group."
+        },
+        {
+          "title": "Digital Practitioner Body of Knowledge (DPBoK) (C196)",
+          "url": "https://www.opengroup.org/library/c196",
+          "folder": "The Open Group standards",
+          "description": "The seven levers of change and the four contexts. Downloading needs a free Open Group account."
+        }
+      ]
+    },
+    {
+      "code": "ea-capability",
+      "name": "Establish or evolve the EA capability",
+      "icon": "🏛️",
+      "description": "Sets up or improves the organisation's own enterprise architecture capability: Preliminary in full (principles, governance, the repository, roles and skills, the tailored framework), an assessment of how mature the practice is, the target capability and the roadmap to it, and its governance.",
+      "purpose": "strategy",
+      "depth": "strategic",
+      "domains": [
+        "business",
+        "application"
+      ],
+      "phases": [
+        "P",
+        "A",
+        "E",
+        "F",
+        "G",
+        "RM"
+      ],
+      "views": [
+        "VP-01",
+        "VP-19",
+        "VP-24",
+        "VP-27",
+        "VP-28"
+      ],
+      "goals": true,
+      "primary": "target",
+      "skip": [],
+      "slots": [
+        {
+          "role": "current",
+          "label": "The EA practice today",
+          "help": "How the architecture practice works now. Optional.",
+          "starts": [
+            "existing",
+            "empty"
+          ],
+          "default_start": "empty",
+          "min": 0,
+          "many": false,
+          "how": "added",
+          "template": "ea-capability"
+        },
+        {
+          "role": "target",
+          "label": "The EA practice to be",
+          "help": "The capability being built: usually started from the EA capability model template.",
+          "starts": [
+            "empty",
+            "child",
+            "copy"
+          ],
+          "default_start": "empty",
+          "min": 1,
+          "many": false,
+          "how": "added",
+          "template": "ea-capability"
+        },
+        {
+          "role": "reference",
+          "label": "Reference models",
+          "help": "Models read for context only.",
+          "starts": [
+            "existing"
+          ],
+          "default_start": "existing",
+          "min": 0,
+          "many": true,
+          "how": "referred"
+        }
+      ],
+      "finish": "Freeze the target when the capability is in place; run the maturity survey again to measure it.",
+      "sort": 170,
+      "stakeholders": [
+        {
+          "name": "Chief Information Officer",
+          "category": "corporate",
+          "power": "H",
+          "interest": "H",
+          "concerns": "What the architecture practice must deliver",
+          "role_title": "CIO"
+        },
+        {
+          "name": "Chief Architect",
+          "category": "corporate",
+          "power": "H",
+          "interest": "H",
+          "concerns": "The practice, its people, its framework and its repository",
+          "role_title": "Chief Architect"
+        },
+        {
+          "name": "Architects",
+          "category": "project",
+          "power": "M",
+          "interest": "H",
+          "concerns": "How they work, their roles and skills"
+        },
+        {
+          "name": "Architecture board",
+          "category": "corporate",
+          "power": "H",
+          "interest": "H",
+          "concerns": "Compliance with principles and standards; reuse"
+        },
+        {
+          "name": "Programme management office",
+          "category": "corporate",
+          "power": "M",
+          "interest": "M",
+          "concerns": "How architecture fits portfolio and project governance"
+        }
+      ],
+      "reference": [
+        {
+          "title": "The TOGAF Standard",
+          "url": "https://www.opengroup.org/togaf",
+          "folder": "TOGAF",
+          "description": "The TOGAF Standard and its Series Guides, from The Open Group."
+        },
+        {
+          "title": "TOGAF Leader's Guide to Establishing and Evolving an EA Capability (G184)",
+          "url": "https://www.opengroup.org/library/g184",
+          "folder": "TOGAF Series Guides",
+          "description": "Setting up and evolving an architecture practice. Downloading needs a free Open Group account."
+        }
+      ]
+    },
+    {
+      "code": "risk-security",
+      "name": "Risk and security architecture",
+      "icon": "🛡️",
+      "description": "When what is at risk, and how it is protected, must be known: an audit finding, a regulation, a breach, a security review. Phase by phase: risk appetite and business impact in Preliminary, security in the vision, the risk assessment and register in B, classification in C, the security of the technology in D, the mitigation plan in E and F, audit and the residual risk signed off in G, changes in risk handled in H, the security requirements in Requirements Management.",
+      "purpose": "portfolio",
+      "depth": "segment",
+      "domains": [
+        "business",
+        "data",
+        "application",
+        "technology"
+      ],
+      "phases": null,
+      "views": [
+        "VP-50",
+        "VP-51",
+        "VP-52",
+        "VP-53",
+        "VP-26"
+      ],
+      "goals": true,
+      "primary": "target",
+      "skip": [],
+      "slots": [
+        {
+          "role": "current",
+          "label": "Current state",
+          "help": "The architecture as it is, and its risks today.",
+          "starts": [
+            "existing",
+            "empty",
+            "copy"
+          ],
+          "default_start": "existing",
+          "min": 1,
+          "many": false,
+          "how": "added"
+        },
+        {
+          "role": "target",
+          "label": "Target state",
+          "help": "The architecture with the controls in place: usually started from the Risk and security model template.",
+          "starts": [
+            "child",
+            "copy",
+            "empty"
+          ],
+          "default_start": "child",
+          "min": 1,
+          "many": false,
+          "how": "added",
+          "template": "risk-security"
+        },
+        {
+          "role": "reference",
+          "label": "Reference models",
+          "help": "Models read for context only.",
+          "starts": [
+            "existing"
+          ],
+          "default_start": "existing",
+          "min": 0,
+          "many": true,
+          "how": "referred"
+        }
+      ],
+      "finish": "The Architecture Board signs off the residual risk (phase G); merge the target into the current state.",
+      "sort": 180,
+      "stakeholders": [
+        {
+          "name": "Chief Risk Officer",
+          "category": "corporate",
+          "power": "H",
+          "interest": "H",
+          "concerns": "Risk appetite and the risks that matter",
+          "role_title": "CRO"
+        },
+        {
+          "name": "Chief Information Security Officer",
+          "category": "corporate",
+          "power": "H",
+          "interest": "H",
+          "concerns": "Threats, controls and residual risk",
+          "role_title": "CISO"
+        },
+        {
+          "name": "Internal audit",
+          "category": "operations",
+          "power": "M",
+          "interest": "H",
+          "concerns": "Evidence that the controls work"
+        },
+        {
+          "name": "Regulators",
+          "category": "outside",
+          "power": "H",
+          "interest": "M",
+          "concerns": "Compliance with the law and the rules that apply"
+        },
+        {
+          "name": "Architecture board",
+          "category": "corporate",
+          "power": "H",
+          "interest": "H",
+          "concerns": "Compliance with principles and standards; reuse"
+        }
+      ],
+      "reference": [
+        {
+          "title": "The TOGAF Standard",
+          "url": "https://www.opengroup.org/togaf",
+          "folder": "TOGAF",
+          "description": "The TOGAF Standard and its Series Guides, from The Open Group."
+        },
+        {
+          "title": "TOGAF Series Guide: Integrating Risk and Security within a TOGAF Enterprise Architecture (G152)",
+          "url": "https://www.opengroup.org/library/g152",
+          "folder": "TOGAF Series Guides",
+          "description": "Risk and security, phase by phase. Downloading needs a free Open Group account."
+        }
+      ]
+    },
+    {
+      "code": "data-governance",
+      "name": "Data architecture and governance",
+      "icon": "🗂️",
+      "description": "When who owns which data, what it means, how good it is and where it flows must be organised: a data strategy, master data, a data catalogue, analytics, privacy and records. The data principles and roles (owner, steward, custodian), the domains in scope, the information against the capabilities, the system of record for each master entity, definitions, lineage and classification, quality rules and targets, and the forum that approves new sources and changed definitions.",
+      "purpose": "portfolio",
+      "depth": "segment",
+      "domains": [
+        "business",
+        "data",
+        "application"
+      ],
+      "phases": [
+        "P",
+        "A",
+        "B",
+        "C",
+        "C-D",
+        "C-A",
+        "E",
+        "F",
+        "G",
+        "RM"
+      ],
+      "views": [
+        "VP-54",
+        "VP-55",
+        "VP-56",
+        "VP-47",
+        "VP-53"
+      ],
+      "goals": true,
+      "primary": "target",
+      "skip": [],
+      "slots": [
+        {
+          "role": "current",
+          "label": "Current state",
+          "help": "The data and the applications that hold it today.",
+          "starts": [
+            "existing",
+            "empty",
+            "copy"
+          ],
+          "default_start": "existing",
+          "min": 1,
+          "many": false,
+          "how": "added"
+        },
+        {
+          "role": "target",
+          "label": "Target state",
+          "help": "Owners, agreed master sources and rules in place: usually started from the Data governance model template.",
+          "starts": [
+            "child",
+            "copy",
+            "empty"
+          ],
+          "default_start": "child",
+          "min": 1,
+          "many": false,
+          "how": "added",
+          "template": "data-governance"
+        },
+        {
+          "role": "reference",
+          "label": "Reference models",
+          "help": "Models read for context only.",
+          "starts": [
+            "existing"
+          ],
+          "default_start": "existing",
+          "min": 0,
+          "many": true,
+          "how": "referred"
+        }
+      ],
+      "finish": "The data governance forum approves the domains and owners; merge the target into the current state.",
+      "sort": 190,
+      "stakeholders": [
+        {
+          "name": "Chief Data Officer",
+          "category": "corporate",
+          "power": "H",
+          "interest": "H",
+          "concerns": "Who owns which data, its quality and its use",
+          "role_title": "CDO"
+        },
+        {
+          "name": "Data owners",
+          "category": "end-user",
+          "power": "H",
+          "interest": "M",
+          "concerns": "Accountable for their domain's data"
+        },
+        {
+          "name": "Data stewards",
+          "category": "operations",
+          "power": "M",
+          "interest": "H",
+          "concerns": "Definitions, quality rules and fixing what fails"
+        },
+        {
+          "name": "Analytics and reporting users",
+          "category": "end-user",
+          "power": "M",
+          "interest": "H",
+          "concerns": "Data they can trust, and where it came from"
+        },
+        {
+          "name": "Architecture board",
+          "category": "corporate",
+          "power": "H",
+          "interest": "H",
+          "concerns": "Compliance with principles and standards; reuse"
+        }
+      ],
+      "reference": [
+        {
+          "title": "The TOGAF Standard",
+          "url": "https://www.opengroup.org/togaf",
+          "folder": "TOGAF",
+          "description": "The TOGAF Standard and its Series Guides, from The Open Group."
+        },
+        {
+          "title": "TOGAF Series Guide: Information Architecture: Customer Master Data Management (G21B)",
+          "url": "https://www.opengroup.org/library/g21b",
+          "folder": "TOGAF Series Guides",
+          "description": "Master data in an enterprise architecture. Downloading needs a free Open Group account."
+        },
+        {
+          "title": "TOGAF Series Guide: Information Architecture: Metadata Management",
+          "url": "https://pubs.opengroup.org/togaf-standard/metadata-management",
+          "folder": "TOGAF Series Guides",
+          "description": "Read online."
+        }
+      ]
     }
   ]
 }

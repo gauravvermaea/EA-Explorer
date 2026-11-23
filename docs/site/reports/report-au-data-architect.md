@@ -7,7 +7,7 @@ roles: user
 
 ## What it shows
 
-**What it gathers:** [[report-sr-04|SR-04 Data entity catalogue]], [[report-sr-11|SR-11 Application against data entity (CRUD)]], [[report-vp-03|VP-03 Information Structure view]], [[report-vp-46|VP-46 Business Service/Information diagram view]], [[report-vp-47|VP-47 Information Map view]], [[report-tm-06|TM-06 Data entity and business function matrix]].
+**What it gathers:** [[report-sr-04|SR-04 Data entity catalogue]], [[report-sr-11|SR-11 Application against data entity (CRUD)]], [[report-vp-03|VP-03 Information Structure view]], [[report-vp-46|VP-46 Business Service/Information diagram view]], [[report-vp-47|VP-47 Information Map view]], [[report-vp-54|VP-54 Data ownership view]], [[report-vp-55|VP-55 Data quality view]], [[report-vp-56|VP-56 Data lineage view]], [[report-tm-06|TM-06 Data entity and business function matrix]].
 
 ## Why it matters
 

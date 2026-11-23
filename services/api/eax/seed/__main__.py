@@ -34,8 +34,10 @@ from .build import (
     PRINCIPLE_ID,
     TEMPLATE_ID,
     TOGAF10_ID,
+    UPGRADE_TYPES,
     gid,
     history_demo_steps,
+    root_upgrade_sql,
     seed_sql,
 )
 from .catalog import catalog_sql
@@ -92,18 +94,36 @@ def main() -> int:
         # the industry reference models (phase 39, D470): each loaded when missing, on a new install or an upgrade
         industries = {code for code, *_ in IND.MODELS
                       if not conn.execute("SELECT 1 FROM core.models WHERE guid = %s", (gid("model", IND.key(code)),)).fetchone()}
+        # the Release 12 model templates (D879): each loaded when missing, after the roots have the new types
+        from . import model_templates as MT
+        templates = {code for code, *_ in MT.TEMPLATES
+                     if not conn.execute("SELECT 1 FROM core.models WHERE guid = %s", (gid("model", MT.key(code)),)).fetchone()}
         if industries and not need["ArchiMate 4 template"]:
             conn.execute(seed_sql(with_template=False, with_insurance=False, with_sample=False, with_principles=False,
                                   with_togaf10=False, with_industries=industries))
             print(f"EA Explorer: loaded the industry reference models: {', '.join(sorted(industries))}")
             industries = set()
+        # a newer release's types in roots an installation already has (Release 12, D879): added, nothing changed
+        if not need["ArchiMate 4 template"] and not need["TOGAF 10 content metamodel"]:
+            have = conn.execute("""SELECT count(*) FROM core.entity_types t JOIN core.models m ON m.id = t.model_id
+                                    WHERE m.guid IN (%s, %s) AND t.code = ANY(%s)""",
+                                (TEMPLATE_ID, TOGAF10_ID, UPGRADE_TYPES)).fetchone()[0]
+            if have < 2 * len(UPGRADE_TYPES):
+                conn.execute(root_upgrade_sql())
+                print(f"EA Explorer: added the Release 12 types to the root metamodels ({', '.join(UPGRADE_TYPES)})")
+        if templates and not need["ArchiMate 4 template"]:
+            conn.execute(seed_sql(with_template=False, with_insurance=False, with_sample=False, with_principles=False,
+                                  with_togaf10=False, with_model_templates=templates))
+            print(f"EA Explorer: loaded the model templates: {', '.join(sorted(templates))}")
+            templates = set()
         if not any(need.values()):
             print("EA Explorer: built-in models already present")
         else:
             conn.execute(seed_sql(with_template=need["ArchiMate 4 template"],
                                   with_insurance=need["insurance reference model"], with_sample=False,
                                   with_principles=need["root-principle-model"],
-                                  with_togaf10=need["TOGAF 10 content metamodel"], with_industries=industries))
+                                  with_togaf10=need["TOGAF 10 content metamodel"], with_industries=industries,
+                                  with_model_templates=templates))
             loaded = ", ".join(name for name, n in need.items() if n)
             print(f"EA Explorer: loaded the {loaded}")
         if settings.deployment == "laptop":

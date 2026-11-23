@@ -486,3 +486,7 @@ source, and the pictures themselves read one by one and measured).
 - 20:45 R11.3 built (D875): Switch to certificates or passwords on System Admin › Secrets; eax certs switch remembers the choice (R14.11); clean-restart and clean-run take --certificate or --password.
 - 20:50 R14.25 added (D876): every container pinned by version and digest to the tested set, published with each release, upgraded only after the three-monthly check and the owner's decision.
 - 21:00 R11.5 built (D877): System Admin › Secrets puts the sign-in mode's part first and marks what is not used in that mode (the service database logins in certificate mode; the certificates in password mode).
+- 21:05 Release 11 accepted (D878), published as 11.0.0: version.toml, migration 0116, releases/11.0.0.md, README. Next: Release 12, discussed guide by guide.
+- 21:10 Release 12 settled guide by guide, first pass (D879): Government a model only; the EA capability a new project type; all six improvements to be done; gates and roadmap periods the architect's choice. Advice owed on risk and security, data, microservices and technology adoption.
+- 21:50 Release 12 building (D880, D881): the new types, the GRM, the model and project templates, the views, Agile sprints and the samples, tested; the rest listed in D881. Written to disk with the 11.0.0 publish set.
+- 23 Nov 06:30 The 11.0.0 publish set and Release 12 so far written to the laptop (62 files). R14.26 built (D882): the build number is the count of commits, one more with uncommitted changes.

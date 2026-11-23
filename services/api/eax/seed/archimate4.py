@@ -84,6 +84,25 @@ EXTENSIONS = [
     ("Control", "Control", "Business", "Passive Structure", "CTL", "A check in a process that keeps it within its rules"),
     ("Contract", "Contract", "Business", "Passive Structure", "CTR", "An agreement on a service between parties: its terms and dates"),
     ("Measure", "Measure", "Motivation", "Motivation", "MEA", "An indicator, with its target, that tells whether an outcome is met"),
+    # Release 12 (D813, D879): risk and security (TOGAF Series Guide: Integrating Risk and Security within a TOGAF
+    # Enterprise Architecture), data governance (the master data, metadata and analytics guides) and Agile (Applying the
+    # ADM using Agile Sprints); in the root so they trickle down to every new model
+    ("Risk", "Risk", "Motivation", "Motivation", "RSK",
+     "Something that may happen and harm what the organisation values: how likely, how much harm, who owns it and how it is treated"),
+    ("Threat", "Threat", "Motivation", "Motivation", "THR",
+     "A source of harm that could make a risk happen: a person, an event or a weakness"),
+    ("SecurityRequirement", "Security Requirement", "Motivation", "Motivation", "SRQ",
+     "What must hold for something to be secure enough: its confidentiality, integrity or availability, or a control it must have"),
+    ("DataDomain", "Data Domain", "Business", "Passive Structure", "DDM",
+     "A group of related information with one accountable owner and a steward: customer, product, party, finance"),
+    ("QualityRule", "Quality Rule", "Motivation", "Motivation", "DQR",
+     "A rule data must meet, with its target: complete, valid, accurate, unique, on time or consistent"),
+    ("AnalyticsProduct", "Analytics Product", "Application", "Passive Structure", "ANP",
+     "A report, dashboard, analytical model or extract made from data for people to use"),
+    ("Epic", "Epic", "Implementation & Migration", "Behaviour", "EPC",
+     "A large piece of change in an Agile backlog, split into features"),
+    ("Feature", "Feature", "Implementation & Migration", "Behaviour", "FEA",
+     "A part of an epic small enough to deliver in one sprint or release"),
 ]
 EXTENSION_NOTE = "EA Explorer extension (not an element of the ArchiMate 4 Specification): "
 ENTITY_TYPES = ENTITY_TYPES + [t[:5] for t in EXTENSIONS]
@@ -272,6 +291,26 @@ allow("Control", "Influence", "Process", "EA Explorer extension")
 allow("Contract", "Realization", "Service", "EA Explorer extension")
 allow("Measure", "Influence", "Outcome", "EA Explorer extension")
 allow("BusinessScenario", "Influence", "G:MOTIVATION", "EA Explorer extension")
+# Release 12 (D879): a threat makes a risk likelier; a risk affects goals, outcomes and requirements; a control, or
+# anything in the architecture, reduces a risk or meets a security requirement; a data domain groups information; an
+# application makes an analytics product; an epic is made of features, and both realize what they change
+allow("Threat", "Influence", "Risk", "EA Explorer extension")
+allow("Risk", "Influence", "G:MOTIVATION", "EA Explorer extension")
+allow("Control", "Influence", "Risk", "EA Explorer extension")
+allow("G:CORE", "Influence", "Risk", "EA Explorer extension")
+allow("Control", "Realization", "SecurityRequirement", "EA Explorer extension")
+allow("G:CORE", "Realization", "SecurityRequirement", "EA Explorer extension")
+allow("DataDomain", "Aggregation", "BusinessObject", "EA Explorer extension")
+allow("DataDomain", "Aggregation", "DataObject", "EA Explorer extension")
+allow("ApplicationComponent", "Realization", "AnalyticsProduct", "EA Explorer extension")
+allow("Epic", "Aggregation", "Feature", "EA Explorer extension")
+allow("Epic", "Realization", "G:CORE", "EA Explorer extension")
+allow("Epic", "Realization", "G:STRATEGY", "EA Explorer extension")
+allow("Feature", "Realization", "G:CORE", "EA Explorer extension")
+allow("Feature", "Realization", "G:STRATEGY", "EA Explorer extension")
+allow("Feature", "Triggering", "Feature", "EA Explorer extension")
+allow("Epic", "Realization", "Requirement", "EA Explorer extension")
+allow("Feature", "Realization", "Requirement", "EA Explorer extension")
 
 # a junction joins relationships of any one type (D397): the metamodel lets every type reach it and leave it; the rule
 # that each source and target through it is allowed as if direct is checked in Python (eax.junctions)
@@ -309,6 +348,11 @@ LISTS = {
     "RelCategory": ["Structural", "Dependency", "Dynamic", "Other"],
     "Domain": list(DOMAIN_COLOURS.keys()),
     "JunctionKind": ["And", "Or"],
+    # Release 12 (D879)
+    "RiskTreatment": ["Accept", "Mitigate", "Transfer", "Avoid"],
+    "RiskLevel": ["High", "Medium", "Low"],
+    "SecurityProperty": ["Confidentiality", "Integrity", "Availability", "Accountability", "Privacy"],
+    "QualityDimension": ["Completeness", "Validity", "Accuracy", "Uniqueness", "Timeliness", "Consistency"],
 }
 
 # ---------------------------------------------------------------- attributes
@@ -367,6 +411,17 @@ ATTRS = [
     ("DesiredOutcome", "Desired Outcome", "LongText", "", "", "What the scenario should achieve"),
     ("Target", "Target", "Text", "", "", "The value the measure should reach, and by when"),
     ("JunctionKind", "Junction Kind", "List", "JunctionKind", "", "And: all of them; Or: one or more of them (D397)"),
+    # Release 12 (D879): risk and security, data governance, Agile
+    ("Likelihood", "Likelihood", "Integer", "", "", "How likely, 1 rare to 5 almost certain"),
+    ("Impact", "Impact", "Integer", "", "", "How much harm if it happens, 1 minor to 5 severe"),
+    ("InherentRisk", "Inherent Risk", "List", "RiskLevel", "", "The risk before any control"),
+    ("RiskTreatment", "Treatment", "List", "RiskTreatment", "", "Accept, mitigate, transfer or avoid"),
+    ("ResidualRisk", "Residual Risk", "List", "RiskLevel", "", "The risk left after the controls: signed off by the Architecture Board"),
+    ("SecurityProperty", "Security Property", "List", "SecurityProperty", "", "What the requirement protects"),
+    ("DataSteward", "Data Steward", "Text", "", "", "Who looks after the data's meaning and quality day to day"),
+    ("SystemOfRecord", "System of Record", "Text", "", "", "The application that holds the master copy"),
+    ("QualityDimension", "Quality Dimension", "List", "QualityDimension", "", "What the rule checks"),
+    ("AcceptanceCriteria", "Acceptance Criteria", "LongText", "", "", "What must be true for it to be accepted"),
 ]
 
 ALL_TYPES = [t[0] for t in ENTITY_TYPES]
@@ -412,6 +467,19 @@ MAP["Contract"] += [("Vendor", "N", "Sourcing"), ("StartDate", "N", "Schedule"),
                     ("AnnualCost", "N", "Financial"), ("Url", "N", "Links")]
 MAP["Measure"] += [("Measure", "N", "General"), ("Target", "N", "General")]
 MAP["Junction"] = [("JunctionKind", "Y", "General")]     # a connector carries nothing else (D397)
+# Release 12 (D879)
+MAP["Risk"] += [("Likelihood", "N", "Risk"), ("Impact", "N", "Risk"), ("InherentRisk", "N", "Risk"),
+                ("RiskTreatment", "N", "Risk"), ("ResidualRisk", "N", "Risk"), ("Url", "N", "Links")]
+MAP["Threat"] += [("Likelihood", "N", "Risk"), ("Url", "N", "Links")]
+MAP["SecurityRequirement"] += [("SecurityProperty", "N", "Security"), ("Priority", "N", "General"), ("Url", "N", "Links")]
+MAP["DataDomain"] += [("DataSteward", "N", "Governance"), ("DataClassification", "N", "Information")]
+for t in ["BusinessObject", "DataObject"]:
+    MAP[t] += [("DataSteward", "N", "Governance"), ("SystemOfRecord", "N", "Governance")]
+MAP["QualityRule"] += [("QualityDimension", "N", "Quality"), ("Target", "N", "Quality"), ("Measure", "N", "Quality")]
+MAP["AnalyticsProduct"] += [("DataClassification", "N", "Information"), ("Url", "N", "Links")]
+for t in ["Epic", "Feature"]:
+    MAP[t] += [("Priority", "N", "General"), ("AcceptanceCriteria", "N", "General"), ("StartDate", "N", "Schedule"),
+               ("EndDate", "N", "Schedule")]
 
 # ---------------------------------------------------------------- rules
 # AttrCode, TypeCode('' = all), RuleType, Param1, Param2, Severity, Message
@@ -431,6 +499,8 @@ RULES = [
     ("ProcessLevel", "", "Range", "0", "5", "Error", "Process level must be from 0 to 5"),
     ("CapabilityLevel", "", "Range", "1", "4", "Error", "Capability level must be from 1 to 4"),
     ("GoLiveDate", "", "DateRange", "1990-01-01", "2100-12-31", "Warning", "Go-live date looks out of range"),
+    ("Likelihood", "", "Range", "1", "5", "Error", "Likelihood must be a whole number from 1 to 5"),
+    ("Impact", "", "Range", "1", "5", "Error", "Impact must be a whole number from 1 to 5"),
 ]
 
 # ---------------------------------------------------------------- sample data (insurance flavour)

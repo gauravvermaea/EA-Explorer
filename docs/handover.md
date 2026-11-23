@@ -4,11 +4,7 @@ The state of the work, for whoever picks it up next: a person or another AI with
 13 Nov 2026: "what happens if I need another ai to work on this"). **Updated at the end of every working session.**
 Read [AGENTS.md](../AGENTS.md) first, run `eax dev check`, then read this.
 
-Last updated: 22 Nov 2026, 15:15. Releases 9 and 10 are accepted, as **9.0.0** and **10.0.0** (D870, D871). Next: Release 11,
-certificate mode. **Release 10 is built, to be run** (D867, D868: scenario
-planning and game theory through the AI, the read-only Scenario planning tab, the sample; and every MCP tool tried in
-the full test with its own card). The releases are numbered in the order they are built (D869): **10** scenario planning
-(built), **11** certificate mode (next), **12** templates (settled, D858, D859), **13** System Admin regrouped and every
+Last updated: 22 Nov 2026, 21:05. Releases 9, 10 and 11 are accepted, as **9.0.0**, **10.0.0** and **11.0.0** (D870, D871, D878). **Release 12 is being built** (D879 to D881): what is built and what is left is in D881. The releases are numbered in the order they are built (D869): **10** scenario planning, **11** certificate mode (both accepted), **12** templates (next; settled, D858, D859), **13** System Admin regrouped and every
 command-line option documented, **14** stabilisation (the bugs, R14.n, were R12.n), **15** the documents, **16** every picture and the website (D873), the books **17**
 (project types), **18** (the Architect's Bible, D861, D862) and **19** (scenario planning), **20** the videos. Until Release 16 no
 documentation for users changes (D850). Push after each change (D853).

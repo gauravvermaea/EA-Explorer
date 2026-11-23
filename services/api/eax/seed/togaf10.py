@@ -66,6 +66,23 @@ TYPES = [
     ("Standard", "Standard", "Governance", "STD", "gov.standards", "A norm the architecture and its solutions follow"),
     ("Guideline", "Guideline", "Governance", "GDL", "gov.guidelines", "Advice on how to apply the architecture"),
     ("Specification", "Specification", "Governance", "SPC", "gov.specifications", "A precise statement of what a solution must do or be"),
+    # Release 12 extensions (D813, D879): risk and security, data governance and Agile, as in ArchiMate 4
+    ("Risk", "Risk", "Governance", "RSK", "req.constraints",
+     "EA Explorer extension: something that may happen and harm what the organisation values, with its likelihood, impact and treatment"),
+    ("Threat", "Threat", "Governance", "THR", "req.constraints",
+     "EA Explorer extension: a source of harm that could make a risk happen"),
+    ("SecurityRequirement", "Security Requirement", "Motivation", "SRQ", "req.requirements",
+     "EA Explorer extension: what must hold for something to be secure enough"),
+    ("DataDomain", "Data Domain", "Data", "DDM", "data.logical_components",
+     "EA Explorer extension: a group of related information with one accountable owner and a steward"),
+    ("QualityRule", "Quality Rule", "Data", "DQR", "data.entities",
+     "EA Explorer extension: a rule data must meet, with its target"),
+    ("AnalyticsProduct", "Analytics Product", "Application", "ANP", "app.physical_components",
+     "EA Explorer extension: a report, dashboard, analytical model or extract made from data"),
+    ("Epic", "Epic", "Implementation and Migration", "EPC", "real.work_packages",
+     "EA Explorer extension: a large piece of change in an Agile backlog, split into features"),
+    ("Feature", "Feature", "Implementation and Migration", "FEA", "real.work_packages",
+     "EA Explorer extension: a part of an epic small enough to deliver in one sprint or release"),
 ]
 
 # (code, verb, category, directed)
@@ -79,7 +96,9 @@ NOTATION = {"Stakeholder": "Stakeholder", "Driver": "Driver", "Goal": "Goal", "O
             "ApplicationService": "Service", "LogicalApplicationComponent": "ApplicationComponent",
             "PhysicalApplicationComponent": "ApplicationComponent", "TechnologyService": "Service",
             "LogicalTechnologyComponent": "Node", "PhysicalTechnologyComponent": "Device", "WorkPackage": "WorkPackage",
-            "Measure": "Outcome"}
+            "Measure": "Outcome", "Risk": "Assessment", "Threat": "Assessment", "SecurityRequirement": "Requirement",
+            "DataDomain": "Grouping", "QualityRule": "Requirement", "AnalyticsProduct": "Artifact", "Epic": "WorkPackage",
+            "Feature": "WorkPackage"}
 
 RELS = [("Association", "associated with", "Dependency", False), ("Composition", "composed of", "Structural", True),
         ("Realization", "realizes", "Structural", True), ("Serving", "serves", "Dependency", True),
@@ -114,13 +133,26 @@ ALLOWED = [
     ("ProductLifecycleStage", "Triggering", "ProductLifecycleStage"), ("BusinessScenario", "Association", "Stakeholder"),
     ("BusinessScenario", "Association", "Actor"), ("BusinessScenario", "Association", "Driver"), ("BusinessScenario", "Association", "Goal"),
     ("BusinessScenario", "Association", "Requirement"), ("BusinessScenario", "Association", "Process"),
+    # Release 12 (D879)
+    ("Threat", "Influence", "Risk"), ("Risk", "Influence", "Goal"), ("Risk", "Influence", "Outcome"),
+    ("Control", "Influence", "Risk"), ("Risk", "Association", "PhysicalApplicationComponent"), ("Risk", "Association", "Process"),
+    ("Risk", "Association", "DataEntity"), ("Control", "Realization", "SecurityRequirement"),
+    ("SecurityRequirement", "Association", "Requirement"), ("SecurityRequirement", "Association", "DataEntity"),
+    ("DataDomain", "Composition", "DataEntity"), ("QualityRule", "Association", "DataEntity"),
+    ("PhysicalApplicationComponent", "Realization", "AnalyticsProduct"), ("AnalyticsProduct", "Access", "DataEntity"),
+    ("Epic", "Composition", "Feature"), ("Feature", "Realization", "Capability"), ("Feature", "Realization", "Requirement"),
+    ("Epic", "Realization", "Capability"), ("Feature", "Association", "PhysicalApplicationComponent"),
 ]
 
 
-def sql(gid, insert, snake, empty_id: str) -> str:
-    """The model and its metamodel, as seed SQL (the helpers come from build.py)."""
+def sql(gid, insert, snake, empty_id: str, missing_only: bool = False) -> str:
+    """The model and its metamodel, as seed SQL (the helpers come from build.py). missing_only: only the metamodel rows
+    not there yet, on an installation that already has the model (build.root_upgrade_sql)."""
     k = KEY
     m = gid("model", k)
+    if missing_only:
+        def insert(table, cols, rows, _insert=insert):     # noqa: F811 - skip what is there
+            return "" if table == "model" else _insert(table, cols, rows, missing_only=True)
     return "".join([
         "SELECT set_config('eax.history_label', 'TOGAF 10 content metamodel', true);\n",
         insert("model", ["id", "name", "description", "kind_code", "source_model_id", "metamodel_name", "is_locked", "owner", "version_label"], [[

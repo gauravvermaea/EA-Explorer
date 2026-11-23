@@ -262,13 +262,15 @@ EOF_FOLDERS
   export EAX_FOLDERS_RESOLVED=1
 }
 kind() { setting EAX_DEPLOYMENT laptop; }
-# the build shown with the release (R2.47): EAX_BUILD as CI sets it, else the commit's short id ("-changed" when files
-# differ from it), "dev" outside git; the commit and its time, so the API container is made again only when they change
+# the build shown with the release (R2.47): EAX_BUILD as CI sets it, else the count of commits, so it goes up by one
+# with every commit (D882), one more when files differ from the last commit; "dev" outside git; the commit and its
+# time, so the API container is made again only when they change
 build_id() {
   if [ -n "${EAX_BUILD:-}" ]; then echo "$EAX_BUILD"; return; fi
-  c=$(git rev-parse --short HEAD 2>/dev/null) || { echo dev; return; }
-  if [ -n "$(git status --porcelain --untracked-files=no 2>/dev/null)" ]; then c="$c-changed"; fi
-  echo "$c"
+  n=$(git rev-list --count HEAD 2>/dev/null) || { echo dev; return; }
+  case "$n" in ''|*[!0-9]*) echo dev; return ;; esac
+  if [ -n "$(git status --porcelain --untracked-files=no 2>/dev/null)" ]; then n=$((n + 1)); fi
+  echo "$n"
 }
 release() { sed -n 's/^version *= *"\(.*\)"/\1/p' services/api/version.toml 2>/dev/null; }
 compose() {

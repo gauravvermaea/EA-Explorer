@@ -90,6 +90,45 @@ SAMPLES: list[tuple[str, str, str, int | None, list[tuple], list[dict]]] = [
      [("add", "Karoo Re (independent)", "current", {}), ("refer", "Fynbos Mutual (group)", "reference", {}),
       ("copy", "Karoo Re (independent)", "target", {"name": "Karoo Re in the Fynbos group", "home": True})],
      [{"name": "Decide whether to buy", "outcomes": [{"name": "Recommendation to the board", "measure": "report delivered", "target_date": "2027-02-28"}]}]),
+    # Release 12 (D879; names agreed with the owner, 22 Nov 2026, 21:03: "ensure the name reflects its type"): one for
+    # each new project template, each new model started from its model template, and a government organisation's TOGAF
+    # project on the Government model template with the GRM placed in phase B
+    ("agile", "Agile sprints: Fynbos claims app (sample)",
+     "The Fynbos claims app's architecture, sprint by sprint: a backlog from the requirements, each sprint's phases and "
+     "deliverables agreed, and what is accepted or goes back to the backlog.", None,
+     [("add", "Fynbos Commercial", "current", {}),
+      ("empty", "Agile model template", "target", {"name": "Agile model: Fynbos claims app (sample)", "home": True})],
+     [{"name": "Claims lodged in the app", "outcomes": [{"name": "Half of claims lodged in the app", "measure": "% of claims", "target_date": "2027-12-31"}]}]),
+    ("digital-transformation", "Digital transformation: Fynbos Mutual customer journeys (sample)",
+     "Fynbos Mutual from the customer's journeys to its platforms: the seven levers assessed, two journeys, and a roadmap "
+     "of three transitions.", None,
+     [("add", "Fynbos Commercial", "current", {}),
+      ("empty", "Digital transformation model template", "target", {"name": "Digital transformation model: Fynbos Mutual (sample)", "home": True}),
+      ("refer", "Insurance reference model", "reference", {})],
+     [{"name": "Serve customers digitally first", "outcomes": [{"name": "Seven in ten sales online", "measure": "% of sales", "target_date": "2028-12-31"}]}]),
+    ("ea-capability", "EA capability setup: Protea Insurance (sample)",
+     "Setting up Protea's architecture practice: principles, governance, the repository, roles and skills, its maturity "
+     "assessed, and the roadmap to the target capability.", None,
+     [("empty", "EA capability model template", "target", {"name": "EA capability model: Protea Insurance (sample)", "home": True}),
+      ("refer", "root-principle-model", "reference", {})],
+     [{"name": "An architecture practice that guides investment", "outcomes": [{"name": "Architecture capability at maturity 3", "measure": "maturity level", "target_date": "2027-12-31"}]}]),
+    ("risk-security", "Risk and security architecture: Karoo Re (sample)",
+     "Karoo Re's risks and how they are protected against: risk appetite and business impact, the risk register, "
+     "classified data, the mitigation plan and the residual risk signed off.", None,
+     [("add", "Karoo Re (independent)", "current", {}),
+      ("empty", "Risk and security model template", "target", {"name": "Risk and security model: Karoo Re (sample)", "home": True})],
+     [{"name": "Residual risk within appetite", "outcomes": [{"name": "No high residual risk", "measure": "risks rated high after controls", "target_date": "2027-06-30"}]}]),
+    ("data-governance", "Data governance: Fynbos master data (sample)",
+     "Fynbos's data owned and trusted: owners and stewards, systems of record, quality rules, and the gaps the views show.", None,
+     [("add", "Fynbos Life", "current", {}),
+      ("empty", "Data governance model template", "target", {"name": "Data governance model: Fynbos (sample)", "home": True})],
+     [{"name": "One trusted customer record", "outcomes": [{"name": "Every customer in one system of record", "measure": "% of customers", "target_date": "2027-12-31"}]}]),
+    ("transformation", "Government services: Ridgeview City Council (sample)",
+     "Ridgeview City Council, an invented local government: the Government Reference Model placed against the council's "
+     "departments and services in phase B, the functions they share, and a roadmap by financial year.", None,
+     [("refer", "Government Reference Model (TOGAF GRM)", "reference", {}),
+      ("empty", "Government model template", "current", {"name": "Government model: Ridgeview City Council (sample)", "home": True})],
+     [{"name": "Citizen services in one place", "outcomes": [{"name": "Shared services across three departments", "measure": "departments", "target_date": "2028-06-30"}]}]),
 ]
 
 TAGS = [("Karoo Re (independent)", "Baseline 2026", "Karoo Re as it was at the start of 2026 (sample tag).")]

@@ -22,9 +22,9 @@ __version__ = _read_version()
 
 
 def build() -> dict:
-    """The build this API runs (R2.47): the commit's short id, or the CI build number, set by eax when it builds and
-    starts the stack (EAX_BUILD; "dev" when not known, "-changed" when built from files not yet committed), when it was
-    built (EAX_BUILT_AT) and the update channel."""
+    """The build this API runs (R2.47): the build number, set by eax when it builds and starts the stack (EAX_BUILD: the
+    count of commits, one more when built from files not yet committed, D882; the CI build number; "dev" when not
+    known), the commit (EAX_COMMIT), when it was built (EAX_BUILT_AT) and the update channel."""
     import os
     return {"build": os.environ.get("EAX_BUILD", "").strip() or "dev",
             "built_at": os.environ.get("EAX_BUILT_AT", "").strip() or None,

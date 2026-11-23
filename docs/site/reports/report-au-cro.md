@@ -7,7 +7,7 @@ roles: user, executive
 
 ## What it shows
 
-**What it gathers:** [[report-sr-17|SR-17 Technology lifecycle and end of life]], [[report-sr-21|SR-21 Vendor concentration]], [[report-sr-23|SR-23 Obsolescence risk]], [[report-sr-24|SR-24 Single points of failure]], [[report-vp-35|VP-35 Process/Event/Control/Product catalog view]], [[report-dr-03|DR-03 Impact chain from technology to value stream]], [[report-dr-04|DR-04 Dependency counts and hot spots]].
+**What it gathers:** [[report-sr-17|SR-17 Technology lifecycle and end of life]], [[report-sr-21|SR-21 Vendor concentration]], [[report-sr-23|SR-23 Obsolescence risk]], [[report-sr-24|SR-24 Single points of failure]], [[report-vp-35|VP-35 Process/Event/Control/Product catalog view]], [[report-vp-50|VP-50 Risk register view]], [[report-vp-51|VP-51 Controls against risks view]], [[report-dr-03|DR-03 Impact chain from technology to value stream]], [[report-dr-04|DR-04 Dependency counts and hot spots]].
 
 ## Why it matters
 

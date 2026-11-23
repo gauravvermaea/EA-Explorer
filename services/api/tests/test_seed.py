@@ -139,14 +139,17 @@ def test_industry_reference_models_are_consistent():
     from eax.seed import industries as IND
     allowed = {(s, r, t) for s, r, t, _ in build.expand_allowed()}
     assert [c for c, *_ in IND.MODELS] == ["healthcare", "manufacturing", "pharmaceuticals", "retail", "banking", "government",
-                                           "logistics", "minerals_mining", "telecommunications", "meridian"]
+                                           "logistics", "minerals_mining", "telecommunications", "meridian", "grm"]
     for code, name, _version, desc, mod, *_named in IND.MODELS:
         # the insurance worked example is Meridian Assurance Group (the owner's invented insurer, D549): Meridian may stay
         banned = r"objective" if code == "meridian" else r"meridian|objective"
         types = {key: type_code for key, type_code, *_ in mod.ENTITIES}
         assert len(types) == len(mod.ENTITIES), (code, "keys are unique")
-        assert sum(1 for t in types.values() if t == "Capability") >= 50, code
-        assert {"ValueStream", "ApplicationComponent", "BusinessObject"} <= set(types.values()), code
+        if code == "grm":   # the TOGAF GRM is a taxonomy (sectors, functions, services, drivers; R12.1): no capabilities
+            assert set(types.values()) == {"Function", "Service", "Driver"}, code
+        else:
+            assert sum(1 for t in types.values() if t == "Capability") >= 50, code
+            assert {"ValueStream", "ApplicationComponent", "BusinessObject"} <= set(types.values()), code
         for key, t, ename, edesc, parent, attrs in mod.ENTITIES:
             assert ename and (parent is None or parent in types), (code, key)
             mapped = {a for a, *_ in A.MAP[t]}
@@ -171,5 +174,5 @@ def test_industry_reference_models_load():
                          with_togaf10=False, with_industries=True)
     assert sql.count("INSERT INTO core.models") == len(IND.MODELS)
     guids = {build.gid("model", IND.key(c)) for c, *_ in IND.MODELS}
-    assert len(guids) == len(IND.MODELS) == 10 and build.INSURANCE_ID not in guids
+    assert len(guids) == len(IND.MODELS) == 11 and build.INSURANCE_ID not in guids
     assert "'Meridian Assurance (insurance worked example)'" in sql and "'Banking reference model'" in sql

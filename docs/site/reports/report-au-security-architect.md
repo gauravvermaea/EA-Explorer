@@ -7,7 +7,7 @@ roles: user
 
 ## What it shows
 
-**What it gathers:** [[report-tm-03|TM-03 Role and application matrix]], [[report-tm-07|TM-07 Data security matrix]].
+**What it gathers:** [[report-vp-50|VP-50 Risk register view]], [[report-vp-51|VP-51 Controls against risks view]], [[report-vp-52|VP-52 Security requirements view]], [[report-vp-53|VP-53 Classified information view]], [[report-tm-03|TM-03 Role and application matrix]], [[report-tm-07|TM-07 Data security matrix]].
 
 ## Why it matters
 

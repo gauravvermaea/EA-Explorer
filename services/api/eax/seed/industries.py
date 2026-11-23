@@ -8,6 +8,7 @@ The seed (eax.seed.__main__) loads any that are missing, on a fresh install and 
 from . import (
     industry_banking,
     industry_government,
+    industry_grm,
     industry_healthcare,
     industry_logistics,
     industry_manufacturing,
@@ -61,6 +62,15 @@ MODELS = [
      "services, processes, functions, products, data entities, its application landscape and their services, "
      "technology services, actors and roles, on ArchiMate 4. Read-only: copy it to start a model.", industry_meridian,
      "Meridian Assurance (insurance worked example)"),
+    # Release 12 (R12.1, D815, D879): the TOGAF Series Guide's Government Reference Model, the start of the Government
+    # model template; its sectors, functions, services and drivers for change (no capabilities: it is a taxonomy)
+    ("grm", "Government", "2025",
+     "The Government Reference Model from the TOGAF Series Guide (G21D, 2025): the public sector's business "
+     "architecture in three levels, the eleven sectors (Level 1), their functions (Level 2) and services (Level 3), "
+     "with the drivers for change of each sector. Placed in phase B to map an organisation's units and services, find "
+     "the functions shared across departments and judge the impact of change. Descriptions are EA Explorer's own: "
+     "read the guide for its full text (www.opengroup.org/library/g21d). Read-only: copy it to start a model.",
+     industry_grm, "Government Reference Model (TOGAF GRM)"),
 ]
 
 

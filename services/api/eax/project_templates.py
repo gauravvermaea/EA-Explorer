@@ -12,7 +12,8 @@ Spec (jsonb):
     purpose, depth, domains[], phases[] (null: all) or items[] (library item ids), removed_steps {id: reason},
     views[], goals (bool), primary (a role or null), skip[] (wizard steps left out), finish (a hint),
     stakeholders[{name, category, power, interest, concerns, role_title}] (suggested, D294),
-    slots[{role, label, help, starts[existing|empty|copy|child], default_start, min, many, how}]
+    slots[{role, label, help, starts[existing|empty|copy|child], default_start, min, many, how, template}]
+    (template: the Release 12 model template a new model in the slot starts from, D879)
 """
 
 from __future__ import annotations
@@ -36,6 +37,12 @@ _rows, _one = pj._rows, pj._one
 
 def _out(r: dict) -> dict:
     spec = r["spec"] if isinstance(r["spec"], dict) else json.loads(r["spec"] or "{}")
+    for sl in spec.get("slots") or []:         # the model template's guid and name, for the wizard (D879)
+        if sl.get("template") and not sl.get("template_model"):
+            try:
+                sl.update(_model_template(sl["template"]))
+            except EditError:
+                pass
     return {"code": r["code"], "name": r["name"], "icon": r["icon"], "description": r["description"], "spec": spec,
             "builtin": r["builtin"], "retired": r["retired"], "modified_by": r["modified_by"], "modified_at": r["modified_at"]}
 
@@ -54,6 +61,16 @@ def get(conn, code: str) -> dict:
     return _out(r)
 
 
+def _model_template(code: str) -> dict:
+    """{template, template_model, template_name}: a Release 12 model template (seed/model_templates.py) by its code, with
+    the guid of its model, which the wizard offers as the new model's start; an unknown code is refused."""
+    from .seed import build
+    from .seed import model_templates as mt
+    if code not in {c for c, *_ in mt.TEMPLATES}:
+        raise EditError(f"Unknown model template {code}: one of {', '.join(c for c, *_ in mt.TEMPLATES)}.")
+    return {"template": code, "template_model": build.gid("model", mt.key(code)), "template_name": mt.name(code)}
+
+
 def clean_spec(spec: dict) -> dict:
     """A template's decisions, checked."""
     s = dict(spec or {})
@@ -67,6 +84,8 @@ def clean_spec(spec: dict) -> dict:
                       "starts": starts, "default_start": x.get("default_start") if x.get("default_start") in starts else starts[0],
                       "min": max(0, int(x.get("min") or 0)), "many": bool(x.get("many")),
                       "how": "referred" if x.get("how") == "referred" or role == "reference" else "added"})
+        if x.get("template"):            # the model template a new model in this slot starts from (Release 12, D879)
+            slots[-1].update(_model_template(x["template"]))
     s["slots"] = slots
     if s.get("primary") and s["primary"] not in ROLES:
         raise EditError(f"The goals go into a model role: one of {', '.join(ROLES)}, or none.")

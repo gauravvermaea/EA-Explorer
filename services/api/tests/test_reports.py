@@ -113,7 +113,7 @@ def test_phase_8_2_reports():
     assert {f"VP-{i:02d}" for i in range(1, 26)} <= codes
     assert {"TC-01", "TC-08", "TM-07", "TM-09", "DR-01", "DR-04"} <= codes
     assert {f"AU-{a}" for a, _n, _g in AUDIENCES} <= codes
-    assert len(VIEWS) == 49 and all("Grouping" in v["element_types"] for v in VIEWS[:26])   # 27 to 49: TOGAF (D345)
+    assert len(VIEWS) == 57 and all("Grouping" in v["element_types"] for v in VIEWS[:26])   # 27 to 49: TOGAF (D345); 50 to 57: Release 12 (D879)
     for r in REPORTS:
         assert r["audiences"], r["code"]          # every report is for someone (D153)
         charts = sr.charts_for(r)

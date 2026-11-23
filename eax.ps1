@@ -206,15 +206,17 @@ function Use-DataFolders {
     $env:EAX_FOLDERS_RESOLVED = "1"
 }
 
-# the build shown with the release (R2.47): EAX_BUILD as CI sets it, else the commit's short id ("-changed" when files
-# differ from it), "dev" outside git; the commit and its time, so the API container is made again only when they change
+# the build shown with the release (R2.47): EAX_BUILD as CI sets it, else the count of commits, so it goes up by one
+# with every commit (D882), one more when files differ from the last commit; "dev" outside git; the commit and its
+# time, so the API container is made again only when they change
 function Get-BuildId {
     if ($env:EAX_BUILD) { return $env:EAX_BUILD }
-    $c = (Invoke-Quiet git @("rev-parse", "--short", "HEAD"))
-    if ($global:QuietExit -ne 0 -or -not $c) { return "dev" }
+    $c = "$(Invoke-Quiet git @("rev-list", "--count", "HEAD"))".Trim()
+    if ($global:QuietExit -ne 0 -or $c -notmatch '^[0-9]+$') { return "dev" }
+    $n = [int]$c
     $changed = (Invoke-Quiet git @("status", "--porcelain", "--untracked-files=no"))
-    if ($changed) { $c = "$c-changed" }
-    return "$c".Trim()
+    if ($changed) { $n = $n + 1 }
+    return "$n"
 }
 function Get-Release {
     $m = Select-String -Path "services/api/version.toml" -Pattern '^version\s*=\s*"(.*)"' -ErrorAction SilentlyContinue | Select-Object -First 1

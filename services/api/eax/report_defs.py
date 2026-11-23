@@ -359,7 +359,56 @@ VIEWS: list[dict] = [
                                                "Requirement", "Process"], ["Influence", "Association"], "Owner", ["business_architect", "enterprise_architect"]),
     ]
 ]
-assert len(VIEWS) == 49
+# Release 12 (D879): risk and security (TOGAF Series Guide G152), data governance (the master data, metadata and
+# analytics guides) and Agile (the Agile sprints guide), on the Release 12 types; TOGAF 10's types where it has them
+VIEWS += [
+    _vp(n, name, category, purpose, concerns, stakeholders, elements, rels=rels, heat=heat, audiences=aud, view=view, togaf=togaf)
+    for n, name, category, view, purpose, concerns, stakeholders, elements, rels, heat, aud, togaf in [
+        (50, "Risk register", "Risk and security", "catalog", "Deciding, informing",
+         "Every risk with its likelihood, impact, owner, treatment and the risk left after the controls",
+         "Risk and security architects, the Architecture Board, risk owners", ["Risk", "Threat", "Control"],
+         ["Influence", "Association"], "ResidualRisk", ["cro", "ciso", "security_architect", "architecture_board", "internal_audit"],
+         "Risk Register"),
+        (51, "Controls against risks", "Risk and security", "matrix", "Deciding",
+         "Which controls reduce which risks, and which risks have no control",
+         "Risk and security architects, internal audit", ["Risk", "Control"], ["Influence", "Association"], "ResidualRisk",
+         ["cro", "ciso", "security_architect", "internal_audit"], "Risk Mitigation Plan"),
+        (52, "Security requirements", "Risk and security", "diagram", "Designing, deciding",
+         "The security requirements, what they protect and the controls and parts of the architecture that meet them",
+         "Security architects, solution architects", ["SecurityRequirement", "Control", "ApplicationComponent", "Node", "SystemSoftware",
+                                                     "DataObject", "BusinessObject", "Service", "PhysicalApplicationComponent",
+                                                     "DataEntity"],
+         ["Realization", "Association"], "SecurityProperty", ["ciso", "security_architect", "solution_architect"],
+         "Security Requirements"),
+        (53, "Classified information", "Risk and security", "catalog", "Informing, deciding",
+         "The information the enterprise holds, how it is classified and where it is held",
+         "Security and data architects, data stewards", ["BusinessObject", "DataObject", "DataEntity", "DataDomain", "ApplicationComponent",
+                                                         "PhysicalApplicationComponent"],
+         ["Access", "Aggregation", "Composition", "Association"], "DataClassification", ["ciso", "cdo", "security_architect", "data_steward"],
+         "Security Classification"),
+        (54, "Data ownership", "Data governance", "catalog", "Deciding, informing",
+         "The data domains, the information in each, its owner, steward and system of record: what has no owner shows blank",
+         "Chief Data Officer, data architects, data stewards", ["DataDomain", "BusinessObject", "DataObject", "DataEntity"],
+         ["Aggregation", "Composition", "Association"], "Owner", ["cdo", "data_architect", "data_steward"], "Data Ownership Catalog"),
+        (55, "Data quality", "Data governance", "matrix", "Deciding",
+         "Which quality rules apply to which information, with their targets",
+         "Data stewards, data architects", ["QualityRule", "BusinessObject", "DataObject", "DataEntity"], ["Association", "Influence"],
+         "QualityDimension", ["cdo", "data_steward", "data_architect"], "Data Quality Scorecard"),
+        (56, "Data lineage", "Data governance", "diagram", "Designing, informing",
+         "Where information comes from, the applications it passes through and the reports and analytics it feeds",
+         "Data architects, analytics owners", ["DataObject", "DataEntity", "ApplicationComponent", "PhysicalApplicationComponent",
+                                               "AnalyticsProduct"],
+         ["Flow", "Access", "Realization", "Serving", "Association"], "DataClassification",
+         ["cdo", "data_architect", "data_steward"], "Data Lineage"),
+        (57, "Agile backlog", "Agile", "diagram", "Designing, deciding",
+         "The epics and features in the backlog and the capabilities, applications and requirements each changes",
+         "Product owners, architects in the teams", ["Epic", "Feature", "Capability", "ApplicationComponent", "Requirement",
+                                                     "PhysicalApplicationComponent"],
+         ["Aggregation", "Composition", "Realization", "Triggering", "Association"], "Priority",
+         ["product_owner", "enterprise_architect", "solution_architect"], "Architecture Backlog"),
+    ]
+]
+assert len(VIEWS) == 57
 
 
 def _f(code, family, group, title, view, about, audiences, **extra):
@@ -562,4 +611,7 @@ VIEW_REPORTS: dict[str, list[str]] = {
     "VP-38": ["TM-02", "SR-13"], "VP-39": ["SR-14"], "VP-40": ["TM-08"], "VP-41": ["TM-09"], "VP-42": ["SR-07"],
     "VP-43": ["TC-06"], "VP-44": ["SR-05"], "VP-45": ["SR-09", "SR-02"], "VP-46": ["TC-06", "TM-06"],
     "VP-47": ["SR-04", "TM-06"], "VP-48": ["TC-06"], "VP-49": ["SR-05"],
+    # Release 12 (D879): the nearest reports there are; their own reports come with the samples (R12.7)
+    "VP-50": ["SR-23", "TC-04"], "VP-51": ["TC-04"], "VP-52": ["TC-04", "TM-07"], "VP-53": ["TM-07", "SR-04"],
+    "VP-54": ["SR-04", "SR-26"], "VP-55": ["SR-04", "SR-26"], "VP-56": ["SR-11", "SR-04"], "VP-57": ["TC-08", "SR-09"],
 }

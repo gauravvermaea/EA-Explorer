@@ -27,10 +27,11 @@ def test_migration():
 def test_fourteen_templates_ship_and_are_valid():
     ts = json.loads((ROOT / "eax" / "seed" / "project_templates.json").read_text(encoding="utf-8"))["templates"]
     codes = [t["code"] for t in ts]
-    assert len(ts) == 14 and len(set(codes)) == 14
+    assert len(ts) == 19 and len(set(codes)) == 19          # 14, and five more in Release 12 (D879)
     for c in ("transformation", "document-as-is", "new-product", "copy-for-reports", "update-and-merge", "scenario-planning",
               "regulatory-change", "cloud-migration", "app-rationalisation", "operating-model", "capability-planning",
-              "health-check", "solution-architecture", "due-diligence"):
+              "health-check", "solution-architecture", "due-diligence",
+              "agile", "digital-transformation", "ea-capability", "risk-security", "data-governance"):
         assert c in codes
     for t in ts:
         spec = pt.clean_spec({k: v for k, v in t.items() if k not in ("code", "name", "icon", "description", "sort")})

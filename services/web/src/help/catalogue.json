@@ -830,6 +830,21 @@
      "Pick an earlier version to compare; signposts due at this review are marked, and your AI records each as seen or not."
     ]
   },
+  "tab:Sprints": {
+    "what": "An Agile project's architecture, sprint by sprint: the backlog drawn from the requirements in its models, the open sprint with its goal, dates, ADM phases, steps and who accepts it, and each review's decisions.",
+    "how": [
+     "Take requirements, epics and features from the project's models into the backlog (they are offered, never taken in by themselves), or add an item by its title.",
+     "Plan a sprint: its goal, the phases it runs, who accepts its deliverables and the backlog items it takes; it lasts the project's usual length unless you give it its own dates.",
+     "At the review, mark each item accepted or not: what is not accepted goes back to the backlog."
+    ]
+  },
+  "button:Plan the sprint": "Starts the next sprint with the items, phases and accepter chosen. Only one sprint is open at a time: review it before planning the next.",
+  "button:Record the review": "Records each item of the sprint as accepted, or sends it back to the backlog. Every item needs a decision; when the accepter is a member of the project, only they or a project admin record it.",
+  "button:Take into the backlog": "Adds the ticked requirements, epics and features from the project's models to the backlog.",
+  "field:Add an item by its title": "A backlog item that is not in a model: a piece of architecture work by its title.",
+  "field:Who accepts its deliverables": "Named for each sprint: a member's username (then only they, or a project admin, record the review) or the name of someone outside the application.",
+  "field:a member's username, or a name": "Who accepts the sprint's deliverables: a member's username, or a person's name.",
+  "field:change to": "The project's usual sprint length in days (1 to 90); each sprint can still have its own dates.",
   "tab:Scenarios": {
     "what": "Scenario models of the project compared with the baseline, and recorded assessments.",
     "how": [

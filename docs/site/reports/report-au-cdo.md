@@ -7,7 +7,7 @@ roles: user, executive
 
 ## What it shows
 
-**What it gathers:** [[report-sr-04|SR-04 Data entity catalogue]], [[report-sr-11|SR-11 Application against data entity (CRUD)]], [[report-vp-03|VP-03 Information Structure view]], [[report-tm-06|TM-06 Data entity and business function matrix]], [[report-tm-07|TM-07 Data security matrix]].
+**What it gathers:** [[report-sr-04|SR-04 Data entity catalogue]], [[report-sr-11|SR-11 Application against data entity (CRUD)]], [[report-vp-03|VP-03 Information Structure view]], [[report-vp-53|VP-53 Classified information view]], [[report-vp-54|VP-54 Data ownership view]], [[report-vp-55|VP-55 Data quality view]], [[report-vp-56|VP-56 Data lineage view]], [[report-tm-06|TM-06 Data entity and business function matrix]], [[report-tm-07|TM-07 Data security matrix]].
 
 ## Why it matters
 

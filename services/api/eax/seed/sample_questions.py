@@ -148,6 +148,43 @@ BY_TEMPLATE: dict[str, list[Q]] = {
         ("What would integration cost?", "Group Chief Financial Officer", "The gap view priced per gap.", ["VP-26"], "rejected",
          "About a year of work for one team.", None),
     ],
+    # Release 12 (D879): the questions each new kind of work answers
+    "agile": [
+        ("What does this sprint deliver, and who accepts it?", "Product owner",
+         "The sprint's agreed phases and deliverables, and the backlog view of the epics and features it changes.", ["VP-57"], "answered",
+         "Sprint 2 delivers the claims-lodgement target architecture (phases B and C); the product owner accepts it at the "
+         "sprint review. See the Agile backlog view.", None),
+        ("Which capabilities does the claims app change?", "Head of Claims", "The epics and features against the capability map.",
+         ["VP-57", "VP-19"], "open", "", None),
+    ],
+    "digital-transformation": [
+        ("Where are our customers' journeys weakest?", "Chief Digital Officer",
+         "The value stream map with each stage's capabilities, coloured by maturity.", ["VP-20", "VP-19"], "accepted",
+         "Claims and renewals are the weakest stages: the capabilities behind them are at maturity 1 or 2.", None),
+        ("In which order do we move, and what does each transition give the customer?", "Chief Executive",
+         "The roadmap of transitions and the benefits of each.", ["VP-24"], "open", "", None),
+    ],
+    "ea-capability": [
+        ("How mature is our architecture practice today?", "Chief Information Officer",
+         "The architecture capability maturity survey, and the gap to the target.", [], "answered",
+         "Level 2 overall: governance and the repository are weakest. See the maturity survey's results.", None),
+        ("Who does what in architecture, and with which skills?", "Chief Architect",
+         "The organisation map of the practice and the roles with their skill levels.", ["VP-01", "VP-28"], "open", "", None),
+    ],
+    "risk-security": [
+        ("Which risks are still high once the controls are in place?", "Chief Risk Officer",
+         "The risk register, coloured by residual risk.", ["VP-50"], "accepted",
+         "One: customer data exposed through the portal stays medium until multi-factor sign-in is in place.", None),
+        ("Which risks have no control?", "Internal audit", "Controls against risks: the rows with no control.", ["VP-51"],
+         "rejected", "None found.", None),
+    ],
+    "data-governance": [
+        ("Who owns our customer data, and which system is its master?", "Chief Data Officer",
+         "The data ownership catalogue: each domain's owner, steward and system of record.", ["VP-54"], "answered",
+         "The customer data domain is owned by the Chief Data Officer; the policy administration system is its system of record.", None),
+        ("Where does the claims dashboard get its data?", "Head of Claims", "The data lineage view from source to report.",
+         ["VP-56"], "open", "", None),
+    ],
 }
 SAMPLE_PROJECT = [   # Protea Target Architecture 2028 (sample project): no template
     ("Which teams change in the 2028 target?", "Chief Operating Officer", "The organisation view, today against the target.",

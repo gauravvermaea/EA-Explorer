@@ -334,6 +334,8 @@ def detail(conn, project: Any, user) -> dict:
     # the Scenario planning tab shows when there is a study (Release 10)
     from . import scenario_planning as spl
     out["scenario_planning"] = spl.count(conn, p)
+    from . import agile
+    out["agile"] = agile.count(conn, p)        # an Agile project's sprints and backlog (Release 12, D879); None otherwise
     names = {r["code"]: r["name"] for r in _rows(core(conn), "SELECT code, name FROM core.viewpoints")}
     out["views"] = [{"code": v["code"], "name": names.get(v["code"], v["code"])} for v in
                          _rows(conn, "SELECT view AS code FROM proj.project_views WHERE project_id = :p ORDER BY view", p=p["id"])]

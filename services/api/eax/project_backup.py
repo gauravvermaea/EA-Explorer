@@ -77,6 +77,11 @@ TABLES = [
     # scenario planning studies (Release 10, D857): each run a dated version, its signposts' review marks after it
     ("sp_runs", "project_id = :p", {}),
     ("sp_signpost_marks", "run_id IN (SELECT id FROM proj.sp_runs WHERE project_id = :p)", {"run_id": "sp_runs"}),
+    # Agile projects' sprints (Release 12, D879): the usual length, the sprints, the backlog and each review's decisions
+    ("agile_settings", "project_id = :p", {}),
+    ("sprints", "project_id = :p", {}),
+    ("backlog_items", "project_id = :p", {"item_id": "items", "sprint_id": "sprints"}),
+    ("sprint_decisions", "sprint_id IN (SELECT id FROM proj.sprints WHERE project_id = :p)", {"sprint_id": "sprints", "backlog_id": "backlog_items"}),
     ("charters", "project_id = :p", {}),
     ("phase_states", "project_id = :p", {}),
     ("iteration_changes", "project_id = :p", {}),          # the ADM iteration per cycle (D571-D574)
@@ -112,7 +117,7 @@ TABLES = [
     # drawn views as evidence (D408: links only): the view's name rides along so a model made again finds its view
     ("view_evidence", "project_id = :p", {"item_id": "items", "question_id": "key_questions"}),
 ]
-NEW_GUID = {"projects", "items", "documents", "signoff_requests", "steps", "stakeholders", "stakeholder_notes", "tasks", "org_people", "standards", "gov_records", "gov_approvals", "cal_events", "sheets", "repo_tags", "key_questions", "placeholder_views", "canvases", "canvas_items", "view_evidence", "scenario_assessments", "sp_runs", "journeys", "journey_stages", "journey_items", "journey_links"}   # tables whose guid is made new (when they have one)
+NEW_GUID = {"projects", "items", "documents", "signoff_requests", "steps", "stakeholders", "stakeholder_notes", "tasks", "org_people", "standards", "gov_records", "gov_approvals", "cal_events", "sheets", "repo_tags", "key_questions", "placeholder_views", "canvases", "canvas_items", "view_evidence", "scenario_assessments", "sp_runs", "sprints", "backlog_items", "journeys", "journey_stages", "journey_items", "journey_links"}   # tables whose guid is made new (when they have one)
 
 
 def folder() -> Path:

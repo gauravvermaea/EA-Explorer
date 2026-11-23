@@ -22,6 +22,7 @@ from . import archimate4 as A
 from . import demo_estate as DEMO
 from . import industries as IND
 from . import insurance as INS
+from . import model_templates as MT
 from . import togaf10 as T10
 
 NAMESPACE = uuid.UUID("6f4c2a52-2b0e-4b5e-9d63-6b0c0e7a1000")
@@ -155,10 +156,11 @@ TABLES = {
 }
 
 
-def insert(table: str, cols: list[str], rows: list[list]) -> str:
+def insert(table: str, cols: list[str], rows: list[list], missing_only: bool = False) -> str:
     """INSERT for seed rows given by guid: id -> guid, origin_id -> origin_guid, and every foreign
     key value (a guid) is turned into the bigint key by one join per foreign-key column (fast
-    for thousands of rows, unlike a lookup per value)."""
+    for thousands of rows, unlike a lookup per value). missing_only: rows already there are left as they are (an
+    upgrade adding what a newer release brings, root_upgrade_sql)."""
     if not rows:
         return ""
     select, joins = [], []
@@ -177,7 +179,7 @@ def insert(table: str, cols: list[str], rows: list[list]) -> str:
     names = ", ".join(RENAMED.get(c, c) for c in cols)
     aliases = ", ".join(f"c{i}" for i in range(len(cols)))
     return (f"INSERT INTO core.{TABLES[table]} ({names})\nSELECT {', '.join(select)}\nFROM (VALUES\n{values}\n"
-            f") AS v ({aliases})\n" + "\n".join(joins) + ";\n")
+            f") AS v ({aliases})\n" + "\n".join(joins) + ("\nON CONFLICT DO NOTHING" if missing_only else "") + ";\n")
 
 
 def expand_allowed() -> list[tuple[str, str, str, str]]:
@@ -200,9 +202,13 @@ def expand_allowed() -> list[tuple[str, str, str, str]]:
     return [(s, r, t, n) for (s, r, t), n in seen.items()]
 
 
-def metamodel_sql(model_key: str, origin_key: str | None) -> str:
-    """The metamodel rows for one model. origin_key: the model the rows were copied from."""
+def metamodel_sql(model_key: str, origin_key: str | None, missing_only: bool = False) -> str:
+    """The metamodel rows for one model. origin_key: the model the rows were copied from. missing_only: only the rows
+    not there yet (root_upgrade_sql)."""
     m = gid("model", model_key)
+
+    def insert(table, cols, rows):          # noqa: F811 - the module's insert, told whether to skip what is there
+        return _insert(table, cols, rows, missing_only)
 
     def ids(*parts):  # (id, origin_id)
         return gid(model_key, *parts), (gid(origin_key, *parts) if origin_key else None)
@@ -294,6 +300,25 @@ def metamodel_sql(model_key: str, origin_key: str | None) -> str:
     out.append(insert("allowed_relationship", ["id", "origin_id", "model_id", "relationship_type_id",
                                                "source_type_id", "target_type_id", "note"], rows))
     return "".join(out)
+
+
+_insert = insert
+
+
+def root_upgrade_sql() -> str:
+    """What a newer release adds to the two built-in root metamodels on an installation that already has them (Release 12,
+    D879: the risk and security, data governance and Agile types): the missing types, attributes, pick lists, rules and
+    allowed relationships, with the guids a new installation gives them. Nothing there is changed. Models already made
+    from a root keep their own metamodel (D813: nothing in them changed or removed); every model made from now on has
+    the new types."""
+    return ("SELECT set_config('eax.actor', 'system:seed', true);\n"
+            "SELECT set_config('eax.history_label', 'Root metamodels: the Release 12 types', true);\n"
+            + metamodel_sql(TEMPLATE_KEY, None, missing_only=True)
+            + T10.sql(gid, insert, snake, EMPTY_ID, missing_only=True))
+
+
+# the types root_upgrade_sql adds: when one is missing from a root, the upgrade runs
+UPGRADE_TYPES = ["Risk", "Threat", "SecurityRequirement", "DataDomain", "QualityRule", "AnalyticsProduct", "Epic", "Feature"]
 
 
 def sample_content_sql(k: str = SAMPLE_KEY) -> str:
@@ -908,7 +933,7 @@ def principles_sql() -> str:
 
 
 def seed_sql(with_template: bool = True, with_sample: bool = True, with_insurance: bool = True,
-             with_principles: bool = True, with_togaf10: bool = True, with_industries=False) -> str:
+             with_principles: bool = True, with_togaf10: bool = True, with_industries=False, with_model_templates=False) -> str:
     """What to load, as one script (run in one transaction, by the installer's login eax_migrator,
     because templates and reference models are locked). The others need the template."""
     parts = ["SELECT set_config('eax.actor', 'system:seed', true);\n"]
@@ -960,6 +985,19 @@ def seed_sql(with_template: bool = True, with_sample: bool = True, with_insuranc
                     "reference", TEMPLATE_ID, "ArchiMate 4", True, "EA Explorer", name, version]]),
                 metamodel_sql(key, TEMPLATE_KEY),
                 reference_content_sql(mod, key),
+            ]
+    # the Release 12 model templates (D858, D879): True for all, or a set of codes; each a locked template made from
+    # ArchiMate 4 (its metamodel copied), structure only
+    for code, name, description in MT.TEMPLATES:
+        if with_model_templates is True or (with_model_templates and code in with_model_templates):
+            key = MT.key(code)
+            parts += [
+                f"SELECT set_config('eax.history_label', '{name}', true);\n",
+                insert("model", ["id", "origin_id", "name", "description", "kind_code", "source_model_id",
+                                 "metamodel_name", "is_locked", "owner", "version_label"], [[
+                    gid("model", key), TEMPLATE_ID, name, description, "template", TEMPLATE_ID, "ArchiMate 4", True,
+                    "EA Explorer", MT.VERSION]]),
+                metamodel_sql(key, TEMPLATE_KEY),
             ]
     if with_sample:
         parts += [

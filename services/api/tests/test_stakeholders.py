@@ -38,7 +38,7 @@ def test_clean():
 
 def test_templates_suggest_stakeholders():
     d = json.loads((ROOT / "eax" / "seed" / "project_templates.json").read_text(encoding="utf-8"))["templates"]
-    assert len(d) == 14 and all(t.get("stakeholders") for t in d)
+    assert len(d) == 19 and all(t.get("stakeholders") for t in d)
     for t in d:
         for s in t["stakeholders"]:
             assert s["category"] in sh.CATEGORIES and s["power"] in "HML" and s["interest"] in "HML"

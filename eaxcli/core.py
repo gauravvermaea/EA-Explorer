@@ -295,15 +295,17 @@ def write_setting(name: str, value: str, drop: str = "", section: str = "") -> N
 
 # ---------------------------------------------------------------- docker compose
 def build_id() -> str:
-    """The build shown with the release (R2.47): EAX_BUILD as CI sets it, else the commit's short id ("-changed" when
-    files differ from it), "dev" outside git."""
+    """The build shown with the release (R2.47): EAX_BUILD as CI sets it, else a number that goes up by one with every
+    commit, the count of commits (owner, 23 Nov 2026: "show count of commits, increment the build number each time",
+    D882); one more when files differ from the last commit, the build the next commit makes; "dev" outside git. The
+    commit's id is shown beside it (EAX_COMMIT)."""
     if os.environ.get("EAX_BUILD"):
         return os.environ["EAX_BUILD"]
-    code, c = capture(["git", "rev-parse", "--short", "HEAD"])
-    if code != 0 or not c.strip():
+    code, c = capture(["git", "rev-list", "--count", "HEAD"])
+    if code != 0 or not c.strip().isdigit():
         return "dev"
     code, changed = capture(["git", "status", "--porcelain", "--untracked-files=no"])
-    return c.strip() + ("-changed" if code == 0 and changed.strip() else "")
+    return str(int(c.strip()) + (1 if code == 0 and changed.strip() else 0))
 
 
 def release() -> str:

@@ -510,7 +510,7 @@ def test_eax_ps1_starts_in_a_folder_that_is_not_a_git_checkout():
         if "2>$null" in code:
             assert "& $Exe @Arguments 2>$null" in code, (i, line)                   # only inside Invoke-Quiet
         assert not re.search(r"&\s*git\b", code), (i, line)                         # git only through Invoke-Quiet
-    assert 'Invoke-Quiet git @("rev-parse", "--short", "HEAD")' in ps and "$global:QuietExit -ne 0" in ps
+    assert 'Invoke-Quiet git @("rev-list", "--count", "HEAD")' in ps and "$global:QuietExit -ne 0" in ps   # D882
 
 
 def test_the_drill_and_the_dr_tool_start_from_command_prompt_too():

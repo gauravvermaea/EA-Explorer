@@ -7,7 +7,7 @@ roles: user, system-admin
 
 ## What it shows
 
-**What it gathers:** [[report-sr-23|SR-23 Obsolescence risk]], [[report-sr-29|SR-29 Change activity]], [[report-tc-04|TC-04 Requirements catalogue]], [[report-tm-07|TM-07 Data security matrix]].
+**What it gathers:** [[report-sr-23|SR-23 Obsolescence risk]], [[report-sr-29|SR-29 Change activity]], [[report-vp-50|VP-50 Risk register view]], [[report-vp-51|VP-51 Controls against risks view]], [[report-tc-04|TC-04 Requirements catalogue]], [[report-tm-07|TM-07 Data security matrix]].
 
 ## Why it matters
 
