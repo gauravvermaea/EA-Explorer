@@ -35,7 +35,8 @@ function Offered({ p, onDone, onError }) {
 }
 
 function PlanSprint({ p, d, onDone, onError }) {
-  const [f, setF] = useState({ goal: "", starts_on: "", ends_on: "", phases: [], accepter: "", items: [] });
+  const first = d.sprints.length === 0;
+  const [f, setF] = useState({ goal: "", starts_on: "", ends_on: "", phases: [], accepter: "", items: [], zero: false });
   const set = (k, v) => setF({ ...f, [k]: v });
   const toggle = (k, v) => set(k, f[k].includes(v) ? f[k].filter((x) => x !== v) : [...f[k], v]);
   const go = async () => {
@@ -47,8 +48,10 @@ function PlanSprint({ p, d, onDone, onError }) {
   return (
     <section className="card">
       <h3>Plan the next sprint</h3>
+      {first && <label className="small"><input type="checkbox" checked={f.zero} onChange={(e) => set("zero", e.target.checked)} /> Make it Sprint zero, the
+        strategic sprint: the foundation (business needs, capabilities, value streams, a high-level roadmap) that fills the backlog for the sprints after it</label>}
       <p className="quiet small">Usually {d.sprint_days} days: leave the end empty to use it, or give the sprint its own dates.</p>
-      <label>Goal <input value={f.goal} onChange={(e) => set("goal", e.target.value)} /></label>
+      <label>Goal (what the sprint must achieve) <input value={f.goal} required onChange={(e) => set("goal", e.target.value)} /></label>
       <label>Starts <input type="date" value={f.starts_on} onChange={(e) => set("starts_on", e.target.value)} /></label>{" "}
       <label>Ends <input type="date" value={f.ends_on} onChange={(e) => set("ends_on", e.target.value)} /></label>
       <fieldset><legend>ADM phases it runs</legend>
@@ -61,7 +64,7 @@ function PlanSprint({ p, d, onDone, onError }) {
             {b.title} <span className="quiet">{b.kind}{b.returned ? `, back ${b.returned}×` : ""}</span></label>))
           : <p className="quiet small">The backlog is empty: add to it first.</p>}
       </fieldset>
-      <button className="primary" disabled={!f.phases.length || !f.accepter.trim() || !f.items.length} onClick={go}>Plan the sprint</button>
+      <button className="primary" disabled={!f.goal.trim() || !f.phases.length || !f.accepter.trim() || !f.items.length} onClick={go}>Plan the sprint</button>
     </section>
   );
 }
@@ -69,16 +72,19 @@ function PlanSprint({ p, d, onDone, onError }) {
 function Review({ p, s, onDone, onError }) {
   const [dec, setDec] = useState({});
   const [note, setNote] = useState("");
+  const [demo, setDemo] = useState("");
+  const [retro, setRetro] = useState("");
   const all = s.items.every((i) => dec[i.id] !== undefined);
   const go = async () => {
     try {
-      await apiFetch(`/api/v1/projects/${p.id}/agile/sprints/${s.id}/review`, { method: "POST", body: JSON.stringify({ decisions: dec, note }) });
+      await apiFetch(`/api/v1/projects/${p.id}/agile/sprints/${s.id}/review`, { method: "POST", body: JSON.stringify({ decisions: dec, note, demo, retrospective: retro }) });
       onDone();
     } catch (e) { onError(e.message); }
   };
   return (
     <div>
-      <h4>The review <span className="quiet small">accepted by {s.accepter}</span></h4>
+      <h4>The review <span className="quiet small">demo, outcome, retrospective, then plan the next · accepted by {s.accepter}</span></h4>
+      <label>Demo: what was shown, and to whom <textarea rows="2" value={demo} onChange={(e) => setDemo(e.target.value)} /></label>
       <table className="grid-table small">
         <thead><tr><th scope="col">Item</th><th scope="col">Accepted</th><th scope="col">Not accepted (back to the backlog)</th></tr></thead>
         <tbody>{s.items.map((i) => (
@@ -86,6 +92,7 @@ function Review({ p, s, onDone, onError }) {
             <td><input type="radio" name={`d-${i.id}`} aria-label={`${i.title}: accepted`} checked={dec[i.id] === true} onChange={() => setDec({ ...dec, [i.id]: true })} /></td>
             <td><input type="radio" name={`d-${i.id}`} aria-label={`${i.title}: not accepted`} checked={dec[i.id] === false} onChange={() => setDec({ ...dec, [i.id]: false })} /></td></tr>))}</tbody>
       </table>
+      <label>Retrospective: how the team worked, and what changes next sprint <textarea rows="2" value={retro} onChange={(e) => setRetro(e.target.value)} /></label>
       <label>Note <input value={note} onChange={(e) => setNote(e.target.value)} /></label>{" "}
       <button className="primary" disabled={!all} onClick={go}>Record the review</button>
     </div>
@@ -102,6 +109,8 @@ function Sprint({ p, s, onDone, onError }) {
       {s.status === "reviewed" ? (
         <ul className="small">{s.items.map((i) => <li key={i.id}>{i.accepted ? "✓ accepted" : "↩ back to the backlog"}: {i.title}{i.decision_note ? ` (${i.decision_note})` : ""}</li>)}</ul>
       ) : <Review p={p} s={s} onDone={onDone} onError={onError} />}
+      {s.demo_note && <p className="small"><b>Demo:</b> {s.demo_note}</p>}
+      {s.retrospective && <p className="small"><b>Retrospective:</b> {s.retrospective}</p>}
       {s.review_note && <p className="quiet small">{s.review_note}</p>}
     </section>
   );
@@ -127,6 +136,9 @@ export default function SprintsTab({ p }) {
   const remove = async (b) => {
     try { await apiFetch(`/api/v1/projects/${p.id}/agile/backlog/${b.id}`, { method: "DELETE" }); done(); } catch (e) { oops(e.message); }
   };
+  const rule = async (r) => {
+    try { await apiFetch(`/api/v1/projects/${p.id}/agile/priority-rule`, { method: "PUT", body: JSON.stringify({ rule: r }) }); done(); } catch (e) { oops(e.message); }
+  };
   const length = async () => {
     try { await apiFetch(`/api/v1/projects/${p.id}/agile/sprint-length`, { method: "PUT", body: JSON.stringify({ days }) }); setDays(""); done(); } catch (e) { oops(e.message); }
   };
@@ -140,6 +152,10 @@ export default function SprintsTab({ p }) {
         <button disabled={!days} onClick={length}>Set</button></p>
       {open ? <Sprint p={p} s={open} onDone={done} onError={oops} /> : <PlanSprint p={p} d={d} onDone={done} onError={oops} />}
       <h3>Backlog</h3>
+      <p className="small"><label>Prioritised by{" "}
+        <select value={d.priority_rule} onChange={(e) => rule(e.target.value)}>
+          {Object.entries(d.priority_rules).map(([k, v]) => <option key={k} value={k}>{v.split(":")[0]}</option>)}
+        </select></label> <span className="quiet">{(d.priority_rules[d.priority_rule] || "").split(": ")[1]}</span></p>
       {d.backlog.length ? (
         <table className="grid-table small">
           <thead><tr><th scope="col">Item</th><th scope="col">Kind</th><th scope="col" className="num">Priority</th><th scope="col">Back from a sprint</th><th /></tr></thead>

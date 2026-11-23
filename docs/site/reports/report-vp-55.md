@@ -9,7 +9,7 @@ roles: user, executive, model-admin
 
 **Its concerns:** Which quality rules apply to which information, with their targets. **For:** Data stewards, data architects. **Purpose:** Deciding.
 
-**Element types shown:** Quality Rule, Business Object, Data Object, Data Entity.
+**Element types shown:** Requirement, Business Object, Data Object, Data Entity.
 
 **Relationships shown:** Association, Influence. The heat map colours by **QualityDimension**.
 

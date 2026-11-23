@@ -72,6 +72,7 @@ area by area: [docs/capabilities.md](docs/capabilities.md).
 | 18 | | Book: the Architect's Bible, in volumes | planned |
 | 19 | | Book: Scenario planning with your AI | planned |
 | 20 | | Learning videos and the YouTube channel | planned |
+| 21 | | Deploy in a Docker container or on distributed servers | planned |
 
 ## Quick start (laptop)
 

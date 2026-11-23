@@ -9,7 +9,7 @@ roles: user, executive, system-admin
 
 **Its concerns:** Every risk with its likelihood, impact, owner, treatment and the risk left after the controls. **For:** Risk and security architects, the Architecture Board, risk owners. **Purpose:** Deciding, informing.
 
-**Element types shown:** Risk, Threat, Control.
+**Element types shown:** Assessment, Control, Driver.
 
 **Relationships shown:** Influence, Association. The heat map colours by **ResidualRisk**.
 

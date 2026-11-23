@@ -306,19 +306,18 @@ _insert = insert
 
 
 def root_upgrade_sql() -> str:
-    """What a newer release adds to the two built-in root metamodels on an installation that already has them (Release 12,
-    D879: the risk and security, data governance and Agile types): the missing types, attributes, pick lists, rules and
-    allowed relationships, with the guids a new installation gives them. Nothing there is changed. Models already made
-    from a root keep their own metamodel (D813: nothing in them changed or removed); every model made from now on has
-    the new types."""
+    """What a newer release adds to the built-in ArchiMate 4 root on an installation that already has it (Release 12,
+    D887: no new types; the attributes and pick lists that let the existing types carry risk, security, data
+    governance and Agile backlog work): the missing pick lists, attributes, their places on the types, rules and
+    allowed relationships, with the guids a new installation gives them. Nothing there is changed."""
     return ("SELECT set_config('eax.actor', 'system:seed', true);\n"
-            "SELECT set_config('eax.history_label', 'Root metamodels: the Release 12 types', true);\n"
-            + metamodel_sql(TEMPLATE_KEY, None, missing_only=True)
-            + T10.sql(gid, insert, snake, EMPTY_ID, missing_only=True))
+            "SELECT set_config('eax.history_label', 'ArchiMate 4: the Release 12 attributes', true);\n"
+            + metamodel_sql(TEMPLATE_KEY, None, missing_only=True))
 
 
-# the types root_upgrade_sql adds: when one is missing from a root, the upgrade runs
-UPGRADE_TYPES = ["Risk", "Threat", "SecurityRequirement", "DataDomain", "QualityRule", "AnalyticsProduct", "Epic", "Feature"]
+# the attributes root_upgrade_sql adds: when the root lacks one, the upgrade runs
+UPGRADE_ATTRS = ["Likelihood", "Impact", "InherentRisk", "RiskTreatment", "ResidualRisk", "SecurityProperty", "DataSteward",
+                 "SystemOfRecord", "QualityDimension", "AcceptanceCriteria", "AssessmentKind", "RequirementKind", "BacklogLevel"]
 
 
 def sample_content_sql(k: str = SAMPLE_KEY) -> str:

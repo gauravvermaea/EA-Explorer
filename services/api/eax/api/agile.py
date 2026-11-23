@@ -10,7 +10,9 @@ PUT    /projects/<p>/agile/sprint-length          {days}: the project's usual sp
 POST   /projects/<p>/agile/sprints                plan a sprint: {goal, starts_on, ends_on, phases, steps, deliverables,
                                                   accepter, items}
 PATCH  /projects/<p>/agile/sprints/<sprint>       {starts_on, ends_on}: its own dates
-POST   /projects/<p>/agile/sprints/<sprint>/review  {decisions: {item: true|false | {accepted, note}}, note}
+POST   /projects/<p>/agile/sprints/<sprint>/review  {decisions: {item: true|false | {accepted, note}}, demo, retrospective,
+                                                  note}: the guide's Demo, Outcome, Retrospective and Planning
+PUT    /projects/<p>/agile/priority-rule          {rule}: value, risk, slice or easy
 
 Only a project made from the Agile template has sprints; the rules are in eax/agile.py.
 """
@@ -145,5 +147,18 @@ class AgileSprintReview(MethodView):
     @require_auth()
     def post(self, data, project, sprint):
         """Review a sprint: each item accepted or back to the backlog"""
-        return _run(lambda c: ag.review(c, project, g.user, sprint, data.get("decisions") or {}, data.get("note") or ""),
+        return _run(lambda c: ag.review(c, project, g.user, sprint, data.get("decisions") or {}, data.get("note") or "",
+                                        data.get("demo") or "", data.get("retrospective") or ""),
                     True, "project.sprint.review", project)
+
+
+@blp.route("/projects/<string:project>/agile/priority-rule")
+class AgilePriorityRule(MethodView):
+    """/api/v1/projects/{project}/agile/priority-rule: PUT {rule}: value, risk, slice or easy (G210)."""
+    @blp.doc(security=SECURITY)
+    @blp.arguments(FreeIn)
+    @blp.response(200, Free)
+    @require_auth()
+    def put(self, data, project):
+        """How the project prioritises its backlog"""
+        return _run(lambda c: ag.set_priority_rule(c, project, g.user, data.get("rule") or ""), True, "project.backlog.rule", project)

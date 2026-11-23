@@ -9,7 +9,7 @@ roles: user, executive
 
 **Its concerns:** The security requirements, what they protect and the controls and parts of the architecture that meet them. **For:** Security architects, solution architects. **Purpose:** Designing, deciding.
 
-**Element types shown:** Security Requirement, Control, Application Component, Node, System Software, Data Object, Business Object, Service, Physical Application Component, Data Entity.
+**Element types shown:** Requirement, Control, Application Component, Node, System Software, Data Object, Business Object, Service, Physical Application Component, Data Entity.
 
 **Relationships shown:** Realization, Association. The heat map colours by **SecurityProperty**.
 

@@ -9,7 +9,7 @@ roles: user, executive, model-admin
 
 **Its concerns:** The information the enterprise holds, how it is classified and where it is held. **For:** Security and data architects, data stewards. **Purpose:** Informing, deciding.
 
-**Element types shown:** Business Object, Data Object, Data Entity, Data Domain, Application Component, Physical Application Component.
+**Element types shown:** Business Object, Data Object, Data Entity, Grouping, Application Component, Physical Application Component.
 
 **Relationships shown:** Access, Aggregation, Composition, Association. The heat map colours by **DataClassification**.
 

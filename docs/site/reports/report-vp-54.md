@@ -9,7 +9,7 @@ roles: user, executive, model-admin
 
 **Its concerns:** The data domains, the information in each, its owner, steward and system of record: what has no owner shows blank. **For:** Chief Data Officer, data architects, data stewards. **Purpose:** Deciding, informing.
 
-**Element types shown:** Data Domain, Business Object, Data Object, Data Entity.
+**Element types shown:** Grouping, Business Object, Data Object, Data Entity.
 
 **Relationships shown:** Aggregation, Composition, Association. The heat map colours by **Owner**.
 

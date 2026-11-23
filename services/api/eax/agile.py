@@ -2,8 +2,8 @@
 the TOGAF ADM using Agile Sprints, G210).
 
 Only a project made from the Agile template has sprints (D858: "this will be only available if the project type is
-agile during project setup"). Its **backlog** is drawn from the requirements in its models (requirements and security
-requirements, epics and features), with deliverables and items added by hand; nothing is taken in by itself, the
+agile during project setup"). Its **backlog** is drawn from the requirements in its models (requirements of every kind,
+and epics and features: work packages with their backlog level), with deliverables and items added by hand; nothing is taken in by itself, the
 architect fills the backlog when they choose (D880). Each **sprint** picks backlog items and agrees the ADM phases it
 runs, the steps and the deliverables (the minimum viable architecture for that sprint), and who accepts them (named
 per sprint, D879). The project sets the usual sprint length (14 days unless its template says otherwise); each sprint
@@ -26,9 +26,16 @@ from .metamodel_edit import EditError
 
 AGILE = "agile"
 DEFAULT_DAYS = 14
-BACKLOG_TYPES = ("Requirement", "SecurityRequirement", "Epic", "Feature")
+BACKLOG_TYPES = ("Requirement", "WorkPackage")     # requirements, and epics and features as work packages (D887)
 KINDS = ("requirement", "deliverable", "item")
 PHASES = ("P", "A", "B", "C", "C-D", "C-A", "D", "E", "F", "G", "H", "RM")
+# how the project prioritises its backlog: the four ways the guide gives (G210, 3.3.4; D883)
+PRIORITY_RULES = {
+    "value": "The most value first: the parts of the value streams in scope that give the most value",
+    "risk": "The riskiest first: the riskiest parts of the business change",
+    "slice": "A slice through all the phases: a significant part taken through every relevant ADM phase, so it all works together",
+    "easy": "The easiest first: what can be defined and put in place most easily",
+}
 
 _rows, _one = pj._rows, pj._one
 
@@ -73,6 +80,24 @@ def template_days(pc) -> int:
         return DEFAULT_DAYS
 
 
+def priority_rule(pc, p: dict) -> str:
+    """The project's way of prioritising its backlog (value unless it chose another)."""
+    r = _one(pc, "SELECT priority_rule FROM proj.agile_settings WHERE project_id = :p", p=p["id"])
+    return (r or {}).get("priority_rule") or "value"
+
+
+def set_priority_rule(pc, project: Any, user, rule: str) -> dict:
+    """How the project prioritises its backlog: value, risk, slice or easy (the guide's four, D883)."""
+    p = _project(pc, project, user, "admin")
+    if rule not in PRIORITY_RULES:
+        raise EditError(f"Prioritise by one of: {', '.join(PRIORITY_RULES)}.")
+    pc.execute(text("""INSERT INTO proj.agile_settings (project_id, sprint_days, priority_rule, changed_by)
+                       VALUES (:p, :d, :r, :u)
+                       ON CONFLICT (project_id) DO UPDATE SET priority_rule = :r, changed_by = :u, changed_at = now()"""),
+               {"p": p["id"], "d": sprint_days(pc, p), "r": rule, "u": user.username})
+    return {"priority_rule": rule, "message": f"The backlog of {p['name']} is prioritised: {PRIORITY_RULES[rule].split(':')[0].lower()}."}
+
+
 def sprint_days(pc, p: dict) -> int:
     """The project's usual sprint length: its own, else the template's."""
     r = _one(pc, "SELECT sprint_days FROM proj.agile_settings WHERE project_id = :p", p=p["id"])
@@ -87,7 +112,7 @@ def set_sprint_days(pc, project: Any, user, days: Any) -> dict:
     except (TypeError, ValueError) as exc:
         raise EditError("A sprint length is a whole number of days.") from exc
     if not 1 <= n <= 90:
-        raise EditError("A sprint is 1 to 90 days long.")
+        raise EditError("A sprint is 1 to 90 days long (the guide suggests one to four weeks, usually two).")
     pc.execute(text("""INSERT INTO proj.agile_settings (project_id, sprint_days, changed_by) VALUES (:p, :d, :u)
                        ON CONFLICT (project_id) DO UPDATE SET sprint_days = :d, changed_by = :u, changed_at = now()"""),
                {"p": p["id"], "d": n, "u": user.username})
@@ -108,7 +133,7 @@ def _items(pc, p: dict, where: str = "", **params) -> list[dict]:
 
 
 def offered(pc, project: Any, user) -> list[dict]:
-    """The requirements, security requirements, epics and features in the project's models that are not in the backlog
+    """The requirements and work packages (epics, features) in the project's models that are not in the backlog
     yet: offered, for the architect to take in (nothing is taken in by itself, D880)."""
     p = _project(pc, project, user)
     guids = [r["g"] for r in _rows(pc, "SELECT model_guid::text AS g FROM proj.project_models WHERE project_id = :p", p=p["id"])]
@@ -184,7 +209,10 @@ def _sprint_out(pc, s: dict) -> dict:
                            LEFT JOIN proj.sprint_decisions d ON d.backlog_id = b.id AND d.sprint_id = :s
                           WHERE b.sprint_id = :s OR d.sprint_id = :s ORDER BY b.priority DESC, b.id""", s=s["id"])
     steps = list(s["steps"] or [])
-    return {"id": str(s["guid"]), "seq": s["seq"], "name": s["name"] or f"Sprint {s['seq']}", "goal": s["goal"],
+    zero = bool(s.get("zero"))
+    return {"id": str(s["guid"]), "seq": s["seq"], "zero": zero,
+            "name": s["name"] or ("Sprint zero (the strategic sprint)" if zero else f"Sprint {s['seq']}"), "goal": s["goal"],
+            "demo_note": s.get("demo_note") or "", "retrospective": s.get("retrospective") or "",
             "starts_on": s["starts_on"].isoformat(), "ends_on": s["ends_on"].isoformat(), "phases": list(s["phases"] or []),
             "steps": steps, "accepter": s["accepter"], "status": s["status"], "review_note": s["review_note"],
             "reviewed_by": s.get("reviewed_by"), "items": [{**_item_out(i), "accepted": i.get("accepted"),
@@ -204,17 +232,27 @@ def overview(pc, project: Any, user) -> dict:
     sprints = _rows(pc, "SELECT * FROM proj.sprints WHERE project_id = :p ORDER BY seq DESC", p=p["id"])
     backlog = [_item_out(r) for r in _items(pc, p, "AND b.status = 'backlog'")]
     done = sum(1 for _ in _items(pc, p, "AND b.status = 'accepted'"))
+    rule = priority_rule(pc, p)
     return {"project": p["name"], "sprint_days": sprint_days(pc, p), "backlog": backlog, "accepted": done,
+            "priority_rule": rule, "priority_rules": PRIORITY_RULES,
             "sprints": [_sprint_out(pc, s) for s in sprints], "offered": len(offered(pc, p["guid"], user)), "phases": list(PHASES)}
 
 
 def plan(pc, project: Any, user, d: dict) -> dict:
-    """A new sprint: its goal, its dates (from the usual length unless given), the ADM phases it runs, the steps and
-    deliverables agreed, who accepts them, and the backlog items it picks."""
+    """A new sprint: its goal (obligatory, G210), its dates (from the usual length unless given), the ADM phases it
+    runs, the steps and deliverables agreed, who accepts them, and the backlog items it picks. The project's first sprint
+    may be Sprint zero, the strategic sprint ({zero: true}): the foundation for the rest, numbered 0 (G210, 3.3.4)."""
     p = _project(pc, project, user, "contribute")
     if _one(pc, "SELECT 1 AS x FROM proj.sprints WHERE project_id = :p AND status <> 'reviewed'", p=p["id"]):
         raise EditError("A sprint is still open in this project: review it first.", 409)
-    seq = int(_one(pc, "SELECT coalesce(max(seq), 0) + 1 AS n FROM proj.sprints WHERE project_id = :p", p=p["id"])["n"])
+    goal = _text(d.get("goal"), 2000)
+    if not goal:
+        raise EditError("Give the sprint its goal: what it must achieve to succeed (the guide makes it obligatory).")
+    first = not _one(pc, "SELECT 1 AS x FROM proj.sprints WHERE project_id = :p", p=p["id"])
+    zero = bool(d.get("zero"))
+    if zero and not first:
+        raise EditError("Only the project's first sprint can be Sprint zero, the strategic sprint.", 409)
+    seq = 0 if zero else int(_one(pc, "SELECT coalesce(max(seq), 0) + 1 AS n FROM proj.sprints WHERE project_id = :p", p=p["id"])["n"])
     start = _date(d.get("starts_on") or date.today().isoformat(), "The start")
     end = _date(d["ends_on"], "The end") if d.get("ends_on") else start + timedelta(days=sprint_days(pc, p) - 1)
     if end < start:
@@ -233,9 +271,10 @@ def plan(pc, project: Any, user, d: dict) -> dict:
     accepter = _text(d.get("accepter"), 200)
     if not accepter:
         raise EditError("Name who accepts the sprint's deliverables (D879: named per sprint).")
-    s = _one(pc, """INSERT INTO proj.sprints (project_id, seq, name, goal, starts_on, ends_on, phases, steps, accepter, status, created_by)
-                    VALUES (:p, :q, :n, :g, :a, :b, CAST(:ph AS text[]), CAST(:st AS text[]), :ac, 'open', :u) RETURNING *""",
-             p=p["id"], q=seq, n=_text(d.get("name"), 200), g=_text(d.get("goal"), 2000), a=start, b=end, ph=phases, st=steps,
+    s = _one(pc, """INSERT INTO proj.sprints (project_id, seq, zero, name, goal, starts_on, ends_on, phases, steps, accepter, status,
+                                              created_by)
+                    VALUES (:p, :q, :z, :n, :g, :a, :b, CAST(:ph AS text[]), CAST(:st AS text[]), :ac, 'open', :u) RETURNING *""",
+             p=p["id"], q=seq, z=zero, n=_text(d.get("name"), 200), g=goal, a=start, b=end, ph=phases, st=steps,
              ac=accepter, u=user.username)
     for it in d.get("deliverables") or []:          # a deliverable agreed for the sprint comes in through the backlog
         try:
@@ -256,7 +295,7 @@ def plan(pc, project: Any, user, d: dict) -> dict:
         taken += 1
     if not taken:
         raise EditError("Pick at least one backlog item or deliverable for the sprint.")
-    return {**_sprint_out(pc, s), "message": f"Sprint {seq} planned: {taken} item(s), phases {', '.join(phases)}, "
+    return {**_sprint_out(pc, s), "message": f"{'Sprint zero' if zero else f'Sprint {seq}'} planned: {taken} item(s), phases {', '.join(phases)}, "
                                              f"{start.isoformat()} to {end.isoformat()}, accepted by {accepter}."}
 
 
@@ -283,9 +322,11 @@ def _may_accept(pc, p: dict, user, s: dict) -> None:
         pj._need(pc, p, user, "admin")
 
 
-def review(pc, project: Any, user, sprint: Any, decisions: dict, note: str = "") -> dict:
-    """The sprint review: each of its items accepted or not ({item: true|false} or {item: {accepted, note}}). Every
-    item needs a decision. Accepted items are done; the others go back to the backlog."""
+def review(pc, project: Any, user, sprint: Any, decisions: dict, note: str = "", demo: str = "", retrospective: str = "") -> dict:
+    """The sprint's Demo, Outcome, Retrospective and Planning (DORP, G210 3.3.2): what was shown (demo), each item
+    accepted or not (the outcome: {item: true|false} or {item: {accepted, note}}; every item needs a decision; what is
+    not accepted, or not finished, goes back to the backlog), how the team worked and what it changes (retrospective);
+    planning is the next sprint's plan."""
     p = _project(pc, project, user, "contribute")
     s = _sprint(pc, p, sprint)
     if s["status"] == "reviewed":
@@ -310,9 +351,11 @@ def review(pc, project: Any, user, sprint: Any, decisions: dict, note: str = "")
             pc.execute(text("""UPDATE proj.backlog_items SET status = 'backlog', sprint_id = NULL, returned = returned + 1
                                WHERE id = :b"""), {"b": i["id"]})
             back += 1
-    s = _one(pc, """UPDATE proj.sprints SET status = 'reviewed', review_note = :n, reviewed_by = :u, reviewed_at = now()
-                     WHERE id = :s RETURNING *""", n=_text(note, 2000), u=user.username, s=s["id"])
-    return {**_sprint_out(pc, s), "message": f"Sprint {s['seq']} reviewed: {yes} accepted, {back} back to the backlog."}
+    s = _one(pc, """UPDATE proj.sprints SET status = 'reviewed', review_note = :n, demo_note = :dm, retrospective = :rt,
+                            reviewed_by = :u, reviewed_at = now()
+                     WHERE id = :s RETURNING *""", n=_text(note, 2000), dm=_text(demo, 4000), rt=_text(retrospective, 4000),
+             u=user.username, s=s["id"])
+    return {**_sprint_out(pc, s), "message": f"{_sprint_out(pc, s)['name']} reviewed: {yes} accepted, {back} back to the backlog."}
 
 
 def count(pc, p: dict) -> dict | None:

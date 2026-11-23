@@ -9,7 +9,7 @@ roles: user
 
 **Its concerns:** The epics and features in the backlog and the capabilities, applications and requirements each changes. **For:** Product owners, architects in the teams. **Purpose:** Designing, deciding.
 
-**Element types shown:** Epic, Feature, Capability, Application Component, Requirement, Physical Application Component.
+**Element types shown:** Work Package, Capability, Application Component, Requirement, Physical Application Component.
 
 **Relationships shown:** Aggregation, Composition, Realization, Triggering, Association. The heat map colours by **Priority**.
 

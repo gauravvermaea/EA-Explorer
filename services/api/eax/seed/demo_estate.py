@@ -210,23 +210,26 @@ for name, how, target in [("Days to settle a claim", "Median days from lodgement
                           ("Share of claims lodged online", "Online claims as a share of all claims", "70% by 2028"),
                           ("Expense ratio", "Operating expense as a share of premium", "28% by 2028")]:
     ent("Measure", name, f"Measure: {name.lower()}", Owner="Strategy Office", Measure=how, Target=target)
-# Release 12 (D879): a risk with its threat, a security requirement, a data domain and its quality rule, an analytics
-# product, and an epic with its features
-ent("Risk", "Customer data exposed through the portal", "Policyholders' personal data read by someone not entitled to it",
-    Owner="Chief Information Security Officer", Likelihood=3, Impact=5, InherentRisk="High", RiskTreatment="Mitigate",
-    ResidualRisk="Medium")
-ent("Threat", "Stolen portal passwords", "Credentials taken elsewhere and tried on the customer portal", Likelihood=4)
-ent("SecurityRequirement", "Policyholder data kept confidential", "Only the policyholder and authorised staff read it",
-    Owner="Chief Information Security Officer", SecurityProperty="Confidentiality", Priority="Must")
-ent("DataDomain", "Customer data domain", "Everything Protea knows about its customers", Owner="Chief Data Officer",
+# Release 12 (D887: on the existing types): a risk and its threat (Assessments), a security and a data quality
+# requirement, a data domain (a Grouping), a dashboard (a Data Object), and an epic with its features (Work Packages)
+ent("Assessment", "Customer data exposed through the portal", "Policyholders' personal data read by someone not entitled to it",
+    Owner="Chief Information Security Officer", AssessmentKind="Risk", Likelihood=3, Impact=5, InherentRisk="High",
+    RiskTreatment="Mitigate", ResidualRisk="Medium")
+ent("Assessment", "Stolen portal passwords", "Credentials taken elsewhere and tried on the customer portal",
+    AssessmentKind="Threat", Likelihood=4)
+ent("Requirement", "Policyholder data kept confidential", "Only the policyholder and authorised staff read it",
+    Owner="Chief Information Security Officer", RequirementKind="Security", SecurityProperty="Confidentiality", Priority="Must")
+ent("Grouping", "Customer data domain", "Everything Protea knows about its customers", Owner="Chief Data Officer",
     DataSteward="Customer data steward", DataClassification="Confidential")
-ent("QualityRule", "Every customer has one valid ID number", "No customer without an ID number, and no ID number twice",
-    Owner="Chief Data Officer", QualityDimension="Uniqueness", Target="99.5% by 2027", Measure="Share of customers passing")
-ent("AnalyticsProduct", "Claims dashboard", "Daily claims volumes, settlement times and fraud flags", Owner="Head of Claims",
+ent("Requirement", "Every customer has one valid ID number", "No customer without an ID number, and no ID number twice",
+    Owner="Chief Data Officer", RequirementKind="Data quality", QualityDimension="Uniqueness", Target="99.5% by 2027",
+    Measure="Share of customers passing")
+ent("DataObject", "Claims dashboard", "Daily claims volumes, settlement times and fraud flags", Owner="Head of Claims",
     DataClassification="Internal")
-ent("Epic", "Online claims", "Customers lodge and track claims online", Owner="Head of Digital", Priority="Must")
+ent("WorkPackage", "Online claims", "Customers lodge and track claims online", Owner="Head of Digital", Priority="Must",
+    BacklogLevel="Epic")
 for name in ("Lodge a claim in the app", "Track a claim's progress"):
-    ent("Feature", name, f"Feature: {name.lower()}", Owner="Head of Digital", Priority="Must",
+    ent("WorkPackage", name, f"Feature: {name.lower()}", Owner="Head of Digital", Priority="Must", BacklogLevel="Feature",
         AcceptanceCriteria="A customer can do it without calling the contact centre")
 
 # application
@@ -501,9 +504,9 @@ rel("Customer data exposed through the portal", "Association", "Customer Portal"
 rel("Customer Portal", "Realization", "Policyholder data kept confidential")
 rel("Customer data domain", "Aggregation", "Customer")
 rel("Every customer has one valid ID number", "Association", "Customer")
-rel("Claims Platform", "Realization", "Claims dashboard")
+rel("Claims dashboard", "Association", "Claims Platform")
 rel("Online claims", "Aggregation", "Lodge a claim in the app", "Track a claim's progress")
-rel("Lodge a claim in the app", "Realization", "Customers can lodge claims online")
+rel("Lodge a claim in the app", "Association", "Customers can lodge claims online")
 
 # business
 for actor, roles in {"Claims Department": ["Claims Assessor"], "Underwriting Department": ["Underwriter"],

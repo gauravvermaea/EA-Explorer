@@ -9,7 +9,7 @@ roles: user, executive, system-admin
 
 **Its concerns:** Which controls reduce which risks, and which risks have no control. **For:** Risk and security architects, internal audit. **Purpose:** Deciding.
 
-**Element types shown:** Risk, Control.
+**Element types shown:** Assessment, Control.
 
 **Relationships shown:** Influence, Association. The heat map colours by **ResidualRisk**.
 

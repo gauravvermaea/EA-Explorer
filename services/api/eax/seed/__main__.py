@@ -34,7 +34,7 @@ from .build import (
     PRINCIPLE_ID,
     TEMPLATE_ID,
     TOGAF10_ID,
-    UPGRADE_TYPES,
+    UPGRADE_ATTRS,
     gid,
     history_demo_steps,
     root_upgrade_sql,
@@ -103,14 +103,14 @@ def main() -> int:
                                   with_togaf10=False, with_industries=industries))
             print(f"EA Explorer: loaded the industry reference models: {', '.join(sorted(industries))}")
             industries = set()
-        # a newer release's types in roots an installation already has (Release 12, D879): added, nothing changed
-        if not need["ArchiMate 4 template"] and not need["TOGAF 10 content metamodel"]:
-            have = conn.execute("""SELECT count(*) FROM core.entity_types t JOIN core.models m ON m.id = t.model_id
-                                    WHERE m.guid IN (%s, %s) AND t.code = ANY(%s)""",
-                                (TEMPLATE_ID, TOGAF10_ID, UPGRADE_TYPES)).fetchone()[0]
-            if have < 2 * len(UPGRADE_TYPES):
+        # a newer release's attributes in the ArchiMate 4 root an installation already has (Release 12, D887): added,
+        # nothing changed
+        if not need["ArchiMate 4 template"]:
+            have = conn.execute("""SELECT count(*) FROM core.attribute_types a JOIN core.models m ON m.id = a.model_id
+                                    WHERE m.guid = %s AND a.code = ANY(%s)""", (TEMPLATE_ID, UPGRADE_ATTRS)).fetchone()[0]
+            if have < len(UPGRADE_ATTRS):
                 conn.execute(root_upgrade_sql())
-                print(f"EA Explorer: added the Release 12 types to the root metamodels ({', '.join(UPGRADE_TYPES)})")
+                print("EA Explorer: added the Release 12 attributes to the ArchiMate 4 root")
         if templates and not need["ArchiMate 4 template"]:
             conn.execute(seed_sql(with_template=False, with_insurance=False, with_sample=False, with_principles=False,
                                   with_togaf10=False, with_model_templates=templates))

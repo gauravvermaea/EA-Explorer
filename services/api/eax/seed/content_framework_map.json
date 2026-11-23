@@ -79,15 +79,7 @@
   "valuestreamstage": "business.value_streams",
   "productlifecyclestage": "business.services_contracts",
   "businessscenario": "vision.architecture_vision",
-  "control": "business.processes_events",
-  "risk": "req.constraints",
-  "threat": "req.constraints",
-  "securityrequirement": "req.requirements",
-  "datadomain": "data.logical_components",
-  "qualityrule": "data.entities",
-  "analyticsproduct": "app.physical_components",
-  "epic": "real.work_packages",
-  "feature": "real.work_packages"
+  "control": "business.processes_events"
  },
  "document_types": {
   "Actor Role Catalogue": "business.roles_actors",

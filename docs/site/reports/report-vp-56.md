@@ -9,7 +9,7 @@ roles: user, executive, model-admin
 
 **Its concerns:** Where information comes from, the applications it passes through and the reports and analytics it feeds. **For:** Data architects, analytics owners. **Purpose:** Designing, informing.
 
-**Element types shown:** Data Object, Data Entity, Application Component, Physical Application Component, Analytics Product.
+**Element types shown:** Data Object, Data Entity, Application Component, Physical Application Component.
 
 **Relationships shown:** Flow, Access, Realization, Serving, Association. The heat map colours by **DataClassification**.
 

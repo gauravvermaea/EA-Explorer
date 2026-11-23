@@ -844,6 +844,10 @@
   "field:Add an item by its title": "A backlog item that is not in a model: a piece of architecture work by its title.",
   "field:Who accepts its deliverables": "Named for each sprint: a member's username (then only they, or a project admin, record the review) or the name of someone outside the application.",
   "field:a member's username, or a name": "Who accepts the sprint's deliverables: a member's username, or a person's name.",
+  "field:Prioritised by": "How the project orders its backlog: the four ways the TOGAF guide on Agile sprints gives (the most value, the riskiest, a slice through all the phases, the easiest first). Set a priority on each item to match.",
+  "field:Goal (what the sprint must achieve)": "Every sprint has a goal: what it must achieve to succeed. The guide makes it obligatory.",
+  "field:Demo: what was shown, and to whom": "The first part of the review: what the sprint showed its stakeholders.",
+  "field:Retrospective: how the team worked, and what changes next sprint": "The third part of the review: how the team worked, and what it will change.",
   "field:change to": "The project's usual sprint length in days (1 to 90); each sprint can still have its own dates.",
   "tab:Scenarios": {
     "what": "Scenario models of the project compared with the baseline, and recorded assessments.",

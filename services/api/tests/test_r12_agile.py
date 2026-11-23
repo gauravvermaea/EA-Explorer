@@ -41,7 +41,7 @@ def test_only_an_agile_project_has_sprints():
 
 
 def test_the_backlog_is_offered_from_the_models_never_taken_in_by_itself():
-    assert ag.BACKLOG_TYPES == ("Requirement", "SecurityRequirement", "Epic", "Feature")
+    assert ag.BACKLOG_TYPES == ("Requirement", "WorkPackage")       # epics and features are work packages (D887)
     fill = inspect.getsource(ag.overview)
     assert "add_to_backlog" not in fill and "offered(pc" in fill          # the overview counts what is offered, adds nothing
     assert "is not a requirement, epic or feature in this project's models, or is in the backlog already" in SRC
@@ -124,3 +124,38 @@ def test_the_sprints_tab_only_on_an_agile_project():
               "back to the backlog"):
         assert s in tab, s
     assert '"tab:Sprints"' in (WEB / "help" / "catalogue.json").read_text(encoding="utf-8")
+
+
+def test_as_the_guide_has_it_goal_sprint_zero_review_and_priority():
+    """G210 (read 23 Nov 2026; D883): the sprint goal is obligatory; the first sprint may be Sprint zero; the review is
+    Demo, Outcome, Retrospective and Planning; the backlog is prioritised one of four ways. Run on a real PostgreSQL:
+    no goal refused, Sprint zero numbered 0 and named the strategic sprint, its demo and retrospective kept, a second
+    Sprint zero refused, an unknown rule refused, the next sprint numbered 1."""
+    sql = (ROOT / "migrations" / "sql" / "0118_r12_agile_dorp.sql").read_text(encoding="utf-8")
+    for col in ("zero boolean", "demo_note text", "retrospective text", "priority_rule text NOT NULL DEFAULT 'value'"):
+        assert col in sql, col
+    v = (ROOT / "migrations" / "versions" / "0118_r12_agile_dorp.py").read_text(encoding="utf-8")
+    assert 'down_revision = "0117_r12_agile_sprints"' in v
+    plan = inspect.getsource(ag.plan)
+    assert "Give the sprint its goal" in plan and "Only the project's first sprint can be Sprint zero" in plan
+    assert "seq = 0 if zero else" in plan
+    assert set(ag.PRIORITY_RULES) == {"value", "risk", "slice", "easy"}
+    rv = inspect.getsource(ag.review)
+    assert "demo_note = :dm, retrospective = :rt" in rv and "Demo, Outcome, Retrospective and Planning" in rv
+    out = ag._sprint_out.__code__.co_consts
+    assert any(isinstance(c, str) and "Sprint zero (the strategic sprint)" in c for c in out)
+    api = (ROOT / "eax" / "api" / "agile.py").read_text(encoding="utf-8")
+    assert "/agile/priority-rule" in api and 'data.get("retrospective")' in api
+    tab = (WEB / "Sprints.jsx").read_text(encoding="utf-8")
+    for s in ("Make it Sprint zero", "Demo: what was shown", "Retrospective: how the team worked", "Prioritised by", "/agile/priority-rule"):
+        assert s in tab, s
+
+
+def test_an_unknown_priority_rule_is_refused():
+    orig = ag._project
+    try:
+        ag._project = lambda *a, **k: {"id": 1, "name": "X"}
+        with pytest.raises(EditError):
+            ag.set_priority_rule(None, "p", types.SimpleNamespace(username="u"), "loudest first")
+    finally:
+        ag._project = orig

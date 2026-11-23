@@ -1,9 +1,9 @@
 """The Release 12 model templates (D858, D879): one for each new kind of work, each a locked template in the library
 that new models start from.
 
-A model template is structure and references only (D858): the ArchiMate 4 metamodel with the Release 12 types (risk
-and security, data governance, Agile; seed/archimate4.py), and a description that says which element types the work
-uses, which reference model to bring in and which viewpoints show it. No made-up starter elements: the samples show
+A model template is structure and references only (D858): the ArchiMate 4 metamodel, whose existing types carry the
+Release 12 attributes (risk, security, data governance, Agile; no new types, D887), and a description that says which
+element types the work uses, which reference model to bring in and which viewpoints show it. No made-up starter elements: the samples show
 them filled in (R12.7). The project templates of the same kind start their models from these (seed/project_templates.json,
 slot "template"); Government is a model template only, used by any TOGAF project (D879).
 
@@ -26,8 +26,8 @@ TEMPLATES = [
      "catalogue, roadmap. Structure only: start a model from it."),
     ("agile", "Agile model template",
      "For architecture done in sprints (TOGAF Series Guides: Applying the TOGAF ADM using Agile Sprints; Enabling "
-     "Enterprise Agility). Element types: epics and features (the backlog's change), the capabilities, value streams and "
-     "applications they change, requirements, and plateaus for each release's transition. Views: capability map, value "
+     "Enterprise Agility). Element types: work packages for epics and features (their backlog level), the capabilities, "
+     "value streams and applications they change, requirements, and plateaus for each release's transition. Views: capability map, value "
      "stream map, roadmap. Structure only: start a model from it."),
     ("digital", "Digital transformation model template",
      "For a digital transformation that starts from the customer and the business model (The Open Group's Digital "
@@ -43,14 +43,15 @@ TEMPLATES = [
      "Structure only: start a model from it."),
     ("risk-security", "Risk and security model template",
      "For risk and security architecture (TOGAF Series Guide: Integrating Risk and Security within a TOGAF Enterprise "
-     "Architecture, G152). Element types: risks with their likelihood, impact, treatment and residual risk, threats, "
-     "controls, security requirements, and data classification on business and data objects, related to the "
+     "Architecture, G152). Element types: assessments for risks, threats and vulnerabilities (their likelihood, impact, "
+     "treatment and residual risk), controls, requirements of the security kind, and data classification on business and data objects, related to the "
      "applications, data, technology and business services they protect. Views: risk register, controls against risks, "
      "classified data and where it is held. Structure only: start a model from it."),
     ("data-governance", "Data governance model template",
      "For data architecture and governance (TOGAF Series Guides on master data, metadata, and business intelligence and "
-     "analytics). Element types: data domains with their owner and steward, business and data objects with their system "
-     "of record, quality rules with their targets, meanings for agreed definitions, and analytics products. Views: data "
+     "analytics). Element types: groupings for data domains with their owner and steward, business and data objects with "
+     "their system of record, requirements of the data quality kind with their targets, meanings for agreed definitions, "
+     "and data objects for reports and dashboards. Views: data "
      "with no owner or definition, master data held in more than one system, lineage from source to report, quality "
      "against target. Structure only: start a model from it."),
 ]

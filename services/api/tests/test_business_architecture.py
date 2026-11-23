@@ -11,13 +11,10 @@ WEB = Path(__file__).resolve().parents[2] / "web" / "src"
 
 def test_extensions_in_both_metamodels():
     ext = {t[0] for t in A.EXTENSIONS}
-    assert ext == {"ValueStreamStage", "ProductLifecycleStage", "BusinessScenario", "Control", "Contract", "Measure",
-                   # Release 12 (D879)
-                   "Risk", "Threat", "SecurityRequirement", "DataDomain", "QualityRule", "AnalyticsProduct", "Epic", "Feature"}
+    assert ext == {"ValueStreamStage", "ProductLifecycleStage", "BusinessScenario", "Control", "Contract", "Measure"}   # no new ones (D887)
     assert not ext & set(A.SPEC_TYPES)
     togaf = {t[0] for t in togaf10.TYPES}
     assert {"ValueStreamStage", "ProductLifecycleStage", "BusinessScenario", "Control", "Contract", "Measure"} <= togaf
-    assert {"Risk", "Threat", "SecurityRequirement", "DataDomain", "QualityRule", "AnalyticsProduct", "Epic", "Feature"} <= togaf
     assert ("Importance", "N", "Assessment") in A.MAP["Capability"] and ("Investment", "N", "Assessment") in A.MAP["Capability"]
 
 
