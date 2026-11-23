@@ -896,6 +896,7 @@
      "Upload the same zip again after changes: what changed gets a new version, the rest stays as it is."
     ]
   },
+  "button:Check connections again": "Makes every connection EA Explorer depends on again, the way it makes them (each database login, Documents with its key, Keycloak's service token and the rest), and shows which work and which fail.",
   "tab:Scenarios": {
     "what": "Scenario models of the project compared with the baseline, and recorded assessments.",
     "how": [

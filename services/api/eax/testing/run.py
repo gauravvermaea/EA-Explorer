@@ -618,6 +618,32 @@ def services_ready(r, token: str, wait: int = 600, pause: int = 10, call=None, s
     return last
 
 
+def connectivity(r, token: str, call=None) -> None:
+    """Every connection the product depends on, made as it makes them (D894), in the smoke and the full runs alike:
+    each link a check of its own (critical: the product cannot work without it), switched-off ones skipped. Health says
+    a service answers; this says the product can use it (23 Nov 2026: Documents answered, the API could not sign in to
+    its database)."""
+    import json as _json
+    call = call or api_matrix.call
+    rec, t0 = r.recorder("smoke"), time.time()
+    s, body = call(API, "get", "/api/v1/heartbeat/connectivity", token, timeout=90, size=None)
+    try:
+        links = (_json.loads(body).get("links") or []) if s == 200 else []
+    except ValueError:
+        links = []
+    if not links:
+        rec("connectivity: every connection checked", "failed", f"GET /api/v1/heartbeat/connectivity answered {s}",
+            int((time.time() - t0) * 1000), request="GET /api/v1/heartbeat/connectivity  as super-admin", response=f"{s}\n{body[:1500]}")
+        return
+    for x in links:
+        outcome = {"up": "passed", "off": "skipped", "down": "failed"}.get(x.get("status"), "failed")
+        rec(f"connectivity: {x['name']}", outcome, f"{x.get('how', '')}: {x.get('detail', '')}"[:400], int(x.get("ms") or 0),
+            request="" if outcome != "failed" else f"API -> {x.get('to')}: {x.get('how')}",
+            response="" if outcome != "failed" else str(x.get("detail") or ""))
+    down = [x["name"] for x in links if x.get("status") == "down"]
+    r.log(f"connectivity: {len(links) - len(down)} of {len(links)} connections work" + (f"; failing: {', '.join(down)}" if down else ""))
+
+
 def alert_check(api: str, token: str, rec, log, wait: int = 150, pause: int = 10) -> None:
     """R2.19, as the owner asked: a container "stopped on purpose" (a test alert: the watcher tells it as if api had
     stopped; nothing is stopped), then the alert and its recovery notice, within the watcher's next looks."""
@@ -819,6 +845,7 @@ def cmd_run(args) -> int:
         with repo.begin() as conn:
             tokens = fixtures.accounts(conn, run, by, roles, r.log)
         r.ready = services_ready(r, tokens.get("super-admin", ""))   # only what this run tests, never the sample data or packs
+        connectivity(r, tokens.get("super-admin", ""))               # every connection, as the product makes it (D894)
         ids = fixtures.models_and_project(repo, run, by, roles, r.log)
         with engine.begin() as conn:
             store.set_fixture_ids(conn, run_id, ids)

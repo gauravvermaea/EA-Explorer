@@ -64,6 +64,51 @@ function Services() {
   );
 }
 
+// Every connection the product depends on, made as the product makes them (D894): GET /api/v1/heartbeat/connectivity.
+// Health says each service answers; this says EA Explorer can use it (its logins, certificate, keys and tokens).
+const LINK_CLASS = { up: "status ok", down: "status bad", off: "status" };
+function Connectivity() {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const check = useCallback(async () => {
+    setBusy(true);
+    try { setData(await apiFetch("/api/v1/heartbeat/connectivity")); setError(null); } catch (e) { setError(e.message); } finally { setBusy(false); }
+  }, []);
+  useEffect(() => { check(); }, [check]);
+  return (
+    <>
+      <h2>Connectivity</h2>
+      <p>
+        <code>GET /api/v1/heartbeat/connectivity</code> makes every connection EA Explorer depends on, the way it makes them: each
+        database login, Documents with its key, Keycloak's service token, the library and views with their keys, and the rest.{" "}
+        <button onClick={check} disabled={busy}>{busy ? "Checking..." : "Check connections again"}</button>
+      </p>
+      {error && <p className="status bad">{error}</p>}
+      {data && (
+        <>
+          <p>
+            Overall: <span className={data.status === "ok" ? "status ok" : "status bad"}>{data.status}</span> · {data.up} working,{" "}
+            {data.down} failing, {data.off} switched off · checked in {data.duration_ms} ms at {fmtTime(data.time)}
+          </p>
+          <table className="grid-table">
+            <thead><tr><th>Connection</th><th>To</th><th>How</th><th>Status</th><th>Detail</th><th>ms</th></tr></thead>
+            <tbody>
+              {data.links.map((x) => (
+                <tr key={x.name}>
+                  <td>{x.name}</td><td className="quiet">{x.to}</td><td className="small">{x.how}</td>
+                  <td><span className={LINK_CLASS[x.status] || "status"}>{x.status}</span></td>
+                  <td className="small">{x.detail}</td><td className="quiet">{x.ms}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+    </>
+  );
+}
+
 export default function Heartbeat() {
   const [beat, setBeat] = useState(null);
   const [error, setError] = useState(null);
@@ -132,6 +177,7 @@ export default function Heartbeat() {
         </table>
       )}
       {signedIn() && <Services />}
+      {signedIn() && <Connectivity />}
       <AlertSummary />
       <JobsSummary />
       <LastSelfTest />
@@ -156,6 +202,7 @@ export default function Heartbeat() {
 const FEEDS = [
   ["/api/v1/heartbeat", "Up or not, versions, database and job queue", "None: open to anyone who can reach the server"],
   ["/api/v1/heartbeat/services", "Every service: up, warning, down or off, with its response time", "A signed-in user's token"],
+  ["/api/v1/heartbeat/connectivity", "Every connection the product depends on, made as it makes them: working, failing or switched off, with what it answered", "A signed-in user's token"],
   ["/api/v1/admin/services/health", "Everything on Administration > Services: each check, every container's state, Docker health, exit code, CPU, memory, disk, up time and restarts", "An IT Admin or Super Admin token"],
   ["/api/v1/admin/containers", "Every container and its state", "An IT Admin or Super Admin token"],
   ["/api/v1/admin/containers/<service>", "One container in detail: health check log, mounts, ports, networks, limits, what it uses now", "An IT Admin or Super Admin token"],

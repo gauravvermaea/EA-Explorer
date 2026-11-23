@@ -10,11 +10,12 @@ from flask.views import MethodView
 from flask_smorest import Blueprint
 from sqlalchemy import text
 
-from .. import __version__, audit, build, databases, health, maintenance
+from .. import __version__, audit, build, connectivity, databases, health, maintenance
 from ..auth import require_auth
 from ..config import get_settings
 from ..db import get_engine
 from ..versioning import database_version, version_warning
+from .models import Free
 from .schemas import Heartbeat, HeartbeatRecordIn, HeartbeatRecordOut, ServicesHealth
 
 blp = Blueprint(
@@ -80,6 +81,8 @@ class HeartbeatView(MethodView):
             "site_purpose": _purpose() if db["reachable"] else None,   # Release 6.5 (D749): a label at the top
             "dr_copy": _dr() if db["reachable"] else None,             # a DR copy: read only, kept up to date
             "test_in_progress": _test_in_progress() if db["reachable"] else None,   # R2.51 (D609)
+            # every connection, made as the product makes them (D894): the last check's counts, never waited for
+            "connectivity": connectivity.summary(),
         }
 
     @blp.arguments(HeartbeatRecordIn)
@@ -124,6 +127,20 @@ class ServicesView(MethodView):
         the overall status is ok, degraded, or down when the database is down. Always answers 200.
         """
         return health.check_all()
+
+
+@blp.route("/connectivity")
+class ConnectivityView(MethodView):
+    """/api/v1/heartbeat/connectivity: GET every connection the product depends on, made now as the product makes them
+    (signed in; D894)."""
+    @blp.doc(security=[{"bearerAuth": []}])
+    @blp.response(200, Free)
+    @require_auth()
+    def get(self):
+        """Every connection, made now: the API into each database login and part, Documents with its key, Keycloak's
+        service token and signing keys, the library and views with their keys, the operations helper, Reports,
+        draw.io, the job queue and the backups folder. Each up, down (with what it answered) or off. Always 200."""
+        return connectivity.check()
 
 
 def _purpose():

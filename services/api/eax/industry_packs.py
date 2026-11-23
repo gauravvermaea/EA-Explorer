@@ -510,7 +510,7 @@ def load_shipped_each(actor: str = "system:seed", engine=None) -> dict:
             if not mayan.enabled():
                 _part(engine, "skipped", 0, 0, "Documents is switched off: no packs to load", finish=True)
                 return {"message": "Documents is switched off", "skipped": True}
-            why = mayan.why_not_up()
+            why = "" if mayan.ping() else (mayan.why_not_up() or "it does not answer")
             if why:                                  # what Documents said, so a fault is not taken for a slow start (D893)
                 _part(engine, "starting", 0, 0, f"waiting for Documents to answer ({why[:300]}); tried again every 10 minutes")
                 return {"message": f"Documents is not up ({why[:300]}); tried again every 10 minutes", "skipped": True}

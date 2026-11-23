@@ -46,6 +46,10 @@ class Heartbeat(Schema):
     site_purpose = fields.String(allow_none=True, metadata={"description": "The site's purpose label (PROD by default; Release 6.5)"})
     dr_copy = fields.Dict(allow_none=True, metadata={
         "description": "Set when this site is a DR copy (Release 6.5): from which site, the last batch; read only"})
+    connectivity = fields.Dict(allow_none=True, metadata={
+        "description": "Every connection the product depends on, made as it makes them (D894): status ok, degraded or "
+                       "checking, and how many links are up, down and off, from the last check (at most a minute old); "
+                       "each link's detail at GET /api/v1/heartbeat/connectivity (signed in)"})
 
 
 class HeartbeatRecordIn(Schema):

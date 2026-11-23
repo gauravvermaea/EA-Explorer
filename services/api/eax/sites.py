@@ -151,6 +151,9 @@ def health_of(beat: dict | None) -> tuple[str, str, str]:
     status = str(beat.get("status") or "")
     if beat.get("maintenance"):
         return "amber", "in maintenance", version
+    conn = beat.get("connectivity") or {}
+    if status == "ok" and conn.get("status") == "degraded":       # a connection the product needs is broken (D894)
+        return "amber", f"working, {conn.get('down')} connection{'s' if conn.get('down') != 1 else ''} failing", version
     if status == "ok":
         return "green", "working", version
     if status == "warning":
