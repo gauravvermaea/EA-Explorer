@@ -337,6 +337,108 @@ JOURNEYS: list[dict] = [
          {"click": "Refresh {other_name}", "wait": 4000},
          {"expect": "now holds what", "timeout": 90000},             # the refresh's own message (the task's result)
      ]},
+    # ---------------------------------------------------------------- Release 12 (D889 to D891), in the run's own project
+    # the Project plan tab: RACI per phase and a gate on B chosen, B planned, a milestone, a status report; a gated phase
+    # refused completion while its deliverables wait; then put back (no RACI, no gate) so the other journeys meet the
+    # project as it was
+    {"name": "project plan: RACI, a gate, a phase planned, a milestone, a status", "smoke": False, "roles": ["super-admin"],
+     "refused": {"role": "report-viewer", "open": "#/projects/{p}/projectplan", "disabled_or_absent": "Save the settings"},
+     "steps": [
+         {"open": "#/projects/{p}/projectplan", "expect": "The phases"},
+         {"click": "Settings", "within": ".project-plan"},
+         {"select": "How RACI is recorded", "option": "Per phase"},
+         {"choose": "B", "within": ".project-plan details"},
+         {"click": "Save the settings", "wait": 1500},
+         {"expect": "settings are saved"},
+         {"expect": "RACI, per phase"},
+         {"click": "change", "exact": True, "row": "Business Architecture"},
+         {"fill": "Start of B", "value": "2026-01-05"},
+         {"fill": "End of B", "value": "2026-02-27"},
+         {"click": "Save", "exact": True, "row": "Business Architecture", "wait": 1500},
+         {"expect": "Phase B is planned from 2026-01-05 to 2026-02-27"},
+         {"expect": "late"},                                            # past its end and not complete
+         {"fill": "Milestone name", "value": "self_test_{sid} milestone {role}"},
+         {"fill": "Milestone date", "value": "2026-02-27"},
+         {"click": "Add", "exact": True, "within": ".project-plan", "wait": 1500},
+         {"expect": "self_test_{sid} milestone {role}"},
+         {"select": "Status", "option": "Amber", "within": ".project-plan"},
+         {"fill": "Status summary", "value": "self_test_{sid} status {role}"},
+         {"click": "Report", "exact": True, "wait": 1500},
+         {"expect": "Status reported: amber"},
+         {"open": "#/projects/{p}/phases/B", "expect": "Business Architecture"},
+         {"click": "Mark the phase complete", "wait": 1500},
+         {"expect": "is an approval gate"},                             # refused: its deliverables wait for approval
+         {"open": "#/projects/{p}/projectplan", "expect": "The phases"},
+         {"click": "Settings", "within": ".project-plan"},
+         {"select": "How RACI is recorded", "option": "No RACI"},
+         {"choose": "B", "within": ".project-plan details"},
+         {"click": "Save the settings", "wait": 1500},
+         {"expect": "settings are saved"},
+         {"expect_not": "RACI, per phase", "timeout": 5000},
+     ]},
+    # an item's map is always live: its link opens the view on the project's primary working model
+    {"name": "live maps: a map item opens its view on the working model", "smoke": False, "roles": ["architect"], "refused": None,
+     "why_no_refusal": "reading only",
+     "steps": [
+         {"open": "#/projects/{p}/phases?phase=B", "expect": "Organization Map"},
+         {"click": "live view", "row": "Organization Map"},
+         {"remember": "live", "url": r"#/metamodel/[^/]+/views/(VP-01)"},   # the view itself, on the working model
+     ]},
+    # the Governance log's Risks tab shows the risk register (D890)
+    {"name": "risk register: on the Governance log's Risks tab", "smoke": False, "roles": ["architect"], "refused": None,
+     "why_no_refusal": "reading only",
+     "steps": [
+         {"open": "#/projects/{p}/governance", "expect": "governance log"},
+         {"click_re": r"^Risks\b"},
+         {"expect": "Risk register"},
+         {"expect_sel": ".ba-box h4"},
+     ]},
+    # a ready-made survey (D890): a draft made in one step, its questions there, then deleted (nothing left behind)
+    {"name": "ready-made survey: start one, then delete the draft", "smoke": False, "roles": ["super-admin", "model-creator"],
+     "refused": {"role": "architect", "open": "#/surveys", "disabled_or_absent": "Start a draft"},
+     "steps": [
+         {"open": "#/surveys", "expect": "Surveys"},
+         {"click": "Start from a ready-made survey"},
+         {"expect": "Digital technology readiness"},
+         {"click": "Start a draft", "row": "Data management", "wait": 2000},
+         {"remember": "survey", "url": r"#/surveys/([^/?#]+)"},
+         {"expect": "Who it is for"},                                   # the designer, as for any new survey
+         {"click": "Delete", "exact": True, "wait": 2000},              # the confirm is accepted
+         {"expect": "Surveys"},
+     ]},
+    # TOGAF roles and skill levels beside one's skills (D890): said on My profile, seen by role in the Skills repository,
+    # then cleared again
+    {"name": "TOGAF skills: on my profile, then by role", "smoke": False, "roles": ["architect"], "refused": None,
+     "why_no_refusal": "everyone keeps their own profile",
+     "steps": [
+         {"open": "#/my-profile", "expect": "TOGAF roles and skill levels"},
+         {"choose": "Data Architect"},
+         {"select": "My level in Data", "option": "3"},
+         {"click": "Save my skills", "wait": 1500},
+         {"expect": "Your skills are"},                                 # saved (or cleared: a test account has no tags)
+         {"open": "#/repository/skills", "expect": "Skills repository"},
+         {"click": "By TOGAF role"},
+         {"expect": "Data Architect"},
+         {"open": "#/my-profile", "expect": "TOGAF roles and skill levels"},
+         {"choose": "Data Architect"},
+         {"select": "My level in Data", "option": "not said"},
+         {"click": "Save my skills", "wait": 1500},
+         {"expect": "Your skills are"},                                 # saved (or cleared: a test account has no tags)
+     ]},
+    # the guides: the TOGAF ones listed with their pages, and the zip upload's dialog (opened and closed: the upload
+    # itself would change the organisation's library, so the API tests and the rules' tests cover it)
+    {"name": "guides: the TOGAF ones listed, the zip dialog", "smoke": False, "roles": ["super-admin"],
+     "refused": {"role": "architect", "open": "#/reference-library", "disabled_or_absent": "⬆ Guides as a zip"},
+     "steps": [
+         {"open": "#/reference-library", "expect": "The TOGAF guides EA Explorer follows"},
+         {"click": "The TOGAF guides EA Explorer follows"},
+         {"expect": "Architecture Project Management"},
+         {"click": "⬆ Guides as a zip", "opens": DIALOG},
+         {"expect": "At most 500 files", "within": DIALOG},
+         {"click": "Cancel", "exact": True, "within": DIALOG},
+         {"open": "#/reference-library?upload=guides", "expect": "At most 500 files"},
+         {"click": "Cancel", "exact": True, "within": DIALOG},
+     ]},
 ]
 
 # what a journey needs from the run's fixtures, by the placeholders its steps use: left out when the run has none

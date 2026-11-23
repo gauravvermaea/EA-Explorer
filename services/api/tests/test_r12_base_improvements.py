@@ -246,3 +246,15 @@ def test_the_roadmap_period_is_free_and_as_before_by_default():
     assert "outside the period shown" in maps
     # with no period the span is the items' whole years, as it was
     assert "getUTCFullYear() + 1, 0, 1)).getTime();" in maps
+
+
+def test_the_release_12_screens_have_browser_journeys():
+    """The owner, 23 Nov 2026: "can you not write tests for screens?": the self-test's browser journeys click through
+    the Release 12 screens (eax test full, or watched from Self-test), each in the run's own fixtures."""
+    from eax.testing import ui_flows
+    keys = {ui_flows.key(j) for j in ui_flows.JOURNEYS}
+    assert {"project plan", "live maps", "risk register", "ready-made survey", "TOGAF skills", "guides"} <= keys
+    plan = [j for j in ui_flows.JOURNEYS if ui_flows.key(j) == "project plan"][0]
+    said = [s.get("expect") for s in plan["steps"]]
+    assert "is an approval gate" in said and "Status reported: amber" in said     # the gate refuses; the status is kept
+    assert plan["steps"][-1] == {"expect_not": "RACI, per phase", "timeout": 5000}  # put back as it was
