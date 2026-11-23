@@ -17,3 +17,6 @@ testpaths = ["tests"]
 # the eax package is found from services/api however pytest is started (CI runs plain `pytest`, which does not put the
 # current folder on the path; every CI run failed with "No module named 'eax'" until 13 Nov 2026, R3.15)
 pythonpath = ["."]
+# a test running over 5 minutes prints where it is (every thread's stack) and the run carries on (owner's full test,
+# 23 Nov 2026: it sat at 24% for an hour, then showed nothing for 10 minutes, with no way to see which test)
+faulthandler_timeout = 300

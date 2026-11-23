@@ -70,21 +70,60 @@ def clean_name(name: str, industry: str) -> str:
     return re.sub(r"\s+", " ", name).strip()
 
 
-def text_of(name: str, data: bytes) -> str:
-    """A pack file's text, for its search index."""
+FIRST_PAGE_CHARS = 3000                # the same as services/api/eax/industry_packs.py; a page's worth of text, where a file has no pages (Word, a sheet, plain text)
+
+
+def _xml_text(xml: str) -> str:
+    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", xml)).strip()
+
+
+def _first_sheet(z: zipfile.ZipFile, names: list[str]) -> str:
+    """A workbook's first sheet: its own words and the shared words its cells use, in cell order."""
+    sheets = sorted((n for n in names if re.fullmatch(r"xl/worksheets/sheet\d+\.xml", n)),
+                    key=lambda n: int(re.search(r"(\d+)\.xml$", n).group(1)))
+    shared = (re.findall(r"<si>(.*?)</si>", z.read("xl/sharedStrings.xml").decode("utf-8", "ignore"), re.DOTALL)
+              if "xl/sharedStrings.xml" in names else [])
+    if not sheets:
+        return " ".join(_xml_text(s) for s in shared[:200])
+    out, size = [], 0
+    for cell, kind in re.findall(r"<c\b([^>]*?)(?:/>|>(.*?)</c>)", z.read(sheets[0]).decode("utf-8", "ignore"), re.DOTALL):
+        v = re.search(r"<v>(\d+)</v>", kind or "")
+        word = _xml_text(shared[int(v.group(1))]) if 't="s"' in cell and v and int(v.group(1)) < len(shared) else _xml_text(kind or "")
+        if word:
+            out.append(word)
+            size += len(word)
+            if size >= FIRST_PAGE_CHARS:
+                break
+    return " ".join(out)
+
+
+def first_page_text(name: str, data: bytes) -> str:
+    """The first page of a file, for the "not for AI use" check (owner, 23 Nov 2026: "no file should be checked in
+    full ... only check 1st page of every document"): a PDF's first page; a slide deck's first slide; a workbook's
+    first sheet; a Word file's headers, footers and opening text; anything else its opening text. Reading every page
+    of the 500-page pack books took about ten minutes."""
     ext = name.lower().rpartition(".")[2]
     try:
         if ext in ("xlsx", "xlsm", "pptx", "docx"):
             with zipfile.ZipFile(io.BytesIO(data)) as z:
-                return re.sub(r"<[^>]+>", " ", " ".join(z.read(n).decode("utf-8", "ignore") for n in z.namelist() if n.endswith(".xml")))
+                names = z.namelist()
+                if ext == "pptx" and "ppt/slides/slide1.xml" in names:
+                    return _xml_text(z.read("ppt/slides/slide1.xml").decode("utf-8", "ignore"))[:FIRST_PAGE_CHARS]
+                if ext in ("xlsx", "xlsm"):
+                    return _first_sheet(z, names)[:FIRST_PAGE_CHARS]
+                if ext == "docx" and "word/document.xml" in names:
+                    edges = [n for n in names if re.fullmatch(r"word/(header|footer)\d*\.xml", n)]
+                    head = " ".join(_xml_text(z.read(n).decode("utf-8", "ignore")) for n in edges)
+                    return head + " " + _xml_text(z.read("word/document.xml").decode("utf-8", "ignore"))[:FIRST_PAGE_CHARS]
+                xml = [n for n in names if n.endswith(".xml")]
+                return " ".join(_xml_text(z.read(n).decode("utf-8", "ignore")) for n in xml)[:FIRST_PAGE_CHARS]
         if ext == "pdf":
-            import importlib.util
-            if importlib.util.find_spec("pypdf"):
-                import pypdf
-                return " ".join((p.extract_text() or "") for p in pypdf.PdfReader(io.BytesIO(data)).pages)
-    except Exception:     # noqa: BLE001, S110 - an unreadable file is checked as raw bytes
+            import pypdf
+            pages = pypdf.PdfReader(io.BytesIO(data)).pages
+            return (pages[0].extract_text() or "") if len(pages) else ""
+    except Exception:     # noqa: BLE001, S110 - an unreadable file is checked by its opening bytes
         pass
-    return data.decode("latin-1", "ignore")
+    return data[:FIRST_PAGE_CHARS * 4].decode("utf-8", "ignore")
 
 
 def _files(source: Path):
@@ -126,7 +165,7 @@ def collect(sources: list[Path], dest: Path = DEST) -> dict:
             if sha in seen:
                 same.append(f"{industry}/{target.name} (same as {seen[sha]})")
                 continue
-            if AI_MARK.search(text_of(name, data)):
+            if AI_MARK.search(first_page_text(name, data)):
                 refused.append(f"{industry}/{name}")
                 continue
             target.parent.mkdir(parents=True, exist_ok=True)

@@ -325,12 +325,9 @@ def model_upgrade_sql() -> str:
     Run after root_upgrade_sql; each statement only adds what is missing, so it changes nothing the second time."""
     codes = "ARRAY[" + ", ".join(lit(c) for c in UPGRADE_ATTRS) + "]::text[]"
     places = " OR ".join(f"(rt.code = {lit(t)} AND ra.code = {lit(a)})" for t, a in UPGRADE_PLACES)
-    return f"""
-SELECT set_config('eax.actor', 'system:seed', true);
-SELECT set_config('eax.history_label', 'Release 12 attributes in existing models', true);
-DROP TABLE IF EXISTS pg_temp.r12_types;
-CREATE TEMP TABLE r12_types AS
-WITH RECURSIVE root AS (SELECT id FROM core.models WHERE guid = {lit(TEMPLATE_ID)}),
+    # each step works out the types itself (WITH r12_types): the seed runs as eax_migrator, which may not make a
+    # temporary table (the database takes every right from PUBLIC; 23 Nov 2026, the API would not start)
+    types = f"""WITH RECURSIVE root AS (SELECT id FROM core.models WHERE guid = {lit(TEMPLATE_ID)}),
 up (type_id, model_id, cur_guid, cur_origin, depth) AS (
     SELECT t.id, t.model_id, t.guid, t.origin_guid, 0 FROM core.entity_types t
      WHERE NOT t.is_deleted AND t.model_id <> (SELECT id FROM root) AND t.origin_guid IS NOT NULL
@@ -339,7 +336,10 @@ up (type_id, model_id, cur_guid, cur_origin, depth) AS (
       FROM up u JOIN core.entity_types s ON s.guid = u.cur_origin WHERE u.depth < 25)
 SELECT u.type_id, u.model_id, r.id AS root_type_id
   FROM up u JOIN core.entity_types r ON r.guid = u.cur_guid AND r.model_id = (SELECT id FROM root)
-  JOIN core.models m ON m.id = u.model_id AND NOT m.is_deleted;
+  JOIN core.models m ON m.id = u.model_id AND NOT m.is_deleted"""
+    sql = f"""
+SELECT set_config('eax.actor', 'system:seed', true);
+SELECT set_config('eax.history_label', 'Release 12 attributes in existing models', true);
 -- the pick lists the new attributes use
 INSERT INTO core.pick_lists (model_id, code, name, description, origin_guid, status_code)
 SELECT DISTINCT m.model_id, p.code, p.name, p.description, p.guid, p.status_code
@@ -399,8 +399,8 @@ SELECT s.model_id, dr.id, s.type_id, g.type_id, ar.note, ar.guid, ar.status_code
  WHERE ar.model_id = (SELECT id FROM core.models WHERE guid = {lit(TEMPLATE_ID)}) AND NOT ar.is_deleted
    AND NOT EXISTS (SELECT 1 FROM core.allowed_relationships x WHERE x.model_id = s.model_id AND x.relationship_type_id = dr.id
                                                               AND x.source_type_id = s.type_id AND x.target_type_id = g.type_id);
-DROP TABLE IF EXISTS pg_temp.r12_types;
 """
+    return re.sub(r"^INSERT INTO ", lambda _m: f"WITH r12_types AS (\n{types}\n)\nINSERT INTO ", sql, flags=re.MULTILINE)
 
 
 # existing attributes Release 12 places on more types (D887): given to existing models with the new ones
