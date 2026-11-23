@@ -9,6 +9,7 @@ import { refreshAll, useApi } from "./ModelViews";
 import { Modal } from "./ModelOps";
 import { fmtDate, fmtDateTime } from "./fmt";
 import { trimDashes } from "./textScan";
+import { useSubTab } from "./adminNav";
 
 const STATES = { active: "Active", expiring: "Expires soon", expired: "Expired", revoked: "Revoked" };
 const LEVEL = { read: "read", "read-write": "read-write" };
@@ -16,23 +17,24 @@ const LEVEL = { read: "read", "read-write": "read-write" };
 export default function MachineAccess() {
   const meta = useApi("/api/v1/machine-access/areas");
   const all = meta.data?.manage_all;
-  const [view, setView] = useState("mine");
+  const [asked, setView] = useSubTab("machine-access");   // each view at #/admin/machine-access/<view> (D898)
   if (meta.error) return <p className="status bad">{meta.error}</p>;
   if (!meta.data) return <p>Loading...</p>;
+  const view = !all && (asked === "all" || asked === "service-accounts") ? "mine" : asked;   // only for who manages all
   return (
     <div className="machine-access">
       <p className="quiet">Other systems, scripts, Excel and Power BI (the OData feed) and MCP clients sign in with a <b>token</b> or an
         {" "}<b>API key</b>{all ? <>, or a <b>client certificate</b> on the machine-access port</> : ""}. Each one works as its owner, never
         with more than the owner may do, and only in the areas it is given. Every call it makes is in the change log.</p>
-      <div className="seg" role="tablist">
-        <button className={`${view === "mine" ? "on" : ""}`} onClick={() => setView("mine")}>My credentials</button>
-        {all && <button className={`${view === "all" ? "on" : ""}`} onClick={() => setView("all")}>Every credential</button>}
-        {all && <button className={`${view === "svc" ? "on" : ""}`} onClick={() => setView("svc")}>Service accounts</button>}
-        <button className={`${view === "areas" ? "on" : ""}`} onClick={() => setView("areas")}>Areas and addresses</button>
+      <div className="tabs sub" role="tablist" aria-label="Machine access">
+        <button role="tab" aria-selected={view === "mine"} className={`tab${view === "mine" ? " on" : ""}`} onClick={() => setView("mine")}>My credentials</button>
+        {all && <button role="tab" aria-selected={view === "all"} className={`tab${view === "all" ? " on" : ""}`} onClick={() => setView("all")}>Every credential</button>}
+        {all && <button role="tab" aria-selected={view === "service-accounts"} className={`tab${view === "service-accounts" ? " on" : ""}`} onClick={() => setView("service-accounts")}>Service accounts</button>}
+        <button role="tab" aria-selected={view === "areas"} className={`tab${view === "areas" ? " on" : ""}`} onClick={() => setView("areas")}>Areas and addresses</button>
       </div>
       {view === "mine" && <Credentials meta={meta.data} everyone={false} />}
       {view === "all" && all && <Credentials meta={meta.data} everyone />}
-      {view === "svc" && all && <ServiceAccounts meta={meta.data} />}
+      {view === "service-accounts" && all && <ServiceAccounts meta={meta.data} />}
       {view === "areas" && <Areas meta={meta.data} />}
     </div>
   );

@@ -292,7 +292,7 @@ def test_the_screens_and_the_routes_are_wired():
     assert '"/schedules"' in cc and '"/reset-survival"' in cc
     web = REPO / "services" / "web" / "src"
     assert "<AdminBanner />" in (web / "App.jsx").read_text(encoding="utf-8")
-    assert '["banner", "Banner"' in (web / "Admin.jsx").read_text(encoding="utf-8")
+    assert '{ key: "banner", label: "Banner"' in (web / "adminNav.js").read_text(encoding="utf-8")   # D898
     assert '["schedules", "Schedules"]' in (web / "CommandCentre.jsx").read_text(encoding="utf-8")
     # the reset-survival test is command line only since R2.0.1 (D592: the Self-test page has Smoke or Full only)
     assert "--reset-survival" in (REPO / "eaxcli" / "main.py").read_text(encoding="utf-8")

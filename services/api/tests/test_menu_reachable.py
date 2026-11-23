@@ -15,6 +15,15 @@ def _src(name: str) -> str:
 MENU = _src("menu.js")
 HREFS = set(re.findall(r'href: "(#/[^"]*)"', MENU))
 PATHS = {h.split("?")[0].rstrip("/") for h in HREFS}
+# System Admin's menu is made from adminNav.js (R13.1, D898): each page at #/admin/<key>, each sub-page at
+# #/admin/<key>/<sub>
+NAV = _src("adminNav.js")
+ADMIN_PAGES = re.findall(r'\{ key: "([a-z-]+)", label: "[^"]+", ok:', NAV)
+ADMIN_SUBS = {k: re.findall(r'\["([a-z-]+)", "[^"]+"\]', subs)
+              for k, subs in re.findall(r'\{ key: "([a-z-]+)", label: "[^"]+",[^{}]*?subs: \[((?:\s*\["[a-z-]+", "[^"]+"\],?)+)\s*\]', NAV)}
+assert "...adminMenu({ wizards: systemWizards })" in MENU
+PATHS |= {f"#/admin/{k}" for k in ADMIN_PAGES if k != "jenkins"}
+PATHS |= {f"#/admin/{k}/{s}" for k, subs in ADMIN_SUBS.items() for s in subs}
 
 # reached from a page in the menu, not from the menu itself (with where from)
 FROM_A_PAGE = {
@@ -57,8 +66,11 @@ def test_the_areas_and_where_they_sit():
 def test_wizards_parent_opens_the_wizards_page_and_repository_holds_the_content_framework():
     """Owner, 21:41: "clicking on wizards should take us to base wizard page like before"; "Arch repo and content
     framework need to be together in one menu", "top level and in project both"."""
-    for h in ("#/model-admin", "#/project-admin", "#/admin/wizards"):
+    for h in ("#/model-admin", "#/project-admin"):
         assert f'{{ label: "Wizards", href: "{h}", items:' in MENU, h
+    # System Admin's Wizards (adminNav.js, D898): the page's address, and the wizards as its sub-menu
+    assert '{ key: "wizards", label: "Wizards", ok: any' in NAV and "...adminMenu({ wizards: systemWizards })" in MENU
+    assert "href: p.href ? p.href() : `#/admin/${p.key}`," in NAV and "...(extra[p.key] ? { items: extra[p.key]() }" in NAV
     repo = MENU[MENU.index('key: "repository"'):MENU.index('key: "help"')]
     assert '{ label: "Architecture Repository", href: "#/repository"' in repo and '{ label: "Content framework", href: "#/metamodel"' in repo
     assert '["architecture", "Architecture", "◫", ["archrepo", "content",' in _src("Projects.jsx")
@@ -81,9 +93,10 @@ def test_every_address_the_screens_use_is_in_the_menu():
 
 
 def test_every_system_admin_tab_is_in_the_menu():
-    tabs = re.findall(r'^\s*\["([a-z-]+)", "[^"]+", \(\) =>', _src("Admin.jsx"), re.M)
-    assert len(tabs) >= 19
-    missing = [t for t in tabs if f"#/admin/{t}" not in PATHS]
+    """Every page System Admin shows (Admin.jsx) is a page of adminNav.js, which makes both the menu and the tabs."""
+    shown = set(re.findall(r't\[0\] === "([a-z-]+)" \?', _src("Admin.jsx")))
+    assert len(shown) >= 30
+    missing = [t for t in sorted(shown) if f"#/admin/{t}" not in PATHS]
     assert not missing, missing
 
 

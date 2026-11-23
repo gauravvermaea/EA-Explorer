@@ -236,8 +236,7 @@ def test_the_jenkins_tasks_and_the_command_line_agree():
 
 def test_the_screen_the_api_git_and_the_table_are_there():
     web = REPO / "services/web/src"
-    assert '["settings-transfer", "Settings import and export"' in (web / "Admin.jsx").read_text()
-    assert "#/admin/settings-transfer" in (web / "menu.js").read_text()
+    assert '{ key: "settings-transfer", label: "Settings import and export", ok: sup' in (web / "adminNav.js").read_text()   # D898
     assert "tab:Settings import and export" in json.loads((web / "help/catalogue.json").read_text(encoding="utf-8"))
     page = (web / "SettingsTransfer.jsx").read_text()
     for call in ("/settings-transfer/export", "/settings-transfer/preview", "/settings-transfer/import", "/settings-transfer/undo",

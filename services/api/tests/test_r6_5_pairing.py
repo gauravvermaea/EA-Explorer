@@ -75,8 +75,7 @@ def test_the_api_the_jobs_the_page_and_the_read_only_are_wired():
     assert "pairing_blp" in app and "pairing.refused_on_dr(request.method, request.path)" in app
     jobs = (root / "services/api/eax/jobs.py").read_text()
     assert 'name="eax.sync_tick"' in jobs and 'name="eax.sync_enqueue"' in jobs and 'name="eax.sync_commit"' in jobs
-    assert '["pairings", "Site pairings"' in (root / "services/web/src/Admin.jsx").read_text()
-    assert "#/admin/pairings" in (root / "services/web/src/menu.js").read_text()
+    assert '{ key: "pairings", label: "Site pairings' in (root / "services/web/src/adminNav.js").read_text()   # D898
     from eax import settings
     assert settings.REGISTRY["site_purpose"][3] == "PROD"
     # R6.5.4: the purposes the owner named (17 Nov 2026, 19:40: "DEV, UAT, PROD, CONTENT etc"), each with its badge colour

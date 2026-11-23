@@ -88,4 +88,4 @@ def test_it_runs_every_minute_and_is_on_the_page_and_in_mcp():
     for t in ("alert_checks", "alert_history", "alert_silences", "alert_config", "alert_custom"):
         assert f"core.{t}" in sql
     assert "CREATE FUNCTION" not in sql and "TRIGGER" not in sql                     # D248
-    assert '["alerts", "Alerts"' in (REPO / "services/web/src/Admin.jsx").read_text()
+    assert '{ key: "alerts", label: "Alerts' in (REPO / "services/web/src/adminNav.js").read_text()   # System Admin's pages and menu: adminNav.js (D898)

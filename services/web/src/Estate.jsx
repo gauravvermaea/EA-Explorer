@@ -2,13 +2,13 @@
 // network etc of estate"): the logical diagram (components and who calls whom) and the physical one of this
 // installation as it runs (containers, images, networks, published ports, volumes and folders). Read only; a download
 // as draw.io or SVG. The repository keeps the same, from docker-compose.yml, in docs/estate.md.
-import { useState } from "react";
 import { downloadDrawio, downloadPictureSvg, pictureSvg } from "./exporting";
 import { useApi } from "./ModelViews";
+import { useSubTab } from "./adminNav";
 
 export default function EstatePage() {
   const { data, error } = useApi("/api/v1/admin/estate");
-  const [which, setWhich] = useState("logical");
+  const [which, setWhich] = useSubTab("estate");   // #/admin/estate/logical or /physical (D898)
   if (error) return <p className="status bad">{error}</p>;
   if (!data) return <p>Loading...</p>;
   const d = data[which];
@@ -17,7 +17,7 @@ export default function EstatePage() {
   return (
     <div>
       <div className="row-gap">
-        <div className="tabs small-tabs" role="tablist">
+        <div className="tabs sub" role="tablist" aria-label="Estate">
           {[["logical", "Logical"], ["physical", "Physical"]].map(([k, l]) => (
             <button key={k} role="tab" aria-selected={which === k} className={which === k ? "tab on" : "tab"} onClick={() => setWhich(k)}>{l}</button>))}
         </div>

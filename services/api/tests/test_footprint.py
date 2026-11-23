@@ -56,7 +56,7 @@ def test_wired_in_every_form_and_the_page():
     assert 'stack.interactive([*ops, "footprint"], rest)' in (REPO / "eaxcli/main.py").read_text()
     assert "### footprint [label] | --watch" in (REPO / "eaxcli/help.txt").read_text()
     assert '@blp.route("/admin/footprint")' in (REPO / "services/api/eax/api/admin.py").read_text()
-    assert '["footprint", "Footprint"' in (REPO / "services/web/src/Admin.jsx").read_text()
+    assert '{ key: "footprint", label: "Footprint' in (REPO / "services/web/src/adminNav.js").read_text()   # System Admin's pages and menu: adminNav.js (D898)
 
 
 # ---------------------------------------------------------------- memory over time (Release 3.5, R3.5-M1)

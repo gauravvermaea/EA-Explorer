@@ -23,11 +23,12 @@
 // #/admin/projects moved to #/project-admin/library. The old addresses #/users, #/heartbeat and #/sql are gone (R2.0.1):
 // #/admin/users, #/admin/health and #/admin/sql.
 import { lazy, Suspense, useEffect, useState } from "react";
-import { apiFetch, can, needsRole, roles } from "./auth";
+import { apiFetch, can, needsRole } from "./auth";
 import { refreshAll, useApi } from "./ModelViews";
 import { Modal } from "./ModelOps";
 import { WebhooksPanel } from "./Notifications";
 import { config } from "./config";
+import { adminPage } from "./adminNav";
 import { appSettings, fmtDate, fmtDateTime, fmtMoney, fmtNumber, setAppSettings } from "./fmt";
 
 const Users = lazy(() => import("./Users"));
@@ -65,45 +66,6 @@ const BrandingPage = lazy(() => import("./BrandingAdmin"));
 const SettingsTransferPage = lazy(() => import("./SettingsTransfer"));   // Release 6.7 (D755)
 const QualityAdmin = lazy(() => import("./Quality").then((x) => ({ default: x.QualityAdmin })));
 
-const TABS = [
-  ["wizards", "Wizards", () => true, null],
-  ["application", "Application settings", () => true, null],
-  ["system", "System settings", () => can("system.operate") || can("settings.manage"), ["it-admin", "super-admin"]],
-  ["users", "Users", () => can("users.read"), ["user-admin", "super-admin"]],
-  ["security", "Security", () => can("system.operate"), ["it-admin", "super-admin", "auditor"]],   // allow lists, MFA (R5.2, R5.3)
-  ["health", "Health", () => true, null],
-  ["alerts", "Alerts", () => can("system.operate"), ["it-admin", "super-admin", "auditor"]],   // R5.9
-  ["containers", "Containers", () => can("system.operate"), ["it-admin", "super-admin"]],
-  ["logs", "Logs", () => can("system.operate"), ["it-admin", "super-admin", "auditor"]],   // every log, the web log (R5.6)
-  ["hosts", "Hosts", () => can("system.operate"), ["it-admin", "super-admin"]],           // the Docker engine (R2.16)
-  ["mounts", "Mounts", () => can("system.operate"), ["it-admin", "super-admin"]],         // volumes and bind mounts (R2.17)
-  ["databases", "Databases", () => can("system.operate"), ["it-admin", "super-admin"]],   // where each lives (R2.50)
-  ["secrets", "Secrets", () => can("system.operate"), ["it-admin", "super-admin"]],   // passwords, keys, certificates (R6-S1)
-  ["pairings", "Site pairings", () => can("system.operate"), ["it-admin", "super-admin"]],   // sync and DR sync (Release 6.5)
-  ["settings-transfer", "Settings import and export", () => roles().includes("super-admin"), ["super-admin"]],   // Release 6.7 (D755)
-  ["db-maintenance", "Database maintenance", () => can("system.operate"), ["it-admin", "super-admin", "auditor"]],   // R5.12
-  ["optimisation", "Optimisation", () => true, null],
-  ["jobs", "Jobs", () => can("system.operate"), ["it-admin", "super-admin"]],   // the job queue, stuck jobs (R5.30)
-  ["sizing", "Sizing", () => can("system.operate"), ["it-admin", "super-admin", "auditor"]],   // R5.19   // R5.1: a Model Admin sees what is theirs to decide
-  ["persist", "Persist", () => can("system.operate"), ["it-admin", "super-admin"]],       // what survives resets (R2.26)
-  ["footprint", "Footprint", () => can("system.operate"), ["it-admin", "super-admin"]],   // how much each takes (R2.22)
-  ["estate", "Estate", () => can("system.operate"), ["it-admin", "super-admin"]],         // its own diagrams (R2.33)
-  ["scaling", "Scaling", () => can("system.operate"), ["it-admin", "super-admin"]],
-  ["self-test", "Self-test", () => can("system.operate"), ["it-admin", "super-admin"]],
-  ["backups", "Backups", () => can("system.operate"), ["it-admin", "super-admin"]],
-  ["restores", "Restores", () => can("system.operate"), ["it-admin", "super-admin"]],
-  ["disaster-recovery", "Disaster recovery", () => can("system.operate"), ["it-admin", "super-admin"]],   // R5.6-B2
-  ["quality", "Quality", () => true, null],
-  ["sql", "SQL", () => can("system.operate"), ["it-admin", "super-admin"]],
-  ["machine-access", "Machine access", () => true, null],
-  ["operations", "Operations", () => can("system.operate"), ["it-admin", "super-admin"]],
-  ["updates", "Updates", () => can("system.operate"), ["it-admin", "super-admin"]],
-  ["commands", "Command centre", () => can("system.operate"), ["it-admin", "super-admin"]],
-  ["setup", "Setup", () => can("system.operate"), ["it-admin", "super-admin"]],   // the guides, guided (R6.6, D750)
-  ["banner", "Banner", () => can("system.operate"), ["it-admin", "super-admin"]],
-  ["branding", "Branding", () => can("settings.manage"), ["super-admin"]],   // logo, themes and CSS (R5.7-B1)
-  ["licences", "Licences", () => true, null],
-];
 
 export function adminTab(route) {
   const r = route.replace(/^#/, "");
@@ -115,14 +77,18 @@ export default function Admin({ route }) {
   const [tab, inner] = adminTab(route);
   if (tab === "projects") { window.location.replace("#/project-admin/library"); return null; }   // moved to Project admin (D285)
   if (tab === "deploy") { window.location.replace("#/farm/deploy"); return null; }   // moved to the site picker (R2.14)
-  const t = TABS.find(([k]) => k === tab) || TABS[0];
+  // three levels (adminNav.js, D898): the group's pages as tabs (not all 38), the page's own sub-tabs inside it
+  const page = adminPage(tab);
+  const t = [page.key, page.label, page.ok, page.roles];
   return (
     <div className="admin">
       <h1>System admin</h1>
-      <div className="tabs" role="tablist">
-        {TABS.map(([k, l, ok, roles]) => (ok()
-          ? <a key={k} href={`#/admin/${k}`} className={`tab${t[0] === k ? " on" : ""}`} role="tab" aria-selected={t[0] === k}>{l}</a>
-          : <span key={k} className="tab nav-off" title={needsRole(roles)}>{l}</span>))}
+      <p className="admin-crumb quiet small" aria-label="Where you are">System admin › {page.group.label} › {page.label}</p>
+      <div className="tabs" role="tablist" aria-label={page.group.label}>
+        {page.group.pages.filter((p) => !p.href).map((p) => (p.ok()
+          ? <a key={p.key} href={`#/admin/${p.key}`} className={`tab${page.key === p.key ? " on" : ""}`} role="tab"
+            aria-selected={page.key === p.key} title={p.title}>{p.label}</a>
+          : <span key={p.key} className="tab nav-off" title={needsRole(p.roles)}>{p.label}</span>))}
       </div>
       <div className="tab-panel" role="tabpanel">
         <Suspense fallback={<p>Loading...</p>}>

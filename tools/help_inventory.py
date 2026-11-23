@@ -242,6 +242,11 @@ def tabs() -> set[str]:
                 t = _leading_text(src, end)
                 if _keep(t):
                     keys.add("tab:" + t)
+    # System Admin's pages and their sub-pages (adminNav.js, D898): the group's tabs and each page's sub-tabs
+    nav = (SRC / "adminNav.js").read_text(encoding="utf-8")
+    keys.update("tab:" + t for t in re.findall(r'\{ key: "[a-z-]+", label: "([^"]+)", ok: [^{}]*?\}', nav) if not t.endswith("↗"))
+    for subs in re.findall(r'subs: \[((?:\s*\["[a-z-]+", "[^"]+"\],?)+)\s*\]', nav):
+        keys.update("tab:" + t for t in re.findall(r'\["[a-z-]+", "([^"]+)"\]', subs))
     return keys
 
 

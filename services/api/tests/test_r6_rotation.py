@@ -116,7 +116,7 @@ def test_the_schedules_and_the_tab():
     assert '["secrets", "rotate", "--due"]' in cc and '["certs", "renew"]' in cc
     web = (REPO / "services/web/src/Secrets.jsx").read_text()
     assert "never a value" in web and "/api/v1/admin/secrets/rotate" in web
-    assert '["secrets", "Secrets", () => can("system.operate")' in (REPO / "services/web/src/Admin.jsx").read_text()
+    assert '{ key: "secrets", label: "Secrets: passwords, keys and certificates", ok: ops' in (REPO / "services/web/src/adminNav.js").read_text()   # D898
 
 
 def test_eax_up_adds_what_a_newer_release_brought(tmp_path, monkeypatch):

@@ -204,7 +204,7 @@ export default function Users({ route }) {
   return (
     <div>
       <h1>Users and roles</h1>
-      <div className="tabs" role="tablist">
+      <div className="tabs sub" role="tablist" aria-label="Users and roles">
         {[["people", "People"], ["mapping", "Keycloak role mapping"]].map(([k, l]) => (
           <a key={k} href={`#/admin/users/${k}`} className={`tab${tab === k ? " on" : ""}`} role="tab" aria-selected={tab === k}>{l}</a>
         ))}

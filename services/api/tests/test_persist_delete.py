@@ -65,8 +65,7 @@ def test_the_web_and_every_form_of_eax():
     assert 'self.path == "/persist"' in ops and 'self.path == "/persist/delete"' in ops
     admin = (REPO / "services/api/eax/api/admin.py").read_text()
     assert '@blp.route("/admin/persist/delete")' in admin and '"persist.deleted"' in admin and 'confirm") != "DELETE"' in admin
-    assert '["persist", "Persist"' in (REPO / "services/web/src/Admin.jsx").read_text()
-    assert '"#/admin/persist"' in (REPO / "services/web/src/menu.js").read_text()
+    assert '{ key: "persist", label: "Persist"' in (REPO / "services/web/src/adminNav.js").read_text()   # System Admin's pages and menu: adminNav.js (D898)
     assert "persist|" in (REPO / "eax.sh").read_text() and '"schedule", "persist"' in (REPO / "eax.ps1").read_text()
     assert "persist_cli.main(rest)" in (REPO / "eaxcli/main.py").read_text()
     assert "### persist" in (REPO / "eaxcli/help.txt").read_text()

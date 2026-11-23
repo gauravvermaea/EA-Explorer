@@ -10,6 +10,7 @@ import { apiFetch, can } from "./auth";
 import { fmtDateTime, byText } from "./fmt";
 import { useApi } from "./ModelViews";
 import { JobSlots } from "./Jobs";
+import { useSubTab } from "./adminNav";
 
 const mb = (b) => (b == null ? "" : b >= 1e9 ? `${(b / 1e9).toFixed(1)} GB` : `${Math.round(b / 1e6)} MB`);
 
@@ -229,14 +230,14 @@ function Summary({ onPick, showAll = false }) {
 }
 
 function ContainerView({ service }) {
-  const [view, setView] = useState("properties");
+  const [view, setView] = useSubTab("containers");   // #/admin/containers/<view>, kept as you pick containers (D898)
   const { data: d, error } = useApi(`/api/v1/admin/containers/${service}`);
   return (
     <div>
       <h3>{service} {d && <span className={`ct-state ${d.state.running ? "up" : "down"}`}>{d.state.status}</span>}
         {d && d.health.status !== "none" && <span className={`ct-state ${d.health.status === "healthy" ? "up" : "warn"}`}>{d.health.status}</span>}</h3>
       {purposeOf({ service, key: service }) && <p className="quiet small">{purposeOf({ service, key: service })}</p>}
-      <div className="tabs small-tabs" role="tablist">
+      <div className="tabs sub" role="tablist" aria-label="Container">
         {[["properties", "Properties"], ["logs", "Logs"], ["terminal", "Terminal"], ["files", "Files"]].map(([k, l]) => (
           <button key={k} role="tab" aria-selected={view === k} className={view === k ? "tab on" : "tab"} onClick={() => setView(k)}>{l}</button>
         ))}

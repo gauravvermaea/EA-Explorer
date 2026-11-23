@@ -23,6 +23,7 @@ import { apiBlobUrl, apiDownload, apiFetch, can } from "./auth";
 import { Modal } from "./ModelOps";
 import { fmtDateTime, byText } from "./fmt";
 import { trackTask } from "./tasks";
+import { useSubTab } from "./adminNav";
 
 const SUITES = [
   ["api", "API", "every endpoint, with no token and as every role: allowed and refused, never a server error"],
@@ -148,7 +149,7 @@ function PerformanceTrend() {
 }
 
 export default function SelfTest() {
-  const [tab, setTab] = useState("run");
+  const [tab, setTab] = useSubTab("self-test");   // each tab at #/admin/self-test/<tab> (D898); watch opens on Run
   // #/admin/self-test/watch[/<run>] (eax test watch --browser, R5.20): the run (or the one going on) watched, its Live browser open
   const asked = /#\/admin\/self-test\/watch(?:\/(\d+))?/.exec(window.location.hash || "");
   const [watchRun, setWatchRun] = useState(asked ? Number(asked[1] || 0) : null);
@@ -172,9 +173,9 @@ export default function SelfTest() {
       <p className="quiet small">Tests this installation, in fixtures of its own: each run makes models, a project and test accounts
         named <code>self_test_&lt;id&gt;_&lt;n&gt;</code> and tests only inside them, so nothing else changes and runs can be repeated.
         The same runs come from <code>eax test</code> and CI. Fixtures stay until you purge them (Test fixtures).</p>
-      <div className="seg" role="tablist" aria-label="Self-test">
+      <div className="tabs sub" role="tablist" aria-label="Self-test">
         {[["run", "Run"], ["summary", "Summary"], ["history", "History"], ["security", "Security"], ["performance", "Performance"], ["fixtures", "Test data"], ["harness", "API harness"]].map(([k, l]) => (
-          <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>{l}</button>))}
+          <button key={k} role="tab" aria-selected={tab === k} className={`tab${tab === k ? " on" : ""}`} onClick={() => setTab(k)}>{l}</button>))}
       </div>
       {err && <p className="status bad">{err}</p>}
       {tab === "run" && data?.runner?.build?.busy && <TestRunner runner={data.runner || {}} onBuilt={built} onChange={load} />}

@@ -269,7 +269,8 @@ def test_commands_and_screens_are_wired():
     assert "mcp_tests" in (API / "eax/mcp_server.py").read_text()
     assert "platform_tests_blp" in (API / "eax/app.py").read_text()
     web = REPO / "services" / "web" / "src"
-    assert '["scaling", "Scaling"' in (web / "Admin.jsx").read_text() and '["self-test", "Self-test"' in (web / "Admin.jsx").read_text()
+    nav = (web / "adminNav.js").read_text()   # System Admin's pages and menu (D898)
+    assert '{ key: "scaling", label: "Scaling"' in nav and '{ key: "self-test", label: "Self-test"' in nav
     assert "<LastSelfTest />" in (web / "Heartbeat.jsx").read_text()
     tr = (web / "TestRuns.jsx").read_text()      # two choices only (R2.0.1, D592), and the test data deleted (D593)
     assert '["smoke", "Smoke test"' in tr and '["full", "Full test"' in tr and "Type DELETE" in tr and "Delete all test data" in tr

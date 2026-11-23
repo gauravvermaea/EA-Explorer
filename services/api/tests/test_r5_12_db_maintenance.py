@@ -68,7 +68,7 @@ def test_it_runs_by_itself_on_the_web_and_on_the_command_line():
     assert "### db " in (REPO / "eaxcli/help.txt").read_text()
     sql = (REPO / "services/api/migrations/sql/0081_r5_db_maintenance.sql").read_text()
     assert "core.db_maintenance_runs" in sql and "FUNCTION" not in sql
-    assert '["db-maintenance", "Database maintenance"' in (REPO / "services/web/src/Admin.jsx").read_text()
+    assert '{ key: "db-maintenance", label: "Database maintenance' in (REPO / "services/web/src/adminNav.js").read_text()   # System Admin's pages and menu: adminNav.js (D898)
 
 
 def test_what_else_is_checked():

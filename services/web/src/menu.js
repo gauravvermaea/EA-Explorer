@@ -13,6 +13,7 @@ import { can, libraryInfo, myInfo, partOn, roles, signOut } from "./auth";
 import { openHelp } from "./help/help";
 import { serviceOn } from "./fmt";
 import { MODEL_WIZARDS, PROJECT_WIZARDS, SYSTEM_WIZARDS } from "./wizardLists";
+import { adminMenu } from "./adminNav";
 
 // ---------------------------------------------------------------- who may use what
 const anyModelAdmin = () => (myInfo()?.models || []).some((m) => (m.permissions || []).includes("model.lock"));
@@ -194,53 +195,9 @@ export function menuTree() {
         note: "A Super Admin or IT Admin switches MCP on in System Admin › Settings › System settings (Services)." },
     ] },
     { key: "system", label: "System Admin", ok: () => ops() || can("settings.manage") || can("users.read"), items: [
-      { label: "Wizards", href: "#/admin/wizards", items: systemWizards() },
-      { label: "Settings", items: [
-        { label: "Application settings", href: "#/admin/application" },
-        { label: "System settings", href: "#/admin/system", ok: () => ops() || can("settings.manage") },
-        { label: "Banner", href: "#/admin/banner", ok: ops },
-        { label: "Branding: logo and themes", href: "#/admin/branding", ok: () => can("settings.manage") },   // R5.7-B1
-        { label: "Settings import and export", href: "#/admin/settings-transfer", ok: sup },   // Release 6.7 (D755)
-        { label: "Licences", href: "#/admin/licences" },
-      ] },
-      { label: "Users and roles", href: "#/admin/users", ok: () => can("users.read") },
-      { label: "Security", href: "#/admin/security", ok: ops },   // IP allow lists, multi-factor sign-in (R5.2, R5.3)
-      { label: "Running", ok: ops, items: [
-        { label: "Health", href: "#/admin/health" },
-        { label: "Alerts", href: "#/admin/alerts" },        // every check, the open alerts (R5.9)
-        { label: "Jobs", href: "#/admin/jobs" },            // the job queue, stuck jobs (R5.30)
-        { label: "Containers", href: "#/admin/containers" },
-        { label: "Logs", href: "#/admin/logs" },            // every log, the web log (R5.6)
-        { label: "Hosts", href: "#/admin/hosts" },          // the Docker engine (R2.16)
-        { label: "Mounts", href: "#/admin/mounts" },        // volumes and bind mounts (R2.17)
-        { label: "Databases", href: "#/admin/databases" },
-        { label: "Secrets: passwords, keys and certificates", href: "#/admin/secrets" },
-        { label: "Site pairings: sync and DR sync", href: "#/admin/pairings" },   // Release 6.5 (D749)
-        { label: "Database maintenance", href: "#/admin/db-maintenance" },   // R5.12
-        { label: "Optimisation", href: "#/admin/optimisation" },             // R5.1
-        { label: "Sizing", href: "#/admin/sizing" },                         // R5.19
-        { label: "Persist", href: "#/admin/persist" },
-        { label: "Footprint", href: "#/admin/footprint" },
-        { label: "Estate", href: "#/admin/estate" },
-        { label: "Scaling", href: "#/admin/scaling" },
-        { label: "Operations", href: "#/admin/operations" },
-        { label: "Data quality", href: "#/admin/quality" },
-      ] },
-      { label: "Backups and restores", ok: ops, items: [
-        { label: "Backups", href: "#/admin/backups" },
-        { label: "Restores", href: "#/admin/restores" },
-        { label: "Disaster recovery", href: "#/admin/disaster-recovery" },
-      ] },
-      { label: "Updates", href: "#/admin/updates", ok: ops },   // Deploy moved to the site picker (R2.14)
-      { label: "Tools", ok: ops, items: [
-        { label: "Command centre", href: "#/admin/commands" },
-        { label: "Setup", href: "#/admin/setup" },
-        { label: "SQL", href: "#/admin/sql" },
-        { label: "Self-test", href: "#/admin/self-test" },
-        // owner, 18 Nov 2026, 18:26: "make it a menu item to open in admin. It will just open the jenkins URL"
-        { label: "Jenkins ↗", href: myInfo()?.jenkins || `http://${window.location.hostname}:8088` },
-      ] },
-      { label: "Machine access", href: "#/admin/machine-access" },
+      // seven groups by the admin's task, each page with its sub-pages: the same list as the page's tabs (adminNav.js;
+      // owner, 23 Nov 2026, R13.1, D898)
+      ...adminMenu({ wizards: systemWizards }),
     ] },
     // Documentation across the top (owner, 18 Nov 2026, 18:24: "Please make site or documentation as top level menu
     // item"): the website first (role guides, How do I, concepts, reports), then the documents; everyone may use it

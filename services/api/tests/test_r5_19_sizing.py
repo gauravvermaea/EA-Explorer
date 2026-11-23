@@ -127,7 +127,7 @@ def test_it_is_on_the_screen_and_the_command_line():
     assert '"/admin/sizing"' in (REPO / "services/api/eax/api/admin.py").read_text()
     assert "|estimate|" in (REPO / "eax.sh").read_text() and '"optimise", "estimate",' in (REPO / "eax.ps1").read_text()
     assert "### estimate " in (REPO / "eaxcli/help.txt").read_text()
-    assert '["sizing", "Sizing"' in (REPO / "services/web/src/Admin.jsx").read_text()
+    assert '{ key: "sizing", label: "Sizing' in (REPO / "services/web/src/adminNav.js").read_text()   # System Admin's pages and menu: adminNav.js (D898)
     assert "#/admin/sizing" in (REPO / "services/web/src/Deploy.jsx").read_text()
     sql = (REPO / "services/api/migrations/sql/0085_r5_sizing.sql").read_text()
     assert "core.sizing_estimates" in sql and "FUNCTION" not in sql

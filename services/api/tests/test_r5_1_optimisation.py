@@ -103,7 +103,7 @@ def test_it_runs_monthly_on_the_web_and_on_the_command_line():
     assert "### optimise " in (REPO / "eaxcli/help.txt").read_text()
     sql = (REPO / "services/api/migrations/sql/0083_r5_optimisation.sql").read_text()
     assert "core.optimisation_reports" in sql and "FUNCTION" not in sql
-    assert '["optimisation", "Optimisation"' in (REPO / "services/web/src/Admin.jsx").read_text()
+    assert '{ key: "optimisation", label: "Optimisation' in (REPO / "services/web/src/adminNav.js").read_text()   # System Admin's pages and menu: adminNav.js (D898)
     ops = (REPO / "services/ops/ops.py").read_text()
     assert '"/docker/prune"' in ops and '"/docker/space"' in ops and '"volume"' not in ops.split("def docker_prune(")[1].split("\ndef ")[0]
 

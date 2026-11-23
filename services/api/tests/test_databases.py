@@ -52,7 +52,7 @@ def test_the_services_take_their_database_host():
 
 def test_shown_on_the_web_and_the_command_line():
     assert '@blp.route("/admin/databases")' in (REPO / "services/api/eax/api/admin.py").read_text()
-    assert '["databases", "Databases"' in (REPO / "services/web/src/Admin.jsx").read_text()
+    assert '{ key: "databases", label: "Databases' in (REPO / "services/web/src/adminNav.js").read_text()   # System Admin's pages and menu: adminNav.js (D898)
     for f in ("eax.sh", "eax.ps1", "eaxcli/main.py"):                       # eax in sync (D331)
         assert "eax.databases" in (REPO / f).read_text(), f
     assert "### databases" in (REPO / "eaxcli/help.txt").read_text()

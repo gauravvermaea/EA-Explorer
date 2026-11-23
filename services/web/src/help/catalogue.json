@@ -4266,5 +4266,77 @@
   },
   "field:My theme's name": "The name of a theme of your own, as it shows in your list (at most 60 characters); keeping one under the same name replaces it.",
   "field:Upload a theme": "A CSS file of looks only (colours, fonts, sizes), for example one downloaded here or from another EA Explorer: nothing that loads from elsewhere or runs. Yours alone.",
-  "button:Keep it": "Keep the uploaded theme as one of your own (checked first; at most ten), then choose it in My theme above."
+  "button:Keep it": "Keep the uploaded theme as one of your own (checked first; at most ten), then choose it in My theme above.",
+  "tab:Users and roles": {
+    "what": "People and their roles.",
+    "how": [
+      "Search a person; change their roles."
+    ]
+  },
+  "tab:Data quality": {
+    "what": "Data quality: score, completeness, rules passed, freshness, orphans and duplicates, drilling down to entities.",
+    "how": [
+      "Open any tile to see the entities behind it; Duplicates finds and merges likely duplicates."
+    ],
+    "example": "Completeness 82%: open it to see what is missing."
+  },
+  "tab:Secrets: passwords, keys and certificates": {
+    "title": "Secrets",
+    "what": "Every password, key and certificate EA Explorer uses, by name: their values are never shown. How each changes (by itself, or by a person), when it last changed, when it is next due, and what needs a person and by when (R6-S1).",
+    "how": [
+      "Read the yellow box first: what needs a person, and why (for example the mail server's password, changed on the mail server first).",
+      "Rotate now changes one at once: a database login in the database too, a sign-in client's secret in Keycloak too; the services that use it start again in a few seconds.",
+      "Certificates (certificate mode) renew by themselves; the authority itself is changed only with eax certs on the machine."
+    ],
+    "example": "Rotate every one that is due now, then watch the run on System Admin › Commands."
+  },
+  "tab:Branding: logo and themes": {
+    "what": "The look of EA Explorer's own screens: the logo, the browser tab's icon, the name in the top bar and the theme. Four themes ship (standard, dark, high contrast, corporate) and Super Admins add their own as CSS.",
+    "how": [
+      "Choose the organisation's theme: it shows at once on your screen so you see how it feels; Save makes it everyone's. Switch on whether each person may pick their own on My profile.",
+      "Upload a logo and a small icon for the browser tab; give a product name, or leave it empty for EA Explorer.",
+      "Theme designer: start from a copy of any theme, change its colours with the colour pickers, its fonts, text size and corners; each change shows at once; Save as a new theme keeps it.",
+      "Fonts: upload your own font (WOFF2, WOFF, TrueType or OpenType) under a family name; it shows in the theme designer's font lists as (uploaded).",
+      "To make a theme: Download CSS of one, change its colours, fonts and corners, and add it under a name. Anything that loads from elsewhere or runs is refused, with the line.",
+      "Anyone who finds a theme hard to read picks Standard look in their own menu; a break-glass session always has it."
+    ]
+  },
+  "tab:Site pairings: sync and DR sync": {
+    "title": "Site pairings",
+    "what": "This site paired with another: content sync (models, projects, organisations) or DR sync (everything, the other site kept read only and up to date) (R6.5).",
+    "how": [
+      "On the receiving site: Make a key (shown once).",
+      "On the sending site: Pair with a site, with its address and the key.",
+      "On the receiving site: accept the pairing; batches then arrive and are committed by hand or by themselves.",
+      "Sync now sends at once; Stop and take over ends a DR pairing."
+    ]
+  },
+  "tab:My credentials": {
+    "what": "The tokens, API keys and client certificates you made for scripts, Excel, Power BI and MCP clients.",
+    "how": [
+      "Make a new one and give it the areas it may use; it never does more than you may.",
+      "Revoke one you no longer use."
+    ]
+  },
+  "tab:Every credential": {
+    "what": "Every person's tokens, API keys and client certificates (for who manages them all).",
+    "how": [
+      "Find one by its owner or name and see where it was last used.",
+      "Revoke one that should not work any more."
+    ]
+  },
+  "tab:Service accounts": {
+    "what": "Accounts for systems rather than people, each with its own credentials and areas.",
+    "how": [
+      "Make one for a system that calls EA Explorer.",
+      "Give it only the areas it needs."
+    ]
+  },
+  "tab:Areas and addresses": {
+    "what": "The areas a credential can be given and the addresses each one reaches.",
+    "how": [
+      "Check which address a script or report should call.",
+      "Use it to choose the areas when you make a credential."
+    ]
+  }
 }

@@ -340,9 +340,8 @@ def test_eax_drill_runs_end_to_end_from_the_installations_own_code_with_no_githu
 def test_system_admin_has_a_disaster_recovery_tab_with_the_steps_and_commands_for_both_systems():
     """The owner, 17 Nov 2026, 00:04: "On backup and restore page add a tab for DR and provide commands and steps for setup"."""
     web = REPO / "services" / "web" / "src"
-    admin, page = (web / "Admin.jsx").read_text(), (web / "DisasterRecovery.jsx").read_text()
-    assert admin.index('["restores", "Restores"') < admin.index('["disaster-recovery", "Disaster recovery"')
-    assert '"#/admin/disaster-recovery"' in (web / "menu.js").read_text()
+    admin, page = (web / "adminNav.js").read_text(), (web / "DisasterRecovery.jsx").read_text()   # D898
+    assert admin.index('{ key: "restores", label: "Restores"') < admin.index('{ key: "disaster-recovery", label: "Disaster recovery"')
     for cmd in (".\\\\eax dr-pack", "./eax dr-pack", ".\\\\eax-dr -Pack .. -Install", "./eax-dr.sh --pack .. --install",
                 ".\\\\dr\\\\eax-drill -Install", "./dr/eax-drill.sh --install", "eax test backup-restore"):
         assert cmd in page, cmd

@@ -59,7 +59,7 @@ def test_the_page():
     assert 'self.path == "/estate"' in (REPO / "services/ops/ops.py").read_text()
     assert "COPY estate_ops.py /app/estate_ops.py" in (REPO / "services/ops/Dockerfile").read_text()
     assert '@blp.route("/admin/estate")' in (REPO / "services/api/eax/api/admin.py").read_text()
-    assert '["estate", "Estate"' in (REPO / "services/web/src/Admin.jsx").read_text()
+    assert '{ key: "estate", label: "Estate' in (REPO / "services/web/src/adminNav.js").read_text()   # System Admin's pages and menu: adminNav.js (D898)
 
 
 def test_r5_8_every_container_is_in_the_logical_diagram():

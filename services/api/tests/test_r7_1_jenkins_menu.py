@@ -23,5 +23,8 @@ def test_the_api_gives_the_jenkins_address_eax_prints(monkeypatch):
 
 
 def test_system_admin_has_jenkins_opening_that_address():
+    """System Admin's menu is made from adminNav.js (R13.1, D898): Jenkins is the last of Tools, in the menu only."""
     system = MENU[MENU.index('key: "system"'):MENU.index('key: "docs"')]
-    assert 'label: "Jenkins ↗", href: myInfo()?.jenkins' in system
+    assert "...adminMenu(" in system
+    nav = (REPO / "services/web/src/adminNav.js").read_text(encoding="utf-8")
+    assert 'label: "Jenkins ↗", ok: ops, roles: IT, href: () => myInfo()?.jenkins' in nav

@@ -255,8 +255,8 @@ def test_the_helper_the_api_and_the_screens_are_wired():
                   "/admin/containers/<service>/files/content", "/admin/containers/<service>/files/download", "/admin/alerts",
                   "/internal/container-alerts"):
         assert f'@blp.route("{route}")' in admin, route
-    menu = (WEB / "menu.js").read_text()
-    assert '"#/admin/hosts"' in menu and '"#/admin/mounts"' in menu
+    menu = (WEB / "adminNav.js").read_text()     # System Admin's pages and menu (D898)
+    assert '{ key: "hosts", label: "Hosts"' in menu and '{ key: "mounts", label: "Mounts"' in menu
     assert '["files", "Files"]' in (WEB / "ContainerConsole.jsx").read_text()
     assert "<ContainerAlertBanner />" in (WEB / "App.jsx").read_text()
 

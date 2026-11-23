@@ -93,8 +93,8 @@ def test_the_screens_wire_it_in():
     app = (WEB / "App.jsx").read_text(encoding="utf-8")
     assert "<BrandMark />" in app and "loadBranding()" in app and "useLookFromRoute(route)" in app
     assert '"#/my-profile?look=standard"' in (WEB / "menu.js").read_text(encoding="utf-8")
-    admin = (WEB / "Admin.jsx").read_text(encoding="utf-8")
-    assert '["branding", "Branding", () => can("settings.manage"), ["super-admin"]]' in admin
+    admin = (WEB / "adminNav.js").read_text(encoding="utf-8")   # System Admin's pages and menu (D898)
+    assert '{ key: "branding", label: "Branding: logo and themes", ok: () => can("settings.manage"), roles: ["super-admin"] }' in admin
     assert "<MyLook />" in (WEB / "Skills.jsx").read_text(encoding="utf-8")
 
 

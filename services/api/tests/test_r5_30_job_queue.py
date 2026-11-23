@@ -70,4 +70,4 @@ def test_the_jobs_page_and_the_dashboard():
     for t in ("being worked on", "Kill", "Move down", "Move up", "Cancel", "Restart the job runner", "Add API servers"):
         assert t in jsx
     assert "<JobsSummary />" in (REPO / "services/web/src/Heartbeat.jsx").read_text()
-    assert '"#/admin/jobs"' in (REPO / "services/web/src/menu.js").read_text()
+    assert '{ key: "jobs", label: "Jobs"' in (REPO / "services/web/src/adminNav.js").read_text()   # System Admin's pages and menu: adminNav.js (D898)

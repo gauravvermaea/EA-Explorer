@@ -130,4 +130,4 @@ def test_the_page_and_its_api():
     assert '@require_auth("settings.manage")\n    def post(self, data):\n        """Deletes the container logs' in admin
     jsx = (REPO / "services/web/src/Logs.jsx").read_text()
     assert "Web log" in jsx and "Download CSV" in jsx and "Slowest first" in jsx
-    assert '["logs", "Logs"' in (REPO / "services/web/src/Admin.jsx").read_text()
+    assert '{ key: "logs", label: "Logs' in (REPO / "services/web/src/adminNav.js").read_text()   # System Admin's pages and menu: adminNav.js (D898)
