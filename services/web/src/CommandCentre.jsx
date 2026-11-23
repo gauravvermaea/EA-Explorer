@@ -16,6 +16,7 @@ import UpkeepChoices from "./Upkeep";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch, can } from "./auth";
 import { fmtDateTime } from "./fmt";
+import { useSubTab } from "./adminNav";
 
 const KIND = {
   run: ["", ""],
@@ -26,7 +27,7 @@ const KIND = {
 };
 
 export default function CommandCentre({ route }) {
-  const sub = (route || "").split("/")[3] || "commands";
+  const [sub] = useSubTab("commands");   // #/admin/commands/<sub>; with none, the one last used (D898)
   if (!can("system.operate")) return <p className="quiet">The Command centre is for IT Admins and Super Admins.</p>;
   return (
     <div className="cc">

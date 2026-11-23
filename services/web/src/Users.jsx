@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { apiFetch, can, roleName, needsRole } from "./auth";
 import { downloadCsv } from "./exporting";
 import { Modal } from "./ModelOps";
+import { useSubTab } from "./adminNav";
 
 // R9.7 (owner, 21 Nov 2026: "force one user setup authenticator from user list if they lost phone or something"; D829)
 const MFA_SHOWN = { "set up": "set up", asked: "asked to set up", none: "none" };
@@ -199,7 +200,7 @@ function RoleMapping() {
 }
 
 export default function Users({ route }) {
-  const tab = route.split("?")[0].split("/")[3] || "people";   // #/admin/users/<people|mapping>
+  const [tab] = useSubTab("users");   // #/admin/users/<people|mapping>; with none, the one last used (D898)
   if (!can("users.read")) return <p className="status bad">This page is for User Admins and Super Admins.</p>;
   return (
     <div>

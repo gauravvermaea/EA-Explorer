@@ -17,7 +17,7 @@ def _src(name: str) -> str:
 
 
 NAV = _src("adminNav.js")
-GROUPS = re.findall(r'^  \{ key: "([a-z]+)", label: "([^"]+)", pages: \[', NAV, re.M)
+GROUPS = re.findall(r'^  \{ key: "([a-z]+)", label: "([^"]+)", icon: "[^"]+", pages: \[', NAV, re.M)
 PAGES = re.findall(r'\{ key: "([a-z-]+)", label: "([^"]+)", ok:', NAV)
 SUBS = {k: re.findall(r'\["([a-z-]+)", "[^"]+"\]', subs)
         for k, subs in re.findall(r'\{ key: "([a-z-]+)", label: "[^"]+",[^{}]*?subs: \[((?:\s*\["[a-z-]+", "[^"]+"\],?)+)\s*\]', NAV)}
@@ -58,12 +58,20 @@ def test_one_name_for_one_thing_and_every_old_address_still_opens():
     assert shown <= set(keys), shown - set(keys)     # every page Admin.jsx draws is in the list (and so in the menu)
 
 
-def test_a_page_shows_its_groups_tabs_not_all_of_them():
+def test_multi_level_tabs_as_projects_and_models_have_them():
+    """Owner, 23 Nov 2026, 21:16: "I want multi level tabs like we have in Projects and model, you still land in the tab
+    you selected but other tabs should also be there at the same structure as the menu": PageNav draws every group (a
+    row of tabs), the group's pages (a second row) and where you are; the page's own sub-tabs are the third row; each
+    group opens on the page last used in it, and each page on the sub-tab last used on it."""
     admin = _src("Admin.jsx")
     assert "const TABS = [" not in admin and "TABS.map" not in admin
-    assert "page.group.pages.filter((p) => !p.href).map((p) => (p.ok()" in admin
-    assert "System admin › {page.group.label} › {page.label}" in admin           # where you are
-    assert 'import { adminPage } from "./adminNav";' in admin
+    assert '<PageNav page="admin" tabs={ADMIN_PAGES.filter((p) => p.ok()).map((p) => [p.key, p.label])}' in admin
+    assert "groups={ADMIN_GROUPS.map((g) => [g.key, g.label, g.icon, g.pages.map((p) => p.key)])}" in admin
+    assert 'crumbs={[{ label: "System admin", href: "#/admin" }]}' in admin and 'subLabel={sub ? sub[1] : ""}' in admin
+    nav = _src("PageNav.jsx")      # the same component as Projects and models
+    assert 'className="tabs nav-groups"' in nav and "const groupHref = (g) => href(g.tabs.some((t) => t[0] === last[g.k])" in nav
+    assert '<PageNav page="project"' in _src("Projects.jsx")
+    assert 'const last = readLastTabs("admin-sub")[page];' in NAV and 'saveLastTab("admin-sub", page, sub);' in NAV
 
 
 def test_every_sub_tab_has_an_address_and_a_menu_entry():
@@ -76,9 +84,8 @@ def test_every_sub_tab_has_an_address_and_a_menu_entry():
             at = src.index('role="tablist"')
             listed = re.findall(r'\["([a-z-]+)", "[^"]+"\]', src[at:at + 300])
             assert listed == SUBS[page], (page, listed, SUBS[page])     # the same sub-pages, in the same order
-        else:                                                  # the rest: the tab kept in the address by useSubTab
-            assert f'useSubTab("{page}")' in src, file
-            assert 'import { useSubTab } from "./adminNav";' in src, file
+        assert f'useSubTab("{page}")' in src, file         # every page: kept in the address and remembered
+        assert 'import { useSubTab } from "./adminNav";' in src, file
 
 
 def test_sub_tabs_look_the_same_on_every_page():
@@ -91,7 +98,7 @@ def test_a_sub_page_address_opens_its_tab_and_survives_a_reload():
     missing sub-page opens the first; choosing a tab writes the address (keeping its ?query)."""
     assert "new RegExp(`^#/admin/${page}/([a-z0-9-]+)`)" in NAV
     assert 'window.addEventListener("hashchange", on)' in NAV and 'window.removeEventListener("hashchange", on)' in NAV
-    assert "return keys.includes(s) ? s : first;" in NAV
+    assert "if (keys.includes(s)) return s;" in NAV and "return !s && keys.includes(last) ? last : first;" in NAV
     assert "const to = `#/admin/${page}/${k}${q ? `?${q}` : \"\"}`;" in NAV
     # Machine access: Every credential and Service accounts only for who manages every credential, else My credentials
     assert 'const view = !all && (asked === "all" || asked === "service-accounts") ? "mine" : asked;' in _src("MachineAccess.jsx")
@@ -105,3 +112,12 @@ def test_the_menu_keeps_who_sees_what():
     for k in ("health", "quality", "optimisation"):
         assert re.search(rf'\{{ key: "{k}", label: "[^"]+", ok: any, menu: ops,', NAV), k
     assert "ok: p.menu || p.ok," in NAV
+
+
+def test_a_browser_journey_walks_the_three_levels():
+    """The full test clicks through it (the smoke test's page sweep opens every page and sub-page in the menu)."""
+    from eax.testing.ui_flows import JOURNEYS
+    j = next(x for x in JOURNEYS if x["name"].startswith("system admin navigation:"))
+    opened = [s["open"] for s in j["steps"] if "open" in s]
+    assert "#/admin/self-test/summary" in opened and "#/admin/health" in opened        # a sub-page, and an old address
+    assert {"remember": "sub", "url": r"#/admin/self-test/(history)"} in j["steps"]   # a sub-tab writes its address

@@ -153,6 +153,31 @@ JOURNEYS: list[dict] = [
          {"fill": "Search", "value": "backup", "wait": 800},
          {"expect": "ackup"},
      ]},
+    # System Admin in three levels (R13.1, R13.2, D898): a page shows its group's tabs only and where you are; a
+    # sub-tab has its own address; an old address still opens its page. Reads only.
+    {"name": "system admin navigation: group tabs, sub-tabs and their addresses", "smoke": False,
+     "roles": ["super-admin", "it-admin"],
+     "why_no_refusal": "it only moves between pages and saves nothing; who may open each page is the page's own check",
+     "steps": [
+         {"open": "#/admin/self-test/summary", "expect": "System admin › Tools › Self-test"},
+         {"expect_sel": '.admin .nav-groups a[aria-selected="true"]'},                # every group, Tools on
+         {"expect": "Backups and recovery"},                                         # another group, there too
+         {"expect_sel": '.admin .nav-tabs a[href="#/admin/commands"]'},              # a page of its own group
+         {"expect_not": "Branding: logo and themes"},                                # not a page of another group
+         {"click": "History", "within": ".tab-panel .tabs.sub", "exact": True},
+         {"remember": "sub", "url": r"#/admin/self-test/(history)"},                 # the sub-tab's own address
+         {"click": "Infrastructure", "within": ".nav-groups"},
+         {"remember": "infra", "url": r"#/admin/(hosts|mounts|databases|db-maintenance|persist|scaling)"},
+         {"click": "Tools", "within": ".nav-groups"},
+         {"remember": "back", "url": r"#/admin/(self-test)"},                        # back where you were
+         {"open": "#/admin/backups", "expect": "System admin › Backups and recovery › Backups"},
+         {"expect": "Site pairings: sync and DR sync"},
+         {"open": "#/admin/machine-access/areas", "expect": "System admin › People and access › Machine access"},
+         {"expect": "Areas and addresses"},
+         {"open": "#/admin/health", "expect": "System admin › Health and monitoring › Health"},   # an old address
+         {"open": "#/admin/estate/physical", "expect": "System admin › Capacity › Estate"},
+         {"expect": "containers"},                                                   # the physical picture's line
+     ]},
     # the real banner and schedules are read first and always put back (admin_guard, run.py), D583
     {"name": "admin: banner and a schedule, put back", "smoke": False, "roles": ["super-admin", "it-admin"],
      "refused": {"role": "architect", "open": "#/admin/banner", "disabled_or_absent": "Save the banner"},

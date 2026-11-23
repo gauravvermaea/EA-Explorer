@@ -28,7 +28,8 @@ import { refreshAll, useApi } from "./ModelViews";
 import { Modal } from "./ModelOps";
 import { WebhooksPanel } from "./Notifications";
 import { config } from "./config";
-import { adminPage } from "./adminNav";
+import { ADMIN_GROUPS, ADMIN_PAGES, adminPage, adminSub } from "./adminNav";
+import PageNav from "./PageNav";
 import { appSettings, fmtDate, fmtDateTime, fmtMoney, fmtNumber, setAppSettings } from "./fmt";
 
 const Users = lazy(() => import("./Users"));
@@ -77,19 +78,18 @@ export default function Admin({ route }) {
   const [tab, inner] = adminTab(route);
   if (tab === "projects") { window.location.replace("#/project-admin/library"); return null; }   // moved to Project admin (D285)
   if (tab === "deploy") { window.location.replace("#/farm/deploy"); return null; }   // moved to the site picker (R2.14)
-  // three levels (adminNav.js, D898): the group's pages as tabs (not all 38), the page's own sub-tabs inside it
+  // three levels, the same as the menu (adminNav.js, D898), drawn as Projects and models draw theirs (PageNav): every
+  // group, then the group's pages, then the page's own sub-tabs inside it; each group opens on the tab last used in it
   const page = adminPage(tab);
   const t = [page.key, page.label, page.ok, page.roles];
+  const sub = page.subs?.find(([k]) => k === adminSub(page.key));
   return (
     <div className="admin">
       <h1>System admin</h1>
-      <p className="admin-crumb quiet small" aria-label="Where you are">System admin › {page.group.label} › {page.label}</p>
-      <div className="tabs" role="tablist" aria-label={page.group.label}>
-        {page.group.pages.filter((p) => !p.href).map((p) => (p.ok()
-          ? <a key={p.key} href={`#/admin/${p.key}`} className={`tab${page.key === p.key ? " on" : ""}`} role="tab"
-            aria-selected={page.key === p.key} title={p.title}>{p.label}</a>
-          : <span key={p.key} className="tab nav-off" title={needsRole(p.roles)}>{p.label}</span>))}
-      </div>
+      <PageNav page="admin" tabs={ADMIN_PAGES.filter((p) => p.ok()).map((p) => [p.key, p.label])}
+        groups={ADMIN_GROUPS.map((g) => [g.key, g.label, g.icon, g.pages.map((p) => p.key)])}
+        active={page.key} href={(k) => `#/admin/${k}`} crumbs={[{ label: "System admin", href: "#/admin" }]}
+        subLabel={sub ? sub[1] : ""}>
       <div className="tab-panel" role="tabpanel">
         <Suspense fallback={<p>Loading...</p>}>
           {!t[2]() ? <p className="status bad">{needsRole(t[3])}</p>
@@ -131,6 +131,7 @@ export default function Admin({ route }) {
                     : <Settings group={t[0]} />}
         </Suspense>
       </div>
+      </PageNav>
     </div>
   );
 }
