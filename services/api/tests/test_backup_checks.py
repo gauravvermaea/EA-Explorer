@@ -82,7 +82,7 @@ def test_backup_is_the_last_suite_of_a_full_test_and_eax_test_backup():
     run = (REPO / "services/api/eax/testing/run.py").read_text()
     assert run.index('if "backup" in suites:') > run.index('if "security" in suites:')
     ops = (REPO / "services/ops/testruns.py").read_text()
-    assert 'SUITES = ("api", "ui", "db", "jobs", "mcp", "security", "reports", "performance", "backup", "restore")' in ops   # reports: R4.1
+    assert 'SUITES = ("api", "ui", "db", "jobs", "mcp", "security", "reports", "performance", "attack", "backup", "restore")' in ops   # reports: R4.1; attack: R8.2
     sys.path.insert(0, str(REPO))
     from eaxcli import commands as C
     assert C.check_argv(["test", "backup"]) == ["test", "backup"]

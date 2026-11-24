@@ -78,7 +78,8 @@ def test_r4_22_nothing_is_deleted_through_mcp():
     src = inspect.getsource(mo)
     code = "\n".join(ln for ln in src.splitlines() if not ln.lstrip().startswith(("#", '"')))
     assert '"state": "archived"' in code and '"deleted"' not in code and "purge" not in code.lower()
-    assert not any(w in n for n in _tools() for w in ("delete", "purge", "credential", "role"))
+    # a TOGAF role (skills_by_togaf_role, R12) is a job in the TOGAF skills framework, not a sign-in role
+    assert not any(w in n.replace("togaf_role", "togaf") for n in _tools() for w in ("delete", "purge", "credential", "role"))
 
 
 def test_r4_22_for_super_and_it_admins_only(world):

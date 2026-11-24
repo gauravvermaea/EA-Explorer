@@ -36,6 +36,7 @@ CASES: list[tuple[list[str], list[str], int, bool]] = [
     (["backups"], [], 120, False),
     (["restores"], [], 120, False),
     (["packs", "status"], [], 120, False),
+    (["packs", "ocr"], ["ocr"], 120, False),          # look only; --clear is never run here
     (["import"], [], 120, False),
     (["services"], ["reports"], 120, False),
     (["servers"], [], 120, False),

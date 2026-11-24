@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build a connector · EA Explorer</title>
+<meta name="description" content="The pattern for a connector from any source system: read, map, write a published format or push, schedule, watch.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html" class="here">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Build a connector</h1>
+    <p class="who">For: Developers</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">The pattern for a connector from any source system: read, map, write a published format or push, schedule, watch.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#what-a-connector-is-here">What a connector is here</a></li><li><a href="#the-pattern">The pattern</a></li><li><a href="#make-it-safe-to-run-again">Make it safe to run again</a></li><li><a href="#examples">Examples</a></li><li><a href="#read-next">Read next</a></li></ul></nav>
+    <h2 id="what-a-connector-is-here">What a connector is here</h2>
+<p>A connector is a small program (or a job in your integration platform) that reads a source system and hands EA Explorer what it found in a published shape. EA Explorer does the rest: matching, checking against the metamodel, showing the changes for review, loading. Your connector does not need to know EA Explorer's database or ids.</p>
+<h2 id="the-pattern">The pattern</h2>
+<ol><li><strong>Agree the scope with the Model Admin</strong>: which entity types and attributes the source is the authority for, and whether its values should win over people's edits (a setting of the source).</li><li><strong>Get the shape</strong>: download the empty template for those types (<a href="../how-do-i/download-an-empty-template.html">Download an empty template</a>), or the push source's sample files from the Python kit. The column codes are your target.</li><li><strong>Read the source</strong>: its API, a database view, an export. Keep the read simple and repeatable.</li><li><strong>Map</strong>: one row per entity, <code>name</code> as the key, attribute codes as columns, values as text (dates <code>YYYY-MM-DD</code>, Yes/No, a pick list's value). Relationships as <code>source</code>, <code>relationship_type</code>, <code>target</code>, by name. See <a href="../integrate/import-formats.html">The published import formats</a>.</li><li><strong>Deliver</strong>: write the file into the delivery folder (<a href="../integrate/deliveries.html">Deliveries: the folder way in</a>), or push it over REST (<a href="../integrate/push-sources.html">Push sources and the Python kit</a>).</li><li><strong>Schedule it</strong>: the operating system's scheduler, your integration platform, <code>eax schedule</code>, or a Jenkins pipeline.</li><li><strong>Watch it</strong>: each delivery has a log and a review; problem rows can be corrected on screen; a webhook can tell you when a delivery is accepted or declined (<a href="../integrate/webhooks.html">Webhooks</a>).</li></ol>
+<h2 id="make-it-safe-to-run-again">Make it safe to run again</h2>
+<p>Deliveries are matched by type and name, so sending the same data twice changes nothing; only real differences are shown. Send the whole set the source is the authority for each time rather than a list of changes: missing rows are shown as "no longer delivered" for a person to decide, never deleted.</p>
+<h2 id="examples">Examples</h2>
+<div class="table"><table><thead><tr><th>Source</th><th>Types</th><th>Usual way</th></tr></thead><tbody><tr><td>Configuration database</td><td>Node, System Software, Device</td><td>OData source, or a nightly CSV into the folder</td></tr><tr><td>Service management tool</td><td>Application Component, Application Service</td><td>Push from Python</td></tr><tr><td>HR system</td><td>Business Actor, Business Role</td><td>Nightly export in the Excel format</td></tr><tr><td>Finance</td><td>cost attributes on applications</td><td>CSV of name and cost</td></tr><tr><td>Cloud accounts</td><td>Node, Technology Service</td><td>Push from a script using the cloud's own CLI</td></tr></tbody></table></div>
+<h2 id="read-next">Read next</h2>
+<ul><li><a href="../integrate/push-sources.html">Push sources and the Python kit</a></li><li><a href="../integrate/authentication-for-integrations.html">Signing in as a system</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="13.0.0">Version 13.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: integrate/build-a-connector.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

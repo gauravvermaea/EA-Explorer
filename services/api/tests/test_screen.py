@@ -154,9 +154,12 @@ def test_the_screen_driven_headless(monkeypatch):
             await pilot.pause(0.3)
             seen["dialog"] = str(app.screen.query_one("#dialog-line").renderable)
             await pilot.click("#run")
-            await pilot.pause(1.0)
             log = app.screen.query_one("#output-log")
-            seen["output"] = " ".join(str(getattr(x, "text", x)) for x in log.lines)
+            for _ in range(150):                          # up to 15 s: the full test ran this on a loaded machine (R14)
+                await pilot.pause(0.1)
+                seen["output"] = " ".join(str(getattr(x, "text", x)) for x in log.lines)
+                if "ran [" in seen["output"]:
+                    break
             await pilot.press("escape")
             await pilot.pause(0.2)
             await pilot.press("alt+b")                    # Backups

@@ -11,7 +11,8 @@ filled from the run's ids, and {$name}, filled from a "remember" step of the sam
                                              "exact": true for the whole text, "optional_alt": another text to try
                                              "opens": css of the pop-up it opens (clicked once more if none came)
   {"click_re": "regex"}                      the same, by a regular expression ("^Merge \\d+ accepted")
-  {"choose": "text"}                         a radio or checkbox by its label text
+  {"choose": "text"}                         a radio or checkbox by its label text (a checkbox's click toggles it;
+                                             "checked": true or false sets it to that state instead)
   {"fill": "label", "value": "…"}            the field with this label (or placeholder or aria-label)
   {"select": "label", "option": "…"}         a drop-down with this label: the first option starting with the text
                                              ("*": the first real choice, not "(not set)")
@@ -108,7 +109,7 @@ JOURNEYS: list[dict] = [
          {"expect": "Now a Transition Planning"},          # what saving said, in the dialog (it closes after)
          {"expect_not": "Note (optional)", "timeout": 5000},   # the dialog closed: the iteration was saved
          {"expect": "Transition Planning"},
-         {"open": "#/projects/{p}/phases/B", "expect": "isn't part of this", "optional": True},
+         {"open": "#/projects/{p}/phases?phase=B", "expect": "isn't part of this", "optional": True},
          {"open": "#/projects/{p}", "expect": "{project_name}"},
          {"click": "Change…", "within": ".iteration-bar"},
          {"choose": "Full cycle", "within": "[role=dialog]"},
@@ -127,7 +128,8 @@ JOURNEYS: list[dict] = [
          {"click": "Architecture Work", "exact": True}, {"expect": "My models"}, {"press": "Escape"},
          {"click": "Model Admin", "exact": True}, {"click": "Wizards", "within": ".tm-area.open"}, {"expect": "Model admin"},
          {"click": "Project Admin", "exact": True}, {"click": "Wizards", "within": ".tm-area.open"}, {"expect": "Project admin"},
-         {"click": "System Admin", "exact": True}, {"click": "Wizards", "within": ".tm-area.open"}, {"expect": "Wizards"},
+         {"click": "System Admin", "exact": True}, {"click": "Tools", "within": ".tm-area.open", "exact": True},   # R13: a group
+         {"click": "Wizards", "within": ".tm-area.open", "exact": True}, {"expect": "Wizards"},
          {"click": "Repository & Content Framework", "exact": True}, {"expect": "Content framework"}, {"press": "Escape"},
          {"press": "/"}, {"expect_sel": ".qj"},
          {"fill": "Find", "value": "backups", "wait": 600}, {"expect": "System Admin"}, {"press": "Escape"},
@@ -152,6 +154,18 @@ JOURNEYS: list[dict] = [
          {"open": "#/documentation", "expect": "Documentation for"},
          {"fill": "Search", "value": "backup", "wait": 800},
          {"expect": "ackup"},
+     ]},
+    # Documents' OCR, off unless chosen (D903): the setting on System settings and its step, with its switch, in the
+    # first-run setup. Never switched here: on, Documents would read every page of every document during the test.
+    {"name": "documents ocr: the setting and its first-run step", "smoke": False, "roles": ["super-admin"],
+     "why_no_refusal": "it only reads; System settings and the first-run setup refuse others on their own pages",
+     "steps": [
+         {"open": "#/admin/documents", "expect": "Documents: read scanned pages (OCR)"},
+         {"expect": "When it runs"}, {"expect": "Any time"}, {"expect": "Progress"},
+         {"open": "#/admin/wizards", "expect": "First-run setup"},
+         {"click": "First-run setup", "opens": ".ed-dialog"},
+         {"expect": "Documents: read scanned pages (OCR) (optional)", "within": ".ed-dialog"},
+         {"expect": "Read scanned pages (OCR):", "within": ".ed-dialog"},
      ]},
     # System Admin in three levels (R13.1, R13.2, D898): a page shows its group's tabs only and where you are; a
     # sub-tab has its own address; an old address still opens its page. Reads only.
@@ -372,7 +386,7 @@ JOURNEYS: list[dict] = [
          {"open": "#/projects/{p}/projectplan", "expect": "The phases"},
          {"click": "Settings", "within": ".project-plan"},
          {"select": "How RACI is recorded", "option": "Per phase"},
-         {"choose": "B", "within": ".project-plan details"},
+         {"choose": "B", "within": ".project-plan details", "checked": True},
          {"click": "Save the settings", "wait": 1500},
          {"expect": "settings are saved"},
          {"expect": "RACI, per phase"},
@@ -390,13 +404,13 @@ JOURNEYS: list[dict] = [
          {"fill": "Status summary", "value": "self_test_{sid} status {role}"},
          {"click": "Report", "exact": True, "wait": 1500},
          {"expect": "Status reported: amber"},
-         {"open": "#/projects/{p}/phases/B", "expect": "Business Architecture"},
+         {"open": "#/projects/{p}/phases?phase=B", "expect": "Business Architecture"},   # the phases tab's own address
          {"click": "Mark the phase complete", "wait": 1500},
          {"expect": "is an approval gate"},                             # refused: its deliverables wait for approval
          {"open": "#/projects/{p}/projectplan", "expect": "The phases"},
          {"click": "Settings", "within": ".project-plan"},
          {"select": "How RACI is recorded", "option": "No RACI"},
-         {"choose": "B", "within": ".project-plan details"},
+         {"choose": "B", "within": ".project-plan details", "checked": False},
          {"click": "Save the settings", "wait": 1500},
          {"expect": "settings are saved"},
          {"expect_not": "RACI, per phase", "timeout": 5000},
@@ -437,15 +451,20 @@ JOURNEYS: list[dict] = [
      "why_no_refusal": "everyone keeps their own profile",
      "steps": [
          {"open": "#/my-profile", "expect": "TOGAF roles and skill levels"},
-         {"choose": "Data Architect"},
+         {"choose": "Data Architect", "checked": True},
          {"select": "My level in Data", "option": "3"},
          {"click": "Save my skills", "wait": 1500},
          {"expect": "Your skills are"},                                 # saved (or cleared: a test account has no tags)
+         {"expect_sel": 'label:has-text("Data Architect") input:checked'},   # kept ticked once saved
+         {"open": "#/my-profile", "expect": "TOGAF roles and skill levels"},
+         {"expect_sel": 'label:has-text("Data Architect") input:checked'},   # and after the page is opened again
+         # the repository lists the organisation's people (Keycloak): this run signs in with a token, so it is not
+         # among them; the view by TOGAF role is opened and shown
          {"open": "#/repository/skills", "expect": "Skills repository"},
          {"click": "By TOGAF role"},
-         {"expect": "Data Architect"},
+         {"expect_sel": '.cf-view.on:has-text("By TOGAF role")'},
          {"open": "#/my-profile", "expect": "TOGAF roles and skill levels"},
-         {"choose": "Data Architect"},
+         {"choose": "Data Architect", "checked": False},
          {"select": "My level in Data", "option": "not said"},
          {"click": "Save my skills", "wait": 1500},
          {"expect": "Your skills are"},                                 # saved (or cleared: a test account has no tags)
@@ -682,9 +701,17 @@ def _in_modal_first(page, root, s: dict, find):
     return find(root)
 
 
+def text_pattern(text: str, exact: bool = False, pattern: str = ""):
+    """What a control's text must match to be the one named: it starts with the name (is it, exact), after any icon in
+    front (System Admin's group tabs read "▦ Infrastructure", R13; the full test of 24 Nov 2026 found none of them)."""
+    if pattern:
+        return re.compile(pattern)
+    lead = r"^[^\w]*?" if re.match(r"\w", text or "") else r"^\s*"
+    return re.compile(rf"{lead}{re.escape(text)}\s*$" if exact else rf"{lead}{re.escape(text)}", re.I)
+
+
 def _clickable(page, text: str, exact: bool = False, pattern: str = ""):
-    pat = re.compile(pattern) if pattern else re.compile(rf"^\s*{re.escape(text)}\s*$" if exact else rf"^\s*{re.escape(text)}", re.I)
-    loc = page.locator(_CLICKABLE).filter(has_text=pat)
+    loc = page.locator(_CLICKABLE).filter(has_text=text_pattern(text, exact, pattern))
     for i in range(min(loc.count(), 20)):
         el = loc.nth(i)
         if _visible(el):
@@ -869,8 +896,15 @@ def step(page, s: dict, open_route: Callable[..., None], state: dict | None = No
         loc = _in_modal_first(page, root, s, label)
         if loc is None:
             return f"no choice \"{s['choose']}\""
-        loc.click()
         box = loc.locator("input[type=radio], input[type=checkbox]")
+        # "checked": a checkbox set to that state, not toggled: a run stopped half-way can leave one ticked, and the
+        # next run's click then unticked it (the full test of 24 Nov 2026: TOGAF skills, Data Architect)
+        want = s.get("checked")
+        is_box = box.count() and box.first.get_attribute("type") == "checkbox"
+        if not (is_box and want is not None and box.first.is_checked() == bool(want)):
+            loc.click()
+        if is_box and want is not None and box.first.is_checked() != bool(want):
+            return f"\"{s['choose']}\" is still {'not ' if want else ''}ticked"
         if box.count() and box.first.get_attribute("type") == "radio" and not box.first.is_checked():
             box.first.check()                          # the click landed on the label's text but not its radio
         if box.count() and box.first.get_attribute("type") == "radio" and not box.first.is_checked():

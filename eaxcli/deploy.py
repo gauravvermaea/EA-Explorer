@@ -68,6 +68,11 @@ class Question:
                 "kind": "select" if self.options else ""}
 
 
+
+# where files are put on the server before they go into place: a folder in the signed-in user's home only they may open
+STAGE = ".eaexplorer-stage"
+STAGE_SH = f'"$HOME/{STAGE}"'
+
 def _installed() -> dict:
     try:
         return json.loads(INSTALL_FILE.read_text(encoding="utf-8"))
@@ -341,15 +346,19 @@ class Ctx:
             return self.run(["bash", "-c", script], what, input_text)
         return self.run([*self.ssh_argv(), script], what, input_text)
 
-    def upload(self, local: Path | str, remote_path: str, what: str = "") -> None:
-        """Copies a file to the target (locally, or over SSH)."""
+    def upload(self, local: Path | str, name: str, what: str = "") -> str:
+        """Copies a file to the target (locally, or over SSH) into the stage folder, a folder only the signed-in user may
+        open (~/.eaexplorer-stage, 700), never the shared /tmp, where another user of the server could have put a
+        file or a link of the same name first (SonarQube S5443, R14); returns where it is, for the shell lines after."""
+        self.remote(f"mkdir -p {STAGE_SH} && chmod 700 {STAGE_SH}", "")
         if not _remote(self.answers):
-            self.run(["sudo", "cp", str(local), remote_path], what)
-            return
+            self.run(["sudo", "cp", str(local), str(Path.home() / STAGE / name)], what)
+            return f"{STAGE_SH}/{shlex.quote(name)}"
         a = self.answers
         target = self.values.get("ssh_target") or a.get("ssh_target") or "<user@address>"
         self.run(["scp", "-o", "StrictHostKeyChecking=accept-new", "-o", "BatchMode=yes", "-i", a.get("ssh_key", ""),
-                  "-P", str(a.get("ssh_port", "22")), str(local), f"{target}:{remote_path}"], what)
+                  "-P", str(a.get("ssh_port", "22")), str(local), f"{target}:{STAGE}/{name}"], what)   # relative: in the home folder
+        return f"{STAGE_SH}/{shlex.quote(name)}"
 
     def wait(self, what: str, test: Callable[[], bool], minutes: float = 10, every: float = 10) -> None:
         """Waits until a test passes (at most some minutes)."""
@@ -514,10 +523,10 @@ def server_steps(a: dict) -> list[Step]:
             tmp.parent.mkdir(parents=True, exist_ok=True)
             tmp.write_text(text, encoding="utf-8", newline="\n")
             _owner_only(tmp)
-        ctx.upload(tmp, "/tmp/eaexplorer.env", "the config file")
+        up = ctx.upload(tmp, "eaexplorer.env", "the config file")
         ctx.remote(f"sudo mkdir -p {q(where)}/work/logs {q(where)}/work/backups {q(where)}/work/proxy && "
                    f"for d in databases documents logs backups imports exports certificates reports; do sudo mkdir -p {q(data)}/$d; done && "
-                   f"sudo install -m 600 /tmp/eaexplorer.env {q(where)}/work/eaexplorer.env && rm -f /tmp/eaexplorer.env",
+                   f"sudo install -m 600 {up} {q(where)}/work/eaexplorer.env && rm -f {up}",
                    "put it in place, readable by its owner only")
         if not ctx.plan:
             tmp.unlink(missing_ok=True)
@@ -527,9 +536,9 @@ def server_steps(a: dict) -> list[Step]:
         for f in ("tls.crt", "tls.key"):
             if not ctx.plan and not (src / f).exists():
                 raise StepFailed(f"{src / f} is missing.")
-            ctx.upload(src / f, f"/tmp/{f}", f"your certificate's {f}")
-        ctx.remote(f"sudo install -m 644 /tmp/tls.crt {q(data)}/tls/tls.crt && sudo install -m 600 /tmp/tls.key {q(data)}/tls/tls.key "
-                   f"&& rm -f /tmp/tls.crt /tmp/tls.key", "into the certificate folder")
+            ctx.upload(src / f, f, f"your certificate's {f}")
+        ctx.remote(f"sudo install -m 644 {STAGE_SH}/tls.crt {q(data)}/tls/tls.crt && sudo install -m 600 {STAGE_SH}/tls.key {q(data)}/tls/tls.key "
+                   f"&& rm -f {STAGE_SH}/tls.crt {STAGE_SH}/tls.key", "into the certificate folder")
 
     def start(ctx: Ctx):
         where = ctx.values.get("folder", folder)
@@ -554,9 +563,9 @@ def server_steps(a: dict) -> list[Step]:
             import tarfile
             with tarfile.open(archive, "w:gz") as t:
                 t.add(src, arcname=name)
-        ctx.upload(archive, f"/tmp/{name}.tar.gz", "the backup")
-        ctx.remote(f"sudo mkdir -p {q(where)}/work/backups/infrastructure && sudo tar -xzf /tmp/{q(name)}.tar.gz "
-                   f"-C {q(where)}/work/backups/infrastructure && rm -f /tmp/{q(name)}.tar.gz", "unpack it")
+        up = ctx.upload(archive, f"{name}.tar.gz", "the backup")
+        ctx.remote(f"sudo mkdir -p {q(where)}/work/backups/infrastructure && sudo tar -xzf {up} "
+                   f"-C {q(where)}/work/backups/infrastructure && rm -f {up}", "unpack it")
         for what in ("db", "files"):
             ctx.remote(f"cd {q(where)} && sudo ./eax.sh restore {q(name)} --what {what} --yes",
                        f"restore {'every database' if what == 'db' else 'the files'} (the config file stays this server's)")

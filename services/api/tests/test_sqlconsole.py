@@ -47,6 +47,7 @@ def test_the_window_signs_in_by_role_in_certificate_mode(monkeypatch):
     login reads and writes, an IT Admin's reads; two separate logins; certificates for both."""
     monkeypatch.setenv("EAX_CONSOLE_IT_PASSWORD", "a")
     monkeypatch.setenv("EAX_CONSOLE_SUPER_PASSWORD", "b")
+    monkeypatch.delenv("EAX_AUTH_MODE", raising=False)       # password mode here: the test container has /eax-certs and may run in certificate mode
     assert sqlconsole.console_login(True) == ("eax_console_super", "b")
     assert sqlconsole.console_login(False) == ("eax_console_it", "a")
     assert sqlconsole._connect_args("eax_console_it", "a") == {"user": "eax_console_it", "password": "a"}

@@ -88,7 +88,7 @@ export default function ContainerConsole() {
             </li>
           ))}
         </ul>
-        <div className="ct-main">{pick === SUMMARY ? <Summary onPick={setPick} showAll={showAll} /> : <ContainerView key={pick} service={pick} />}</div>
+        <div className="ct-main">{pick === SUMMARY ? <Summary onPick={setPick} showAll={showAll} known={error} /> : <ContainerView key={pick} service={pick} />}</div>
       </div>
     </div>
   );
@@ -142,7 +142,9 @@ function FileSystems({ h }) {
   );
 }
 
-function Summary({ onPick, showAll = false }) {
+// known: the problem the page already shows above (the operations helper not reachable, say): not said again here
+// (R14.35, owner 23 Nov 2026: one problem was shown three times in two wordings; once, with its code, is enough)
+function Summary({ onPick, showAll = false, known = "" }) {
   const [h, setH] = useState(null);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
@@ -168,8 +170,8 @@ function Summary({ onPick, showAll = false }) {
         {["red", "amber", "green", "off"].filter((k) => n[k]).map((k) => <span key={k} className={`rag ${k}`}>{n[k]} {k === "off" ? "not running" : k === "green" ? "healthy" : k === "amber" ? "warning" : "problem"}</span>)}
         {fsBad.map((f) => <span key={f.path} className={`rag ${f.level}`}>{f.label} {f.used_percent}% full</span>)}
       </div>
-      {err && <p className="status bad">{err}</p>}
-      {h?.helper && <p className="status bad small">{h.helper}</p>}
+      {err && !known && <p className="status bad">{err}</p>}
+      {h?.helper && !known && <p className="status bad small">{h.helper}</p>}
       {h?.problems?.length > 0 && <p className="status warn small">Not everything could be read: {h.problems.join("; ")}</p>}
       {!h && !err && <p className="quiet">Reading...</p>}
       {h && <FileSystems h={h} />}

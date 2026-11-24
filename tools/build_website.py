@@ -526,7 +526,7 @@ def videos() -> dict[str, str]:
 
 def _quick_steps(page: Page) -> str:
     """The page's steps, as its How do I page has them (or what it is for, where it has no steps)."""
-    m = re.search(r"^## Steps\s*\n(.*?)(?=^## |\Z)", page.body_md, re.M | re.S)
+    m = re.search(r"^## Steps\s*\n(.*?)(?=(?:^## )|\Z)", page.body_md, re.M | re.S)
     md = m.group(1).strip() if m else ""
     if not re.search(r"^\s*\d+\.\s", md, re.M):
         return f'<p>{html.escape(page.summary)}</p>'

@@ -107,12 +107,29 @@ def has_tools() -> bool:
     return all(importlib.util.find_spec(m) is not None for m in ("ruff", "pytest"))
 
 
-def in_runner(args: list[str], root: Path = ROOT) -> list[str]:
+# R14.27 (owner, 23 Nov 2026, 20:46: "we have struggled whole day to test"): the unit tests read the code through Docker's
+# share of the C: drive, some 26,000 look-ups only to load them, and crawled while the machine was busy. The code is
+# copied once into the container (one read of each file) and the tests run on the copy; the big folders the tests only
+# read now and then (the library, the documents, the built website) are linked, not copied; work/tests is linked so the
+# coverage report lands where eax test full reads it.
+COPY_THEN_RUN = (
+    "set -e; mkdir -p /tmp/repo /repo/work/tests; cd /repo; "
+    "tar --exclude=./work --exclude=./.git --exclude=node_modules --exclude=./library --exclude=./documents "
+    "--exclude=./services/web/public/site -cf - . | tar -C /tmp/repo -xf -; "
+    "for d in library documents services/web/public/site; do [ -e /repo/$d ] && ln -s /repo/$d /tmp/repo/$d || true; done; "
+    "mkdir -p /tmp/repo/work && ln -s /repo/work/tests /tmp/repo/work/tests; "
+    'echo "the code copied into the test runner: the tests run on the copy"; cd /tmp/repo/services/api; exec "$@"')
+
+
+def in_runner(args: list[str], root: Path = ROOT, copy: bool = False) -> list[str]:
     """docker compose arguments that run python <args> in the test runner, in services/api of this folder (mounted at
-    /repo, so the code checked is the code here, not the image's copy)."""
+    /repo, so the code checked is the code here, not the image's copy); copy: on a copy of it made in the container
+    first (R14.27)."""
     repo = Path(root).resolve().as_posix()
-    return ["--profile", "test", "run", "--rm", "--no-deps", "-v", f"{repo}:/repo", "-w", "/repo/services/api",
-            "--entrypoint", "python", "testrunner", *args]
+    run = ["--profile", "test", "run", "--rm", "--no-deps", "-v", f"{repo}:/repo", "-w", "/repo/services/api"]
+    if copy:
+        return [*run, "--entrypoint", "sh", "testrunner", "-c", COPY_THEN_RUN, "eax-copy", "python", *args]
+    return [*run, "--entrypoint", "python", "testrunner", *args]
 
 
 UNIT_COVERAGE = "work/tests/unit-coverage.json"     # the unit tests' coverage, which lines ran (R8.1, D807)
@@ -138,13 +155,14 @@ def commands(quick: bool, local: bool, py: str = sys.executable, compose_args=No
     (D807) when pytest-cov is there (always in the test runner)."""
     lint = ["-m", "ruff", "check", "eax", "tests", "../ops", "../../eaxcli", "../../testbench", "migrations"]
     # every test file collected even when one cannot be (owner's laptop, 07:09: one stale import stopped them all)
-    tests = ["-m", "pytest", "-q", "-p", "no:randomly", "--continue-on-collection-errors", "-rfE"] + (["-x"] if quick else [])
+    # progress per test file, not per 72 tests (R14.27): pytest's ordinary output names each file as it runs it
+    tests = ["-m", "pytest", "-p", "no:randomly", "--continue-on-collection-errors", "-rfE"] + (["-x"] if quick else [])
     if local:
         measured = cover(str(ROOT / UNIT_COVERAGE)) if importlib.util.find_spec("pytest_cov") else []
         return [("lint", [py, *lint], API), ("tests", [py, *tests, *measured], API)]
     # compose_args gives the whole command, docker compose included (owner's laptop, 06:45: "docker docker" refused)
     return [("lint", compose_args(in_runner([*lint, "--no-cache"])), ROOT),
-            ("tests", compose_args(in_runner([*tests, "-p", "no:cacheprovider", *cover(f"/repo/{UNIT_COVERAGE}")])), ROOT)]
+            ("tests", compose_args(in_runner([*tests, "-p", "no:cacheprovider", *cover(f"/repo/{UNIT_COVERAGE}")], copy=True)), ROOT)]
 
 
 def main(rest: list[str]) -> int:

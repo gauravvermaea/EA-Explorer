@@ -336,6 +336,240 @@
       "file": "services/web/src/Versions.jsx",
       "reason": "The cursor is put in the first box of a dialog or form when it opens (autoFocus): taking it out changes what people see and do.",
       "by": "owner, 19 Nov 2026, 20:22: \"yes go for it\" (accept all 106 Group B issues: fixing them would change what users see or do; D804)"
+    },
+    {
+      "rule": "docker:S6471",
+      "file": "deploy/deployer/Dockerfile",
+      "reason": "The image runs as root by design: the operations helper drives Docker through its socket, and the deployer installs on a server; a non-root user is a later project (D907).",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "docker:S6471",
+      "file": "services/ops/Dockerfile",
+      "reason": "The image runs as root by design: the operations helper drives Docker through its socket, and the deployer installs on a server; a non-root user is a later project (D907).",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "javascript:S1313",
+      "file": "services/web/src/Security.jsx",
+      "reason": "An example address shown as a placeholder in the allow-list form, not an address used.",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "javascript:S7739",
+      "file": "services/web/src/Quality.jsx",
+      "reason": "The data quality rule's when/then shape, shared with the API and kept in the database; the object is never awaited.",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S1313",
+      "file": "eaxcli/setup.py",
+      "reason": "An example, sample-data or test address (a placeholder, the sample estate, the attack test's targets, private ranges named in the allow list), never one connected to.",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S1313",
+      "file": "services/api/eax/seed/sample_machine_ops.py",
+      "reason": "An example, sample-data or test address (a placeholder, the sample estate, the attack test's targets, private ranges named in the allow list), never one connected to.",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S1313",
+      "file": "services/api/eax/testing/attacks.py",
+      "reason": "An example, sample-data or test address (a placeholder, the sample estate, the attack test's targets, private ranges named in the allow list), never one connected to.",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S1313",
+      "file": "services/ops/allowlist.py",
+      "reason": "An example, sample-data or test address (a placeholder, the sample estate, the attack test's targets, private ranges named in the allow list), never one connected to.",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S2068",
+      "file": "eaxcli/secrets.py",
+      "reason": "A setting's name (EAX_..._PASSWORD) or the place a password is read from, not a password; renaming would break every installation's config file.",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S2068",
+      "file": "services/api/eax/setup/__main__.py",
+      "reason": "A setting's name (EAX_..._PASSWORD) or the place a password is read from, not a password; renaming would break every installation's config file.",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S2068",
+      "file": "services/ops/ops.py",
+      "reason": "A setting's name (EAX_..._PASSWORD) or the place a password is read from, not a password; renaming would break every installation's config file.",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S2612",
+      "file": "services/ops/ops.py",
+      "reason": "The permission is the one needed: the test runner (user 10001) writes in the folder the helper (root) makes; the generated file is meant to be read by the other containers.",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S2612",
+      "file": "services/ops/testruns.py",
+      "reason": "The permission is the one needed: the test runner (user 10001) writes in the folder the helper (root) makes; the generated file is meant to be read by the other containers.",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S4502",
+      "file": "services/api/eax/app.py",
+      "reason": "CSRF protection is off on purpose: the API takes bearer tokens and API keys, never cookies, so cross-site request forgery does not apply; switching it on refuses every API and MCP call.",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S4502",
+      "file": "services/library/libsvc/app.py",
+      "reason": "CSRF protection is off on purpose: the API takes bearer tokens and API keys, never cookies, so cross-site request forgery does not apply; switching it on refuses every API and MCP call.",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S4502",
+      "file": "services/views/viewsvc/app.py",
+      "reason": "CSRF protection is off on purpose: the API takes bearer tokens and API keys, never cookies, so cross-site request forgery does not apply; switching it on refuses every API and MCP call.",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S4790",
+      "file": "services/ops/ops.py",
+      "reason": "SHA-1 is what the WebSocket standard (RFC 6455) requires for the handshake; browsers accept nothing else. Not used for security.",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S4830",
+      "file": "eaxcli/deploy.py",
+      "reason": "Certificate checking off on purpose: a laptop's own certificate is not trusted elsewhere (deploy's check, a site's public heartbeat, the test runner and test bench by container name), or the certificate is checked against the pin the admin compared by hand (pairing).",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S4830",
+      "file": "services/api/eax/pairing.py",
+      "reason": "Certificate checking off on purpose: a laptop's own certificate is not trusted elsewhere (deploy's check, a site's public heartbeat, the test runner and test bench by container name), or the certificate is checked against the pin the admin compared by hand (pairing).",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S4830",
+      "file": "services/api/eax/sites.py",
+      "reason": "Certificate checking off on purpose: a laptop's own certificate is not trusted elsewhere (deploy's check, a site's public heartbeat, the test runner and test bench by container name), or the certificate is checked against the pin the admin compared by hand (pairing).",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S4830",
+      "file": "services/api/eax/testing/security.py",
+      "reason": "Certificate checking off on purpose: a laptop's own certificate is not trusted elsewhere (deploy's check, a site's public heartbeat, the test runner and test bench by container name), or the certificate is checked against the pin the admin compared by hand (pairing).",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S4830",
+      "file": "testbench/shared.py",
+      "reason": "Certificate checking off on purpose: a laptop's own certificate is not trusted elsewhere (deploy's check, a site's public heartbeat, the test runner and test bench by container name), or the certificate is checked against the pin the admin compared by hand (pairing).",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S5332",
+      "file": "deploy/superset/superset_config.py",
+      "reason": "Plain HTTP inside Docker's own network between containers, to localhost, or a protocol name the code recognises in found addresses (FTP); HTTPS between containers is a later project (D907).",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S5332",
+      "file": "eaxcli/jenkins.py",
+      "reason": "Plain HTTP inside Docker's own network between containers, to localhost, or a protocol name the code recognises in found addresses (FTP); HTTPS between containers is a later project (D907).",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S5332",
+      "file": "services/api/eax/config.py",
+      "reason": "Plain HTTP inside Docker's own network between containers, to localhost, or a protocol name the code recognises in found addresses (FTP); HTTPS between containers is a later project (D907).",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S5332",
+      "file": "services/api/eax/discovery_projects.py",
+      "reason": "Plain HTTP inside Docker's own network between containers, to localhost, or a protocol name the code recognises in found addresses (FTP); HTTPS between containers is a later project (D907).",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S5332",
+      "file": "services/api/eax/health.py",
+      "reason": "Plain HTTP inside Docker's own network between containers, to localhost, or a protocol name the code recognises in found addresses (FTP); HTTPS between containers is a later project (D907).",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S5332",
+      "file": "services/api/eax/shipped_docs.py",
+      "reason": "Plain HTTP inside Docker's own network between containers, to localhost, or a protocol name the code recognises in found addresses (FTP); HTTPS between containers is a later project (D907).",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S5332",
+      "file": "services/api/eax/testing/attacks.py",
+      "reason": "Plain HTTP inside Docker's own network between containers, to localhost, or a protocol name the code recognises in found addresses (FTP); HTTPS between containers is a later project (D907).",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S5332",
+      "file": "services/ops/ops.py",
+      "reason": "Plain HTTP inside Docker's own network between containers, to localhost, or a protocol name the code recognises in found addresses (FTP); HTTPS between containers is a later project (D907).",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S5443",
+      "file": "eaxcli/packs.py",
+      "reason": "/tmp inside a container that only EA Explorer runs in (the api container's copy of a pack folder, the coverage files), not a shared machine's /tmp.",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S5443",
+      "file": "services/api/eax/coverage_probe.py",
+      "reason": "/tmp inside a container that only EA Explorer runs in (the api container's copy of a pack folder, the coverage files), not a shared machine's /tmp.",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S5527",
+      "file": "eaxcli/deploy.py",
+      "reason": "Host name checking off on purpose, for the same reasons as its certificate (a laptop's own certificate, a container reached by name, or a pinned certificate checked instead).",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S5527",
+      "file": "services/api/eax/console_cli.py",
+      "reason": "Host name checking off on purpose, for the same reasons as its certificate (a laptop's own certificate, a container reached by name, or a pinned certificate checked instead).",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S5527",
+      "file": "services/api/eax/pairing.py",
+      "reason": "Host name checking off on purpose, for the same reasons as its certificate (a laptop's own certificate, a container reached by name, or a pinned certificate checked instead).",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S5527",
+      "file": "services/api/eax/sites.py",
+      "reason": "Host name checking off on purpose, for the same reasons as its certificate (a laptop's own certificate, a container reached by name, or a pinned certificate checked instead).",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S5527",
+      "file": "services/api/eax/testing/security.py",
+      "reason": "Host name checking off on purpose, for the same reasons as its certificate (a laptop's own certificate, a container reached by name, or a pinned certificate checked instead).",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S5527",
+      "file": "testbench/shared.py",
+      "reason": "Host name checking off on purpose, for the same reasons as its certificate (a laptop's own certificate, a container reached by name, or a pinned certificate checked instead).",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
+    },
+    {
+      "rule": "python:S930",
+      "file": "services/api/eax/view_picture.py",
+      "reason": "Pillow 13 (requirements.txt pins >=13) has load_default(size=) since 10.1; the scanner's copy of Pillow is older.",
+      "by": "owner, 24 Nov 2026, 06:43: \"Fix the 30, accept others in writing\" (D907)"
     }
   ]
 }

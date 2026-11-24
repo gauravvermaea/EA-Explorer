@@ -37,7 +37,7 @@ WORDS = {
     "eax.db_tidy": "Tidy the databases", "eax.deliver_webhooks": "Send webhook messages",
     "eax.discovery_scheduler": "Start scheduled discovery feeds",
     "eax.governance": "Warn of dispensations ending; the governance report", "eax.housekeeping": "Housekeeping",
-    "eax.industry_packs": "Load the industry packs", "eax.keycloak_upkeep": "Keep sign-in (Keycloak) in step",
+    "eax.industry_packs": "Load the industry packs", "eax.documents_ocr": "Switch Documents' OCR on or off", "eax.documents_ocr_tick": "Keep Documents' OCR to its window and count it", "eax.keycloak_upkeep": "Keep sign-in (Keycloak) in step",
     "eax.kpi_monthly": "Monthly KPI report", "eax.library_models_move": "Move library models",
     "eax.logs_clean": "Delete old logs", "eax.optimise_report": "Monthly optimisation report",
     "eax.personal_flush": "Save personal settings", "eax.project_repositories": "Build the project repositories",

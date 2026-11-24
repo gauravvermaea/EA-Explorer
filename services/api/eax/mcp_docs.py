@@ -103,7 +103,8 @@ def _key_of(source: str) -> str:
 
 def sections(text: str) -> list[str]:
     """The headings of a document (## and ###), in order."""
-    return [m.group(2).strip() for m in re.finditer(r"^(#{2,3})\s+(.+)$", text, re.M)]
+    # spaces then the words, each of its own kind, so nothing backtracks (SonarQube S8786); a heading on its own line
+    return [m.group(2).strip() for m in re.finditer(r"^(#{2,3})[ \t]+(\S.*)$", text, re.M)]
 
 
 def section(text: str, heading: str) -> str:
@@ -111,7 +112,7 @@ def section(text: str, heading: str) -> str:
     lines = text.splitlines()
     want = heading.strip().lower()
     for i, line in enumerate(lines):
-        m = re.match(r"^(#{1,6})\s+(.+)$", line)
+        m = re.match(r"^(#{1,6})[ \t]+(\S.*)$", line)
         if m and m.group(2).strip().lower() == want:
             level = len(m.group(1))
             end = next((j for j in range(i + 1, len(lines))

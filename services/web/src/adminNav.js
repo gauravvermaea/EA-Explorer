@@ -35,6 +35,8 @@ export const ADMIN_GROUPS = [
     { key: "branding", label: "Branding: logo and themes", ok: () => can("settings.manage"), roles: ["super-admin"] },   // R5.7-B1
     { key: "settings-transfer", label: "Settings import and export", ok: sup, roles: ["super-admin"] },   // Release 6.7 (D755)
     { key: "licences", label: "Licences", ok: any, roles: null },
+    // Documents' OCR: on or off, its window and its progress (owner, 23 Nov 2026, 22:53: "Create a new tab", D903)
+    { key: "documents", label: "Documents", ok: () => ops() || can("settings.manage"), roles: IT },
   ] },
   { key: "access", label: "People and access", icon: "⚿", pages: [
     { key: "users", label: "Users and roles", ok: () => can("users.read"), roles: ["user-admin", "super-admin"],

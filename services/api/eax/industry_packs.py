@@ -134,7 +134,7 @@ def _xml_text(xml: str) -> str:
 def _first_sheet(z: zipfile.ZipFile, names: list[str]) -> str:
     """A workbook's first sheet: its own words and the shared words its cells use, in cell order."""
     sheets = sorted((n for n in names if re.fullmatch(r"xl/worksheets/sheet\d+\.xml", n)),
-                    key=lambda n: int(re.search(r"(\d+)\.xml$", n).group(1)))
+                    key=lambda n: int(n[len("xl/worksheets/sheet"):-len(".xml")]))   # the number, as fullmatch found it
     shared = (re.findall(r"<si>(.*?)</si>", z.read("xl/sharedStrings.xml").decode("utf-8", "ignore"), re.DOTALL)
               if "xl/sharedStrings.xml" in names else [])
     if not sheets:
@@ -554,6 +554,15 @@ def load_shipped_each(actor: str = "system:seed", engine=None) -> dict:
                 _part(engine, "starting", 0, 0, f"waiting for Documents to answer ({why[:300]}); tried again every 10 minutes")
                 return {"message": f"Documents is not up ({why[:300]}); tried again every 10 minutes", "skipped": True}
             _part(engine, "starting", 0, 0, "reading the pack files", start=True)
+            # Documents' OCR as the setting says, before a single file goes in (off unless chosen, D903): otherwise every
+            # page of the packs is queued to be read as a picture, an hour or more on a laptop
+            try:
+                from . import settings as S
+                with engine.connect() as c:
+                    ocr_on = bool(S.values(c).get("documents_ocr", False))
+                log.info("industry packs: %s", mayan.apply_ocr(ocr_on))
+            except Exception as exc:  # noqa: BLE001 - the packs load either way
+                log.warning("industry packs: Documents' OCR setting not applied (%s)", exc)
 
             def told(done: int, total: int, label: str) -> None:
                 if done < total:

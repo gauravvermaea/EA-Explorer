@@ -63,9 +63,18 @@ def _library_parts(rows: list[dict]) -> list[dict]:
     query, for lists made on the repository's connection."""
     from . import library_models as lm
     lib = [r for r in rows if r.get("content_schema") == lm.SCHEMA]
-    if not lib or lm.routed():
-        return rows
-    ids = [r["_id"] for r in lib]
+    got = _library_counts([r["_id"] for r in lib]) if lib and not lm.routed() else {}
+    for r in lib:
+        g = got.get(r["_id"])
+        if g:
+            r.update(entity_type_count=g["etc"], entity_count=g["ec"], relationship_count=g["rc"],
+                     icon=g["icon"] or r.get("icon"), icon_version=g["iv"] or r.get("icon_version"))
+    return rows                       # one way out (SonarQube S3516): the rows, filled in where the counts were read
+
+
+def _library_counts(ids: list) -> dict:
+    """Each library model's counts and icon, by its id, read in the library schema ({} when it cannot be read)."""
+    from . import library_models as lm
     try:
         with lm.connect() as lc:
             got = {r["model_id"]: dict(r) for r in lc.execute(text("""
@@ -79,13 +88,8 @@ def _library_parts(rows: list[dict]) -> list[dict]:
                        (SELECT CAST(extract(epoch FROM ic.set_at) AS bigint) FROM core.model_icons ic WHERE ic.model_id = m.id) AS iv
                   FROM core.models m WHERE m.id = ANY(:i)"""), {"i": ids}).mappings()}
     except Exception:  # noqa: BLE001 - the library schema away: the list still shows the models, without counts
-        return rows
-    for r in lib:
-        g = got.get(r["_id"])
-        if g:
-            r.update(entity_type_count=g["etc"], entity_count=g["ec"], relationship_count=g["rc"],
-                     icon=g["icon"] or r.get("icon"), icon_version=g["iv"] or r.get("icon_version"))
-    return rows
+        got = {}
+    return got
 
 
 def list_models(conn, search: str | None = None, kind: str | None = None,

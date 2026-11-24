@@ -23,6 +23,8 @@ import time
 from .core import WORK, Failure, capture, compose, compose_args, docker_ok, heading, ok, say, warn
 
 TOKEN = WORK / "tests" / "sonar" / "token"
+LOCK = WORK / "tests" / "sonar" / "running"     # one scan at a time (R14.16)
+LOCK_HOURS = 3                                  # a lock older than this is from a scan that stopped without its clean-up
 OPEN_FILE = "deploy/compose/test/docker-compose.sonar-open.yml"     # --open: SonarQube's port, on 127.0.0.1 only
 SONAR_VOLUMES = ("eax-sonar-data", "eax-sonar-extensions")
 
@@ -109,10 +111,36 @@ def reset() -> None:
     say("SonarQube's own data deleted; it starts afresh.")
 
 
+def take_lock(now: float | None = None) -> None:
+    """One scan at a time (R14.16, 21 Nov 2026: eax test sonar started while the full test's scan ran; its clean-up
+    removed SonarQube under the first, which then could not upload). Refuses while another scan holds the lock."""
+    now = time.time() if now is None else now
+    if LOCK.is_file():
+        try:
+            since = float(LOCK.read_text(encoding="utf-8").split()[0])
+        except (ValueError, IndexError, OSError):
+            since = 0.0
+        if now - since < LOCK_HOURS * 3600:
+            raise Failure("Another SonarQube scan is running (started " + time.strftime("%H:%M", time.localtime(since))
+                          + "; the full test runs one too): wait for it to end, then eax test sonar again. If it stopped "
+                          f"without ending, delete {LOCK.relative_to(WORK.parent)}.")
+    LOCK.parent.mkdir(parents=True, exist_ok=True)
+    LOCK.write_text(f"{now} {os.getpid()}\n", encoding="utf-8")
+
+
 def main(rest: list[str]) -> int:
     """eax test sonar [--keep] [--open] [--reset]."""
     if not docker_ok():
         raise Failure("Docker does not answer (EAX-STACK-003): start Docker Desktop, then eax test sonar again.")
+    take_lock()
+    try:
+        return _scan(rest)
+    finally:
+        LOCK.unlink(missing_ok=True)
+
+
+def _scan(rest: list[str]) -> int:
+    """The scan itself, while this one holds the lock."""
     heading("SonarQube scan of the whole repository (Release 8)")
     if "--reset" in rest:
         reset()

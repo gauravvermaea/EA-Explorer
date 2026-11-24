@@ -4338,5 +4338,9 @@
       "Check which address a script or report should call.",
       "Use it to choose the areas when you make a credential."
     ]
-  }
+  },
+  "field:OCR runs from": "When Documents may start reading scanned pages each day (HH:MM, local), 22:00 say. Empty, with until empty too: any time.",
+  "field:OCR runs until": "When Documents stops reading scanned pages (HH:MM, local; may be past midnight, 06:00 say). Pages left wait for the next window.",
+  "field:until": "When Documents stops reading scanned pages (HH:MM, local; may be past midnight). Empty, with From empty too: any time.",
+  "button:Save the window": "Keeps the times Documents may read scanned pages in. Outside them the pages waiting are held; reading carries on in the next window."
 }

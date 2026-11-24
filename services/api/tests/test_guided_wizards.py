@@ -18,7 +18,7 @@ class _User:
 
 def test_first_run_steps_and_links():
     keys = [k for k, *_ in first_run.STEPS]
-    assert keys == ["settings", "people", "parts", "templates", "charter", "principles", "guides", "backups", "upkeep"]   # upkeep: D764; guides: R12.12
+    assert keys == ["settings", "people", "parts", "templates", "charter", "principles", "guides", "ocr", "backups", "upkeep"]   # upkeep: D764; guides: R12.12; ocr: D903
     for _k, label, why, link in first_run.STEPS:
         assert label and why and (link.startswith("#/") or link == "")
 

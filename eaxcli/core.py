@@ -23,7 +23,9 @@ LOG_DIR = WORK / "logs"
 STAMP = datetime.now().astimezone().strftime("%Y%m%d-%H%M%S")   # local time, as the old scripts
 WINDOWS = os.name == "nt"
 MAC = sys.platform == "darwin"
-EAX = ".\\eaxpy" if WINDOWS else "./eaxpy.sh"      # how this command is typed here (for messages)
+# how this command is typed here (for messages): eax.ps1 and eax.sh say so when they hand a command over (EAX_TYPED, R14:
+# "packs ocr" told the owner to type .\eaxpy when he had typed .\eax)
+EAX = os.environ.get("EAX_TYPED") or (".\\eaxpy" if WINDOWS else "./eaxpy.sh")
 OFF = ("off", "false", "0", "no", "disabled")
 
 

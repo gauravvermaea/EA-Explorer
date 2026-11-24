@@ -20,7 +20,8 @@ def test_with_the_tools_here_lint_and_tests_run_here_as_before():
     steps = d.commands(quick=True, local=True, py="python")
     assert [s[0] for s in steps] == ["lint", "tests"]
     assert steps[0][1][:4] == ["python", "-m", "ruff", "check"] and steps[0][2] == d.API
-    assert steps[1][1][:6] == ["python", "-m", "pytest", "-q", "-p", "no:randomly"] and "-x" in steps[1][1]
+    # no -q: pytest names each test file as it runs it, progress per file (R14.27)
+    assert steps[1][1][:5] == ["python", "-m", "pytest", "-p", "no:randomly"] and "-x" in steps[1][1]
     # measured (D807) only when pytest-cov is here, its flags after the rest (dev check, 21 Nov 2026: -x was no longer last)
     import importlib.util
     cov = d.cover(str(ROOT / d.UNIT_COVERAGE))
@@ -46,7 +47,11 @@ def test_without_them_lint_and_tests_run_in_the_test_runner_on_this_folder():
         assert cmd[i + 1].endswith(":/repo")                       # this folder's code, not the image's copy
         assert cmd[cmd.index("-w") + 1] == "/repo/services/api"
     assert lint[lint.index("testrunner") + 1:][:3] == ["-m", "ruff", "check"] and "--no-cache" in lint
-    assert tests[tests.index("testrunner") + 1:][:2] == ["-m", "pytest"] and "no:cacheprovider" in tests
+    # the tests on a copy of the code made in the container (R14.27): sh copies, then python -m pytest on the copy
+    after = tests[tests.index("testrunner") + 1:]
+    assert after[0] == "-c" and "tar -C /tmp/repo -xf -" in after[1] and after[2:5] == ["eax-copy", "python", "-m"]
+    assert after[5] == "pytest" and "no:cacheprovider" in tests and tests[tests.index("--entrypoint") + 1] == "sh"
+    assert lint[lint.index("--entrypoint") + 1] == "python"           # lint stays on the share: ruff is quick
     assert "-x" not in tests
 
 

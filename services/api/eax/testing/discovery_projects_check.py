@@ -140,10 +140,10 @@ def run(base: str, tokens: dict[str, str], ids: dict[str, str], record: Callable
 
     if not admin or not model:
         rec("discovery projects", "a project is set up", None, "no Super Admin test account or test model", 0)
-        return counts
-    _discovery(rec, call, tool, model, sid, other, ids)
-    _decisions(rec, call, model, sid, other, ids)
-    return counts
+    else:
+        _discovery(rec, call, tool, model, sid, other, ids)
+        _decisions(rec, call, model, sid, other, ids)
+    return counts                     # one way out (SonarQube S3516): the counts the checks filled in
 
 
 # ---------------------------------------------------------------- enterprise discovery

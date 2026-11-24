@@ -101,10 +101,13 @@ def _connect_args(username: str, password: str) -> dict:
 
 def ensure_logins(conn) -> list[str]:
     """The window's two logins made (or their passwords set again from the config file, after a rotation), with their
-    rights: reading every table (pg_read_all_data) and the monitoring views; writing too for the Super Admins'. Run as
+    rights: signing in to the repository database, reading every table (pg_read_all_data) and the monitoring views; writing too for the Super Admins'. Run as
     the database superuser at the API's start. Never superuser, never able to make roles or databases."""
     from psycopg import sql as S
     done = []
+    # the rights on the repository database itself: PUBLIC has none there (REVOKE ALL in the database's first start), so
+    # without them both logins were refused with "permission denied for database" (R14, full test 24 Nov 2026)
+    database = conn.execute("SELECT current_database()").fetchone()[0]
     for kind, (user, key, _cert) in CONSOLE_LOGINS.items():
         pw = os.environ.get(key, "")
         if not pw:
@@ -114,6 +117,9 @@ def ensure_logins(conn) -> list[str]:
         conn.execute(S.SQL("{} ROLE {} LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION PASSWORD {}")
                      .format(verb, S.Identifier(user), S.Literal(pw)))
         conn.execute(S.SQL("GRANT pg_read_all_data, pg_monitor TO {}").format(S.Identifier(user)))
+        # CONNECT: PUBLIC has none there; TEMPORARY: eax.get_entity and the other lookups make session-only tables, which
+        # change nothing kept (R14.31, D896), so the IT Admins' window can run them and still writes nothing
+        conn.execute(S.SQL("GRANT CONNECT, TEMPORARY ON DATABASE {} TO {}").format(S.Identifier(database), S.Identifier(user)))
         conn.execute(S.SQL("{} pg_write_all_data {} {}").format(
             S.SQL("GRANT" if kind == "super" else "REVOKE"), S.SQL("TO" if kind == "super" else "FROM"), S.Identifier(user)))
         done.append(user)

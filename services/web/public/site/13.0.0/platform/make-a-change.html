@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Make a change · EA Explorer</title>
+<meta name="description" content="The pattern for a new feature from the database to the screen, and what &quot;done&quot; means.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html" class="here">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Make a change</h1>
+    <p class="who">For: Platform developers</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">The pattern for a new feature from the database to the screen, and what &quot;done&quot; means.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#the-pattern">The pattern</a></li><li><a href="#who-may-do-it">Who may do it</a></li><li><a href="#definition-of-done">Definition of done</a></li><li><a href="#read-next">Read next</a></li></ul></nav>
+    <h2 id="the-pattern">The pattern</h2>
+<ol><li><strong>Agree it first</strong>: what, why, and the decision it needs (a new number in <code>docs/decisions.md</code>).</li><li><strong>Reads</strong> go in <code>repository.py</code> (one function per question); <strong>writes</strong> in a module of their own, in one transaction, audited, with a dry run where the change is big.</li><li><strong>Expose it</strong> from a blueprint in <code>eax/api/</code> with marshmallow schemas; wrap it in <code>require_auth(permission)</code>.</li><li><strong>An MCP tool</strong> in <code>mcp_server.py</code> when an agent would use it.</li><li><strong>A screen</strong> in <code>services/web/src</code>, its menu entry in <code>menu.js</code>, its help in <code>help/catalogue.json</code>.</li><li><strong>The command line</strong>, if it has one: <code>eaxcli</code>, the three launchers, <code>help.txt</code>.</li><li><strong>Tests</strong>, then the documents.</li></ol>
+<h2 id="who-may-do-it">Who may do it</h2>
+<p>Every view checks permission first (403). The signed-in person is set on each database connection, and row-level security and triggers apply the same rules, so every route (screens, API, MCP, SQL) obeys them.</p>
+<h2 id="definition-of-done">Definition of done</h2>
+<p>Tests pass; <code>docs/decisions.md</code>, the capabilities and phase notes current; the help (<code>help.txt</code>, the help catalogue) and this website's pages updated; the release notes say what changed; no file over 50 MB.</p>
+<h2 id="read-next">Read next</h2>
+<ul><li><a href="../platform/database-changes-and-versions.html">Database changes and versions</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="13.0.0">Version 13.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: platform/make-a-change.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

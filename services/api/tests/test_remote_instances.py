@@ -53,7 +53,7 @@ def test_what_is_checked():
 
 def test_the_operations_helper_holds_and_records_the_session():
     ops = (REPO / "services/ops/ops.py").read_text()
-    assert "def ssh_ticket(" in ops and '"StrictHostKeyChecking=accept-new"' in ops and "os.O_CREAT | os.O_TRUNC, 0o600" in ops
+    assert "def ssh_ticket(" in ops and '"StrictHostKeyChecking=accept-new"' in ops and "tempfile.mkstemp(prefix=f\"eax-ssh-{sid}-\", suffix=\".key\")" in ops   # a key file of its own, mode 600 (R14)
     assert 'os.path.join(SSH_LOGS, f"{sid}.log")' in ops and 'os.remove(t["cleanup"])' in ops
     assert '"/ssh/ticket"' in ops and '"/ssh/public-key"' in ops and '"/ssh/sessions/"' in ops
     assert "openssh-client" in (REPO / "services/ops/Dockerfile").read_text()

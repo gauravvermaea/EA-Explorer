@@ -117,8 +117,8 @@ def test_a_schedule_every_three_months_that_is_a_command_of_the_catalogue():
 
 
 def test_every_form_runs_it():
-    assert '"sonar", "images"))' in (REPO / "eax.ps1").read_text(encoding="utf-8")
-    assert "|errors|sonar|images)" in (REPO / "eax.sh").read_text(encoding="utf-8")
+    assert '"sonar", "images", "diag"))' in (REPO / "eax.ps1").read_text(encoding="utf-8")   # diag after it (R14.23)
+    assert "|errors|sonar|images|diag)" in (REPO / "eax.sh").read_text(encoding="utf-8")
     assert 'if command == "images":' in (REPO / "eaxcli" / "main.py").read_text(encoding="utf-8")
     entry = next(c for g in C.catalogue()["groups"] for c in g["commands"] if c["name"] == "images")
     assert len(entry["summary"]) <= 102

@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { apiDownload, apiFetch, apiUpload } from "./auth";
 import { endPreview, loadBranding, previewTheme, useBranding } from "./branding";
-import { fmtDateTime } from "./fmt";
+import { byText, fmtDateTime } from "./fmt";
 import ThemeDesigner from "./ThemeDesigner";
 
 export default function BrandingAdmin() {
@@ -21,7 +21,7 @@ export default function BrandingAdmin() {
   const done = async (text) => { await loadBranding(); say(true, text); };
   const run = async (fn, text) => { try { await fn(); await done(text); } catch (e) { say(false, e.message); } };
   const changed = form && (form.theme !== data.theme || form.personal !== !!data.personal || form.own !== !!data.own
-    || [...form.hidden].sort().join() !== [...(data.hidden || [])].sort().join() || form.product_name !== (data.product_name || ""));
+    || [...form.hidden].sort(byText).join() !== [...(data.hidden || [])].sort(byText).join() || form.product_name !== (data.product_name || ""));
   // R9.5 (D827): which themes people may pick (every one unless taken off; the organisation's always)
   const offeredTo = (slug) => slug === form?.theme || !(form?.hidden || []).includes(slug);
   const offer = (slug, on) => setForm({ ...form, hidden: on ? form.hidden.filter((x) => x !== slug) : [...form.hidden, slug] });

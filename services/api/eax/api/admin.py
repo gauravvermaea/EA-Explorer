@@ -52,7 +52,7 @@ def _ops(method: str, path: str, body: dict | None = None, timeout: int = 10) ->
             msg = exc.reason
         abort(exc.code, message=f"The operations helper refused: {msg}")
     except (urllib.error.URLError, TimeoutError) as exc:
-        abort(503, message=f"The operations helper is not reachable ({exc.reason if hasattr(exc, 'reason') else exc}). "
+        abort(503, message=f"The operations helper is not reachable (EAX-OPS-002: {exc.reason if hasattr(exc, 'reason') else exc}). "
                            "Check that the ops container runs.")
     return {}
 
@@ -596,7 +596,7 @@ class Services(MethodView):
                 for s_ in out["services"] + out["core"]:
                     s_["state"] = {c: states.get(c, "not created") for c in s_["containers"]}
             except Exception:  # noqa: BLE001 - the switches still show without the helper
-                out["helper"] = "The operations helper is not reachable: the switches show, their containers do not."
+                out["helper"] = "The operations helper is not reachable (EAX-OPS-002): the switches show, their containers do not."
         return out
 
 

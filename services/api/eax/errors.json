@@ -306,6 +306,15 @@
    "health_status": "down"
   },
   {
+   "code": "EAX-OPS-002",
+   "area": "OPS",
+   "title": "Operations helper not reachable",
+   "meaning": "The operations helper (the ops container) does not answer, so containers, restarts, backups, the terminal and alerts cannot be reached from the screens.",
+   "cause": "Its container is stopped, still starting, or cannot reach Docker.",
+   "to_do": "Run eax status and eax logs ops; run eax up. While EA Explorer starts, wait a minute and look again.",
+   "http": 503
+  },
+  {
    "code": "EAX-PDATA-001",
    "area": "PDATA",
    "title": "Personal data not available",

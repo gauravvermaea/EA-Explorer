@@ -6,6 +6,9 @@ import { refreshAll, useApi } from "./ModelViews";
 import { fmtDateTime } from "./fmt";
 import { MyLook } from "./branding";
 
+// [key, value] pairs in their keys' order (SonarQube S2871: sort() with no compare function)
+const byKey = (a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
+
 export function SkillTags({ value, onChange, suggestions = [], disabled }) {
   const [t, setT] = useState("");
   const add = (s) => {
@@ -63,11 +66,14 @@ export default function MyProfile() {
   async function save() {
     try {
       const r = await apiFetch("/api/v1/me/skills", { method: "PUT", body: JSON.stringify({ skills, togaf_roles: tg?.roles, togaf_levels: tg?.levels }) });
-      setMsg({ ok: true, text: r.message }); refreshAll(); setTg(null);
+      // what was saved, shown at once: setTg(null) read the page's old copy again before the new one came, so the ticks
+      // looked undone (the full test, 24 Nov 2026)
+      setMsg({ ok: true, text: r.message }); refreshAll();
+      setTg({ roles: r.togaf_roles ?? tg?.roles ?? [], levels: r.togaf_levels ?? tg?.levels ?? {} });
     } catch (e) { setMsg({ ok: false, text: e.message }); }
   }
   const tgChanged = data && tg && (JSON.stringify(tg.roles) !== JSON.stringify(data.togaf_roles || [])
-    || JSON.stringify(Object.entries(tg.levels).filter(([, v]) => v).sort()) !== JSON.stringify(Object.entries(data.togaf_levels || {}).sort()));
+    || JSON.stringify(Object.entries(tg.levels).filter(([, v]) => v).sort(byKey)) !== JSON.stringify(Object.entries(data.togaf_levels || {}).sort(byKey)));
   const changed = data && skills && (JSON.stringify(skills) !== JSON.stringify(data.skills) || tgChanged);
   return (
     <section className="page">

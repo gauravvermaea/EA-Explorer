@@ -31,7 +31,7 @@ commands: [below](#backup-and-restore-from-the-command-line) and in [docs/operat
 
 **Status: version 13.0.0, Release 13 (System Admin regrouped, every command-line option documented), accepted 23 Nov 2026**
 (tag `v13.0.0`, published on the repository's GitHub Releases; release notes: [releases/13.0.0.md](releases/13.0.0.md);
-earlier releases' notes are in [releases](releases)). Next: Release 14, stabilisation (every test passing, coverage at its target). The releases in short are
+earlier releases' notes are in [releases](releases)). Next: Release 14, stabilisation (every test run and passing), then 14.5, code coverage over 90% (D901). The releases in short are
 [below](#releases); every phase in detail: [docs/build-phases.md](docs/build-phases.md). Database design:
 [docs/database.md](docs/database.md). How it is built (for developers and AI agents):
 [docs/architecture.md](docs/architecture.md), [AGENTS.md](AGENTS.md); the high-level technical architecture (under 10 pages):
@@ -65,14 +65,15 @@ area by area: [docs/capabilities.md](docs/capabilities.md).
 | 11 | [11.0.0](releases/11.0.0.md) | Certificate (key-based) sign-in between the services, working and tested; switched from System Admin › Secrets and kept across clean restarts | accepted 22 Nov 2026 |
 | 12 | [12.0.0](releases/12.0.0.md) | Project and model templates from TOGAF and its Series Guides: Agile sprints, Digital transformation, EA capability, Risk and security, Data governance; eight new types; a project plan with RACI and approval gates; a risk register; ready-made surveys; TOGAF skills and guides; every connection checked in the heartbeat | closed as unstable 23 Nov 2026 |
 | 13 | [13.0.0](releases/13.0.0.md) | System Admin in seven groups with multi-level tabs like Projects, the same in the menu, every page and tab with its own address; every command-line option documented, the DR tools' --help, and a test that keeps it so | accepted 23 Nov 2026 |
-| 14 | | Stabilisation: every bug fixed, every test passing and code coverage at its target | planned |
+| 14 | | Stabilisation: every bug fixed and every test run and passing, the full test included | planned |
+| 14.5 | | Code coverage over 90% for the server and for the screens, the screens through use cases run in the browser; no file under 60% | planned |
+| 21 | | Deploy in a Docker container or on distributed servers | planned: built after 14.5, before 15 (D901) |
 | 15 | | Every document checked and brought up to date | planned |
 | 16 | | Every picture, printed guide and the website brought up to date; every feature listed on the website | planned |
 | 17 | | Book: the project types guide | planned |
 | 18 | | Book: the Architect's Bible, in volumes | planned |
 | 19 | | Book: Scenario planning with your AI | planned |
 | 20 | | Learning videos and the YouTube channel | planned |
-| 21 | | Deploy in a Docker container or on distributed servers | planned |
 
 ## Quick start (laptop)
 

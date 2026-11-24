@@ -524,7 +524,7 @@ class Restores(MethodView):
         try:
             return _ops("GET", "/restores", timeout=20)
         except Exception:  # noqa: BLE001 - the helper is down: the records are files the API reads too
-            return {"restores": bk.list_records(), "active": {"active": False}, "helper": "The operations helper is not reachable."}
+            return {"restores": bk.list_records(), "active": {"active": False}, "helper": "The operations helper is not reachable (EAX-OPS-002)."}
 
 
 @blp.route("/admin/restores/<rid>")

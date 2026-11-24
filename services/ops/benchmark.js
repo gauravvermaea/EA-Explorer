@@ -36,7 +36,9 @@ export default function () {
     const r = http.get(`${TARGET}${p}`, { headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
       tags: { name: p.split('?')[0] } });
     check(r, { 'answered': (x) => x.status > 0 && x.status < 400 });
-    sleep(0.5 + Math.random());            // a person reads before the next click
+    // a person reads before the next click: 0.5 to 1.5 s, spread by the virtual user and its round, the same each run
+    // (SonarQube S2245: a random number cannot be told from a security use)
+    sleep(0.5 + ((__VU * 7919 + __ITER * 104729) % 1000) / 1000);
   }
 }
 

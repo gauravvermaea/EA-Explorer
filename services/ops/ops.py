@@ -91,6 +91,7 @@ import socket
 import struct
 import subprocess
 import sys
+import tempfile
 import termios
 import threading
 import time
@@ -1074,8 +1075,9 @@ def ssh_ticket(b: dict) -> dict:
         ssh_server_key()
         argv += ["-i", os.path.join(SSH_DIR, "id_ed25519"), "-o", "IdentitiesOnly=yes"]
     elif str(b.get("key") or "").strip():
-        cleanup = os.path.join("/tmp", f"eax-ssh-{sid}.key")
-        fd = os.open(cleanup, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        # a file of its own, made new (mode 600) with a name nobody can guess, never one of a fixed name in /tmp that
+        # someone could have made first or pointed elsewhere (SonarQube S5443, R14)
+        fd, cleanup = tempfile.mkstemp(prefix=f"eax-ssh-{sid}-", suffix=".key")
         with os.fdopen(fd, "w") as f:
             f.write(str(b["key"]).strip() + "\n")
         argv += ["-i", cleanup, "-o", "IdentitiesOnly=yes"]

@@ -63,7 +63,9 @@ def _send(base: str, method: str, path: str, token: str, raw: bytes | None) -> t
 
 Record = Callable[..., None]
 PEOPLE = {"super-admin": "eax-super-admin", "report-viewer": "eax-user", "it-admin": "eax-it-admin"}
-WARN_MS, FAIL_MS = 30000, 60000          # the owner's limits (13 Nov 2026)
+# the owner's limits (13 Nov 2026); a report fails at 120 seconds, not 60 (owner, 24 Nov 2026, 06:55: "Make timeout 120");
+# slower than 30 is still a warning
+WARN_MS, FAIL_MS = 30000, 120000
 QUIET_MS = 2500                          # no chart query for this long: the dashboard has finished loading
 PREFIX = "svc-self-test-"
 
@@ -270,12 +272,12 @@ class Session:
 
     def sign_in(self) -> None:
         """Signs in to Reports through Keycloak in the test's browser."""
-        self.page.goto(f"{self.base}/login/keycloak?next=%2Fdashboard%2Flist%2F", wait_until="domcontentloaded", timeout=60000)
-        self.page.wait_for_selector("#username", timeout=60000)
+        self.page.goto(f"{self.base}/login/keycloak?next=%2Fdashboard%2Flist%2F", wait_until="domcontentloaded", timeout=FAIL_MS)
+        self.page.wait_for_selector("#username", timeout=FAIL_MS)
         self.page.fill("#username", self.user)
         self.page.fill("#password", self.pw)
         self.page.click("#kc-login")
-        self.page.wait_for_url(lambda u: u.startswith(self.base) and "/login" not in u, timeout=60000)
+        self.page.wait_for_url(lambda u: u.startswith(self.base) and "/login" not in u, timeout=FAIL_MS)
 
     def call(self, method: str, path: str, headers: dict | None = None) -> tuple[int, str]:
         """A call to Superset's API from inside the signed-in page (its own fetch, its cookies). Never page.request:
@@ -349,117 +351,122 @@ def run(base: str, tokens: dict[str, str], ids: dict[str, str], record: Record, 
         counts[outcome] = counts.get(outcome, 0) + 1
         record(f"reports: {name}", outcome, detail, ms, **kw)
 
-    sid, model = ids.get("sid", ""), ids.get("model", "")
-    if not sid or not model:
-        rec("Keycloak test users", "skipped", "no test model in this run", 0)
-        return counts
-    if playwright is None:
+    def _checks() -> None:
+        # the checks, each early stop a plain return; run() has one way out (SonarQube S3516)
+        nonlocal playwright
+        sid, model = ids.get("sid", ""), ids.get("model", "")
+        if not sid or not model:
+            rec("Keycloak test users", "skipped", "no test model in this run", 0)
+            return
+        if playwright is None:
+            try:
+                from playwright.sync_api import sync_playwright
+            except ImportError:
+                rec("every report opens", "skipped", "Playwright is not in this image (the test runner image has it)", 0)
+                return
+            playwright = sync_playwright
+        # what the run itself puts in its model: one element committed, one left uncommitted
+        tag = f"Self-test reports {sid}"
+        committed, uncommitted = f"{tag} committed", f"{tag} uncommitted"
+        _content(base, tokens, model, committed, uncommitted, send, log)
+        allowed = _readable(base, tokens.get("report-viewer", ""), send)
+        kc = keycloak or Keycloak()
+        made: dict[str, str] = {}
+        t0 = time.time()
         try:
-            from playwright.sync_api import sync_playwright
-        except ImportError:
-            rec("every report opens", "skipped", "Playwright is not in this image (the test runner image has it)", 0)
-            return counts
-        playwright = sync_playwright
-    # what the run itself puts in its model: one element committed, one left uncommitted
-    tag = f"Self-test reports {sid}"
-    committed, uncommitted = f"{tag} committed", f"{tag} uncommitted"
-    _content(base, tokens, model, committed, uncommitted, send, log)
-    allowed = _readable(base, tokens.get("report-viewer", ""), send)
-    kc = keycloak or Keycloak()
-    made: dict[str, str] = {}
-    t0 = time.time()
-    try:
-        kc.sign_in()
-        for uid in kc.stale(sid):
-            kc.remove(uid)
-        secret = {}
-        for who, role in PEOPLE.items():
-            name, pw = f"{PREFIX}{sid}-{who}", password()
-            made[who] = kc.make(name, pw, role)
-            secret[who] = (name, pw)
-    except Exception as exc:  # noqa: BLE001 - nothing else of this suite can run without them
-        rec("Keycloak test users", "failed", str(exc)[:300], int((time.time() - t0) * 1000))
-        _remove(kc, made, log)
-        return counts
-    rec("Keycloak test users", "passed", f"{len(made)} made for this run: {', '.join(PEOPLE)}", int((time.time() - t0) * 1000))
-    base_r = reports_url()
-    host = base_r.split("//", 1)[1].split("/")[0].split(":")[0].removeprefix("reports.")
-    proxy = os.environ.get("EAX_TEST_PROXY_HOST", "proxy")
-    try:
-        with playwright() as pw:
-            browser = pw.chromium.launch(args=[f"--host-resolver-rules=MAP {host} {proxy}, MAP *.{host} {proxy}"])
-            sessions: dict[str, Session] = {}
-            for who in PEOPLE:
-                t1 = time.time()
-                s = Session(browser, who, *secret[who], base_r)
-                try:
-                    s.sign_in()
-                    sessions[who] = s
-                    rec(f"{who} signs in to Reports through Keycloak", "passed", "single sign-on", int((time.time() - t1) * 1000))
-                except Exception as exc:  # noqa: BLE001
-                    rec(f"{who} signs in to Reports through Keycloak", "failed", str(exc).splitlines()[0][:300],
-                        int((time.time() - t1) * 1000), screenshot=s.shot())
+            kc.sign_in()
+            for uid in kc.stale(sid):
+                kc.remove(uid)
+            secret = {}
+            for who, role in PEOPLE.items():
+                name, pw = f"{PREFIX}{sid}-{who}", password()
+                made[who] = kc.make(name, pw, role)
+                secret[who] = (name, pw)
+        except Exception as exc:  # noqa: BLE001 - nothing else of this suite can run without them
+            rec("Keycloak test users", "failed", str(exc)[:300], int((time.time() - t0) * 1000))
+            _remove(kc, made, log)
+            return
+        rec("Keycloak test users", "passed", f"{len(made)} made for this run: {', '.join(PEOPLE)}", int((time.time() - t0) * 1000))
+        base_r = reports_url()
+        host = base_r.split("//", 1)[1].split("/")[0].split(":")[0].removeprefix("reports.")
+        proxy = os.environ.get("EAX_TEST_PROXY_HOST", "proxy")
+        try:
+            with playwright() as pw:
+                browser = pw.chromium.launch(args=[f"--host-resolver-rules=MAP {host} {proxy}, MAP *.{host} {proxy}"])
+                sessions: dict[str, Session] = {}
+                for who in PEOPLE:
+                    t1 = time.time()
+                    s = Session(browser, who, *secret[who], base_r)
+                    try:
+                        s.sign_in()
+                        sessions[who] = s
+                        rec(f"{who} signs in to Reports through Keycloak", "passed", "single sign-on", int((time.time() - t1) * 1000))
+                    except Exception as exc:  # noqa: BLE001
+                        rec(f"{who} signs in to Reports through Keycloak", "failed", str(exc).splitlines()[0][:300],
+                            int((time.time() - t1) * 1000), screenshot=s.shot())
+                        s.close()
+                admin, viewer, it = sessions.get("super-admin"), sessions.get("report-viewer"), sessions.get("it-admin")
+                dashboards = admin.dashboards() if admin else []
+                want = expected_dashboards()
+                if admin:
+                    slugs = {d.get("slug") for d in dashboards}
+                    missing = sorted(want - slugs)
+                    rec("the reports are all there", "failed" if missing else "passed",
+                        f"missing: {', '.join(missing[:20])}" if missing else f"{len(want)} report dashboards in Reports")
+                if it:
+                    seen = it.dashboards()
+                    rec("refused: an IT Admin sees no report", "failed" if seen else "passed",
+                        f"sees {len(seen)}: {', '.join(str(d.get('dashboard_title')) for d in seen[:5])}" if seen
+                        else "no report dashboard (IT Admins see no content, D98)")
+                ours = [d for d in dashboards if d.get("slug") in want] or dashboards
+                viewer_rows: list[dict] = []
+                for who, s in (("super-admin", admin), ("report-viewer", viewer)):
+                    if s is None:
+                        continue
+                    for d in ours:
+                        ms, answers = s.open(d)
+                        errors, rows = [], []
+                        for status, body in answers:
+                            ok, why, got = chart_answer(status, body)
+                            if not ok:
+                                errors.append(why)
+                            rows += got
+                        if who == "report-viewer":
+                            viewer_rows += rows
+                        outcome, detail = verdict(ms, errors, len(answers))
+                        rec(f"{d.get('dashboard_title') or d.get('slug')} as {who}", outcome, detail, ms,
+                            screenshot=s.shot() if outcome != "passed" else None)
+                if viewer is not None and ours:
+                    seen_models = models_in(viewer_rows)
+                    other = sorted(seen_models - allowed) if allowed else []
+                    rec("only their own models: the Report Viewer", "failed" if other else "passed",
+                        f"shows models they do not have: {', '.join(other[:10])}" if other
+                        else f"{len(seen_models)} model(s) shown, all theirs")
+                    name = ids.get("model_name", "")
+                    rec("the run's own model is in the reports", "passed" if name in seen_models else "failed",
+                        f"{name} shown" if name in seen_models else f"{name} in no chart (shown: {', '.join(sorted(seen_models)[:10])})")
+                    found = names_in(viewer_rows)
+                    rec("committed content shows", "passed" if committed in found else "failed",
+                        f"{committed} shown" if committed in found else f"{committed} in no chart")
+                    rec("uncommitted content never shows", "failed" if uncommitted in found else "passed",
+                        f"{uncommitted} shown" if uncommitted in found else "not in any chart")
+                if viewer is not None:
+                    _from_screens(base, tokens, model, viewer, want, rec, send)
+                _remove_superset_users(admin, [secret[w][0] for w in PEOPLE if w != "super-admin"], log)
+                for s in sessions.values():
                     s.close()
-            admin, viewer, it = sessions.get("super-admin"), sessions.get("report-viewer"), sessions.get("it-admin")
-            dashboards = admin.dashboards() if admin else []
-            want = expected_dashboards()
-            if admin:
-                slugs = {d.get("slug") for d in dashboards}
-                missing = sorted(want - slugs)
-                rec("the reports are all there", "failed" if missing else "passed",
-                    f"missing: {', '.join(missing[:20])}" if missing else f"{len(want)} report dashboards in Reports")
-            if it:
-                seen = it.dashboards()
-                rec("refused: an IT Admin sees no report", "failed" if seen else "passed",
-                    f"sees {len(seen)}: {', '.join(str(d.get('dashboard_title')) for d in seen[:5])}" if seen
-                    else "no report dashboard (IT Admins see no content, D98)")
-            ours = [d for d in dashboards if d.get("slug") in want] or dashboards
-            viewer_rows: list[dict] = []
-            for who, s in (("super-admin", admin), ("report-viewer", viewer)):
-                if s is None:
-                    continue
-                for d in ours:
-                    ms, answers = s.open(d)
-                    errors, rows = [], []
-                    for status, body in answers:
-                        ok, why, got = chart_answer(status, body)
-                        if not ok:
-                            errors.append(why)
-                        rows += got
-                    if who == "report-viewer":
-                        viewer_rows += rows
-                    outcome, detail = verdict(ms, errors, len(answers))
-                    rec(f"{d.get('dashboard_title') or d.get('slug')} as {who}", outcome, detail, ms,
-                        screenshot=s.shot() if outcome != "passed" else None)
-            if viewer is not None and ours:
-                seen_models = models_in(viewer_rows)
-                other = sorted(seen_models - allowed) if allowed else []
-                rec("only their own models: the Report Viewer", "failed" if other else "passed",
-                    f"shows models they do not have: {', '.join(other[:10])}" if other
-                    else f"{len(seen_models)} model(s) shown, all theirs")
-                name = ids.get("model_name", "")
-                rec("the run's own model is in the reports", "passed" if name in seen_models else "failed",
-                    f"{name} shown" if name in seen_models else f"{name} in no chart (shown: {', '.join(sorted(seen_models)[:10])})")
-                found = names_in(viewer_rows)
-                rec("committed content shows", "passed" if committed in found else "failed",
-                    f"{committed} shown" if committed in found else f"{committed} in no chart")
-                rec("uncommitted content never shows", "failed" if uncommitted in found else "passed",
-                    f"{uncommitted} shown" if uncommitted in found else "not in any chart")
-            if viewer is not None:
-                _from_screens(base, tokens, model, viewer, want, rec, send)
-            _remove_superset_users(admin, [secret[w][0] for w in PEOPLE if w != "super-admin"], log)
-            for s in sessions.values():
-                s.close()
-            browser.close()
-    except Exception as exc:  # noqa: BLE001 - the rest of the run goes on
-        rec("every report opens", "failed", str(exc).splitlines()[0][:300], 0)
-    finally:
-        _remove(kc, made, log)
-    files(base, tokens, ids, rec)
-    import_log(base, tokens.get("super-admin", ""), rec, send)
-    rec("a report deleted in Reports comes back at the next start", "skipped",
-        "needs Reports restarted, which a run never does; checked by hand after a restart (fixed 13 Nov 2026)")
-    return counts
+                browser.close()
+        except Exception as exc:  # noqa: BLE001 - the rest of the run goes on
+            rec("every report opens", "failed", str(exc).splitlines()[0][:300], 0)
+        finally:
+            _remove(kc, made, log)
+        files(base, tokens, ids, rec)
+        import_log(base, tokens.get("super-admin", ""), rec, send)
+        rec("a report deleted in Reports comes back at the next start", "skipped",
+            "needs Reports restarted, which a run never does; checked by hand after a restart (fixed 13 Nov 2026)")
+
+    _checks()
+    return counts                     # the counts the checks filled in
 
 
 def _from_screens(base: str, tokens: dict[str, str], model: str, viewer: Session, want: set[str], rec, send) -> None:

@@ -206,11 +206,14 @@ def summarise(issues: list[dict], hotspots: list[dict], accepted: list[dict]) ->
     }
 
 
+def order(i: dict) -> tuple:
+    """Worst first: bugs, then vulnerabilities, then the rest; by severity; then by file and line."""
+    return (TYPE_ORDER.index(kind_of(i)) if kind_of(i) in TYPE_ORDER else 9,
+            SEVERITY_ORDER.index(severity_of(i)) if severity_of(i) in SEVERITY_ORDER else 9, file_of(i), i.get("line") or 0)
+
+
 def report_md(summary: dict, issues: list[dict], hotspots: list[dict], accepted: list[dict], version: str = "") -> str:
     """report.md: the counts, then every issue still to fix by file and line (the list the fixes are made from)."""
-    def order(i):
-        return (TYPE_ORDER.index(kind_of(i)) if kind_of(i) in TYPE_ORDER else 9,
-                SEVERITY_ORDER.index(severity_of(i)) if severity_of(i) in SEVERITY_ORDER else 9, file_of(i), i.get("line") or 0)
     lines = [f"# SonarQube scan of EA Explorer, {datetime.now(UTC):%Y-%m-%d %H:%M} UTC",
              "", f"SonarQube {version or '?'}, rules: Sonar way. "
              f"**{'PASSED' if summary['passed'] else 'FAILED'}**: {summary['to_fix']} to fix "
@@ -230,6 +233,18 @@ def report_md(summary: dict, issues: list[dict], hotspots: list[dict], accepted:
         lines += [f"- `{file_of(h)}:{h.get('line') or '-'}` {h.get('vulnerabilityProbability', '')} {h.get('ruleKey', '')}: "
                   f"{h.get('message', '')}" for h in sorted(hot, key=lambda h: (file_of(h), h.get("line") or 0))]
     return "\n".join(lines) + "\n"
+
+
+def snapshot(issues: list[dict], hotspots: list[dict], accepted: list[dict]) -> list[dict]:
+    """What is still to fix, one short row each, worst first (owner, 24 Nov 2026, 06:40: "When you run tests, put sonar's
+    snapshot of findings on the test report too"): the full test's summary page shows it and keeps it."""
+    rows = [{"file": file_of(i), "line": i.get("line"), "kind": kind_of(i), "severity": severity_of(i),
+             "rule": i.get("rule", ""), "message": str(i.get("message", ""))[:300]}
+            for i in sorted((x for x in issues if not is_accepted(x, accepted)), key=order)]
+    rows += [{"file": file_of(h), "line": h.get("line"), "kind": "SECURITY_HOTSPOT",
+              "severity": h.get("vulnerabilityProbability", ""), "rule": h.get("ruleKey", ""),
+              "message": str(h.get("message", ""))[:300]} for h in hotspots if not is_accepted(h, accepted)]
+    return rows
 
 
 def report(folder: str, ask=call, keep: Path = KEEP, results: Path = RESULTS) -> bool:
@@ -256,6 +271,7 @@ def report(folder: str, ask=call, keep: Path = KEEP, results: Path = RESULTS) ->
     (out / "issues.json").write_text(json.dumps(issues, indent=1), encoding="utf-8")
     (out / "hotspots.json").write_text(json.dumps(hotspots, indent=1), encoding="utf-8")
     (out / "summary.json").write_text(json.dumps(summary, indent=1), encoding="utf-8")
+    (out / "to_fix.json").write_text(json.dumps(snapshot(issues, hotspots, accepted), indent=1), encoding="utf-8")
     (out / "report.md").write_text(report_md(summary, issues, hotspots, accepted, version), encoding="utf-8")
     print(f"{'PASSED' if summary['passed'] else 'FAILED'}: {summary['to_fix']} to fix "
           f"({summary['issues']} issues, {summary['hotspots']} hotspots, {summary['accepted']} accepted). "

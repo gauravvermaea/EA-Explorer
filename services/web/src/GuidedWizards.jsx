@@ -389,6 +389,32 @@ export function LoadDataWizard({ m, onClose }) {
   );
 }
 
+// Documents' OCR chosen in the first-run setup (owner, 23 Nov 2026, 22:48, D903): the same setting as System Admin >
+// Settings > System settings, off unless chosen; saved as that screen saves it
+function OcrChoice({ onSaved }) {
+  const [on, setOn] = useState(null);
+  const [msg, setMsg] = useState("");
+  useEffect(() => {
+    apiFetch("/api/v1/admin/settings").then((r) => setOn(!!(r.documents || []).find((x) => x.key === "documents_ocr")?.value))
+      .catch(() => {});
+  }, []);
+  if (on === null || !can("settings.manage")) return null;
+  const save = async (v) => {
+    setMsg("");
+    try {
+      const out = await apiFetch("/api/v1/admin/settings", { method: "PUT", body: JSON.stringify({ documents_ocr: v }) });
+      setOn(v); setMsg(out.note || "Saved."); onSaved?.();
+    } catch (e) { setMsg(e.message); }
+  };
+  return (
+    <div className="first-run-choice small">
+      <label className="switch-label"><input type="checkbox" checked={on} onChange={(e) => save(e.target.checked)} />
+        {" "}Read scanned pages (OCR): {on ? "on" : "off"}</label>
+      {msg && <span className="quiet"> {msg}</span>}
+    </div>
+  );
+}
+
 // ---------------------------------------------------------------- UI-009 the first-run setup
 export function FirstRunPanel({ always = false }) {
   const { data, error } = useApi(can("settings.manage") ? "/api/v1/admin/first-run" : null);
@@ -408,6 +434,7 @@ export function FirstRunPanel({ always = false }) {
           {" "}<a href={s.link} className="small">Open</a>
           {!s.seen && <> · <button className="linkish small" onClick={() => mark({ step: s.key, done: !s.marked })}>{s.marked ? "Not done yet" : "Mark done"}</button></>}
           {s.key === "upkeep" && !s.done && <UpkeepChoices />}
+          {s.key === "ocr" && <OcrChoice onSaved={() => apiFetch("/api/v1/admin/first-run").then(setSt).catch(() => {})} />}
         </li>)}
       </ol>
       <div className="row-gap">

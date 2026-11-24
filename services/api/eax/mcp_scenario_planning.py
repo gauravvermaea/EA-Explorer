@@ -12,8 +12,15 @@ from __future__ import annotations
 from typing import Any
 
 from . import scenario_planning as sp
-from .mcp_scenarios import _proj
 from .mcp_server import mcp
+
+
+async def _proj(*args, **kwargs):
+    """mcp_scenarios' project wrapper, looked up when a tool runs: importing it at the top made a cycle when
+    mcp_scenarios was imported first (mcp_scenarios -> mcp_server -> this module -> mcp_scenarios)."""
+    from .mcp_scenarios import _proj as proj
+    return await proj(*args, **kwargs)
+
 
 GUIDE = """The scenario planning wizard (Release 10). Always in a project: read its documents and models first
 (list_projects, project_overview, the models' reports), then work as the person, one step at a time, and ask before

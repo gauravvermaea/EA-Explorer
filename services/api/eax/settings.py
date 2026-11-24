@@ -122,6 +122,18 @@ REGISTRY: dict[str, tuple] = {
                         "On: the weekly check (Sundays 02:20) and the check after a restore rebuild an index, validate a "
                         "constraint or move a sequence on by themselves, after a backup (the maintenance page is up while "
                         "it is taken). Off: they are reported, and made with Fix the safe ones on Database maintenance."),
+    # Documents' OCR (owner, 23 Nov 2026, 22:45: "OCR be turned off by default. We should be able to turn it on in a
+    # setting in admin"; D903): every page read as a picture; off, a document's own text is still extracted and searched
+    "documents_ocr": ("documents", "Documents: read scanned pages (OCR)", "bool", False, None,
+                      "On: Documents reads every page of each document as a picture, so scanned paper and photos of pages "
+                      "can be searched; switching it on also reads the documents already there (the industry packs alone "
+                      "are thousands of pages: an hour or more on a laptop, in the background). Off: a document's own text "
+                      "is still extracted and searched; OCR jobs waiting are cleared."),
+    # the window OCR may run in (owner, 23 Nov 2026, 22:54: "schedule it so that documents can be indexed at night")
+    "documents_ocr_from": ("documents", "OCR runs from (HH:MM)", "text", "", (0, 5),
+                           "With the next: Documents reads pages only between these times (local), 22:00 to 06:00 say; "
+                           "outside them the pages waiting are held. Both empty: any time."),
+    "documents_ocr_to": ("documents", "OCR runs until (HH:MM)", "text", "", (0, 5), "HH:MM, local; may be past midnight."),
     # the site's purpose (Release 6.5, D749; owner, 17 Nov 2026: "site purpose: a label only, PROD by default")
     "site_purpose": ("system", "Site purpose", "choice", "PROD", ["PROD", "PRE-PROD", "UAT", "TEST", "DEV", "CONTENT", "DR", "TRAINING"],
                      "A label shown at the top of every screen, so people know which site they are on. Nothing behaves "
@@ -241,7 +253,7 @@ def describe(conn) -> dict:
     """The settings with their labels, types, choices and help, grouped (for the console)."""
     v = values(conn)
     rows = {r["key"]: r for r in conn.execute(text("SELECT key, modified_at, modified_by FROM core.settings")).mappings()}
-    out: dict[str, list] = {"application": [], "system": [], "security": []}   # security: System Admin › Security (R5)
+    out: dict[str, list] = {"application": [], "system": [], "security": [], "documents": []}   # security: System Admin › Security (R5); documents: System Admin › Documents (D903)
     for k, (group, label, typ, _default, choices, help_) in REGISTRY.items():
         if group == "hidden":                   # set by their own screen only (the resource history's shorter interval)
             continue
@@ -347,6 +359,9 @@ def update(conn, user, changes: dict) -> dict:
     if clean.get("decimal_separator", values(conn)["decimal_separator"]) == clean.get("thousands_separator",
                                                                                        values(conn)["thousands_separator"]):
         raise EditError("The decimal and thousands separators must differ.")
+    for k in ("documents_ocr_from", "documents_ocr_to"):     # HH:MM or empty (D903)
+        if clean.get(k) and not re.match(r"^([01]\d|2[0-3]):[0-5]\d$", str(clean[k])):
+            raise EditError(f"{REGISTRY[k][1]}: a time as HH:MM (22:00), or empty for any time.")
     store(conn, clean)
     applied, note = [], ""
     if {"session_idle_minutes", "session_max_hours"} & set(clean):
@@ -365,6 +380,15 @@ def update(conn, user, changes: dict) -> dict:
             note += f" Multi-factor sign-in {r['mode']}: {r['asked']} asked to set up a code, {r['released']} no longer asked."
         except Exception as exc:  # noqa: BLE001
             note += f" Multi-factor sign-in is saved but Keycloak did not take it yet ({exc}); it is applied within the hour."
+    if "documents_ocr" in clean:          # applied in the background: reading every page can take an hour (D903)
+        try:
+            from .jobs import documents_ocr
+            documents_ocr.defer(on=bool(clean["documents_ocr"]))
+            applied.append("Documents' OCR")
+            note += (" OCR is being switched on: Documents reads every document's pages in the background."
+                     if clean["documents_ocr"] else " OCR is being switched off; the OCR jobs waiting are cleared.")
+        except Exception as exc:  # noqa: BLE001
+            note += f" OCR is saved but not applied yet ({exc}); it is applied at the next start."
     if {"part_projects", "part_repository", "part_references"} & set(clean):
         p = parts(conn)
         off = [k.title() for k in PARTS if not p[k]]

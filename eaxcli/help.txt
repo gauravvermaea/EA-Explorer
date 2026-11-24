@@ -387,7 +387,7 @@ Work done since the update is lost; the current state is backed up first and kep
 history. Asks you to type YES unless --yes is given.
 $ {eax} rollback
 
-### packs [auto|source [folder...] [--clear]|load [folder]|reload|status|collect [source...]]
+### packs [auto|source [folder...] [--clear]|load [folder]|reload|status|ocr [--clear]|collect [source...]]
 > The industry packs: the books, workbooks, metamodel Excel and PowerPoints on the library's Pack tab.
 Nothing to run by hand (D584): every up, run, restart, clean-restart and clean-run copies what is new or changed in the
 pack sources into library/industry-packs first (packs auto; quick when nothing changed; nothing to do when no source
@@ -397,8 +397,13 @@ persist/settings.json (set with packs source, kept across resets), else EAX_PACK
 separated by ;), else Enterprise_Architecture\Industry Specific Guidance and Sample_Repo (the metamodels and views) in
 your home folder. collect (optional) copies them now; the "complete set" zips are opened, the same file kept once,
 files over 50 MB split into parts below 45 MB (no Git LFS). load (or reload) puts them into Documents now; load
-<folder> loads another folder on this computer. status shows each industry's pack. See docs/industry-packs.md.
+<folder> loads another folder on this computer. status shows each industry's pack. ocr shows the OCR jobs waiting in
+Documents (after a clean restart it reads every page of the pack files as a picture, an hour or more on a laptop, though
+their text is already there); ocr --clear deletes them: the documents, their text and search stay. See
+docs/industry-packs.md.
 $ {eax} packs status
+$ {eax} packs ocr
+$ {eax} packs ocr --clear
 $ {eax} packs source "D:\Packs\Industry Specific Guidance" "D:\Packs\Sample_Repo"
 $ {eax} packs source --clear
 $ {eax} packs load "D:\More packs"

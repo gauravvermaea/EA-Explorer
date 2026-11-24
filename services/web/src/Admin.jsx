@@ -64,7 +64,8 @@ const SizingPage = lazy(() => import("./Sizing"));
 const JobsPage = lazy(() => import("./Jobs"));   // R5.30
 const DisasterRecoveryPage = lazy(() => import("./DisasterRecovery"));
 const BrandingPage = lazy(() => import("./BrandingAdmin"));
-const SettingsTransferPage = lazy(() => import("./SettingsTransfer"));   // Release 6.7 (D755)
+const SettingsTransferPage = lazy(() => import("./SettingsTransfer"));
+const DocumentsAdminPage = lazy(() => import("./DocumentsAdmin"));   // Documents' OCR (D903)   // Release 6.7 (D755)
 const QualityAdmin = lazy(() => import("./Quality").then((x) => ({ default: x.QualityAdmin })));
 
 
@@ -106,6 +107,7 @@ export default function Admin({ route }) {
                 : t[0] === "secrets" ? <SecretsPage />
                 : t[0] === "pairings" ? <PairingsPage />
                 : t[0] === "settings-transfer" ? <SettingsTransferPage />
+                : t[0] === "documents" ? <DocumentsAdminPage />
                 : t[0] === "db-maintenance" ? <DbMaintenancePage />
                 : t[0] === "optimisation" ? <OptimisationPage />
                 : t[0] === "sizing" ? <SizingPage />

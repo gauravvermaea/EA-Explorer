@@ -120,48 +120,52 @@ def run(engine, record: Record, now: datetime | None = None) -> dict[str, int]:
         counts[outcome] = counts.get(outcome, 0) + 1
         record(name, outcome, detail, ms)
 
-    with engine.connect() as conn:
-        if not conn.execute(text("SELECT to_regclass('jobs.procrastinate_jobs')")).scalar():
-            rec("jobs: the job queue is there", "failed", "jobs.procrastinate_jobs is missing")
-            return counts
-        q = jq.queue(conn, now=now)
+    def _checks() -> None:
+        # the checks, each early stop a plain return; run() has one way out (SonarQube S3516)
+        with engine.connect() as conn:
+            if not conn.execute(text("SELECT to_regclass('jobs.procrastinate_jobs')")).scalar():
+                rec("jobs: the job queue is there", "failed", "jobs.procrastinate_jobs is missing")
+                return
+            q = jq.queue(conn, now=now)
 
-        def alive() -> tuple[str, str]:
-            n = _finished_lately(conn)
-            return ("passed", f"{n} job(s) finished in the last {ALIVE_MINUTES} minutes") if n else \
-                ("failed", f"no job finished in the last {ALIVE_MINUTES} minutes: the job runner is not taking jobs "
-                           "(restart it on System Admin > Jobs)")
-        _timed(rec, "jobs: the job runner takes jobs", alive)
+            def alive() -> tuple[str, str]:
+                n = _finished_lately(conn)
+                return ("passed", f"{n} job(s) finished in the last {ALIVE_MINUTES} minutes") if n else \
+                    ("failed", f"no job finished in the last {ALIVE_MINUTES} minutes: the job runner is not taking jobs "
+                               "(restart it on System Admin > Jobs)")
+            _timed(rec, "jobs: the job runner takes jobs", alive)
 
-        def alerts() -> tuple[str, str]:
-            n = _finished_lately(conn, "eax.alerts_run")
-            return ("passed", f"ran {n} time(s) in the last {ALIVE_MINUTES} minutes") if n else \
-                ("failed", f"the alert checks have not run in the last {ALIVE_MINUTES} minutes")
-        _timed(rec, "jobs: the alert checks run", alerts)
+            def alerts() -> tuple[str, str]:
+                n = _finished_lately(conn, "eax.alerts_run")
+                return ("passed", f"ran {n} time(s) in the last {ALIVE_MINUTES} minutes") if n else \
+                    ("failed", f"the alert checks have not run in the last {ALIVE_MINUTES} minutes")
+            _timed(rec, "jobs: the alert checks run", alerts)
 
-        def running() -> tuple[str, str]:
-            bad = [j for j in q["jobs"] if j["status"] in ("doing", "aborting") and j.get("stuck")]
-            return ("passed", f"{q['summary']['running']} being worked on, none past its limit") if not bad else \
-                ("failed", "; ".join(f"job {j['id']} {j['what']}: {j['why']}" for j in bad)[:900])
-        _timed(rec, "jobs: nothing is stuck being worked on", running)
+            def running() -> tuple[str, str]:
+                bad = [j for j in q["jobs"] if j["status"] in ("doing", "aborting") and j.get("stuck")]
+                return ("passed", f"{q['summary']['running']} being worked on, none past its limit") if not bad else \
+                    ("failed", "; ".join(f"job {j['id']} {j['what']}: {j['why']}" for j in bad)[:900])
+            _timed(rec, "jobs: nothing is stuck being worked on", running)
 
-        def waiting() -> tuple[str, str]:
-            bad = [j for j in q["jobs"] if j["status"] == "todo" and j.get("stuck")]
-            return ("passed", f"{q['summary']['waiting']} waiting, none too long") if not bad else \
-                ("failed", "; ".join(f"job {j['id']} {j['what']}: {j['why']}" for j in bad)[:900])
-        _timed(rec, "jobs: nothing waits too long", waiting)
+            def waiting() -> tuple[str, str]:
+                bad = [j for j in q["jobs"] if j["status"] == "todo" and j.get("stuck")]
+                return ("passed", f"{q['summary']['waiting']} waiting, none too long") if not bad else \
+                    ("failed", "; ".join(f"job {j['id']} {j['what']}: {j['why']}" for j in bad)[:900])
+            _timed(rec, "jobs: nothing waits too long", waiting)
 
-    def locks() -> tuple[str, str]:
-        bad = scheduled_without_lock()
-        return ("passed", "each scheduled job runs one copy at a time") if not bad else \
-            ("failed", f"can run twice at once: {', '.join(bad)}")
-    _timed(rec, "jobs: every scheduled job has its lock", locks)
+        def locks() -> tuple[str, str]:
+            bad = scheduled_without_lock()
+            return ("passed", "each scheduled job runs one copy at a time") if not bad else \
+                ("failed", f"can run twice at once: {', '.join(bad)}")
+        _timed(rec, "jobs: every scheduled job has its lock", locks)
 
-    def names() -> tuple[str, str]:
-        bad = unnamed_tasks()
-        return ("passed", "every kind of job has a name in words") if not bad else \
-            ("warning", f"shown by their code name: {', '.join(bad)}")
-    _timed(rec, "jobs: every job has a name in words", names)
+        def names() -> tuple[str, str]:
+            bad = unnamed_tasks()
+            return ("passed", "every kind of job has a name in words") if not bad else \
+                ("warning", f"shown by their code name: {', '.join(bad)}")
+        _timed(rec, "jobs: every job has a name in words", names)
 
-    _timed(rec, "jobs: Cancel, Move and Kill work", lambda: actions_work(engine))
-    return counts
+        _timed(rec, "jobs: Cancel, Move and Kill work", lambda: actions_work(engine))
+
+    _checks()
+    return counts                     # the counts the checks filled in

@@ -2,7 +2,7 @@
 // Documents and links in a free folder tree, with title, description, source and tags; search finds words inside the
 // documents too; every version of a file is kept. Everyone reads it; Super Admins change it. Projects link to entries
 // from their Reference tab (EnterprisePicker).
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { apiDownload, apiFetch, apiUpload } from "./auth";
 import { refreshAll, useApi } from "./ModelViews";
 import { Field, Modal } from "./ModelOps";
@@ -40,6 +40,11 @@ function Library() {
   const [deep, setDeep] = useState(false);
   // the first-run setup's guides step opens the zip upload (Release 12, R12.12): #/reference-library?upload=guides
   const [dlg, setDlg] = useState(() => (/[?&]upload=guides/.test(window.location.hash) ? { k: "guides" } : null));
+  useEffect(() => {          // the same link followed while this page is open (R14: the full test, 24 Nov 2026)
+    const seen = () => { if (/[?&]upload=guides/.test(window.location.hash)) setDlg({ k: "guides" }); };
+    window.addEventListener("hashchange", seen);
+    return () => window.removeEventListener("hashchange", seen);
+  }, []);
   const [msg, setMsg] = useState({ ok: true, text: "" });
   const url = `/api/v1/reference-library?folder=${encodeURIComponent(folder)}&q=${encodeURIComponent(query)}&tag=${encodeURIComponent(tag)}&kind=${kind}&deep=${deep}`;
   const { data, error } = useApi(url);

@@ -29,8 +29,33 @@ from pathlib import Path
 RUN_FOLDER = re.compile(r"^\d{8}T\d{6}Z$")
 KINDS = {"dev check": "dev", "self-test": "selftest", "backup and restore test": "backup", "SonarQube scan": "sonar",
          "DR drill": "dr", "no test container left running": "containers"}
-DRILL_ROW = re.compile(r"^\| (ok|warn|FAILED) \| (.*?) \| (\d+) \| (.*) \|\s*$")
+DRILL_STATES = ("ok", "warn", "FAILED")
+
+
+def drill_row(line: str) -> tuple[str, str, int] | None:
+    """A step row of the drill's report.md, "| ok | step | 12 | note |": (state, step, seconds), or None. Read by hand,
+    not by the pattern it replaced (SonarQube S8786: two open-ended parts backtracked), giving what that pattern gave:
+    the step is everything up to the first "| <digits> |" that has a note after it."""
+    s = line.rstrip()
+    if not (s.startswith("| ") and s.endswith(" |")) or len(s) < 4:
+        return None
+    parts = s[2:-2].split(" | ")
+    if len(parts) < 4 or parts[0] not in DRILL_STATES:
+        return None
+    for k in range(2, len(parts) - 1):
+        if parts[k] and parts[k].isascii() and parts[k].isdigit():
+            return parts[0], " | ".join(parts[1:k]), int(parts[k])
+    return None
 GOOD, NEAR, LOW, GREY = "#1a7f37", "#b7791f", "#c62828", "#8a8f98"
+
+
+def _list(path: Path) -> list:
+    """A JSON list from a file ([] when it is not there or not a list)."""
+    try:
+        got = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    return got if isinstance(got, list) else []
 
 
 def _json(path: Path) -> dict | None:
@@ -92,13 +117,34 @@ def gather(tests: Path, since: float, steps: list[tuple[str, bool, str]], *, ver
     if sq:
         s = _json(sq / "summary.json") or {}
         out["sonar"] = {"folder": sq.name, **{k: s.get(k) for k in ("passed", "to_fix", "issues", "hotspots", "accepted",
-                                                                    "by_severity", "by_kind")}}
+                                                                    "by_severity", "by_kind")},
+                        # the findings themselves, kept with the summary (owner, 24 Nov 2026, 06:40: "put sonar's snapshot
+                        # of findings on the test report too"): the scan's folder may be pruned, the summary stays
+                        "findings": _list(sq / "to_fix.json")[:SONAR_SHOWN]}
         out["details"].append(sq.name)
     dr = _newest(tests, lambda p: p.is_dir() and p.name.startswith("drill-"), since)
     if dr:
         out["dr"] = {"folder": dr.name, **drill_report(dr / "report.md")}
         out["details"].append(dr.name)
     return out
+
+
+SONAR_SHOWN = 300          # the findings kept and shown on the summary page; report.md has them all
+
+
+def sonar_table(rows: list, to_fix=None) -> str:
+    """SonarQube's findings still to fix, as a table (the snapshot of the scan the full test ran)."""
+    if not rows:
+        return "<p>No finding to fix.</p>" if to_fix == 0 else ""
+    head = "<tr><th>Severity</th><th>Kind</th><th>File and line</th><th>Rule</th><th>What</th></tr>"
+    body = "".join(
+        f"<tr><td>{html.escape(str(r.get('severity') or ''))}</td><td>{html.escape(str(r.get('kind') or '').lower().replace('_', ' '))}</td>"
+        f"<td><code>{html.escape(str(r.get('file') or ''))}:{html.escape(str(r.get('line') or '-'))}</code></td>"
+        f"<td>{html.escape(str(r.get('rule') or ''))}</td><td>{html.escape(str(r.get('message') or ''))}</td></tr>"
+        for r in rows if isinstance(r, dict))
+    more = (f"<p>The first {len(rows)} of {to_fix}; report.md has every one.</p>"
+            if isinstance(to_fix, int) and to_fix > len(rows) else "")
+    return f"<h3>Still to fix</h3><table>{head}{body}</table>{more}"
 
 
 def drill_report(path: Path) -> dict:
@@ -110,8 +156,7 @@ def drill_report(path: Path) -> dict:
     lines = text.splitlines()
     verdict = next((x.strip().strip("*").replace("**", "") for x in lines if x.startswith("**")), "")
     rec = re.search(r"Recovery time[^:]*\): (\d+) minutes", text)
-    steps = [{"state": m.group(1), "step": m.group(2), "seconds": int(m.group(3))}
-             for m in (DRILL_ROW.match(x) for x in lines) if m]
+    steps = [{"state": m[0], "step": m[1], "seconds": m[2]} for m in (drill_row(x) for x in lines) if m]
     return {"passed": bool(verdict) and not verdict.startswith("Failed"), "verdict": verdict[:300],
             "recovery": int(rec.group(1)) if rec else None, "steps": steps,
             "warnings": sum(1 for x in steps if x["state"] == "warn")}
@@ -224,6 +269,7 @@ def cards(s: dict) -> list[str]:
         body = (_rows([("to fix", sq.get("to_fix")), ("issues", sq.get("issues")), ("security hotspots", sq.get("hotspots")),
                        ("accepted in writing", sq.get("accepted"))]
                       + [(f"severity {k.lower()}", v) for k, v in (sq.get("by_severity") or {}).items()])
+                + sonar_table(sq.get("findings") or [], sq.get("to_fix"))
                 + f'<p>{_link(f"../{sq["folder"]}/report.md", "Every issue by file and line")}</p>'
                 if sq else f"<p>{html.escape((sst or {}).get('why') or '')}</p>")
         out.append(f'<section class="card"><h2>SonarQube {_state((sst or sq or {}).get("passed"))}</h2>{body}</section>')

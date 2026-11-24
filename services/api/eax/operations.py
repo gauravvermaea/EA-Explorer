@@ -180,12 +180,12 @@ def _library_use(rows: list[dict]) -> list[dict]:
                        (SELECT count(*) FROM history.row_versions h WHERE h.model_id = m.id) AS versions
                   FROM core.models m WHERE m.content_schema = 'library_models' AND NOT m.is_deleted""")).mappings()}
     except Exception:  # noqa: BLE001 - the library schema away: shown without its counts
-        return rows
+        got = {}
     for r in rows:
         g = got.get(str(r["guid"]))
         if g:
             r.update({k: g[k] for k in ("entities", "relationships", "last_changed", "versions")})
-    return rows
+    return rows                       # one way out (SonarQube S3516)
 
 
 def model_use(conn, since: str) -> list[dict]:

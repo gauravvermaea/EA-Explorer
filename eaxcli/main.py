@@ -644,6 +644,9 @@ def dispatch(command: str, rest: list[str], wait_all: bool) -> None:
             steps: list[tuple[str, bool, str]] = []
             began = time.time()                       # each step's files made since then go on the summary page (D825)
             no_sonar, no_dr = "--no-sonar" in rest, "--no-dr" in rest
+            if last:                                  # what would slow it down, said first (R14.27, R14.33)
+                from . import preflight
+                preflight.check()
             if last and "--no-dev-check" not in rest:
                 steps.append(full_step("dev check", lambda: dev_cli_main(["check"])))
             rest = [a for a in rest if a not in ("--no-dev-check", "--no-sonar", "--no-dr")]

@@ -30,6 +30,10 @@ STEPS = [
     # the organisation's own guides (owner, 23 Nov 2026, R12.12, D885): optional, "in a folder structure they see fit"
     ("guides", "Your organisation's guides (optional)", "Upload your own guides as a zip: their folders are kept, each file is "
      "stored in Documents and shown in the Reference library for everyone.", "#/reference-library?upload=guides"),
+    # Documents' OCR (owner, 23 Nov 2026, 22:48: "Make this turning on OCR part of the initial setup on start page"; D903)
+    ("ocr", "Documents: read scanned pages (OCR) (optional)", "Off unless you choose it. On: every page of each document is "
+     "read as a picture, so scanned paper can be searched, and the documents already there are read too (the industry "
+     "packs alone take an hour or more on a laptop). Off: each document's own text is still searched.", "#/admin/system"),
     ("backups", "When backups run", "The infrastructure and application backups, and how many are kept.", "#/admin/backups"),
     # the owner, 18 Nov 2026, 10:21: "The user needs to be able to enable the key rotation and all these schedules as one
     # of the initial configuration tasks": what can take EA Explorer down for a moment is off until chosen here
@@ -62,6 +66,10 @@ def _seen(conn) -> dict[str, bool]:
     try:
         app = [s for s in st.describe(conn)["application"] if s.get("modified_by")]
         seen["settings"] = bool(app)
+    except Exception:  # noqa: BLE001 - only a hint
+        pass
+    try:                                   # OCR chosen, on or off, by a person (D903)
+        seen["ocr"] = any(s.get("key") == "documents_ocr" and s.get("modified_by") for s in st.describe(conn)["documents"])
     except Exception:  # noqa: BLE001 - only a hint
         pass
     try:

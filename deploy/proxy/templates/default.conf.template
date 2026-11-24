@@ -98,7 +98,9 @@ server {
 
     # ---- maintenance (D230)
     error_page 502 503 504 /eax-maintenance.html;
-    location = /eax-maintenance.html { root /etc/nginx/eax; internal; add_header Cache-Control "no-store" always; add_header Retry-After 30 always; }
+    # the maintenance page with a CSP of its own: its one script allowed by its hash (tests/test_r14_bugs.py keeps it in step);
+    # ZAP found it shown without one while the screens were busy (the full test of 24 Nov 2026)
+    location = /eax-maintenance.html { root /etc/nginx/eax; internal; add_header Cache-Control "no-store" always; add_header Retry-After 30 always; add_header Content-Security-Policy "default-src 'none'; script-src 'sha256-dwoW49CA7ccilEkNc60Wsoae7AEVlsllwvv8ays4s+w='; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'self'" always; add_header X-Content-Type-Options nosniff always; }
     location = /eax-maintenance.json { root /etc/nginx/eax; internal; default_type application/json; add_header Cache-Control "no-store" always; }
     location = /eax-unavailable-operations.json { root /etc/nginx/eax; internal; default_type application/json; add_header Cache-Control "no-store" always; }
     location = /eax-unavailable-personal.json { root /etc/nginx/eax; internal; default_type application/json; add_header Cache-Control "no-store" always; }
@@ -224,7 +226,7 @@ server {
 
     # ---- maintenance (D230)
     error_page 502 503 504 /eax-maintenance.html;
-    location = /eax-maintenance.html { root /etc/nginx/eax; internal; add_header Cache-Control "no-store" always; add_header Retry-After 30 always; }
+    location = /eax-maintenance.html { root /etc/nginx/eax; internal; add_header Cache-Control "no-store" always; add_header Retry-After 30 always; add_header Content-Security-Policy "default-src 'none'; script-src 'sha256-dwoW49CA7ccilEkNc60Wsoae7AEVlsllwvv8ays4s+w='; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'self'" always; add_header X-Content-Type-Options nosniff always; }
     location = /eax-maintenance.json { root /etc/nginx/eax; internal; default_type application/json; add_header Cache-Control "no-store" always; }
     location = /eax-unavailable-operations.json { root /etc/nginx/eax; internal; default_type application/json; add_header Cache-Control "no-store" always; }
     location = /eax-unavailable-personal.json { root /etc/nginx/eax; internal; default_type application/json; add_header Cache-Control "no-store" always; }
@@ -379,7 +381,7 @@ server {
 
     # ---- maintenance (D230)
     error_page 502 503 504 /eax-maintenance.html;
-    location = /eax-maintenance.html { root /etc/nginx/eax; internal; add_header Cache-Control "no-store" always; add_header Retry-After 30 always; }
+    location = /eax-maintenance.html { root /etc/nginx/eax; internal; add_header Cache-Control "no-store" always; add_header Retry-After 30 always; add_header Content-Security-Policy "default-src 'none'; script-src 'sha256-dwoW49CA7ccilEkNc60Wsoae7AEVlsllwvv8ays4s+w='; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'self'" always; add_header X-Content-Type-Options nosniff always; }
     location = /eax-maintenance.json { root /etc/nginx/eax; internal; default_type application/json; add_header Cache-Control "no-store" always; }
     location = /eax-unavailable-operations.json { root /etc/nginx/eax; internal; default_type application/json; add_header Cache-Control "no-store" always; }
     location = /eax-unavailable-personal.json { root /etc/nginx/eax; internal; default_type application/json; add_header Cache-Control "no-store" always; }
@@ -401,7 +403,7 @@ server {
 
     # ---- maintenance (D230)
     error_page 502 503 504 /eax-maintenance.html;
-    location = /eax-maintenance.html { root /etc/nginx/eax; internal; add_header Cache-Control "no-store" always; add_header Retry-After 30 always; }
+    location = /eax-maintenance.html { root /etc/nginx/eax; internal; add_header Cache-Control "no-store" always; add_header Retry-After 30 always; add_header Content-Security-Policy "default-src 'none'; script-src 'sha256-dwoW49CA7ccilEkNc60Wsoae7AEVlsllwvv8ays4s+w='; style-src 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'self'" always; add_header X-Content-Type-Options nosniff always; }
     location = /eax-maintenance.json { root /etc/nginx/eax; internal; default_type application/json; add_header Cache-Control "no-store" always; }
     location = /eax-unavailable-operations.json { root /etc/nginx/eax; internal; default_type application/json; add_header Cache-Control "no-store" always; }
     location = /eax-unavailable-personal.json { root /etc/nginx/eax; internal; default_type application/json; add_header Cache-Control "no-store" always; }

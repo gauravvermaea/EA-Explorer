@@ -221,6 +221,11 @@ def drawn_view_bindings(conn, views_dsn: str | None) -> tuple[str, str]:
     """Reads the latest version of each live drawn view from the views' database (read only), then the entities they name."""
     if not views_dsn:
         return "skipped", "the views service is off, or its database settings are not in the runner"
+    if os.environ.get("EAX_AUTH_MODE") == "certificate":
+        # in certificate mode eax_views signs in only with the views service's own certificate, which the runner does not
+        # hold (and should not: only the API's folder is mounted, R11); not a fault (the full test of 24 Nov 2026 said
+        # "certificate authentication failed for user eax_views" as a warning)
+        return "skipped", "certificate mode: only the views service holds eax_views' certificate; checked in password mode"
     import psycopg
     from sqlalchemy import text
     with psycopg.connect(views_dsn, connect_timeout=10) as vc:

@@ -132,15 +132,15 @@ def stop(eng, runs: list[dict], args: list[str], out=print) -> int:
     pick = next((r for r in runs if str(r["id"]) == named), None) if named else (live_runs[0] if live_runs else None)
     if not pick or pick["state"] not in store.OPEN:
         out("No self-test is running" + (f" as {named}" if named else "") + ": nothing to stop.")
-        return 0
-    by = f"{getpass.getuser()} (eax test stop)"
-    with eng.begin() as conn, store.tests(conn) as tc:
-        if not store.ask_stop(tc, int(pick["id"]), by):
-            out(f"Self-test {pick['id']} is not running.")
-            return 0
-        audit.record(conn, actor=by, action="selftest.stopped", object_type="test_run", object_id=str(pick["id"]))
-    out(f"Self-test {pick['id']} is asked to stop: it stops at its next step and removes its test data.")
-    return 0
+    else:
+        by = f"{getpass.getuser()} (eax test stop)"
+        with eng.begin() as conn, store.tests(conn) as tc:
+            if store.ask_stop(tc, int(pick["id"]), by):
+                audit.record(conn, actor=by, action="selftest.stopped", object_type="test_run", object_id=str(pick["id"]))
+                out(f"Self-test {pick['id']} is asked to stop: it stops at its next step and removes its test data.")
+            else:
+                out(f"Self-test {pick['id']} is not running.")
+    return 0                          # nothing to stop is not a fault; one way out (SonarQube S3516)
 
 
 def _results_root(default):

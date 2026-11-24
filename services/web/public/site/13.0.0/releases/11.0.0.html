@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EA Explorer 11.0.0: Release 11, certificate mode working and tested · EA Explorer</title>
+<meta name="description" content="EA Explorer 11.0.0: Release 11, certificate mode working and tested">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html" class="here">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>EA Explorer 11.0.0: Release 11, certificate mode working and tested</h1>
+    <p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#for-system-administrators">For system administrators</a></li><li><a href="#testing">Testing</a></li><li><a href="#known-issues">Known issues</a></li><li><a href="#in-one-paragraph-for-the-github-release">In one paragraph (for the GitHub release)</a></li></ul></nav>
+    <p>Release 11 (built 22 Nov 2026; <strong>accepted 22 Nov 2026</strong>, the owner: "R11 accepted"): the services can now sign in to the database with <strong>certificates</strong> EA Explorer makes for each of them, instead of passwords, and this works end to end: on a clean install, after a clean restart, and in the tests. You can check it with one command and switch between the two modes from the screen.</p>
+<p><strong>Before updating:</strong> take a backup (<code>.\eax backup before-11.0.0</code>). The update runs migration 0116. The API, library, views, test runner, operations and web images change, so run <code>.\eax clean-restart</code>, then <code>.\eax test smoke</code>.</p>
+<h2 id="for-system-administrators">For system administrators</h2>
+<ul><li><strong>Certificate mode works.</strong> Each service (the API, library, drawn views, Keycloak, Reports, Documents and the database) can read its own key and no other. Before this release the API could not read its key, so certificate mode stopped at start-up.</li><li>**<code>eax certs check</code>**: says, for each service, whether it can read its key; it fails if any cannot.</li><li><strong>Switch from the screen</strong>: System Admin › Secrets has <strong>Switch to certificates</strong> or <strong>Switch to passwords</strong>. It runs <code>eax certs switch</code>, then offers the restart; nothing changes until EA Explorer restarts.</li><li><strong>The choice is remembered</strong>: <code>eax certs switch</code> now keeps the mode for the next clean restart (before, a clean restart went back to the old mode).</li><li><strong>Choose the mode at a clean restart</strong>: <code>eax clean-restart</code> and <code>eax clean-run</code> take <code>--certificate</code> or <code>--password</code>.</li><li><strong>The Secrets page shows what applies</strong>: the part for the mode you are in comes first. In password mode the certificates are one line saying they are not used. In certificate mode the services' own database logins are marked <em>not used</em>; their passwords are kept, and still rotated, so a switch back works at once.</li></ul>
+<h2 id="testing">Testing</h2>
+<ul><li><strong>The smoke and full tests can run in certificate mode</strong>: the test runner now has the API's certificate folder (read only) and can read its key.</li><li>New unit tests check that every Dockerfile gives its service the right group for its key, and that the Secrets page marks exactly the logins the database signs in by certificate.</li></ul>
+<h2 id="known-issues">Known issues</h2>
+<ul><li><code>eax diag</code> writes an empty report (R14.23, Release 14).</li><li>Four Jenkins pipelines (eax-admin's start and maintenance page on, off and clear) can never run (R14.18, Release 14).</li><li>The guides and How do I pages do not describe certificate mode yet: they are written with every other guide in Release 16.</li></ul>
+<h2 id="in-one-paragraph-for-the-github-release">In one paragraph (for the GitHub release)</h2>
+<p>EA Explorer 11.0.0 makes certificate mode work end to end: the services sign in to the database with certificates EA Explorer makes for each of them, each service reads only its own key, and <code>eax certs check</code> confirms it. You can switch between passwords and certificates from System Admin › Secrets, the choice is kept across clean restarts, and <code>eax clean-restart</code> takes <code>--certificate</code> or <code>--password</code>. The Secrets page now shows what applies to the mode you are in. Take a backup, then <code>.\eax clean-restart</code>.</p>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="13.0.0">Version 13.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: releases/11.0.0.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

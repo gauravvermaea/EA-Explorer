@@ -98,8 +98,7 @@ def occurrences(ev: dict, frm: date, to: date) -> list[date]:
         return d <= to and len(out) < MAX_OCCURRENCES
     if rep == "none":
         take(start)
-        return out
-    if rep == "daily":
+    elif rep == "daily":
         d = start
         while take(d):
             d += timedelta(days=1)
@@ -128,7 +127,7 @@ def occurrences(ev: dict, frm: date, to: date) -> list[date]:
                 continue
             if not take(d):
                 break
-    return out
+    return out                        # one way out (SonarQube S3516)
 
 
 # ---------------------------------------------------------------- reading

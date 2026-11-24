@@ -26,6 +26,7 @@ PASSED_ON = {
     "--ansi": "docker compose", "--progress": "docker compose", "--env-file": "docker compose", "--profile": "docker compose",
     "--profiles": "docker compose", "--rm": "docker compose run", "--no-deps": "docker compose", "--entrypoint": "docker compose run",
     "--force-recreate": "docker compose up",
+    "--exclude": "tar, copying the code into the test runner (R14.27, eaxcli/dev_cli.py)",
     "--no-recreate": "docker compose up", "--pull": "docker compose up", "--scale": "docker compose up",
     "--remove-orphans": "docker compose down", "--services": "docker compose config and ps", "--filter": "docker ps",
     "--format": "docker and git", "--tail": "docker logs", "--timestamps": "docker logs", "--detach": "docker run",

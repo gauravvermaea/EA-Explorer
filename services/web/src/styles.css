@@ -3015,3 +3015,8 @@ label.check.inline { display: inline-flex; margin-right: 8px; }
 .plan-bar.done { background: var(--ok); }
 .plan-bar.late { background: var(--bad); }
 .plan-today { position: absolute; top: -2px; width: 2px; height: 16px; background: #555; }
+
+/* Documents' OCR (D903): its progress on System Admin › Documents, and the chip in the header for everyone */
+.documents-admin .meter { height: 12px; border-radius: 6px; background: var(--line); overflow: hidden; max-width: 480px; margin: 8px 0; }
+.documents-admin .meter-fill { height: 100%; background: var(--accent); transition: width 0.6s ease; }
+.ocr-status { margin-right: 8px; white-space: nowrap; }

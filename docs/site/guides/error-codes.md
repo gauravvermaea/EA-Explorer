@@ -355,6 +355,12 @@ Usual cause: Its container or the database is down.
 
 What to do: Run eax status and eax logs api; run eax up.
 
+**EAX-OPS-002: Operations helper not reachable.** The operations helper (the ops container) does not answer, so containers, restarts, backups, the terminal and alerts cannot be reached from the screens.
+
+Usual cause: Its container is stopped, still starting, or cannot reach Docker.
+
+What to do: Run eax status and eax logs ops; run eax up. While EA Explorer starts, wait a minute and look again.
+
 ### Personal data (PDATA)
 
 **EAX-PDATA-001: Personal data not available.** People's personal data (pins, settings) cannot be read now.

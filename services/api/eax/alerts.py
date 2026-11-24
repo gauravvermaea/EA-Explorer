@@ -381,8 +381,10 @@ def send_email(to: list[str], subject: str, body: str, smtp=None) -> str:
     msg.set_content(body)
     try:
         if smtp is None:
-            cls = smtplib.SMTP_SSL if s["security"] == "ssl" else smtplib.SMTP
-            smtp = cls(s["host"], s["port"], timeout=20)
+            if s["security"] == "ssl":           # the server's certificate checked, as starttls below (SonarQube S4830, R14)
+                smtp = smtplib.SMTP_SSL(s["host"], s["port"], timeout=20, context=ssl.create_default_context())
+            else:
+                smtp = smtplib.SMTP(s["host"], s["port"], timeout=20)
             if s["security"] == "starttls":
                 smtp.starttls(context=ssl.create_default_context())
             if s["user"]:

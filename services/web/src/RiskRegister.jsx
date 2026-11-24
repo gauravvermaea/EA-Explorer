@@ -54,7 +54,7 @@ export default function RiskRegister({ p }) {
                 ? <span className="small"><select value={link[e.record.id] || ""} onChange={(x) => setLink({ ...link, [e.record.id]: x.target.value })} aria-label={`The risk ${e.record.ref} describes`}>
                   <option value="">Describes which risk in the models?</option>
                   {data.not_logged.map((a) => <option key={a.id} value={a.id}>{a.name} ({a.model_name})</option>)}</select>{" "}
-                  <button disabled={!link[e.record.id]} onClick={() => { const a = data.not_logged.find((x) => x.id === link[e.record.id]); call(`${base}/${e.record.id}/describes`, { model: a.model, element: a.id }); }}>Link</button></span>
+                  <button disabled={!link[e.record.id]} onClick={() => { const a = data.not_logged.find((x) => x.id === link[e.record.id]); void call(`${base}/${e.record.id}/describes`, { model: a.model, element: a.id }); }}>Link</button></span>
                 : <span className="quiet">not linked to a risk in the models</span>)}</td>
           </tr>))}</tbody></table>}
       {data.not_logged.length > 0 && <>

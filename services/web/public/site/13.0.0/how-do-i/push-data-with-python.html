@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Push data with Python · EA Explorer</title>
+<meta name="description" content="A push source and the Python kit: your records sent in one call, proposed as a delivery.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html" class="here">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Push data with Python</h1>
+    <p class="who">For: Developers</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">A push source and the Python kit: your records sent in one call, proposed as a delivery.</p>
+    <figure class="shot"><img src="../shots/push-data-with-python.png" alt="The screen: Push data with Python" loading="lazy"><figcaption>The screen: <code>#/metamodel/{m}/import/deliveries</code></figcaption></figure>
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-do-this">Why do this</a></li><li><a href="#steps">Steps</a></li><li><a href="#related">Related</a></li></ul></nav>
+    <h2 id="why-do-this">Why do this</h2>
+<p>Where a system can run a script, Python can read its data and push it to EA Explorer as a delivery for review. The kit includes the script and a mapping you edit. See <a href="../concepts/bringing-data-in-and-out.html">Data in and out: integration</a>.</p>
+<p>Every route in ends the same way: what arrives is shown as new, changed, kept and problem rows, and a person decides. That review is what lets you automate feeds without losing control of the model.</p>
+<p><strong>In TOGAF terms:</strong> Supports the content of phases B, C and D (baseline architectures), keeping the Architecture Landscape current from the systems that already know it. See <a href="../concepts/ea-explorer-and-togaf.html">EA Explorer and the TOGAF Standard</a>.</p>
+<p><strong>The goal:</strong> A script sends data into a model as a delivery.</p>
+<blockquote class="before"><p><strong>Before you start</strong> Someone who may change the model sets up a <strong>push</strong> source on its Import and export › Discovery tab.</p></blockquote>
+<h2 id="steps">Steps</h2>
+<ol><li>On the push source's panel, <strong>Push with Python</strong>, then <strong>Download the Python kit (zip)</strong>: <code>push_to_eax.py</code>, <code>requirements.txt</code> (pandas and requests), a <code>README.md</code> and sample CSV files for every type of the model.</li><li>Set up Python as the README says (a venv), and try the samples.</li><li>Your own job sends its records: <code>push_dataframe(url, df, username, password)</code> for one set, <code>push_dataframes</code> for several (related sets go together, so their links become relationships). Sign in with a user name and password, or a token.</li><li>What arrives is proposed as a delivery, previewed and accepted by a Committer.</li></ol>
+<h2 id="related">Related</h2>
+<ul><li><a href="../guides/send-data-with-a-delivery.html">Send data with a delivery</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="13.0.0">Version 13.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: how-do-i/push-data-with-python.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

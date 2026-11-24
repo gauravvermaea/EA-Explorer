@@ -251,6 +251,16 @@ def kind(name: str) -> str:
     return "dr" if name in DR_TOOLS else C.kind_of(name)
 
 
+def _admin_confirm(a: dict) -> bool:
+    """Whether an eax-admin pipeline carries CONFIRM: when it says so, or when its command takes EA Explorer offline or
+    wipes it (start is eax up --wait-all, the maintenance page commands take it offline), for the agent refuses those
+    without the installation's name (R14.18: four pipelines could never run)."""
+    if a.get("confirm"):
+        return True
+    fixed = [x for x in a.get("argv") or [] if not isinstance(x, dict)]
+    return C.kind_of_argv(fixed) in ("offline", "wipe")
+
+
 def pipelines() -> list[dict]:
     """Every eax command of help.txt and every DR tool as a pipeline: name, group, summary, fields, whether the
     installation's name must be typed."""
@@ -263,8 +273,11 @@ def pipelines() -> list[dict]:
                 params = [{"key": "COMMAND", "type": "choice", "required": True,
                            "choices": [n for n in every if n not in UI_COMMANDS]},
                           {"key": "ARGS", "type": "words", "placeholder": "its options, as typed after eax <command>"}]
+            # the menu, screen and console run the command chosen in them, which may take EA Explorer offline: they carry
+            # CONFIRM too, asked for (by the agent) only when that command needs it (R14.18)
             out.append({"name": c["name"], "group": g["title"] if "title" in g else g.get("name", ""), "summary": c["summary"],
-                        "params": params, "kind": kind(c["name"]), "confirm": kind(c["name"]) in CHANGES_EVERYTHING})
+                        "params": params, "kind": kind(c["name"]),
+                        "confirm": kind(c["name"]) in CHANGES_EVERYTHING or c["name"] in UI_COMMANDS})
     for a in ADMIN_TASKS:
         if a.get("tool"):
             params = DR_TOOLS[a["tool"]]["params"]
@@ -272,7 +285,7 @@ def pipelines() -> list[dict]:
             params = [{"key": x["p"], "type": "choice" if x["choices"] else "word", "required": x["required"],
                        "choices": x["choices"], "placeholder": x["say"]} for x in a["argv"] if isinstance(x, dict)]
         out.append({"name": f"admin-{a['name']}", "display": a["name"], "folder": f"eax-admin/{_slug(a['group'])}", "group": a["group"], "summary": a["summary"],
-                    "params": params, "kind": "dr" if a.get("tool") else "admin", "confirm": bool(a.get("confirm"))})
+                    "params": params, "kind": "dr" if a.get("tool") else "admin", "confirm": _admin_confirm(a)})
     for name, t in DR_TOOLS.items():
         out.append({"name": name, "group": "Disaster recovery", "summary": t["summary"], "params": t["params"], "kind": "dr",
                     "confirm": True})

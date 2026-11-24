@@ -517,6 +517,43 @@ def industry_packs(timestamp: int) -> None:
         log.warning("industry packs: %s", exc)
 
 
+@app.task(name="eax.documents_ocr", queue="default", queueing_lock="documents_ocr", lock="documents_ocr")
+def documents_ocr(on: bool) -> None:
+    """Documents' OCR switched on (every type, then the documents already there asked to be read, the count starting
+    again) or off (every type, then every OCR job, waiting or held for the window, cleared), when it is changed (D903)."""
+    from . import documents_ocr as docr
+    from . import mayan
+    try:
+        types = mayan.set_auto_ocr(bool(on))
+        with get_engine().begin() as conn:
+            if on:
+                n = mayan.ocr_existing()
+                docr.started(conn, n)
+                log.info("documents OCR: on for %s document type(s); %s document(s) asked to be read", types, n)
+            else:
+                n = docr.clear()
+                docr.stopped(conn, n)
+                log.info("documents OCR: off for %s document type(s); %s OCR job(s) cleared", types, n)
+    except Exception as exc:  # noqa: BLE001 - applied again at the next start
+        log.warning("documents OCR: not applied (%s); applied at the next start", exc)
+
+
+@app.periodic(cron="* * * * *")
+@app.task(name="eax.documents_ocr_tick", queue="default", queueing_lock="documents_ocr_tick", lock="documents_ocr_tick")
+def documents_ocr_tick(timestamp: int) -> None:
+    """Every minute while OCR is on: its window kept (the pages waiting held outside it, put back inside) and how far it
+    has got recorded for everyone to see (D903)."""
+    from . import documents_ocr as docr
+    from . import settings as S
+    try:
+        with get_engine().begin() as conn:
+            values = S.values(conn)
+            if values.get("documents_ocr"):
+                docr.tick(conn, values)
+    except Exception as exc:  # noqa: BLE001 - looked at again in a minute
+        log.warning("documents OCR: progress not read (%s)", exc)
+
+
 # ---------------------------------------------------------------- surveys (phase 38.1, D448)
 
 @app.periodic(cron="7 * * * *")

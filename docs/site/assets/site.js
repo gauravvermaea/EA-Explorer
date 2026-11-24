@@ -15,8 +15,8 @@
     var sget = function (url) {
       return fetch(url, { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
     };
-    sget((document.body.getAttribute("data-root") || "") + "assets/build.json").then(function (b) {
-      if (b) { sshow(b); } else if (location.pathname.indexOf("/site/") === 0) { sget("/api/v1/heartbeat").then(sshow); }
+    void sget((document.body.getAttribute("data-root") || "") + "assets/build.json").then(function (b) {
+      if (b) { sshow(b); } else if (location.pathname.indexOf("/site/") === 0) { void sget("/api/v1/heartbeat").then(sshow); }
     });
   }
   document.querySelectorAll("button.print").forEach(function (b) {

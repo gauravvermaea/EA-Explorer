@@ -226,6 +226,9 @@ def _mcp_module():
         sys.modules["eax.mcp_server"] = fake
     for m in ("eax.mcp_scenarios", "eax.mcp_scenario_planning"):
         sys.modules.pop(m, None)
+    # both loaded again, mcp_scenarios first, as the server does: mcp_scenario_planning looks up its project wrapper
+    # when a tool runs (R14), so the one patched below must be the one loaded now
+    importlib.import_module("eax.mcp_scenarios")
     return importlib.import_module("eax.mcp_scenario_planning")
 
 

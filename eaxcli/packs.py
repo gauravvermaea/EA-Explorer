@@ -80,7 +80,7 @@ def _xml_text(xml: str) -> str:
 def _first_sheet(z: zipfile.ZipFile, names: list[str]) -> str:
     """A workbook's first sheet: its own words and the shared words its cells use, in cell order."""
     sheets = sorted((n for n in names if re.fullmatch(r"xl/worksheets/sheet\d+\.xml", n)),
-                    key=lambda n: int(re.search(r"(\d+)\.xml$", n).group(1)))
+                    key=lambda n: int(n[len("xl/worksheets/sheet"):-len(".xml")]))   # the number, as fullmatch found it
     shared = (re.findall(r"<si>(.*?)</si>", z.read("xl/sharedStrings.xml").decode("utf-8", "ignore"), re.DOTALL)
               if "xl/sharedStrings.xml" in names else [])
     if not sheets:
@@ -263,6 +263,35 @@ def set_sources(folders: list[str], clear: bool = False, root: Path = ROOT) -> l
     return data.get("packs_sources", [])
 
 
+# Documents' OCR queue (owner, 23 Nov 2026, 22:31: "add in eax something to stop the dms queue and ocr so that we can
+# [do it] from it"): after a clean restart Documents reads every page of the 97 pack files as a picture for an hour or
+# more, although their text is already extracted. `packs ocr` shows the OCR jobs waiting in the broker; `--clear` deletes
+# them. Only the waiting jobs go: the documents, their extracted text and search stay; pages being read now finish. The
+# words go to Docker as a list, never through a Windows shell (PowerShell 5.1 drops the inner quotes of a typed one).
+OCR_SCRIPT = (
+    'export REDISCLI_AUTH="$(cat /run/secrets/EAX_DMS_BROKER_PASSWORD)"; '
+    'for k in $(valkey-cli -n 0 --scan --pattern "ocr*"); do '
+    'echo "queue $(valkey-cli -n 0 LLEN "$k")"; '
+    '[ "$EAX_CLEAR" = 1 ] && valkey-cli -n 0 DEL "$k" >/dev/null; '
+    'done; echo done')
+
+
+def ocr(clear: bool, run=None) -> int:
+    """The OCR jobs waiting in Documents' broker, deleted with clear; returns how many were waiting."""
+    from .core import capture, compose_args
+    run = run or capture
+    code, out = run(compose_args(["exec", "-T", "-e", f"EAX_CLEAR={1 if clear else 0}", "dms-broker", "sh", "-c", OCR_SCRIPT]))
+    if code != 0 or "done" not in out.split():
+        raise Failure("Could not reach Documents' broker (dms-broker): is EA Explorer running? " + out.strip()[-300:])
+    waiting = sum(int(x) for x in re.findall(r"^queue (\d+)$", out, re.MULTILINE))
+    if clear:
+        say(f"Documents' OCR: {waiting} job(s) waiting deleted. The documents, their text and search stay; pages being "
+            "read now finish. A clean restart queues the packs' OCR again.")
+    else:
+        say(f"Documents' OCR: {waiting} job(s) waiting." + (f" {EAX} packs ocr --clear deletes them." if waiting else ""))
+    return waiting
+
+
 def main(args: list[str]) -> int:
     """eax packs: the industry packs (status, sources, load)."""
     from . import stack
@@ -308,7 +337,11 @@ def main(args: list[str]) -> int:
     if sub == "status":
         stack.interactive(["api", "python", "-m", "eax.industry_packs", "status"], [])
         return 0
-    raise Failure(f"Unknown: {EAX} packs {sub}. Use auto, source [folder...], load [folder], reload, status or collect [source...].")
+    if sub == "ocr":
+        ocr("--clear" in rest)
+        return 0
+    raise Failure(f"Unknown: {EAX} packs {sub}. Use auto, source [folder...], load [folder], reload, status, ocr [--clear] "
+                  "or collect [source...].")
 
 
 if __name__ == "__main__":

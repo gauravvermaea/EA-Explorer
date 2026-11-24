@@ -823,9 +823,9 @@ case "$CMD" in
   menu) EAX_FORM=sh exec "$BASH" ./eaxpy.sh menu ;;   # the numbered menu (R2.29), one Python program for every form
   screen) EAX_FORM=sh exec "$BASH" ./eaxpy.sh screen ;;   # the full screen (R3.1), Python with Textual
   measure) EAX_FORM=sh exec "$BASH" ./eaxpy.sh "$@" ;;   # memory measured in one go (R3.5-M1); eax commands run back here
-  certs|deploy|secrets|packs|schedule|persist|folders|allow|drill|dr-pack|sign|verify|db|ticket|jobs|optimise|estimate|dev|jenkins|setup|access|hostname|settings|site|errors|sonar|images)   # images (R9.12); packs (D546); schedule (D559); persist (R2.26); folders (R5.4); allow (R5.2); drill (R5.6-B2)
+  certs|deploy|secrets|packs|schedule|persist|folders|allow|drill|dr-pack|sign|verify|db|ticket|jobs|optimise|estimate|dev|jenkins|setup|access|hostname|settings|site|errors|sonar|images|diag)   # diag: the one Python report (R14.23); images (R9.12); packs (D546); schedule (D559); persist (R2.26); folders (R5.4); allow (R5.2); drill (R5.6-B2)
     # phase 36 (D498, D504): one Python program for every form (D500): eaxpy.sh fetches uv and Python into work/tools
-    exec "$BASH" ./eaxpy.sh "$@" ;;
+    EAX_TYPED=./eax.sh exec "$BASH" ./eaxpy.sh "$@" ;;   # messages then say ./eax.sh, as typed (R14)
   restart)
     # down, then up: each as its own run of this script (own log); the data is kept
     for step in "down" "up${WAIT_ALL:+ --wait-all}"; do
@@ -913,7 +913,6 @@ case "$CMD" in
     if [ "$#" -gt 0 ]; then show_part_urls "$@"; else show_urls; show_logins; fi
     watch_containers "$@"
     ;;
-  diag)    diagnostics ;;
   status)  heading "EA Explorer $(release), build $(build_id)"
            _ps=$(compose ps -a) || { echo "docker compose failed. Collecting diagnostics..."; diagnostics; err "docker compose failed. Full log with diagnostics: $LOG"; exit 1; }
            printf '%s\n' "$_ps" | colour_status; show_filesystems

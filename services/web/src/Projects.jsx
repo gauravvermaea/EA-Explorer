@@ -1626,8 +1626,7 @@ export function orderToSend(d) {
 export function moved(keys, at, by) {
   const out = [...keys];
   const to = at + by;
-  if (to < 0 || to >= out.length) return out;
-  [out[at], out[to]] = [out[to], out[at]];
+  if (to >= 0 && to < out.length) [out[at], out[to]] = [out[to], out[at]];   // past either end: as it was
   return out;
 }
 

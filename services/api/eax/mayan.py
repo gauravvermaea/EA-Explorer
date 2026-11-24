@@ -308,3 +308,121 @@ def web_link(document_id: int) -> str:
     s = get_settings()
     port = "" if str(s.https_port) == "443" else f":{s.https_port}"
     return f"https://docs.{s.hostname}{port}/#/documents/documents/{document_id}/preview/"
+
+
+# ---------------------------------------------------------------- OCR (D903)
+# Documents reads every page of a new document as a picture (OCR) unless its document type says not to. After a clean
+# restart that is the 97 pack files, thousands of pages, an hour or more on a laptop, though their text is extracted
+# anyway (owner, 23 Nov 2026, 22:45: "In the whole thing can OCR be turned off by default. We should be able to turn it
+# on in a setting in admin"; 22:48: "Make this turning on OCR part of the initial setup on start page"). The setting
+# documents_ocr (off unless chosen) is applied to every document type at start-up, before the packs load, and at once
+# when it is changed; switching it on also asks Documents to read the documents already there (owner: "Existing ones
+# too"); switching it off clears the OCR jobs waiting. Text extraction (search) is never switched off.
+OCR_SETTINGS_PATHS = ("/document_types/{id}/ocr/settings/", "/document_types/{id}/ocr_settings/")
+OCR_SUBMIT_PATHS = ("/documents/{id}/ocr/submit/", "/documents/{id}/submit_ocr/")
+
+
+def _first_path(method: str, paths: tuple[str, ...], ident: int, body: dict | None = None):
+    """The call on the first of Documents' paths that exists (they differ between its versions); 404 tries the next."""
+    last: MayanError | None = None
+    for p in paths:
+        try:
+            return _json(method, p.format(id=ident), body)
+        except MayanError as exc:
+            if getattr(exc, "http", None) not in (404, 405):
+                raise
+            last = exc
+    raise MayanError(f"Documents has none of {', '.join(p.format(id=ident) for p in paths)} ({last})", 502)
+
+
+def document_types() -> list[dict]:
+    """Every document type in Documents."""
+    return _json("GET", f"/document_types/?page_size={PAGE * 2}").get("results", [])
+
+
+def set_auto_ocr(on: bool) -> int:
+    """Automatic OCR on or off for every document type; returns how many types were set."""
+    types = document_types()
+    for t in types:
+        _first_path("PATCH", OCR_SETTINGS_PATHS, t["id"], {"auto_ocr": bool(on)})
+    return len(types)
+
+
+def ocr_existing(limit: int | None = None) -> int:
+    """Asks Documents to read every document already there (switching OCR on); returns how many were asked."""
+    asked, page = 0, 1
+    while True:
+        r = _json("GET", f"/documents/?page_size={PAGE}&page={page}")
+        for d in r.get("results", []):
+            _first_path("POST", OCR_SUBMIT_PATHS, d["id"], {})
+            asked += 1
+            if limit is not None and asked >= limit:
+                return asked
+        if not r.get("next"):
+            return asked
+        page += 1
+
+
+def _broker(*commands: tuple[str, ...]) -> list:
+    """Commands to Documents' broker (Valkey, the Redis protocol) in one connection; their replies, in order."""
+    import socket
+    password = os.environ.get("EAX_DMS_BROKER_PASSWORD", "").strip().strip("'\"")
+    host = os.environ.get("EAX_DMS_BROKER_HOST", "dms-broker")
+    port = int(os.environ.get("EAX_DMS_BROKER_PORT", "6379"))
+    with socket.create_connection((host, port), timeout=TIMEOUT) as sock:
+        f = sock.makefile("rb")
+
+        def send(*parts: str):
+            sock.sendall((f"*{len(parts)}\r\n" + "".join(f"${len(p.encode('latin-1'))}\r\n{p}\r\n" for p in parts)).encode("latin-1"))
+            return _reply(f)
+        if password:
+            if send("AUTH", password) != "OK":
+                raise MayanError("Documents' broker refused the password", 502)
+        return [send(*c) for c in commands]
+
+
+def _reply(f):
+    """One reply of the Redis protocol: a string, a number, None or a list."""
+    line = f.readline().rstrip(b"\r\n")
+    kind, rest = line[:1], line[1:].decode("latin-1")
+    if kind == b"+":
+        return rest
+    if kind == b"-":
+        raise MayanError(f"Documents' broker: {rest}", 502)
+    if kind == b":":
+        return int(rest)
+    if kind == b"$":
+        n = int(rest)
+        return None if n < 0 else f.read(n + 2)[:-2].decode("latin-1")
+    if kind == b"*":
+        n = int(rest)
+        return None if n < 0 else [_reply(f) for _ in range(n)]
+    raise MayanError(f"Documents' broker answered {line[:40]!r}", 502)
+
+
+def ocr_queue(clear: bool = False) -> int:
+    """The OCR jobs waiting in Documents' broker (its ocr queues, database 0), deleted with clear; returns how many were
+    waiting. Only those: never its results (database 1) or locks (database 2)."""
+    keys, cursor = [], "0"
+    while True:
+        cursor, found = _broker(("SELECT", "0"), ("SCAN", cursor, "MATCH", "ocr*", "COUNT", "1000"))[1]
+        keys += found
+        if cursor == "0":
+            break
+    if not keys:
+        return 0
+    lengths = _broker(("SELECT", "0"), *[("LLEN", k) for k in keys])[1:]
+    if clear:
+        _broker(("SELECT", "0"), ("DEL", *keys))
+    return sum(int(n or 0) for n in lengths)
+
+
+def apply_ocr(on: bool, existing: bool = False) -> str:
+    """The setting applied: every type's automatic OCR, then (on) the documents already there asked to be read, or
+    (off) the OCR jobs waiting cleared. Returns what was done, in words."""
+    types = set_auto_ocr(on)
+    if on:
+        n = ocr_existing() if existing else 0
+        return f"OCR on for {types} document type(s)" + (f"; {n} document(s) already there asked to be read" if existing else "")
+    cleared = ocr_queue(clear=True)
+    return f"OCR off for {types} document type(s); {cleared} OCR job(s) waiting cleared"

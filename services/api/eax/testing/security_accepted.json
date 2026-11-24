@@ -133,6 +133,13 @@
       "reason": "Bandit: Discovery can read from an FTP server when someone adds one as a source; FTP sends its password unencrypted, the person adding it chooses it (the full test of 21 Nov 2026). To be looked at again by the date.",
       "until": "2027-05-21",
       "by": "owner, 21 Nov 2026, 20:29: \"accept all, log them as a decision\" (D835)"
+    },
+    {
+      "id": "*",
+      "where": "image superset",
+      "reason": "Every finding Trivy reports inside the Reports image (Apache Superset 6.1.0, its makers' own image): 6.1.0 is the newest Superset (13 May 2026; 6.1.1 stalled, 7.0.0 not out yet, checked 24 Nov 2026), and its packages are pinned by its makers. Accepted until a newer Superset comes out, then the image is moved to it and this is taken away (R14.4, D907).",
+      "until": "2027-02-24",
+      "by": "owner, 24 Nov 2026, 06:39: \"Newest Superset, then accept what's left\" (D907)"
     }
   ]
 }

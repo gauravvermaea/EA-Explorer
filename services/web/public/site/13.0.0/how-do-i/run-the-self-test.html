@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Run the self-test · EA Explorer</title>
+<meta name="description" content="Check the installation works: the smoke test in a few minutes, or the full test.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html" class="here">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Run the self-test</h1>
+    <p class="who">For: System Admin, Platform developers</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">Check the installation works: the smoke test in a few minutes, or the full test.</p>
+    <figure class="shot"><img src="../shots/run-the-self-test.png" alt="The screen: Run the self-test" loading="lazy"><figcaption>The screen: <code>#/admin/self-test</code></figcaption></figure>
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-do-this">Why do this</a></li><li><a href="#steps">Steps</a></li><li><a href="#check-it-worked">Check it worked</a></li><li><a href="#if-something-goes-wrong">If something goes wrong</a></li><li><a href="#related">Related</a></li></ul></nav>
+    <h2 id="why-do-this">Why do this</h2>
+<p>The self-test checks that every role can sign in, every area answers and the main journeys work, in its own fixtures, so nothing real changes. Run it after an update or a change of settings. See <a href="../concepts/running-the-installation.html">Running the installation</a>.</p>
+<p>The installation is built to look after itself as far as it can, and to ask before anything risky. These tasks are the decisions it leaves to you: what to run, when, and how far to trust a change.</p>
+<p><strong>In TOGAF terms:</strong> Outside the method: this keeps the tool that holds the Architecture Repository running. See <a href="../concepts/ea-explorer-and-togaf.html">EA Explorer and the TOGAF Standard</a>.</p>
+<p><strong>The goal:</strong> You know the installation works, end to end.</p>
+<blockquote class="before"><p><strong>Before you start</strong> You need the Super Admin or IT Admin role.</p></blockquote>
+<h2 id="steps">Steps</h2>
+<ol><li>Open <strong>System Admin › Tools › Self-test</strong>.</li><li><strong>Smoke test</strong>: every role signs in, every main area answers, every page opens and the key journeys work once (a few minutes). <strong>Full test</strong>: every API endpoint as every role, the database, security, and every page and journey in a browser.</li><li>Start it. It makes its own test data, tests, writes a report and removes what it made; nothing else changes.</li></ol>
+<p>On the machine: <code>eax test</code> (smoke) or <code>eax test full</code>.</p>
+<h2 id="check-it-worked">Check it worked</h2>
+<p>The run ends <strong>Passed</strong>. Its History entry has the report; each failure says what was asked and what came back.</p>
+<h2 id="if-something-goes-wrong">If something goes wrong</h2>
+<ul><li><strong>Run the failed ones again</strong>: History, the run, or <code>eax test failed</code>: only what failed, showing each check then and now.</li></ul>
+<h2 id="related">Related</h2>
+<ul><li><a href="../guides/check-health-and-alerts.html">Check the health and alerts</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="13.0.0">Version 13.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: how-do-i/run-the-self-test.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

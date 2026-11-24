@@ -21,7 +21,7 @@ def test_settings_are_checked():
                      ("financial_year_start", 13), ("nope", 1)):
         with pytest.raises(EditError):
             st.check(key, bad)
-    assert {v[0] for v in st.REGISTRY.values()} == {"application", "system", "hidden", "security"}   # security: R5.3
+    assert {v[0] for v in st.REGISTRY.values()} == {"application", "system", "hidden", "security", "documents"}   # security: R5.3; documents: D903
     assert {k for k, v in st.REGISTRY.items() if v[0] == "security"} == {"mfa_mode"}
     assert {k for k, v in st.REGISTRY.items() if v[0] == "hidden"} == {"resource_boost_every", "resource_boost_until", "web_log_debug_until"}  # R3.5-M8, R5.6
     assert {"base_currency", "time_zone", "date_format", "financial_year_start"} <= {k for k, v in st.REGISTRY.items() if v[0] == "application"}

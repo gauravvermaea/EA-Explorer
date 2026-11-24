@@ -39,6 +39,21 @@ class Startup(MethodView):
         return out
 
 
+@blp.route("/documents-ocr")
+class DocumentsOcr(MethodView):
+    """/api/v1/documents-ocr: GET Documents' OCR for everyone signed in (D903): on or off, its window, how far it has
+    got (documents asked, pages waiting and held, percent done, started and last looked at)."""
+    @blp.doc(security=SECURITY)
+    @blp.response(200, Free)
+    @require_auth()
+    def get(self):
+        """Documents' OCR: on or off, its window and how far it has got (D903)"""
+        from .. import documents_ocr as docr
+        from .. import settings as S
+        with get_engine().connect() as conn:
+            return docr.status(conn, S.values(conn))
+
+
 def public() -> dict:
     """The parts' states only, without signing in."""
     with get_engine().connect() as conn:

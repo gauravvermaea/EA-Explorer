@@ -63,7 +63,7 @@ def health_now() -> dict:
     out["problems"] = (stats or {}).get("problems", [])
     out["checked_at"] = time.time()
     if err:
-        out["helper"] = f"The operations helper is not reachable, so the containers cannot be read ({err})."
+        out["helper"] = f"The operations helper is not reachable (EAX-OPS-002), so the containers cannot be read ({err})."
     return out
 
 

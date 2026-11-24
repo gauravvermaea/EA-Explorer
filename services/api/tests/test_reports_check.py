@@ -24,11 +24,13 @@ def test_a_chart_answer_is_ok_only_when_every_result_succeeded():
 
 
 def test_the_owners_time_limits():
-    """Owner, 13 Nov 2026: slower than 30 seconds a warning with its time, not opened after 60 a failure."""
+    """Owner, 13 Nov 2026: slower than 30 seconds a warning with its time; not opened after 120 a failure (24 Nov 2026,
+    06:55: "Make timeout 120"; it was 60)."""
     from eax.testing.reports_check import verdict
     assert verdict(4000, [], 6) == ("passed", "6 charts in 4.0 seconds")
     assert verdict(31000, [], 6)[0] == "warning" and "31 seconds" in verdict(31000, [], 6)[1]
-    assert verdict(61000, [], 6) == ("failed", "not loaded after 60 seconds")
+    assert verdict(61000, [], 6)[0] == "warning"
+    assert verdict(121000, [], 6) == ("failed", "not loaded after 120 seconds")
     assert verdict(1000, ["HTTP 500: x"], 6) == ("failed", "HTTP 500: x")
     assert verdict(1000, [], 0) == ("failed", "no chart answered")
 

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EA Explorer 3.5.0: Release 3.5 · EA Explorer</title>
+<meta name="description" content="EA Explorer 3.5.0: Release 3.5">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html" class="here">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>EA Explorer 3.5.0: Release 3.5</h1>
+    <p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#the-resource-history">The resource history</a></li><li><a href="#measuring-memory">Measuring memory</a></li><li><a href="#less-memory-on-a-laptop">Less memory on a laptop</a></li><li><a href="#fixed">Fixed</a></li></ul></nav>
+    <p>Release 3.5 (14 Nov 2026): memory. How much each container needs is measured, in one go or all the time, and the laptop needs less: two containers fewer and Documents and Keycloak sized for where they run.</p>
+<p><strong>Before updating:</strong> take a backup (<code>.\eax backup before-3.5.0</code>). From 3.0.0 the update runs migrations 0073 and 0074 (the resource history's table, and the version; nothing removed). The <code>operations</code> and <code>personal</code> containers are gone: <code>.\eax update</code> and <code>.\eax clean-restart</code> remove them (by hand: <code>docker compose down --remove-orphans</code>). After it, run <code>.\eax test smoke</code>.</p>
+<p><strong>Known issues, fixed in Release 4</strong> (R4.13 to R4.17, as in 3.0.0): a body that is not JSON sent to a model's archive is acted on; three server errors where "not found" belongs; System Admin › Scaling fails when a container has just gone; the iteration journey's step 14; and some of the self-test's own checks.</p>
+<h2 id="the-resource-history">The resource history</h2>
+<ul><li><strong>Memory, CPU, disk and the database's cache, recorded all the time</strong>: every 15 minutes, while people work and while the self-test runs, each container's memory, CPU, network and disk, the Docker host's memory left and swap, the file systems and the database's cache hit rate, size and connections are kept, each sample marked with what was happening (a self-test, a backup, a restore, a start-up) (R3.5-M8, D679).</li><li><strong>On System Admin › Footprint</strong>: charts over 6 hours to 90 days or a period of your own, the busy stretches shaded; each container's average and peak; CSV; the interval (off, 1 to 60 minutes) and how long it is kept (every sample 7 days, then one an hour; 90 days in all); a shorter interval for a test that goes back by itself. A Super Admin deletes a period, everything before a date or all of it (audited). <code>eax footprint --history [days]</code> on the command line.</li></ul>
+<h2 id="measuring-memory">Measuring memory</h2>
+<ul><li>**<code>eax footprint --watch [minutes] [label]</code>**: every container's memory every 15 seconds, its lowest, average and peak, the whole installation's peak beside the guide (10 GB on a laptop, EAX_MEMORY_TARGET_MB; a guide, not a limit) and whether the Docker host paged. Every self-test run is watched the same way (memory.md in its folder).</li><li>**<code>eax measure</code>**: restart (if asked), start-up, a snapshot, the smoke test, at rest, in use and the full test, each checked, carried on with <code>--from N</code>, ending in one summary (work/footprint/measure-*.md). <code>--no-full</code> leaves the full test out; on a server it is safe by default (no clean restart, no full test unless asked) (R3.5-M1).</li></ul>
+<h2 id="less-memory-on-a-laptop">Less memory on a laptop</h2>
+<ul><li><strong>One API again</strong>: the operations and personal data services are served by the API container (D677): about 0.35 GB. Their data keeps its own schemas and connection strings, and a part can run in a container of its own again by configuration only (EAX_SERVE and EAX_OPERATIONS_INTERNAL_URL or EAX_PERSONAL_INTERNAL_URL) (R3.5-M1b).</li><li><strong>Documents (Mayan)</strong>: its workers were one process per processor core; now EAX_MAYAN_WORKER_CONCURRENCY (laptop 1, server 2) and EAX_MAYAN_WEB_WORKERS (laptop 2, server 3): about 1.5 GB on a laptop. Large OCR jobs take longer.</li><li><strong>Keycloak</strong>: its Java heap by EAX_KEYCLOAK_HEAP (laptop -Xms64m -Xmx512m, server -Xms256m -Xmx1024m): about 0.2 GB.</li></ul>
+<h2 id="fixed">Fixed</h2>
+<ul><li>A self-test run was sometimes "not measured": its memory watch now finishes before the run ends.</li><li>System Admin › Footprint broke (and the screen tests after it) when <code>eax measure</code>'s progress file was in its folder.</li><li><code>eax measure</code>'s summary, carried on with <code>--from</code>, listed every earlier attempt and called start-up paging a problem.</li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="13.0.0">Version 13.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: releases/3.5.0.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

@@ -124,15 +124,24 @@ def test_every_pipeline_probed_and_the_commands_compared(monkeypatch, tmp_path):
     assert {r["pipeline"] for r in report["pipelines"] if r["outcome"] == "skipped"} == {"footprint", "restore-model"}
 
 
-KNOWN_BROKEN = {"admin-start", "admin-maintenance-page-on", "admin-maintenance-page-off", "admin-maintenance-clear"}
+KNOWN_BROKEN: set[str] = set()      # R14.18: the four that could never run now carry CONFIRM
 
 
-def test_the_known_broken_pipelines_have_no_confirm_field_but_need_one():
+def test_every_pipeline_whose_command_takes_ea_explorer_offline_has_a_confirm_field():
+    """R14.18: eax-admin's start and the maintenance page's on, off and clear take EA Explorer offline, so the agent asks
+    for the installation's name; they had no CONFIRM field, so Jenkins could never run them."""
     for p in J.pipelines():
-        if p["name"] in KNOWN_BROKEN:
-            _, original = JT.sample_values(p)
+        _, original = JT.sample_values(p)
+        try:
             argv = J.argv_for(p["name"], original)
-            assert not p["confirm"] and C.kind_of_argv(argv) in ("offline", "wipe"), p["name"]
+        except Exception:  # noqa: BLE001 - a DR tool or a pipeline with no eax command line
+            continue
+        if C.kind_of_argv(argv) in ("offline", "wipe"):
+            assert p["confirm"], p["name"]
+    names = {p["name"]: p for p in J.pipelines()}
+    for n in ("admin-start", "admin-maintenance-page-on", "admin-maintenance-page-off", "admin-maintenance-clear",
+              "menu", "screen", "console"):
+        assert names[n]["confirm"], n
 
 
 def test_a_pipeline_that_starts_the_wrong_command_fails(monkeypatch, tmp_path):
@@ -230,6 +239,7 @@ def test_r12_22_a_refused_probe_is_recorded_so_the_test_does_not_wait_for_it(mon
     runs.log, so eax test jenkins waited its full 30 minutes for them. A refused probe is now recorded with why, and the
     test reports it at once; the wait also stops after 3 minutes with none more."""
     runs = _setup(monkeypatch, tmp_path)
+    monkeypatch.setattr(J, "_admin_confirm", lambda a: False)   # admin-start as it was before R14.18: refused by the agent
     slept = []
     JT.run(["--only", "status,admin-start"], jenkins=_FakeJenkins(runs), sleep=slept.append, wait_minutes=30)
     assert len(slept) <= 2                                   # no long wait for the refused one

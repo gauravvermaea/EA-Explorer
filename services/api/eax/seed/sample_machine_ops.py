@@ -13,8 +13,8 @@ than a year, and the dry run shows the sample's older history (two and three yea
 
 from __future__ import annotations
 
+import hashlib
 import json
-import random
 from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import text
@@ -23,6 +23,38 @@ from .demo_estate import DEMO_NAME
 
 MARK = "svc-reporting-hub"
 
+
+
+class Seeded:
+    """Numbers for made-up sample data, the same every time from the same seed (SonarQube S2245: they were Python's
+    random, which the scan cannot tell from a security use). SHA-256 of the seed and a counter; nothing secret."""
+
+    def __init__(self, seed: int) -> None:
+        self.seed, self.n = seed, 0
+
+    def random(self) -> float:
+        """The next number from 0 up to 1, from the seed and how many came before."""
+        self.n += 1
+        h = hashlib.sha256(f"{self.seed}:{self.n}".encode()).digest()
+        return int.from_bytes(h[:8], "big") / 2 ** 64
+
+    def randint(self, a: int, b: int) -> int:
+        """A whole number from a to b, both included."""
+        return a + int(self.random() * (b - a + 1))
+
+    def choice(self, seq):
+        """One item of the list, picked by the next number."""
+        return seq[int(self.random() * len(seq))]
+
+    def sample(self, seq, k: int) -> list:
+        """k different items of the list, in the order they were picked."""
+        pool, out = list(seq), []
+        for _ in range(k):
+            out.append(pool.pop(int(self.random() * len(pool))))
+        return out
+
+
+SEEDED = Seeded(2026)     # the credentials' use counts
 
 def _cert(common_name: str) -> tuple[str, str, datetime]:
     """A self-signed certificate (PEM), its SHA-256 fingerprint and its expiry."""
@@ -92,7 +124,7 @@ def run() -> list[str]:
                  "rr": "The laptop it ran on was replaced." if revoked else "",
                  "lu": now - timedelta(hours=used) if used is not None else None,
                  "lf": "10.20.4.17" if used is not None else "", "lp": "GET /api/v1/models" if used is not None else "",
-                 "uc": random.randint(40, 900) if used is not None else 0})
+                 "uc": SEEDED.randint(40, 900) if used is not None else 0})
         cred("user_architect", "token", "Excel OData feed", {"reports": "read"}, 60, used=20)
         cred("user_architect", "token", "Claude desktop", {"mcp": "read", "models": "read"}, 85)
         cred("user_architect", "token", "Old capacity script", {"models": "read-write"}, 40, used=24 * 50, revoked=45, created_ago=100)
@@ -112,7 +144,7 @@ def run() -> list[str]:
             "SELECT name, guid::text AS guid FROM core.models WHERE NOT is_deleted AND kind_code <> 'template'")).mappings()}
         idle = [n for n in ("Karoo Re (independent)", "Lean EA metamodel") if n in models]
         busy = [n for n in models if n not in idle]
-        rng = random.Random(25)
+        rng = Seeded(25)
         people = ["user_architect", "user_model_admin", "user_model_sub_admin", "user_super_admin", "user_lead_architect",
                   "user_project_admin"]
         feats = [("models", "models/entities"), ("models", "models/content"), ("metamodel", "models/metamodel"),

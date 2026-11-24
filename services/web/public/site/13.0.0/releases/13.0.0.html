@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EA Explorer 13.0.0: Release 13, System Admin regrouped and every command-line option documented · EA Explorer</title>
+<meta name="description" content="EA Explorer 13.0.0: Release 13, System Admin regrouped and every command-line option documented">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html" class="here">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>EA Explorer 13.0.0: Release 13, System Admin regrouped and every command-line option documented</h1>
+    <p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#for-system-administrators">For system administrators</a></li><li><a href="#the-command-line">The command line</a></li><li><a href="#testing">Testing</a></li><li><a href="#known-issues">Known issues</a></li><li><a href="#in-one-paragraph-for-the-github-release">In one paragraph (for the GitHub release)</a></li></ul></nav>
+    <p>Release 13 (built 23 Nov 2026; <strong>accepted 23 Nov 2026</strong>, the owner: "ok this release is accepted", "lets close R13"): System Admin is easier to find your way around, in the menu and on the page, and every option of every command is written down, with a test that keeps it so.</p>
+<p><strong>Before updating:</strong> take a backup (<code>.\eax backup before-13.0.0</code>). The update runs migration 0121 (the version only). The web, API and test runner images change: <code>.\eax down</code> then <code>.\eax up</code> is enough (no data changes), then <code>.\eax test smoke</code>. Refresh the browser (Ctrl+F5) to load the new screens.</p>
+<h2 id="for-system-administrators">For system administrators</h2>
+<ul><li><strong>System Admin in seven groups</strong>, by what you are doing: Settings, People and access, Health and monitoring, Infrastructure, Capacity, Backups and recovery, and Tools, at most eight pages each (before: 37 tabs in one strip on every page, and 19 menu entries under Running).</li><li><strong>Multi-level tabs, as Projects and models have them</strong>: every group as the first row of tabs, the group's pages as the second, and a page's own tabs as the third, with a line saying where you are. Each group opens on the page you last used in it, and each page on the tab you last used on it.</li><li><strong>The same structure in the menu</strong>: System Admin › group › page › sub-page. A page's own tabs (Self-test, Command centre, Machine access, Containers, Users and roles, Estate) are now in the menu, and each has an address of its own (for example <code>#/admin/self-test/summary</code>), so links, bookmarks and the back button work.</li><li><strong>One name for one thing</strong>: the tabs use the menu's names (Users and roles, Data quality, Secrets: passwords, keys and certificates, Branding: logo and themes, Site pairings: sync and DR sync).</li><li>Every old address still opens its page; who sees what in the menu is unchanged.</li></ul>
+<h2 id="the-command-line">The command line</h2>
+<ul><li><strong>Every option documented</strong>: 25 of eax's own options that no help named are now in <code>eax help</code> under their command (among them <code>eax test --role</code>, <code>--suite</code>, <code>--last</code>, <code>--report</code>, <code>--fixtures</code>; <code>eax logs backup --outside-work</code> and <code>--then-clear</code>; <code>eax help --groups</code> and <code>--search</code>; <code>eax restore-model --new</code> and <code>--over</code>).</li><li><strong>The DR tools have help</strong>: <code>dr/eax-dr</code> and <code>dr/eax-drill</code> (shell and PowerShell) answer <code>--help</code> (<code>-Help</code> in PowerShell) with every option; a missing folder or an unknown option shows the help and stops, instead of asking.</li></ul>
+<h2 id="testing">Testing</h2>
+<ul><li>A unit test fails <code>eax dev check</code> when the code reads an option no help names; the Command centre's and Jenkins' fields must be in their command's help; the DR tools' two forms must take and describe the same options.</li><li>A browser journey (full test) walks System Admin's three levels: the groups, a group's pages, a sub-tab's address, back to where you were, and an old address. The smoke test opens every page and sub-page in the menu.</li></ul>
+<h2 id="known-issues">Known issues</h2>
+<ul><li>Release 12's known issues stand (releases/12.0.0.md), all in Release 14 (R14.27 to R14.33).</li><li>On the Containers page the same "operations helper is not reachable" problem shows three times while EA Explorer starts (R14.35).</li><li>The guides and How do I pages do not describe the new System Admin layout yet: they are written with every other guide in Release 16.</li></ul>
+<h2 id="in-one-paragraph-for-the-github-release">In one paragraph (for the GitHub release)</h2>
+<p>EA Explorer 13.0.0 regroups System Admin into seven groups by what you are doing, with multi-level tabs like Projects and models (every group, the group's pages, a page's own tabs) and the same structure in the menu; every page and tab has its own address and you land where you last were. Every command-line option is now documented, the DR tools have --help, and a test keeps both true. Take a backup, then <code>.\eax down</code> and <code>.\eax up</code>.</p>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="13.0.0">Version 13.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: releases/13.0.0.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

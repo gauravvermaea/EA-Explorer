@@ -13,7 +13,10 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-COPY . .
+# only what the image runs, named one by one (SonarQube S6470: a whole-folder copy took stray files in, a .coverage among them)
+COPY alembic.ini entrypoint.sh pyproject.toml version.toml ./
+COPY eax ./eax
+COPY migrations ./migrations
 # the user and its group both 10001: in certificate mode its key is root:10001 0640 (eax/certs.py CLIENTS), and
 # useradd --system alone gives the group a system id (999), so the key could not be read (Release 11, D872)
 RUN chmod +x /app/entrypoint.sh \

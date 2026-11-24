@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Set up a DR site · EA Explorer</title>
+<meta name="description" content="A second EA Explorer kept up to date with this one, read only, ready to take over.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html" class="here">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Set up a DR site</h1>
+    <p class="who">For: System Admin</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">A second EA Explorer kept up to date with this one, read only, ready to take over.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-do-this">Why do this</a></li><li><a href="#the-ways-to-do-it">The ways to do it</a></li><li><a href="#check-it-worked">Check it worked</a></li><li><a href="#if-the-primary-is-lost">If the primary is lost</a></li><li><a href="#each-task-one-page">Each task, one page</a></li><li><a href="#related">Related</a></li></ul></nav>
+    <h2 id="why-do-this">Why do this</h2>
+<p>A disaster recovery site is kept up to date from the main one and can take over if the main site is lost. See <a href="../concepts/backups-and-recovery.html">Backups, restores and disaster recovery</a>.</p>
+<p>Recovery is planned before it is needed: what to protect, how often, how to check it, and how far back each kind of restore reaches. EA Explorer takes a backup of now before any restore, so a restore can itself be undone.</p>
+<p><strong>In TOGAF terms:</strong> Outside the method: this protects the Architecture Repository itself, the record every ADM phase relies on. See <a href="../concepts/ea-explorer-and-togaf.html">EA Explorer and the TOGAF Standard</a>.</p>
+<p><strong>The goal:</strong> A second site is ready to take over.</p>
+<blockquote class="before"><p><strong>Before you start</strong> You need the Super Admin role on both sites, and a second installation of the same release (see Install and run: A server).</p></blockquote>
+<h2 id="the-ways-to-do-it">The ways to do it</h2>
+<ol><li><strong>On the DR site</strong>: System Admin › Running › Site pairings, <strong>Make a key</strong>. It is shown once: copy it.</li><li><strong>On this site</strong>: the same page, <strong>Pair with a site</strong>: the DR site's address, the key, and <strong>DR sync</strong>.</li><li><strong>On the DR site</strong>: accept the pairing. It becomes read only and is kept up to date by itself.</li><li>Rehearse now and then with the restore drill (System Admin › Backups and restores › Disaster recovery).</li></ol>
+<h2 id="check-it-worked">Check it worked</h2>
+<p>Both sites show the pairing as paired; the batches list what was sent and committed.</p>
+<h2 id="if-the-primary-is-lost">If the primary is lost</h2>
+<p>On the DR site: the DR pairing, <strong>Stop and take over</strong>. Then point the name people open at the DR site.</p>
+<h2 id="each-task-one-page">Each task, one page</h2>
+<ol><li><a href="../how-do-i/make-a-pairing-key.html">Make a pairing key</a></li><li><a href="../how-do-i/pair-two-sites.html">Pair two sites</a></li><li><a href="../how-do-i/accept-a-pairing.html">Accept a pairing on the receiving site</a></li><li><a href="../how-do-i/run-a-restore-drill.html">Run a restore drill</a></li><li><a href="../how-do-i/switch-to-the-dr-site.html">Switch to the DR site</a></li></ol>
+<h2 id="related">Related</h2>
+<ul><li><a href="../install/dr-site.html">Install and run: A DR site</a></li><li><a href="../install/switch-to-dr.html">Install and run: Switching to DR and back</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="13.0.0">Version 13.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: guides/set-up-a-dr-site.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

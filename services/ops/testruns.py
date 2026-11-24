@@ -373,7 +373,11 @@ def _runner_args(info: dict, name: str, folder: str, cmd: list[str]) -> list[str
     for e in env + ["EAX_TEST_RESULTS=/results", "EAX_TEST_DATA=/testdata"]:
         args += ["-e", e]
     work = host_work()
-    args += ["-v", f"{work}/tests/{folder}:/results/{folder}"]
+    # work/tests read only, the run's own folder writable on it: the run reads what is beside it, the unit tests'
+    # coverage of the last eax dev check (unit-coverage.json) and the earlier runs' figures, as the compose testrunner
+    # does (R14: the full test of 24 Nov 2026 never joined the two coverages, "joined": false, for only the run's folder
+    # was mounted here)
+    args += ["-v", f"{work}/tests:/results:ro", "-v", f"{work}/tests/{folder}:/results/{folder}"]
     # the test data the browser journeys upload (testbench/data, D580), beside work/ in the installation folder, as
     # docker-compose.yml's testrunner service mounts it (R2.0.1: a run started here had none, so the journeys stopped)
     args += ["-v", f"{test_data_folder(work)}:/testdata:ro"]

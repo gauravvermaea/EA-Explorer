@@ -29,6 +29,7 @@ import ModelSwitcher, { ProjectSwitcher } from "./ModelSwitcher";
 import { SearchPage, TopSearch } from "./GridPages";
 import { RestoreLock, useRestoreLock } from "./Restores";
 import StartupStatus from "./StartupStatus";
+import { OcrStatus } from "./DocumentsAdmin";
 import Projects, { ProjectAdmin, ProjectLibraryPage } from "./Projects";
 import { PrinciplesPage } from "./Principles";
 import MergeRequestsPage from "./MergeBack";
@@ -150,6 +151,7 @@ export default function App() {
           )}
           </div>
           {/* what is still starting: at the far right of the tools row (owner, 10 Nov 2026), never pushing the menu about */}
+          {signedIn && <OcrStatus />}
           <StartupStatus />
         </div>
       </header>

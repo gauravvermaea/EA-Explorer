@@ -1,5 +1,7 @@
 // D804: each hand-written scan gives exactly what the regular expression it replaced gave (SonarQube S8786), on many
 // generated texts. Run: node services/web/tests/text_scans.test.mjs (the API's tests run it when node is there).
+import test from "node:test";
+import assert from "node:assert/strict";
 import { replaceTags, trimDashes, noEndDots, trailingName, withoutEndBullet, markdownLinks, textKey, isGitAddress } from "../src/textScan.js";
 import { byText, groupDigits } from "../src/fmt.js";
 import { braces, filledPath, pathParams } from "../src/apiPaths.js";
@@ -43,4 +45,8 @@ same("git address", ["https://", "a", "/", " ", "x"], (s) => /^https:\/\/\S+\/\S
 same("leave the page", ["#/break-glass", "#/heartbeat", "#/sql", "x", "LOGOUT", "sign-out", "signout", "/", "a"],
   (s) => /^#\/(break-glass|heartbeat|sql)\b|logout|sign-?out/i.test(s), (s) => /(?:^#\/(break-glass|heartbeat|sql)\b)|logout|sign-?out/i.test(s));
 console.log(failed ? `${failed} different (of ${checked} checked)` : `all the same (${checked} texts checked)`);
-process.exit(failed ? 1 : 0);
+// a test in Node's own runner (SonarQube S2187: a file in the tests folder with no test in it); `node <file>` runs it
+// as before and ends with an error when a scan differs
+test("each hand-written scan gives what the regular expression it replaced gave", () => {
+  assert.equal(failed, 0, `${failed} different (of ${checked} checked)`);
+});

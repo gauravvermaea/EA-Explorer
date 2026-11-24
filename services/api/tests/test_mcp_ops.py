@@ -55,7 +55,8 @@ def test_every_changing_tool_takes_confirm_and_why():
 
 def test_no_tool_makes_credentials_roles_or_service_accounts():
     for n in _tools():
-        assert not any(w in n for w in ("credential", "service_account", "role", "token", "api_key")), n
+        # a TOGAF role (skills_by_togaf_role, R12) is a job in the TOGAF skills framework, not a sign-in role
+        assert not any(w in n.replace("togaf_role", "togaf") for w in ("credential", "service_account", "role", "token", "api_key")), n
 
 
 # ---------------------------------------------------------------- preview, then confirm (D458)

@@ -159,13 +159,12 @@ def _start(reqs: list[dict]) -> list[dict]:
                     quality_measure.defer(request_id=r["id"])
             for r in reqs:
                 r["status"] = "queued"
-            return reqs
         except Exception:  # noqa: BLE001 - no job runner: measure now
             log.warning("job runner not reachable; measuring quality in the request")
             for r in new:
                 q.run_request(lambda: get_engine().begin(), r["id"])
                 r["status"] = "done"
-    return reqs
+    return reqs                       # one way out (SonarQube S3516): the requests, each with its status
 
 
 @blp.route("/models/<uuid:model_id>/quality/jobs")

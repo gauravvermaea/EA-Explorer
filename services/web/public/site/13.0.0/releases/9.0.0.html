@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EA Explorer 9.0.0: Release 9, the AI reads the documentation, themes, and the restore drill in the full test · EA Explorer</title>
+<meta name="description" content="EA Explorer 9.0.0: Release 9, the AI reads the documentation, themes, and the restore drill in the full test">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html" class="here">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>EA Explorer 9.0.0: Release 9, the AI reads the documentation, themes, and the restore drill in the full test</h1>
+    <p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#for-everyone">For everyone</a></li><li><a href="#for-administrators">For administrators</a></li><li><a href="#testing">Testing</a></li><li><a href="#known-issues">Known issues</a></li><li><a href="#in-one-paragraph-for-the-github-release">In one paragraph (for the GitHub release)</a></li></ul></nav>
+    <p>Release 9 (built 22 Nov 2026; <strong>accepted 22 Nov 2026</strong>, the owner: "R9 is accepted"): your AI can now read EA Explorer's own documentation; you can pick and make your own themes; an administrator can make someone set up their authenticator again from the user list; and the full test ends with a real restore drill. The learning videos that were planned here move to Release 20, the last.</p>
+<p><strong>Before updating:</strong> take a backup (<code>.\eax backup before-9.0.0</code>). The update runs migrations 0113 and 0114. Then <code>.\eax clean-restart</code> (the compose file, the api, web and ops images changed) and <code>.\eax test smoke</code>. For the new Jenkins jobs: <code>.\eax jenkins up</code>.</p>
+<p><strong>Also in this code, not yet accepted:</strong> Release 10, scenario planning and game theory through your AI (migration 0113, the project's Scenario planning tab and the sample in Protea build or buy). It is there to be tried; it is accepted, and announced, as 10.0.0.</p>
+<h2 id="for-everyone">For everyone</h2>
+<ul><li><strong>Your own look</strong> (My look): pick from the themes your administrator offers, download a theme's CSS, upload one, or design your own in the theme designer (up to ten). If your administrator stops offering a theme you use, you are told once and given the default.</li><li><strong>Your AI reads the documentation</strong> (MCP): it can list, search and read the guides, the How do I pages, the help of any screen and the error codes, and hand you the printed guides, so it can answer "how do I…" from the real text. The AI page has a tile for it.</li></ul>
+<h2 id="for-administrators">For administrators</h2>
+<ul><li><strong>Set up the authenticator again</strong> from System admin › Users: the Authenticator column shows who has one; tick people and choose <strong>Set up the authenticator again…</strong>. They are signed out, emailed, and asked for a new one at their next sign-in. Not for yourself (another administrator, or a Super Admin on System admin › Security), and a Super Admin only by another Super Admin.</li><li><strong>Themes</strong>: choose which themes people may pick, and whether they may make their own (System admin › Branding); see and remove people's own themes.</li><li>**<code>.\eax access mfa-off --all</code>** switches multi-factor sign-in off for everyone (the setting, every authenticator and every request to set one up), and <code>.\eax access mfa-off &lt;user&gt;</code> no longer asks for a new one straight away. In Jenkins: eax-admin › Get back in › mfa-off-for-everyone.</li><li>**<code>.\eax images</code>** checks every three months (and when you ask) whether newer images are published for what EA Explorer runs, and tells you.</li></ul>
+<h2 id="testing">Testing</h2>
+<ul><li>**<code>.\eax test full</code><strong> ends with the </strong>restore drill**: this installation backed up and shut down, a DR copy built beside it and restored, the smoke test on the copy, then the copy stopped (kept) and this installation started again and signed in to. Its card on the summary page shows the recovery time. <code>--no-dr</code> leaves it out. The full test can also be started from Jenkins (eax-admin › Upkeep › full-test).</li><li>**<code>.\eax test jenkins</code>** starts every Jenkins pipeline as a probe and checks the right command reached the agent, without running it; it shows its progress and reports a refused pipeline at once.</li><li>**<code>.\eax test commands</code>** runs every eax command that only reads or reports, through your own launcher, and checks each answers as it should.</li></ul>
+<h2 id="known-issues">Known issues</h2>
+<ul><li>Four Jenkins pipelines (eax-admin's start and maintenance page on, off and clear) can never run: they have no CONFIRM field (R14.18, to be fixed in Release 14).</li><li>Certificate mode still does not work (the API cannot open its key): Release 11.</li></ul>
+<h2 id="in-one-paragraph-for-the-github-release">In one paragraph (for the GitHub release)</h2>
+<p>EA Explorer 9.0.0 lets your AI read EA Explorer's own documentation, lets people pick, download, upload and design their own themes, lets an administrator make someone set up their authenticator again from the user list, adds <code>eax access mfa-off --all</code> (also in Jenkins), checks for newer images every three months, and makes the full test end with a real restore drill, with new automated tests of every Jenkins pipeline and every reading command. Take a backup, then <code>.\eax clean-restart</code>. Scenario planning (Release 10) is in the code to try, not yet accepted.</p>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="13.0.0">Version 13.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: releases/9.0.0.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

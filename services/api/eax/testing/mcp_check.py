@@ -47,7 +47,13 @@ GUESSED = {"survey", "request", "draft", "analysis", "run", "scenario"}
 AN_ID = {"model", "project", "entity", "draft", "run", "document", "relationship", "view", "question", "step", "canvas",
          "journey", "request", "stakeholder", "item", "comment", "scenario"}
 # tools whose answer depends on what the installation has now: their own "there is none yet" is an answer
-MAY_SAY_NONE = {"what_changed", "list_drawn_views", "get_drawn_view", "ops_backups", "ops_logs"}
+MAY_SAY_NONE = {"what_changed", "list_drawn_views", "get_drawn_view", "ops_backups", "ops_logs",
+                # R14 (full test, 24 Nov 2026): the run's project has no scenario planning study and is not made from the
+                # Agile template, so these say so; that is their answer, not a refusal of the run's own data
+                "sp_work_out", "agile_overview"}
+# the kinds of parameter that cannot hold a guid: a tool pointed at nothing keeps its ordinary value for these (R14,
+# full test 24 Nov 2026: a step number and an item's fields were sent a guid and the tool's input check refused it)
+NOT_A_GUID = ("int", "float", "bool", "dict", "list")
 
 
 def names_in(out: object) -> set[str]:
@@ -144,6 +150,13 @@ def arguments(tool: dict, ids: dict, found: dict) -> tuple[dict | None, bool]:
     return args, guessed or tool["name"] in MAY_SAY_NONE
 
 
+def missing_ids(tool: dict) -> dict:
+    """The required parameters that point at one thing, each given a guid nothing has; a number or a set of fields
+    (a step, an item) keeps the ordinary value change_arguments gives it, as its own type."""
+    return {p["name"]: MISSING for p in tool["params"]
+            if p["required"] and p["name"] in AN_ID and not any(k in str(p.get("type") or "") for k in NOT_A_GUID)}
+
+
 def change_arguments(tool: dict, ids: dict) -> dict:
     """Arguments for a tool that changes something after a preview: the run's own project and models where it asks for
     them (a preview changes nothing), and a value of the right shape for the rest."""
@@ -190,134 +203,138 @@ def run(base: str, tokens: dict[str, str], ids: dict[str, str], record: Record, 
         kind, out = answer(msg) if s == 200 else ("crashed", f"HTTP {s}: {raw[:300]}")
         return kind, out, raw, int((time.time() - t0) * 1000)
 
-    if catalogue is None:
-        from .. import mcp_catalogue
-        catalogue = mcp_catalogue.tools()
-    if not admin:
-        rec("the server lists every tool", None, "no Super Admin test account")
-        return counts
-    t0 = time.time()
-    s, msg, raw = call(url, admin, "tools/list", {})
-    ms = int((time.time() - t0) * 1000)
-    if s in (404, 502, 503, 599) or msg is None:
-        rec("the server lists every tool", None, f"the MCP server did not answer ({s}): is MCP switched on? {raw[:150]}", ms)
-        return counts
-    listed = {t["name"]: t for t in (msg.get("result") or {}).get("tools", [])}
-    want = {t["name"] for t in catalogue}
-    bare = [n for n, t in listed.items() if not (t.get("description") or "").strip() or "inputSchema" not in t]
-    ok = want <= set(listed) and not bare
-    rec("the server lists every tool", ok, f"{len(listed)} listed, {len(want)} in the code"
-        + (f"; missing: {', '.join(sorted(want - set(listed)))}" if want - set(listed) else "")
-        + (f"; without a description: {', '.join(bare)}" if bare else ""), ms, "tools/list", raw)
-    s1, _m, raw1 = call(url, None, "tools/list", {})
-    s2, _m, raw2 = call(url, "not-a-token", "tools/list", {})
-    rec("no token is refused", s1 == 401 and s2 == 401, f"no token {s1}, a wrong one {s2}", 0, "tools/list without a token", raw1 + raw2)
+    def _checks() -> None:
+        # the checks, each early stop a plain return; run() has one way out (SonarQube S3516)
+        nonlocal catalogue
+        if catalogue is None:
+            from .. import mcp_catalogue
+            catalogue = mcp_catalogue.tools()
+        if not admin:
+            rec("the server lists every tool", None, "no Super Admin test account")
+            return
+        t0 = time.time()
+        s, msg, raw = call(url, admin, "tools/list", {})
+        ms = int((time.time() - t0) * 1000)
+        if s in (404, 502, 503, 599) or msg is None:
+            rec("the server lists every tool", None, f"the MCP server did not answer ({s}): is MCP switched on? {raw[:150]}", ms)
+            return
+        listed = {t["name"]: t for t in (msg.get("result") or {}).get("tools", [])}
+        want = {t["name"] for t in catalogue}
+        bare = [n for n, t in listed.items() if not (t.get("description") or "").strip() or "inputSchema" not in t]
+        ok = want <= set(listed) and not bare
+        rec("the server lists every tool", ok, f"{len(listed)} listed, {len(want)} in the code"
+            + (f"; missing: {', '.join(sorted(want - set(listed)))}" if want - set(listed) else "")
+            + (f"; without a description: {', '.join(bare)}" if bare else ""), ms, "tools/list", raw)
+        s1, _m, raw1 = call(url, None, "tools/list", {})
+        s2, _m, raw2 = call(url, "not-a-token", "tools/list", {})
+        rec("no token is refused", s1 == 401 and s2 == 401, f"no token {s1}, a wrong one {s2}", 0, "tools/list without a token", raw1 + raw2)
 
-    found: dict[str, str] = {}                               # what the reads give the next ones
-    kind, out, _raw, _ms = tool("list_relationships", {"model": ids.get("model", "")})
-    if kind == "ok":
-        rows = out if isinstance(out, list) else (out or {}).get("items") or (out or {}).get("relationships") or []
-        if rows and isinstance(rows[0], dict):
-            found["relationship"] = str(rows[0].get("id") or rows[0].get("guid") or "")
-    kind, out, _raw, _ms = tool("list_views", {})
-    if kind == "ok":
-        rows = out if isinstance(out, list) else (out or {}).get("items") or (out or {}).get("views") or []
-        if rows and isinstance(rows[0], dict):
-            found["view"] = str(rows[0].get("code") or rows[0].get("id") or "")
+        found: dict[str, str] = {}                               # what the reads give the next ones
+        kind, out, _raw, _ms = tool("list_relationships", {"model": ids.get("model", "")})
+        if kind == "ok":
+            rows = out if isinstance(out, list) else (out or {}).get("items") or (out or {}).get("relationships") or []
+            if rows and isinstance(rows[0], dict):
+                found["relationship"] = str(rows[0].get("id") or rows[0].get("guid") or "")
+        kind, out, _raw, _ms = tool("list_views", {})
+        if kind == "ok":
+            rows = out if isinstance(out, list) else (out or {}).get("items") or (out or {}).get("views") or []
+            if rows and isinstance(rows[0], dict):
+                found["view"] = str(rows[0].get("code") or rows[0].get("id") or "")
 
-    kind, out, _raw, _ms = tool("find_duplicates", {"model": ids.get("model", "")})
-    if kind == "ok" and isinstance(out, dict) and out.get("groups"):
-        found["entities"] = [e["id"] for e in out["groups"][0].get("entities", []) if e.get("id")]
+        kind, out, _raw, _ms = tool("find_duplicates", {"model": ids.get("model", "")})
+        if kind == "ok" and isinstance(out, dict) and out.get("groups"):
+            found["entities"] = [e["id"] for e in out["groups"][0].get("entities", []) if e.get("id")]
 
-    for t in sorted((x for x in catalogue if not x["changes"]), key=lambda x: (x["area"], x["name"])):
-        args, guessed = arguments(t, ids, found)
-        if args is None:
-            need = [p["name"] for p in t["params"] if p["required"]]
-            rec(t["name"], None, f"needs {', '.join(need)}, which this run has none of")
-            continue
-        kind, out, raw, ms = tool(t["name"], args)
-        if kind == "crashed":
-            rec(t["name"], False, f"a server error: {out}", ms, f"tools/call {t['name']} {json.dumps(args)[:300]}", raw)
-        elif kind == "refused" and not guessed:
-            rec(t["name"], False, f"refused with the run's own data: {out}", ms, f"tools/call {t['name']} {json.dumps(args)[:300]}", raw)
-        else:
-            rec(t["name"], True, f"said: {out}"[:300] if kind == "refused" else f"answered ({len(json.dumps(out, default=str))} bytes)", ms)
-
-    # every tool that changes something after a preview (owner, 22 Nov 2026, 14:12: "in full test build tests for all MCP"):
-    # called as an AI calls it, without confirm, it must answer with a preview (a confirm token) or say in words why not,
-    # never crash and never change anything; called again with a confirm token that is not one it must refuse
-    for t in sorted((x for x in catalogue if x["changes"]), key=lambda x: (x["area"], x["name"])):
-        ckey = next((p["name"] for p in t["params"] if p["name"] in ("confirm", "confirm_token")), "")
-        if not ckey:
-            # it changes at once: called for something that is not there it must say so, and so changes nothing
-            need = [p["name"] for p in t["params"] if p["required"]]
-            if not any(n in AN_ID for n in need):
-                rec(f"{t['name']} (refuses what is not there)", None, "not called here: it changes at once and asks for no "
-                    "id to point at nothing (tried in the API suite's flows)")
+        for t in sorted((x for x in catalogue if not x["changes"]), key=lambda x: (x["area"], x["name"])):
+            args, guessed = arguments(t, ids, found)
+            if args is None:
+                need = [p["name"] for p in t["params"] if p["required"]]
+                rec(t["name"], None, f"needs {', '.join(need)}, which this run has none of")
                 continue
-            args = {**change_arguments(t, ids), **{n: MISSING for n in need if n in AN_ID}}
             kind, out, raw, ms = tool(t["name"], args)
-            rec(f"{t['name']} (refuses what is not there)", kind == "refused",
-                f"{kind}: {str(out)[:250]}", ms, f"tools/call {t['name']} {json.dumps(args)[:300]}", raw)
-            continue
-        args = change_arguments(t, ids)
-        kind, out, raw, ms = tool(t["name"], args)
-        req = f"tools/call {t['name']} {json.dumps(args)[:300]}"
-        if kind == "crashed":
-            rec(f"{t['name']} (preview)", False, f"a server error: {out}", ms, req, raw)
-            continue
-        previewed = kind == "ok" and isinstance(out, dict) and bool(out.get("confirm"))
-        rec(f"{t['name']} (preview)", kind == "refused" or previewed,
-            (f"a preview, confirm token {str(out.get('confirm'))[:12]}..." if previewed else
-             f"said: {out}"[:300] if kind == "refused" else f"answered without a preview: {str(out)[:200]}"), ms, req, raw)
-        k2, o2, r2, ms2 = tool(t["name"], {**args, ckey: "pv_self-test-not-a-token"})
-        rec(f"{t['name']} (a wrong confirm token)", k2 == "refused", f"{k2}: {str(o2)[:200]}", ms2,
-            f"tools/call {t['name']} with a wrong confirm token", r2)
+            if kind == "crashed":
+                rec(t["name"], False, f"a server error: {out}", ms, f"tools/call {t['name']} {json.dumps(args)[:300]}", raw)
+            elif kind == "refused" and not guessed:
+                rec(t["name"], False, f"refused with the run's own data: {out}", ms, f"tools/call {t['name']} {json.dumps(args)[:300]}", raw)
+            else:
+                rec(t["name"], True, f"said: {out}"[:300] if kind == "refused" else f"answered ({len(json.dumps(out, default=str))} bytes)", ms)
 
-    # a change through MCP is the person's own uncommitted change (in the run's second model)
-    m2, name = ids.get("other_model") or ids.get("model", ""), f"Self-test MCP application {ids.get('sid', '')}"
-    kind, out, raw, ms = tool("add_entities", {"model": m2, "entity_type": "ApplicationComponent", "rows": [{"name": name}]})
-    kind2, out2, raw2, _ = tool("list_my_changes", {"model": m2})
-    mine = name in json.dumps(out2, default=str)
-    rec("a change is the person's uncommitted one", kind == "ok" and kind2 == "ok" and mine,
-        f"added: {kind}; in list_my_changes: {mine}", ms, "add_entities; list_my_changes", raw + raw2)
+        # every tool that changes something after a preview (owner, 22 Nov 2026, 14:12: "in full test build tests for all MCP"):
+        # called as an AI calls it, without confirm, it must answer with a preview (a confirm token) or say in words why not,
+        # never crash and never change anything; called again with a confirm token that is not one it must refuse
+        for t in sorted((x for x in catalogue if x["changes"]), key=lambda x: (x["area"], x["name"])):
+            ckey = next((p["name"] for p in t["params"] if p["name"] in ("confirm", "confirm_token")), "")
+            if not ckey:
+                # it changes at once: called for something that is not there it must say so, and so changes nothing
+                if not missing_ids(t):                          # nothing to point at nothing: calling it would change something
+                    rec(f"{t['name']} (refuses what is not there)", None, "not called here: it changes at once and asks for no "
+                        "id to point at nothing (tried in the API suite's flows)")
+                    continue
+                args = {**change_arguments(t, ids), **missing_ids(t)}
+                kind, out, raw, ms = tool(t["name"], args)
+                rec(f"{t['name']} (refuses what is not there)", kind == "refused",
+                    f"{kind}: {str(out)[:250]}", ms, f"tools/call {t['name']} {json.dumps(args)[:300]}", raw)
+                continue
+            args = change_arguments(t, ids)
+            kind, out, raw, ms = tool(t["name"], args)
+            req = f"tools/call {t['name']} {json.dumps(args)[:300]}"
+            if kind == "crashed":
+                rec(f"{t['name']} (preview)", False, f"a server error: {out}", ms, req, raw)
+                continue
+            previewed = kind == "ok" and isinstance(out, dict) and bool(out.get("confirm"))
+            rec(f"{t['name']} (preview)", kind == "refused" or previewed,
+                (f"a preview, confirm token {str(out.get('confirm'))[:12]}..." if previewed else
+                 f"said: {out}"[:300] if kind == "refused" else f"answered without a preview: {str(out)[:200]}"), ms, req, raw)
+            k2, o2, r2, ms2 = tool(t["name"], {**args, ckey: "pv_self-test-not-a-token"})
+            rec(f"{t['name']} (a wrong confirm token)", k2 == "refused", f"{k2}: {str(o2)[:200]}", ms2,
+                f"tools/call {t['name']} with a wrong confirm token", r2)
 
-    # a read-only token reads, and changes nothing
-    ro = ""
-    if read_only_token:
+        # a change through MCP is the person's own uncommitted change (in the run's second model)
+        m2, name = ids.get("other_model") or ids.get("model", ""), f"Self-test MCP application {ids.get('sid', '')}"
+        kind, out, raw, ms = tool("add_entities", {"model": m2, "entity_type": "ApplicationComponent", "rows": [{"name": name}]})
+        kind2, out2, raw2, _ = tool("list_my_changes", {"model": m2})
+        mine = name in json.dumps(out2, default=str)
+        rec("a change is the person's uncommitted one", kind == "ok" and kind2 == "ok" and mine,
+            f"added: {kind}; in list_my_changes: {mine}", ms, "add_entities; list_my_changes", raw + raw2)
+
+        # a read-only token reads, and changes nothing
+        ro = ""
+        if read_only_token:
+            try:
+                ro = read_only_token()
+            except Exception as exc:  # noqa: BLE001 - said, the check is skipped
+                rec("a read-only token changes nothing", None, f"no read-only token could be made: {exc}")
+        if ro:
+            k1, _o1, r1, ms = tool("list_models", {}, ro)
+            ro_name = f"Self-test read-only {ids.get('sid', '')}"
+            k2, o2, r2, _ = tool("add_entities", {"model": m2, "entity_type": "ApplicationComponent", "rows": [{"name": ro_name}]}, ro)
+            k3, o3, _r3, _ = tool("search_entities", {"text": ro_name, "model": m2})
+            added = ro_name in names_in(o3)
+            rec("a read-only token changes nothing", k1 == "ok" and k2 == "refused" and not added,
+                f"read: {k1}; add: {k2} ({str(o2)[:120]}); added: {added}", ms, "list_models; add_entities as read-only", r1 + r2)
+        elif not read_only_token:
+            rec("a read-only token changes nothing", None, "no way to make a read-only token here")
+
+        # the wrong role is refused
+        if other:
+            k1, o1, r1, ms = tool("ops_status", {}, other)
+            k2, o2, r2, _ = tool("maturity_overview", {}, other)
+            rec("the wrong role is refused", k1 == "refused" and k2 == "refused", f"ops_status: {k1} ({str(o1)[:100]}); "
+                f"maturity_overview: {k2} ({str(o2)[:100]})", ms, "ops_status, maturity_overview without the role", r1 + r2)
+        else:
+            rec("the wrong role is refused", None, "no account without the role")
+
+        # every call is in the AI activity log
+        t0 = time.time()
+        s, text = send(base, "get", "/api/v1/mcp/activity?days=1&limit=1000&tool=add_entities", admin, None)
         try:
-            ro = read_only_token()
-        except Exception as exc:  # noqa: BLE001 - said, the check is skipped
-            rec("a read-only token changes nothing", None, f"no read-only token could be made: {exc}")
-    if ro:
-        k1, _o1, r1, ms = tool("list_models", {}, ro)
-        ro_name = f"Self-test read-only {ids.get('sid', '')}"
-        k2, o2, r2, _ = tool("add_entities", {"model": m2, "entity_type": "ApplicationComponent", "rows": [{"name": ro_name}]}, ro)
-        k3, o3, _r3, _ = tool("search_entities", {"text": ro_name, "model": m2})
-        added = ro_name in names_in(o3)
-        rec("a read-only token changes nothing", k1 == "ok" and k2 == "refused" and not added,
-            f"read: {k1}; add: {k2} ({str(o2)[:120]}); added: {added}", ms, "list_models; add_entities as read-only", r1 + r2)
-    elif not read_only_token:
-        rec("a read-only token changes nothing", None, "no way to make a read-only token here")
+            log = json.loads(text) if text else {}
+        except ValueError:
+            log = {}
+        rows = log.get("calls") or log.get("items") or log.get("rows") or []
+        seen = name in text or any("add_entities" in json.dumps(r) for r in rows)
+        rec("every call is in the AI activity log", s == 200 and seen, f"{s}: {len(rows)} add_entities call(s) today", int((time.time() - t0) * 1000),
+            "GET /api/v1/mcp/activity", text[:1000])
 
-    # the wrong role is refused
-    if other:
-        k1, o1, r1, ms = tool("ops_status", {}, other)
-        k2, o2, r2, _ = tool("maturity_overview", {}, other)
-        rec("the wrong role is refused", k1 == "refused" and k2 == "refused", f"ops_status: {k1} ({str(o1)[:100]}); "
-            f"maturity_overview: {k2} ({str(o2)[:100]})", ms, "ops_status, maturity_overview without the role", r1 + r2)
-    else:
-        rec("the wrong role is refused", None, "no account without the role")
-
-    # every call is in the AI activity log
-    t0 = time.time()
-    s, text = send(base, "get", "/api/v1/mcp/activity?days=1&limit=1000&tool=add_entities", admin, None)
-    try:
-        log = json.loads(text) if text else {}
-    except ValueError:
-        log = {}
-    rows = log.get("calls") or log.get("items") or log.get("rows") or []
-    seen = name in text or any("add_entities" in json.dumps(r) for r in rows)
-    rec("every call is in the AI activity log", s == 200 and seen, f"{s}: {len(rows)} add_entities call(s) today", int((time.time() - t0) * 1000),
-        "GET /api/v1/mcp/activity", text[:1000])
-    return counts
+    _checks()
+    return counts                     # the counts the checks filled in
