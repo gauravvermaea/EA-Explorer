@@ -523,3 +523,4 @@ source, and the pictures themselves read one by one and measured).
 - 24 Nov 19:40 The owner: Release 22 after 14.5. The order: 14, 14.5, 22, 21, 15, 16, 17, 18, 19, 20.
 - 24 Nov 20:10 The full test ended: backup and restore passed; the DR drill and the restart failed on my web image change (nginx modules tied to 1.30.6), now fixed; SonarQube's five fixed. To run: up, then the DR drill and the full test again.
 - 24 Nov 20:00 The owner: "accept the 2 issues": the ops image's two accepted to 2026-12-31 (D912).
+- 24 Nov 20:30 The screens down after the clean restart (the maintenance page): the web container stopped on /tmp/nginx.pid left by nginx -t as root; /tmp emptied after the check (D912).

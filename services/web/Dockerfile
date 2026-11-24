@@ -16,12 +16,14 @@ ADD https://dl-cdn.alpinelinux.org/alpine/v3.24/main/x86_64/APKINDEX.tar.gz /tmp
 # nginx from Alpine's own packages (1.30.7, built 18 Nov 2026): the image's makers have not yet published one with the
 # fixes of 1.30.7; the configuration uses only nginx's core (D912). The makers' optional modules (geoip, image-filter,
 # njs, xslt) are taken out first: each is tied to their 1.30.6 and none is loaded here (the build of 24 Nov 2026, 19:52,
-# "unable to select packages ... breaks: nginx-module-..."). nginx -t then checks the image's own configuration.
+# "unable to select packages ... breaks: nginx-module-..."). nginx -t then checks the image's own configuration; it runs
+# as root and leaves /tmp/nginx.pid and its temp folders as root's, so /tmp is emptied after it: the container runs as
+# user 101 and stopped at start on "open() /tmp/nginx.pid failed (13: Permission denied)" (24 Nov 2026, 20:24).
 RUN apk upgrade --no-cache \
  && apk info -q | grep '^nginx-module-' | xargs -r apk del --no-cache \
  && apk add --no-cache "nginx>=1.30.7" \
- && rm -f /tmp/apk-index.tar.gz \
- && nginx -v && nginx -t
+ && nginx -v && nginx -t \
+ && rm -rf /tmp/* /tmp/.[!.]*
 USER 101
 ENV NGINX_ENVSUBST_FILTER="^EAX_"
 COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template

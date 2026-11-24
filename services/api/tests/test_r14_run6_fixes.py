@@ -203,7 +203,7 @@ def test_a_new_alpine_fix_starts_the_upgrade_step_again():
         lines = [x for x in _read(f).replace("\\\n", " ").splitlines() if x and not x.startswith("#")]   # one RUN a line
         add = lines.index(INDEX)
         assert re.match(r"RUN apk upgrade --no-cache\s+&& ", lines[add + 1]), name
-        assert "rm -f /tmp/apk-index.tar.gz" in lines[add + 1], name
+        assert "rm -f /tmp/apk-index.tar.gz" in lines[add + 1] or "rm -rf /tmp/*" in lines[add + 1], name
 
 
 def test_the_web_image_takes_nginx_1_30_7_from_alpine():
@@ -212,9 +212,18 @@ def test_the_web_image_takes_nginx_1_30_7_from_alpine():
     web = _read(DOCKER["web"])
     run = " ".join(web.replace("\\\n", " ").split())
     assert ('RUN apk upgrade --no-cache && apk info -q | grep \'^nginx-module-\' | xargs -r apk del --no-cache '
-            '&& apk add --no-cache "nginx>=1.30.7" && rm -f /tmp/apk-index.tar.gz && nginx -v && nginx -t') in run
+            '&& apk add --no-cache "nginx>=1.30.7" && nginx -v && nginx -t && rm -rf /tmp/* /tmp/.[!.]*') in run
     assert web.index("USER root") < web.index(INDEX) < web.index("USER 101")         # back to the unprivileged user
     assert "FROM nginxinc/nginx-unprivileged:1.30-alpine" in web
+
+
+def test_nothing_root_made_is_left_in_tmp_for_the_unprivileged_user():
+    """24 Nov 2026, 20:24: the web container stopped at every start on "open() /tmp/nginx.pid failed (13: Permission
+    denied)": nginx -t ran as root at the build and left its files in /tmp. /tmp is emptied after it, before USER 101."""
+    web = _read(DOCKER["web"])
+    run = " ".join(web.replace("\\\n", " ").split())
+    assert run.index("nginx -t") < run.index("rm -rf /tmp/* /tmp/.[!.]*")
+    assert web.index("rm -rf /tmp/*") < web.index("USER 101")
 
 
 def test_the_modules_tied_to_the_old_nginx_go_first_and_none_is_loaded():
