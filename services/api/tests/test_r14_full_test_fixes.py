@@ -148,6 +148,10 @@ def test_a_control_is_found_by_its_name_after_its_icon():
     assert t("Infrastructure").search("▦ Infrastructure") and t("Tools", True).search("⚒ Tools")
     assert not t("Tools", True).search("⚒ Toolset") and not t("Wizards").search("Model Wizards")
     assert t("+ In a form").search("+ In a form") and t("History", True).search("History")
+    # an icon only, not punctuation: "› System Admin" in a path is not the menu (the full test of 24 Nov 2026, 11:24)
+    assert not t("System Admin").search("› System Admin › Settings") and not t("System Admin").search("→ System Admin")
+    assert t("Tools", True).search("Tools›") and t("Wizards", True).search("Wizards›")   # a sub-menu's arrow
+    assert not t("Tools", True).search("Tools and more›")
 
 
 def test_the_menu_journey_opens_the_wizards_through_the_tools_group():

@@ -163,7 +163,8 @@ JOURNEYS: list[dict] = [
          {"open": "#/admin/documents", "expect": "Documents: read scanned pages (OCR)"},
          {"expect": "When it runs"}, {"expect": "Any time"}, {"expect": "Progress"},
          {"open": "#/admin/wizards", "expect": "First-run setup"},
-         {"click": "First-run setup", "opens": ".ed-dialog"},
+         # the card's title is "First-run setup", its button "Start…" (the full test of 24 Nov 2026 clicked the title)
+         {"click": "Start", "within": '.wiz-card:has-text("First-run setup")', "opens": ".ed-dialog"},
          {"expect": "Documents: read scanned pages (OCR) (optional)", "within": ".ed-dialog"},
          {"expect": "Read scanned pages (OCR):", "within": ".ed-dialog"},
      ]},
@@ -706,8 +707,11 @@ def text_pattern(text: str, exact: bool = False, pattern: str = ""):
     front (System Admin's group tabs read "▦ Infrastructure", R13; the full test of 24 Nov 2026 found none of them)."""
     if pattern:
         return re.compile(pattern)
-    lead = r"^[^\w]*?" if re.match(r"\w", text or "") else r"^\s*"
-    return re.compile(rf"{lead}{re.escape(text)}\s*$" if exact else rf"{lead}{re.escape(text)}", re.I)
+    # an icon only (geometric shapes, symbols, dingbats: U+2300 to U+2BFF), not any punctuation: "› System Admin" in a
+    # path on the start page is not the System Admin menu (the full test of 24 Nov 2026 took it for one)
+    lead = r"^\s*(?:[\u2300-\u2bff]\ufe0f?\s*)?" if re.match(r"\w", text or "") else r"^\s*"
+    # exact: the name and nothing after it but the arrow a menu item with a sub-menu shows ("Tools›", TopMenu.jsx)
+    return re.compile(rf"{lead}{re.escape(text)}\s*(?:›\s*)?$" if exact else rf"{lead}{re.escape(text)}", re.I)
 
 
 def _clickable(page, text: str, exact: bool = False, pattern: str = ""):

@@ -342,3 +342,66 @@ def test_a_report_fails_only_after_120_seconds():
     from eax.testing import reports_check as R
     assert (R.WARN_MS, R.FAIL_MS) == (30000, 120000)
     assert "timeout=60000" not in _read(REPO / "services/api/eax/testing/reports_check.py")
+
+
+# ---------------------------------------------------------------- every list of models a 500 (the full test, 24 Nov 2026)
+def test_no_module_defines_the_same_name_twice():
+    """A helper split out for SonarQube (D907) took the name of another function further down the same file
+    (repository._library_counts); Python keeps the last, so list_models called the wrong one and every list of models,
+    in the screens, the API and MCP, was a server error. Lint does not see it when the first is used before the second."""
+    import ast
+    import collections
+    known = {("services/api/eax/api/schemas.py", "RuleResultOut")}   # older: each use bound before the second (harmless)
+    bad = []
+    for base in ("services/api/eax", "eaxcli", "services/ops", "testbench"):
+        for f in sorted((REPO / base).rglob("*.py")):
+            tree = ast.parse(_read(f))
+            names = collections.Counter(n.name for n in tree.body
+                                        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)))
+            rel = f.relative_to(REPO).as_posix()
+            bad += [f"{rel}: {k} x{v}" for k, v in names.items() if v > 1 and (rel, k) not in known]
+    assert bad == [], bad
+
+
+def test_the_list_of_models_fills_in_the_library_models_counts(monkeypatch):
+    from contextlib import contextmanager
+
+    from eax import library_models as lm
+    from eax import repository as repo
+
+    class Rows:
+        def __init__(self, rows):
+            self.rows = rows
+
+        def mappings(self):
+            return self.rows
+
+    class Conn:
+        def execute(self, *a, **k):
+            return Rows([{"model_id": "m1", "etc": 3, "ec": 40, "rc": 12, "icon": "lib:cloud", "iv": 7}])
+
+    @contextmanager
+    def connect():
+        yield Conn()
+
+    monkeypatch.setattr(lm, "routed", lambda: False)
+    monkeypatch.setattr(lm, "connect", connect)
+    rows = [{"_id": "m1", "content_schema": lm.SCHEMA, "icon": None}, {"_id": "m2", "content_schema": "core"}]
+    out = repo._library_parts(rows)
+    assert out is rows and rows[0]["entity_count"] == 40 and rows[0]["icon"] == "lib:cloud" and "entity_count" not in rows[1]
+
+    @contextmanager
+    def away():
+        raise RuntimeError("library schema away")
+        yield
+    monkeypatch.setattr(lm, "connect", away)
+    rows = [{"_id": "m1", "content_schema": lm.SCHEMA}]
+    assert repo._library_parts(rows) == [{"_id": "m1", "content_schema": lm.SCHEMA}]   # shown, without counts
+
+
+def test_the_ocr_journey_starts_the_first_run_setup_with_its_cards_button():
+    from eax.testing import ui_flows as F
+    j = next(x for x in F.JOURNEYS if x["name"] == "documents ocr: the setting and its first-run step")
+    step = next(s for s in j["steps"] if s.get("opens") == ".ed-dialog")
+    assert step == {"click": "Start", "within": '.wiz-card:has-text("First-run setup")', "opens": ".ed-dialog"}
+    assert '<Card title="First-run setup"' in _read(WEB / "SystemWizards.jsx") and "<button onClick={onClick}>Start…</button>" in _read(WEB / "SystemWizards.jsx")

@@ -63,7 +63,7 @@ def _library_parts(rows: list[dict]) -> list[dict]:
     query, for lists made on the repository's connection."""
     from . import library_models as lm
     lib = [r for r in rows if r.get("content_schema") == lm.SCHEMA]
-    got = _library_counts([r["_id"] for r in lib]) if lib and not lm.routed() else {}
+    got = _library_model_counts([r["_id"] for r in lib]) if lib and not lm.routed() else {}
     for r in lib:
         g = got.get(r["_id"])
         if g:
@@ -72,8 +72,10 @@ def _library_parts(rows: list[dict]) -> list[dict]:
     return rows                       # one way out (SonarQube S3516): the rows, filled in where the counts were read
 
 
-def _library_counts(ids: list) -> dict:
-    """Each library model's counts and icon, by its id, read in the library schema ({} when it cannot be read)."""
+def _library_model_counts(ids: list) -> dict:
+    """Each library model's counts and icon, by its id, read in the library schema ({} when it cannot be read).
+    Its own name: _library_counts below is another function (the full test of 24 Nov 2026: one name for both made every
+    list of models a server error)."""
     from . import library_models as lm
     try:
         with lm.connect() as lc:
