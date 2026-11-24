@@ -31,6 +31,8 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 
+from . import httpopen
+
 TIMEOUT = 5
 CACHE_SECONDS = 60
 NIL = "00000000-0000-0000-0000-000000000000"
@@ -131,7 +133,7 @@ def _kc_token() -> str:
 
 def _kc_keys() -> str:
     from .config import get_settings
-    with urllib.request.urlopen(get_settings().jwks_url, timeout=TIMEOUT) as r:  # noqa: S310 - inside the network
+    with httpopen.urlopen(get_settings().jwks_url, timeout=TIMEOUT) as r:  # noqa: S310 - inside the network
         n = len(__import__("json").loads(r.read() or b"{}").get("keys") or [])
     if not n:
         raise RuntimeError("no signing keys published")
@@ -159,7 +161,7 @@ def _ops() -> str:
     url, token = os.environ.get("EAX_OPS_URL", "http://ops:8090").rstrip("/"), os.environ.get("EAX_OPS_TOKEN", "")
     req = urllib.request.Request(f"{url}/alerts", headers={"X-Ops-Token": token, "Accept": "application/json"})
     try:
-        with urllib.request.urlopen(req, timeout=TIMEOUT):  # noqa: S310 - inside the network
+        with httpopen.urlopen(req, timeout=TIMEOUT):  # noqa: S310 - inside the network
             pass
     except urllib.error.HTTPError as exc:
         raise RuntimeError(f"answered {exc.code}" + (": its token was refused" if exc.code in (401, 403) else "")) from exc

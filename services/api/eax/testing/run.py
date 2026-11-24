@@ -30,6 +30,7 @@ from pathlib import Path
 
 from sqlalchemy import text
 
+from .. import httpopen
 from . import (
     alive,
     api_matrix,
@@ -61,9 +62,8 @@ def _running_version() -> str:
     runner's own when the runner was built from newer code than the installation (R5.48: the database check said
     "the API is 5.1.0; the database has ... 5.0.0" when only the runner was 5.1.0). The runner's own when not answered."""
     import json
-    import urllib.request
     try:
-        with urllib.request.urlopen(f"{API}/api/v1/operations/health", timeout=10) as resp:
+        with httpopen.urlopen(f"{API}/api/v1/operations/health", timeout=10) as resp:
             return str(json.load(resp).get("version") or _version())
     except Exception:  # noqa: BLE001 - the runner's own
         return _version()
@@ -235,7 +235,7 @@ def _post_json(path: str, token: str | None, body: dict) -> tuple[int, str]:
                                  headers={"Content-Type": "application/json", "Accept": "application/json",
                                           **({"Authorization": f"Bearer {token}"} if token else {})})
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with httpopen.urlopen(req, timeout=30) as resp:
             return resp.status, resp.read(4000).decode("utf-8", "replace")
     except urllib.error.HTTPError as exc:
         return exc.code, exc.read(4000).decode("utf-8", "replace")
@@ -352,7 +352,7 @@ def documentation(rec, tokens: dict[str, str]) -> None:
     try:                                             # the whole answer: the folder list can be long
         req = urllib.request.Request(lib + "/api/library/v1/libraries/org",
                                      headers={"Accept": "application/json", **({"Authorization": f"Bearer {user}"} if user else {})})
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with httpopen.urlopen(req, timeout=30) as resp:
             s, body = resp.status, resp.read().decode("utf-8", "replace")
     except urllib.error.HTTPError as exc:
         s, body = exc.code, ""

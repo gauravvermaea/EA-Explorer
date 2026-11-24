@@ -72,7 +72,7 @@ def run(ids: dict[str, str], ticket: str, folder: Path, record: Record, role: st
     videos = folder / "videos"
     videos.mkdir(parents=True, exist_ok=True)
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(args=[f"--host-resolver-rules=MAP {host} {proxy}, MAP *.{host} {proxy}"])
+        browser = pw.chromium.launch(args=[f"--host-resolver-rules=MAP {host} {proxy}, MAP *.{host} {proxy}", "--disable-dev-shm-usage"])
         version = f"Chromium {browser.version} (headless, on the server)"
         for j in journeys(ids, role):
             if only and j["name"] not in only:
@@ -148,7 +148,7 @@ def run_all(ids: dict[str, str], ticket: str, folder: Path, record: Record, role
     from . import screencast
     n_browser = [0]
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(args=[f"--host-resolver-rules=MAP {host} {proxy}, MAP *.{host} {proxy}"],
+        browser = pw.chromium.launch(args=[f"--host-resolver-rules=MAP {host} {proxy}, MAP *.{host} {proxy}", "--disable-dev-shm-usage"],
                                      **({"slow_mo": screencast.SLOW_MS} if live.get("slow") else {}))
         version = f"Chromium {browser.version} (headless, on the server)"
 

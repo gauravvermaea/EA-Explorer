@@ -11,6 +11,8 @@ import os
 import urllib.error
 import urllib.request
 
+from . import httpopen
+
 BASE = "/api/library/v1"
 TIMEOUT = 60
 
@@ -38,7 +40,7 @@ def _call(method: str, path: str, body: dict | None = None):
     req = urllib.request.Request(url, data=data, method=method,
                                  headers={"X-Library-Key": _key(), "Content-Type": "application/json", "Accept": "application/json"})
     try:
-        with urllib.request.urlopen(req, timeout=TIMEOUT) as r:  # noqa: S310 - an address inside the network, from the config
+        with httpopen.urlopen(req, timeout=TIMEOUT) as r:  # noqa: S310 - an address inside the network, from the config
             raw = r.read()
     except urllib.error.HTTPError as exc:
         try:

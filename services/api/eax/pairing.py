@@ -50,7 +50,7 @@ from typing import Any
 
 from sqlalchemy import text
 
-from . import __version__
+from . import __version__, httpopen
 from .metamodel_edit import EditError
 
 FORMAT = "eax-sync/1"
@@ -441,7 +441,7 @@ def peer_call(p: dict, method: str, path: str, body: dict | None = None, data: b
             raise EditError(f"Site 2's certificate has changed ({got[:16]}…, trusted {pin[:16]}…): check it, then pair again.", 502)
     req = urllib.request.Request(url, data=raw, method=method, headers=h)
     try:
-        with urllib.request.urlopen(req, timeout=TIMEOUT, context=_ssl(pin)) as r:  # noqa: S310 - https only (checked at pairing)
+        with httpopen.urlopen(req, timeout=TIMEOUT, context=_ssl(pin)) as r:  # noqa: S310 - https only (checked at pairing)
             return json.loads(r.read() or b"{}")
     except urllib.error.HTTPError as exc:
         try:

@@ -235,7 +235,7 @@ def main(argv: list[str]) -> int:
         log.write(line + "\n")
     taken, failed = 0, 0
     with sync_playwright() as pw:
-        browser = pw.chromium.launch(args=[f"--host-resolver-rules=MAP {host} {proxy}, MAP *.{host} {proxy}"])
+        browser = pw.chromium.launch(args=[f"--host-resolver-rules=MAP {host} {proxy}, MAP *.{host} {proxy}", "--disable-dev-shm-usage"])
         ctx = browser.new_context(ignore_https_errors=True, viewport={"width": opts["width"], "height": opts["height"]},
                                   color_scheme="light", locale="en-GB")
         page = ctx.new_page()

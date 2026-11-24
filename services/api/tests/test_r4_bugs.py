@@ -255,7 +255,8 @@ def test_r4_17_the_iteration_journey_waits_for_what_saving_said_before_the_dialo
     assert len(saves) == 2
     for i, said in zip(saves, ("Now a Transition Planning", "Now a Full cycle"), strict=True):
         assert steps[i].get("within") == "[role=dialog]" and "wait" not in steps[i]
-        assert steps[i + 1] == {"expect": said} and steps[i + 2]["expect_not"] == "Note (optional)"
+        # up to a minute for the answer (D912: a laptop busy building the run's repository answered after 20 s)
+        assert steps[i + 1] == {"expect": said, "timeout": 60000} and steps[i + 2]["expect_not"] == "Note (optional)"
     dialog = (REPO / "services/web/src/IterationControl.jsx").read_text()
     assert "refreshAll(); setTimeout(onClose, 1500);" in dialog
     assert "\"message\": f\"Now a {now['label']}.\"" in (REPO / "services/api/eax/iterations.py").read_text()

@@ -27,7 +27,7 @@ from typing import Any
 
 from sqlalchemy import text
 
-from . import __version__, audit, mcp_ops, permissions
+from . import __version__, audit, httpopen, mcp_ops, permissions
 from . import repository as repo
 from .db import get_engine
 from .mcp_server import _run, mcp
@@ -57,7 +57,7 @@ def helper(method: str, path: str, body: dict | None = None, timeout: int = 20) 
     req = urllib.request.Request(f"{url}{path}", method=method, data=data,
                                  headers={"X-Ops-Token": token, "Content-Type": "application/json"})
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
+        with httpopen.urlopen(req, timeout=timeout) as r:
             return json.load(r)
     except urllib.error.HTTPError as exc:
         try:

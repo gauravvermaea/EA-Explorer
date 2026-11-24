@@ -18,6 +18,7 @@ import urllib.request
 
 from sqlalchemy import text
 
+from . import httpopen
 from .notify import CATEGORIES, _one, _rows
 
 MAX_ATTEMPTS = 8           # then failed: 1, 2, 4, 8, 16, 32, 64 minutes apart (about two hours in all)
@@ -54,7 +55,7 @@ def _post(url: str, secret: str, body: dict, event: str, delivery: str) -> tuple
         "Content-Type": "application/json", "User-Agent": "EA-Explorer-Webhook/1", "X-EAX-Event": event,
         "X-EAX-Delivery": delivery, "X-EAX-Signature": sign(secret, raw)})
     try:
-        with urllib.request.urlopen(req, timeout=TIMEOUT) as r:  # noqa: S310 - an address an admin set
+        with httpopen.urlopen(req, timeout=TIMEOUT) as r:  # noqa: S310 - an address an admin set
             return r.status, ""
     except urllib.error.HTTPError as exc:
         return exc.code, f"answered HTTP {exc.code}"

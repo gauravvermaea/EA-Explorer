@@ -61,7 +61,7 @@ export default function DocumentsAdmin() {
       <div className="row-gap">
         <label title="Documents reads scanned pages whenever OCR is on: no window">
           <input type="radio" name="ocr-when" checked={!windowed} disabled={!mine}
-            onChange={() => { setWindowed(false); if (set.documents_ocr_from || set.documents_ocr_to) save({ documents_ocr_from: "", documents_ocr_to: "" }); }} />
+            onChange={() => { setWindowed(false); if (set.documents_ocr_from || set.documents_ocr_to) void save({ documents_ocr_from: "", documents_ocr_to: "" }); }} />
           {" "}Any time</label>
         <label title="Documents reads scanned pages only between the two times below, at night say">
           <input type="radio" name="ocr-when" checked={windowed} disabled={!mine} onChange={() => setWindowed(true)} />

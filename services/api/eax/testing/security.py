@@ -18,6 +18,8 @@ import urllib.request
 from collections.abc import Callable
 from pathlib import Path
 
+from .. import httpopen
+
 Record = Callable[[str, str, str, int], None]
 
 # header: what a good value contains (lower case); None: only that it is there
@@ -147,7 +149,7 @@ def secret_files(record: Record, fetch: Callable[[], dict] | None = None) -> Non
     def ask() -> dict:
         req = urllib.request.Request(os.environ.get("EAX_OPS_URL", "http://ops:8090") + "/secrets-check",
                                      headers={"X-Ops-Token": os.environ.get("EAX_OPS_TOKEN", "")})
-        with urllib.request.urlopen(req, timeout=120) as r:
+        with httpopen.urlopen(req, timeout=120) as r:
             return json.load(r)
     try:
         v = (fetch or ask)()

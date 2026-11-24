@@ -26,6 +26,8 @@ from typing import Any
 
 from sqlalchemy import text
 
+from . import httpopen
+
 LONG_KINDS = ("backup", "restore", "selftest", "self-test", "test")
 # what each kind of job does, in words (owner, 21:42: "User friendly description")
 WORDS = {
@@ -364,7 +366,7 @@ def _restart_runner() -> str:
     url = os.environ.get("EAX_OPS_URL", "http://ops:8090") + "/restart/api"
     req = urllib.request.Request(url, method="POST", data=json.dumps({"by": "eax"}).encode(),
                                  headers={"X-Ops-Token": os.environ.get("EAX_OPS_TOKEN", ""), "Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=30) as r:
+    with httpopen.urlopen(req, timeout=30) as r:
         return str(json.load(r).get("message") or "Restarting the API.")
 
 

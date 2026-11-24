@@ -37,6 +37,7 @@ import urllib.request
 from collections.abc import Callable
 from datetime import UTC, datetime
 
+from .. import httpopen
 from .discovery_projects_check import _whole, mcp_url
 
 Record = Callable[..., None]
@@ -79,7 +80,7 @@ def rpc(url: str, token: str | None, method: str, params: dict, timeout: int = 1
     req = urllib.request.Request(url, data=json.dumps({"jsonrpc": "2.0", "id": 1, "method": method, "params": params}).encode(),
                                  method="POST", headers=headers)
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:              # noqa: S310 - the installation's own MCP server
+        with httpopen.urlopen(req, timeout=timeout) as r:              # noqa: S310 - the installation's own MCP server
             status, raw = r.status, r.read().decode("utf-8", "replace")
     except urllib.error.HTTPError as exc:
         return exc.code, None, exc.read().decode("utf-8", "replace")[:2000]

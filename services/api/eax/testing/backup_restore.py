@@ -45,6 +45,7 @@ from typing import Any
 
 from sqlalchemy import text
 
+from .. import httpopen
 from . import fixtures, store
 from .api_writes import call, upload
 from .discovery_projects_check import ADR_FIELDS, DISP_FIELDS, mcp_call, mcp_url
@@ -176,7 +177,7 @@ class Api:
         from ..service_split import route
         req = urllib.request.Request(route(self.base, path) + path, headers={"Authorization": f"Bearer {self.token}"})
         try:
-            with urllib.request.urlopen(req, timeout=120) as r:     # noqa: S310 - the installation's own API
+            with httpopen.urlopen(req, timeout=120) as r:     # noqa: S310 - the installation's own API
                 return r.status, r.read()
         except urllib.error.HTTPError as exc:
             return exc.code, b""

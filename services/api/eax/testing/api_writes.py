@@ -15,6 +15,8 @@ import urllib.error
 import urllib.request
 from collections.abc import Callable
 
+from .. import httpopen
+
 Record = Callable[..., None]
 REFUSED = {401, 403}
 
@@ -29,7 +31,7 @@ def call(base: str, method: str, path: str, token: str | None, body: dict | None
                                  headers={"Content-Type": "application/json", "Accept": "application/json",
                                           **({"Authorization": f"Bearer {token}"} if token else {})})
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
+        with httpopen.urlopen(req, timeout=timeout) as r:
             raw = r.read().decode("utf-8", "replace")
             status = r.status
     except urllib.error.HTTPError as exc:
@@ -57,7 +59,7 @@ def upload(base: str, path: str, token: str | None, name: str, content: bytes, t
                                  headers={"Content-Type": f"multipart/form-data; boundary={boundary}", "Accept": "application/json",
                                           **({"Authorization": f"Bearer {token}"} if token else {})})
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
+        with httpopen.urlopen(req, timeout=timeout) as r:
             raw, status = r.read().decode("utf-8", "replace"), r.status
     except urllib.error.HTTPError as exc:
         raw, status = exc.read().decode("utf-8", "replace"), exc.code

@@ -39,6 +39,7 @@ from typing import Any
 
 from sqlalchemy import text
 
+from . import httpopen
 from . import permissions as perms
 from . import repository as repo
 from .metamodel_edit import EditError
@@ -395,7 +396,7 @@ def _http(url: str, sign_in: str, secret: dict) -> tuple[bool, str]:
             ctx.load_cert_chain(files[0].name, files[1].name if secret.get("private_key") else None)
         req = urllib.request.Request(url, headers=headers, method="GET")
         try:
-            with urllib.request.urlopen(req, timeout=TEST_TIMEOUT, context=ctx) as resp:  # noqa: S310 - a Discovery Admin's own test
+            with httpopen.urlopen(req, timeout=TEST_TIMEOUT, context=ctx) as resp:  # noqa: S310 - a Discovery Admin's own test
                 return True, f"It answered ({resp.status})."
         except urllib.error.HTTPError as exc:
             if exc.code in (401, 403):

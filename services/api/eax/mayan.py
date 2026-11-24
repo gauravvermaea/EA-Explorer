@@ -25,6 +25,7 @@ import urllib.parse
 import urllib.request
 import uuid
 
+from . import httpopen
 from .config import get_settings
 
 BASE = os.environ.get("EAX_MAYAN_URL", "http://dms:8000").rstrip("/")
@@ -91,7 +92,7 @@ def _request(method: str, path: str, *, data: bytes | None = None, ctype: str | 
         headers["Content-Type"] = ctype
     req = urllib.request.Request(url, data=data, method=method, headers=headers)
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
+        with httpopen.urlopen(req, timeout=timeout) as r:
             body = r.read()
             if raw:
                 return body, r.headers.get("Content-Type", "application/octet-stream")

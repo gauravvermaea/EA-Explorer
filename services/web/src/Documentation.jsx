@@ -28,12 +28,15 @@ function DocumentList() {
     }, 250);
     return () => clearTimeout(t);
   }, [q]);
-  if (error) return <p className="status error">{error}</p>;
-  if (!data) return <p><span className="spinner" aria-hidden="true" /> Loading the documentation…</p>;
   // ?group=<name> (the top menu's Documentation › Release notes, D586): that group only
   const only = decodeURIComponent((/[?&]group=([^&]+)/.exec(window.location.hash) || [])[1] || "");
   // ?guides=1 (Documentation › Printed guides, D785): the printed guides only
   const guidesOnly = /[?&]guides=1/.test(window.location.hash);
+  // the page's heading while the list loads or fails too: the list takes a while (every document is read), and the page
+  // had no heading until then (the full test of 24 Nov 2026: "no heading", D912)
+  const head = <h1>{guidesOnly ? "Printed guides" : "Documentation"}</h1>;
+  if (error) return <section className="docs-page">{head}<p className="status error">{error}</p></section>;
+  if (!data) return <section className="docs-page">{head}<p><span className="spinner" aria-hidden="true" /> Loading the documentation…</p></section>;
   const groups = guidesOnly ? [] : data.groups.filter((g) => data.documents.some((d) => d.group === g) && (!only || g === only));
   if (guidesOnly) return <section className="docs-page"><PrintedGuides version={data.version} /></section>;
   return (

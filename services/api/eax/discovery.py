@@ -50,6 +50,7 @@ from typing import Any
 from sqlalchemy import text
 
 from . import deliveries as dv
+from . import httpopen
 from . import permissions as perms
 from . import repository as repo
 from .metamodel_edit import EditError
@@ -748,7 +749,7 @@ def http_post(url: str, body: dict, headers: dict, timeout: int = 180) -> Any:
     req = urllib.request.Request(url, data=json.dumps(body).encode(), method="POST",
                                  headers={"Content-Type": "application/json", "Accept": "application/json", **headers})
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:   # noqa: S310 - the address a Super Admin chose
+        with httpopen.urlopen(req, timeout=timeout) as r:   # noqa: S310 - the address a Super Admin chose
             return json.loads(r.read(MAX_BYTES).decode("utf-8"))
     except urllib.error.HTTPError as exc:
         raise EditError(f"The AI engine answered {exc.code}: {exc.reason}.", 502) from exc

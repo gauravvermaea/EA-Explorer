@@ -27,6 +27,8 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
+from . import httpopen
+
 WHO = "console"
 SOURCE = "console (on the machine)"
 
@@ -249,7 +251,7 @@ class Remote:
     def _call(self, method: str, url: str, data: bytes | None = None, headers: dict | None = None) -> Any:
         req = urllib.request.Request(url, data=data, method=method, headers=headers or {})
         try:
-            with urllib.request.urlopen(req, timeout=30, context=self.ctx) as r:
+            with httpopen.urlopen(req, timeout=30, context=self.ctx) as r:
                 body = r.read()
         except urllib.error.HTTPError as exc:
             try:

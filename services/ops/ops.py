@@ -12,7 +12,8 @@ restarts the system from the administration console. It talks to the Docker engi
                                 folders sit on, and what Docker keeps (images, containers, volumes, build cache)
   GET  /containers/<service>    one container: state, health with its last checks, image, mounts, ports, networks,
                                 environment, restart policy, limits, and what it uses now
-  GET  /containers/<service>/logs?tail=N   its last log lines (standard output and error)
+  GET  /containers/<service>/logs?tail=N   its last log lines (standard output and error); &match=text: the last N
+                                          that contain it, from the whole log
   POST /ssh/ticket             {host, port, ssh_user, auth, key, instance, user, cols, rows}: a one-time ticket for an
                                SSH session to a remote instance's host, recorded (R2.2, D634); GET /ssh/public-key this
                                installation's own key's public part; GET /ssh/sessions/<s> a session's transcript
@@ -963,13 +964,35 @@ def container_detail(service: str) -> dict:
     }
 
 
-def container_logs(service: str, tail: int = 300) -> dict:
-    """A container's last log lines."""
+def container_logs(service: str, tail: int = 300, match: str = "") -> dict:
+    """A container's last log lines; with match, the last `tail` lines that contain it, from its whole log (the full test
+    of 24 Nov 2026: Reports' import line at its start was no longer in the last 5,000 lines, D912)."""
     c = _one_container(service)
-    r = subprocess.run(["docker", "logs", "--timestamps", "--tail", str(max(1, min(tail, 5000))), c["id"]],
+    tail = max(1, min(tail, 5000))
+    if match:
+        return {"service": service, "lines": _matching_lines(c["id"], match[:200], tail)}
+    r = subprocess.run(["docker", "logs", "--timestamps", "--tail", str(tail), c["id"]],
                        capture_output=True, text=True, timeout=60)
     lines = sorted((r.stdout + r.stderr).splitlines())   # both streams, in time order (each line starts with its time)
     return {"service": service, "lines": lines[-tail:]}
+
+
+def _matching_lines(container_id: str, match: str, keep: int) -> list[str]:
+    """The last `keep` lines of a container's whole log that contain match (a plain text, not a pattern), read as they
+    come so a long log is never held whole."""
+    from collections import deque
+    found: deque = deque(maxlen=keep)
+    with subprocess.Popen(["docker", "logs", "--timestamps", container_id], stdout=subprocess.PIPE,
+                          stderr=subprocess.STDOUT, text=True, errors="replace") as p:
+        try:
+            for line in p.stdout:
+                if match in line:
+                    found.append(line.rstrip("\n"))
+            p.wait(timeout=60)
+        finally:
+            if p.poll() is None:
+                p.kill()
+    return sorted(found)
 
 
 def console_on() -> bool:
@@ -2465,8 +2488,9 @@ class Handler(BaseHTTPRequestHandler):
             from urllib.parse import parse_qs
             try:
                 if m.group(2):
-                    tail = int((parse_qs(m.group(3) or "").get("tail") or ["300"])[0])
-                    return self._send(200, container_logs(m.group(1), tail))
+                    q = parse_qs(m.group(3) or "")
+                    tail = int((q.get("tail") or ["300"])[0])
+                    return self._send(200, container_logs(m.group(1), tail, (q.get("match") or [""])[0]))
                 return self._send(200, container_detail(m.group(1)))
             except FileNotFoundError as exc:
                 return self._send(404, {"message": str(exc)})

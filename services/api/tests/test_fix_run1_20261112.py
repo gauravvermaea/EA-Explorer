@@ -85,7 +85,7 @@ def test_journey_steps_look_in_the_open_dialog_first():
     src = inspect.getsource(uf.step)
     assert src.count("_in_modal_first(") >= 4 and "was not chosen" in src
     j = next(j for j in uf.JOURNEYS if j["name"] == "project: iteration, frozen phase, back")
-    assert {"expect": "Now a Transition Planning"} in j["steps"]
+    assert {"expect": "Now a Transition Planning", "timeout": 60000} in j["steps"]   # the minute: D912
     assert "setTimeout(onClose, 1500)" in (REPO / "services/web/src/IterationControl.jsx").read_text()
 
 

@@ -60,10 +60,13 @@ def test_backup_and_clean(tmp_path):
     assert out["files"] == 3 and out["file"].endswith("-logs-beforeupgrade.zip")
     assert sorted(zipfile.ZipFile(zips / out["file"]).namelist()) == ["containers/api/2026-10-01.log",
                                                                      "containers/api/2026-11-13.log", "eax/up.log"]
-    old = time.time() - 40 * 86400
+    # 40 days before the clean's own "now", not before today: from 23 Nov 2026 "today less 40 days" was under 30 days
+    # before 13 Nov and the files were kept (the dev check of 24 Nov 2026, D912)
+    now = time.mktime((2026, 11, 13, 12, 0, 0, 0, 0, -1))
+    old = now - 40 * 86400
     os.utime(own / "up.log", (old, old))
     os.utime(zips / out["file"], (old, old))
-    gone = K.clean(base, own, zips, 30, now=time.mktime((2026, 11, 13, 12, 0, 0, 0, 0, -1)))["deleted"]
+    gone = K.clean(base, own, zips, 30, now=now)["deleted"]
     assert gone == sorted(["containers/api/2026-10-01.log", "work/logs/up.log", f"backups/logs/{out['file']}"])
     assert (base / "containers/api/2026-11-13.log").exists() and K.clean(base, own, zips, 0)["deleted"] == []
 

@@ -41,6 +41,8 @@ from email.message import EmailMessage
 
 from sqlalchemy import text
 
+from . import httpopen
+
 OK, WARNING, CRITICAL, UNKNOWN = "OK", "WARNING", "CRITICAL", "UNKNOWN"
 RANK = {OK: 0, UNKNOWN: 1, WARNING: 2, CRITICAL: 3}
 LINK = "#/admin/alerts"
@@ -95,7 +97,7 @@ def step(row: dict | None, seen: str, hold: int = HOLD) -> dict:
 def _ops(path: str, timeout: int = 20) -> dict:
     url, token = os.environ.get("EAX_OPS_URL", "http://ops:8090"), os.environ.get("EAX_OPS_TOKEN", "")
     req = urllib.request.Request(f"{url}{path}", headers={"X-Ops-Token": token})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
+    with httpopen.urlopen(req, timeout=timeout) as r:
         return json.load(r)
 
 
@@ -226,7 +228,7 @@ def measure_custom(conn, c: dict) -> tuple[float | None, str]:
     if c["kind"] == "url":
         started = time.perf_counter()
         try:
-            with urllib.request.urlopen(c["target"], timeout=20) as r:
+            with httpopen.urlopen(c["target"], timeout=20) as r:
                 ms = (time.perf_counter() - started) * 1000
                 return (round(ms), f"answered {r.status} in {ms:.0f} ms") if r.status < 400 else (999999, f"answered {r.status}")
         except Exception as exc:  # noqa: BLE001
@@ -369,6 +371,16 @@ def recipients_of(conn, escalated: bool = False) -> list[str]:
     return sorted({a.strip() for a in raw.replace(";", ",").split(",") if "@" in a})
 
 
+def _checked_tls() -> ssl.SSLContext:
+    """TLS to the mail server with its certificate and name checked, said in full (the full test of 24 Nov 2026: SonarQube
+    S4830 still flagged ssl.create_default_context() passed straight in; D912)."""
+    ctx = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+    ctx.check_hostname = True
+    ctx.verify_mode = ssl.CERT_REQUIRED
+    ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+    return ctx
+
+
 def send_email(to: list[str], subject: str, body: str, smtp=None) -> str:
     """One email through the organisation's mail server. Returns "" when sent, else why not."""
     s = email_settings()
@@ -382,11 +394,11 @@ def send_email(to: list[str], subject: str, body: str, smtp=None) -> str:
     try:
         if smtp is None:
             if s["security"] == "ssl":           # the server's certificate checked, as starttls below (SonarQube S4830, R14)
-                smtp = smtplib.SMTP_SSL(s["host"], s["port"], timeout=20, context=ssl.create_default_context())
+                smtp = smtplib.SMTP_SSL(s["host"], s["port"], timeout=20, context=_checked_tls())
             else:
                 smtp = smtplib.SMTP(s["host"], s["port"], timeout=20)
             if s["security"] == "starttls":
-                smtp.starttls(context=ssl.create_default_context())
+                smtp.starttls(context=_checked_tls())
             if s["user"]:
                 smtp.login(s["user"], s["password"])
         smtp.send_message(msg)

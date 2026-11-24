@@ -28,6 +28,7 @@ import urllib.request
 import uuid
 from collections.abc import Callable
 
+from .. import httpopen
 from .negative import send
 
 REFUSED = {400, 401, 403, 404, 405, 409, 413, 415, 422}
@@ -122,7 +123,7 @@ def identity(base: str, token: str, record: Callable) -> None:
         req = urllib.request.Request(route(base, "/api/v1/admin/databases") + "/api/v1/admin/databases", method="GET",
                                      headers={"Authorization": f"Bearer {token}", header: "eaadmin", "Accept": "application/json"})
         try:
-            with urllib.request.urlopen(req, timeout=60) as r:
+            with httpopen.urlopen(req, timeout=60) as r:
                 s = r.status
         except urllib.error.HTTPError as exc:
             s = exc.code
@@ -165,7 +166,7 @@ def forged_tokens(base: str, token: str, record: Callable) -> None:
         req = urllib.request.Request(route(base, path) + path, method="GET",
                                      headers={"Authorization": f"Bearer {bad}", "Accept": "application/json"})
         try:
-            with urllib.request.urlopen(req, timeout=60) as r:
+            with httpopen.urlopen(req, timeout=60) as r:
                 s = r.status
         except urllib.error.HTTPError as exc:
             s = exc.code
@@ -186,7 +187,7 @@ def uploads(base: str, admin: str, record: Callable) -> None:
         req = urllib.request.Request(url, data=body, method="POST", headers={
             "Authorization": f"Bearer {admin}", "Content-Type": f"multipart/form-data; boundary={boundary}"})
         try:
-            with urllib.request.urlopen(req, timeout=120) as r:
+            with httpopen.urlopen(req, timeout=120) as r:
                 s, text = r.status, r.read(400).decode("utf-8", "replace")
         except urllib.error.HTTPError as exc:
             s, text = exc.code, ""

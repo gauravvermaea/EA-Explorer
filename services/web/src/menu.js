@@ -20,6 +20,9 @@ const anyModelAdmin = () => (myInfo()?.models || []).some((m) => (m.permissions 
 export const mayModelAdmin = () => anyModelAdmin() || can("models.create") || can("library.curate") || can("models.delete");
 export const mayProjectAdmin = () => roles().length > 0 || can("library.curate");
 const ops = () => can("system.operate");
+// who may use System Admin: one definition for the menu bar and the start page's tile (the full test of 24 Nov 2026: the
+// tile was open to a Report Viewer while the menu hid the area)
+export const maySystemAdmin = () => ops() || can("settings.manage") || can("users.read");
 const sup = () => roles().includes("super-admin");
 const creator = () => can("models.create") || can("library.curate");
 
@@ -194,7 +197,7 @@ export function menuTree() {
       { label: "Switched off in this installation", href: "#/mcp",
         note: "A Super Admin or IT Admin switches MCP on in System Admin › Settings › System settings (Services)." },
     ] },
-    { key: "system", label: "System Admin", ok: () => ops() || can("settings.manage") || can("users.read"), items: [
+    { key: "system", label: "System Admin", ok: maySystemAdmin, items: [
       // seven groups by the admin's task, each page with its sub-pages: the same list as the page's tabs (adminNav.js;
       // owner, 23 Nov 2026, R13.1, D898)
       ...adminMenu({ wizards: systemWizards }),

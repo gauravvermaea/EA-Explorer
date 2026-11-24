@@ -353,12 +353,12 @@ class Ctx:
         self.remote(f"mkdir -p {STAGE_SH} && chmod 700 {STAGE_SH}", "")
         if not _remote(self.answers):
             self.run(["sudo", "cp", str(local), str(Path.home() / STAGE / name)], what)
-            return f"{STAGE_SH}/{shlex.quote(name)}"
-        a = self.answers
-        target = self.values.get("ssh_target") or a.get("ssh_target") or "<user@address>"
-        self.run(["scp", "-o", "StrictHostKeyChecking=accept-new", "-o", "BatchMode=yes", "-i", a.get("ssh_key", ""),
-                  "-P", str(a.get("ssh_port", "22")), str(local), f"{target}:{STAGE}/{name}"], what)   # relative: in the home folder
-        return f"{STAGE_SH}/{shlex.quote(name)}"
+        else:
+            a = self.answers
+            target = self.values.get("ssh_target") or a.get("ssh_target") or "<user@address>"
+            self.run(["scp", "-o", "StrictHostKeyChecking=accept-new", "-o", "BatchMode=yes", "-i", a.get("ssh_key", ""),
+                      "-P", str(a.get("ssh_port", "22")), str(local), f"{target}:{STAGE}/{name}"], what)   # relative: in the home folder
+        return f"{STAGE_SH}/{shlex.quote(name)}"           # one return (SonarQube S3516: the same value from two)
 
     def wait(self, what: str, test: Callable[[], bool], minutes: float = 10, every: float = 10) -> None:
         """Waits until a test passes (at most some minutes)."""

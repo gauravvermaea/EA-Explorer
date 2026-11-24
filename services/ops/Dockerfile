@@ -4,7 +4,9 @@
 # (writing the config file in the work folder, a dated copy first), list and restore copies of the config file.
 # a current Docker CLI: 27.3 had critical vulnerabilities in its Go standard library and gRPC (R2.24); then Alpine's fixes
 FROM docker:29-cli
-RUN apk upgrade --no-cache && apk add --no-cache python3 git openssh-client   # openssh-client: SSH to a remote instance (R2.2)
+# Alpine's package index first, so a new fix in it starts the next step again (D912: Docker kept it from an older build)
+ADD https://dl-cdn.alpinelinux.org/alpine/v3.24/main/x86_64/APKINDEX.tar.gz /tmp/apk-index.tar.gz
+RUN apk upgrade --no-cache && apk add --no-cache python3 git openssh-client && rm -f /tmp/apk-index.tar.gz   # openssh-client: SSH to a remote instance (R2.2)
 WORKDIR /app
 COPY ops.py /app/ops.py
 COPY console.py /app/console.py

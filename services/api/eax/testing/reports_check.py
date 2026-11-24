@@ -42,6 +42,7 @@ import urllib.request
 from collections.abc import Callable
 from datetime import UTC, datetime
 
+from .. import httpopen
 from .negative import send as _send_part
 
 
@@ -225,16 +226,21 @@ class Session:
     def __init__(self, browser, who: str, user: str, pw: str, base: str):
         self.who, self.base = who, base
         self.ctx = browser.new_context(ignore_https_errors=True, viewport={"width": 1600, "height": 4000})
-        self.page = self.ctx.new_page()
         self.user, self.pw = user, pw
         self.pending: set = set()
         self.answers: list[tuple[int, str]] = []
         self.last = time.time()
         self.gen = 0                    # which dashboard a chart request belongs to (R5.47)
         self.of: dict[int, int] = {}    # id(request) -> its dashboard
-        self.page.on("request", self._sent)
-        self.page.on("requestfinished", self._done)
-        self.page.on("requestfailed", self._failed)
+        self.page = self._new_page()
+
+    def _new_page(self):
+        """A page in this person's context (signed in: the context keeps the cookies), watching chart requests."""
+        page = self.ctx.new_page()
+        page.on("request", self._sent)
+        page.on("requestfinished", self._done)
+        page.on("requestfailed", self._failed)
+        return page
 
     @staticmethod
     def _is_chart(req) -> bool:
@@ -314,14 +320,27 @@ class Session:
         t0 = time.time()
         self.last = t0
         url = dash.get("url") or f"/superset/dashboard/{dash.get('slug') or dash.get('id')}/"
-        self.page.goto(f"{self.base}{url}", wait_until="domcontentloaded", timeout=FAIL_MS)
-        while (time.time() - t0) * 1000 < FAIL_MS + 5000:
-            quiet = (time.time() - self.last) * 1000
-            if self.answers and not self.pending and quiet >= QUIET_MS:
-                break
-            if not self.answers and (time.time() - t0) * 1000 > FAIL_MS:
-                break
-            self.page.wait_for_timeout(250)
+        try:
+            self.page.goto(f"{self.base}{url}", wait_until="domcontentloaded", timeout=FAIL_MS)
+            while (time.time() - t0) * 1000 < FAIL_MS + 5000:
+                quiet = (time.time() - self.last) * 1000
+                if self.answers and not self.pending and quiet >= QUIET_MS:
+                    break
+                if not self.answers and (time.time() - t0) * 1000 > FAIL_MS:
+                    break
+                self.page.wait_for_timeout(250)
+        except Exception as exc:  # noqa: BLE001 - only a crash is kept; anything else goes on up
+            # the browser's page crashed (the full test of 24 Nov 2026: "Page.goto: Page crashed" ended the whole suite):
+            # this dashboard counts as failed and the next one opens in a new page of the same signed-in context
+            if "crash" not in str(exc).lower():
+                raise
+            try:
+                self.page.close()
+            except Exception:  # noqa: BLE001 - a crashed page may not close
+                pass
+            self.page = self._new_page()
+            self.pending.clear()
+            return int((time.time() - t0) * 1000), list(self.answers) + [(0, f"the browser's page crashed: {str(exc).splitlines()[0][:200]}")]
         ms = int((self.last - t0) * 1000) if self.answers else int((time.time() - t0) * 1000)
         return ms, list(self.answers)
 
@@ -392,7 +411,7 @@ def run(base: str, tokens: dict[str, str], ids: dict[str, str], record: Record, 
         proxy = os.environ.get("EAX_TEST_PROXY_HOST", "proxy")
         try:
             with playwright() as pw:
-                browser = pw.chromium.launch(args=[f"--host-resolver-rules=MAP {host} {proxy}, MAP *.{host} {proxy}"])
+                browser = pw.chromium.launch(args=[f"--host-resolver-rules=MAP {host} {proxy}, MAP *.{host} {proxy}", "--disable-dev-shm-usage"])
                 sessions: dict[str, Session] = {}
                 for who in PEOPLE:
                     t1 = time.time()
@@ -499,7 +518,7 @@ def fetch(base: str, path: str, token: str, timeout: int = 120) -> tuple[int, by
     from ..service_split import route
     req = urllib.request.Request(route(base, path) + path, headers={"Authorization": f"Bearer {token}"})
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
+        with httpopen.urlopen(req, timeout=timeout) as r:
             return r.status, r.read()
     except urllib.error.HTTPError as exc:
         return exc.code, exc.read()[:500]
@@ -546,7 +565,10 @@ def files(base: str, tokens: dict[str, str], ids: dict[str, str], rec) -> None:
 
 def import_log(base: str, token: str, rec, send) -> None:
     """What the report import at Reports' start said (eax_import_reports.py): imported, unchanged and failed."""
-    status, text_ = send(base, "get", "/api/v1/admin/containers/reports/logs?tail=5000", token, None)
+    # the import lines from Reports' whole log, not its last 5,000 lines: after hours of tests the line at its start was
+    # no longer in them (the full test of 24 Nov 2026, D912)
+    status, text_ = send(base, "get", "/api/v1/admin/containers/reports/logs?tail=20&match=report%20dashboards%20imported%3A",
+                         token, None)
     try:
         lines = json.loads(text_).get("lines") or [] if status == 200 else []
     except ValueError:
@@ -554,7 +576,7 @@ def import_log(base: str, token: str, rec, send) -> None:
     said = [ln for ln in lines if "report dashboards imported:" in ln]
     if not said:
         rec("the import at start-up says what it did", "warning",
-            f"HTTP {status}: no import line in Reports' last 5,000 log lines (started long ago, or still loading)")
+            f"HTTP {status}: no import line in Reports' log (still loading, or its log was rolled)")
         return
     last = said[-1].split("report dashboards imported:", 1)[1].strip()
     none_failed = failed_count(last) == "0"

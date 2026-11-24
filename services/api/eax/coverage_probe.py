@@ -38,7 +38,8 @@ def enabled() -> bool:
 
 def folder() -> Path:
     """Where coverage data is written."""
-    return Path(os.environ.get("EAX_COVERAGE_DIR") or "/tmp/eax-coverage")
+    # the system's temporary folder (/tmp in the containers), not a fixed /tmp (Bandit B108, D912)
+    return Path(os.environ.get("EAX_COVERAGE_DIR") or Path(tempfile.gettempdir()) / "eax-coverage")
 
 
 def start() -> bool:

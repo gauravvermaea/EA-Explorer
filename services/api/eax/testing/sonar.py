@@ -28,6 +28,8 @@ from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
+from .. import httpopen
+
 URL = os.environ.get("EAX_SONAR_URL", "http://sonarqube:9000")
 PROJECT = "ea-explorer"
 RESULTS = Path(os.environ.get("EAX_TEST_RESULTS", "/results"))
@@ -57,7 +59,7 @@ def call(method: str, path: str, params: dict | None = None, auth: tuple[str, st
         req.add_header("Authorization", "Basic " + base64.b64encode(f"{auth[0]}:{auth[1]}".encode()).decode())
     elif token:
         req.add_header("Authorization", "Bearer " + token)
-    with urllib.request.urlopen(req, timeout=timeout) as r:      # noqa: S310 - the stack's own SonarQube
+    with httpopen.urlopen(req, timeout=timeout) as r:      # noqa: S310 - the stack's own SonarQube
         body = r.read()
     return json.loads(body) if body.strip() else {}
 

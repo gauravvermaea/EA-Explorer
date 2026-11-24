@@ -17,11 +17,10 @@ from __future__ import annotations
 import json
 import re
 import ssl
-import urllib.request
 
 from sqlalchemy import text
 
-from . import databases
+from . import databases, httpopen
 from .metamodel_edit import EditError
 
 FIELDS = ("guid AS id, name, url, note, source, deployment, health, health_detail, version, checked_at, created_by, "
@@ -168,7 +167,7 @@ def fetch_heartbeat(url: str, timeout: int = 10) -> dict | None:
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
     try:
-        with urllib.request.urlopen(f"{url.rstrip('/')}/api/v1/heartbeat", timeout=timeout, context=ctx) as r:  # noqa: S310
+        with httpopen.urlopen(f"{url.rstrip('/')}/api/v1/heartbeat", timeout=timeout, context=ctx) as r:  # noqa: S310
             return json.loads(r.read() or b"{}")
     except Exception:  # noqa: BLE001 - unreachable, refused, not EA Explorer: red
         return None

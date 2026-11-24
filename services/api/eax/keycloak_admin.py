@@ -15,6 +15,7 @@ import urllib.parse
 import urllib.request
 from threading import Lock
 
+from . import httpopen
 from .config import get_settings
 
 _token: dict[str, object] = {"value": None, "until": 0.0}
@@ -43,7 +44,7 @@ def _service_token() -> str:
                                    "client_secret": s.admin_client_secret}).encode()
     url = f"{_base()}/realms/{s.realm}/protocol/openid-connect/token"
     try:
-        with urllib.request.urlopen(urllib.request.Request(url, data=data, method="POST"), timeout=TIMEOUT) as r:
+        with httpopen.urlopen(urllib.request.Request(url, data=data, method="POST"), timeout=TIMEOUT) as r:
             body = json.load(r)
     except (urllib.error.URLError, TimeoutError) as exc:
         raise KeycloakError(f"Keycloak did not give the API a token: {exc}") from exc
@@ -58,7 +59,7 @@ def _get(path: str, **params) -> object:
     req = urllib.request.Request(f"{_base()}/admin/realms/{s.realm}{path}{query}",
                                  headers={"Authorization": f"Bearer {_service_token()}"})
     try:
-        with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+        with httpopen.urlopen(req, timeout=TIMEOUT) as r:
             return json.load(r)
     except urllib.error.HTTPError as exc:
         raise KeycloakError(f"Keycloak refused {path}: {exc.code} {exc.reason}") from exc
@@ -99,7 +100,7 @@ def set_sessions(idle_seconds: int, max_seconds: int) -> None:
     req = urllib.request.Request(f"{_base()}/admin/realms/{s.realm}", data=body, method="PUT",
                                  headers={"Authorization": f"Bearer {_service_token()}", "Content-Type": "application/json"})
     try:
-        with urllib.request.urlopen(req, timeout=TIMEOUT):
+        with httpopen.urlopen(req, timeout=TIMEOUT):
             return
     except urllib.error.HTTPError as exc:
         raise KeycloakError(f"Keycloak refused the session time-outs: {exc.code} {exc.reason}") from exc

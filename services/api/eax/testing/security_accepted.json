@@ -140,6 +140,27 @@
       "reason": "Every finding Trivy reports inside the Reports image (Apache Superset 6.1.0, its makers' own image): 6.1.0 is the newest Superset (13 May 2026; 6.1.1 stalled, 7.0.0 not out yet, checked 24 Nov 2026), and its packages are pinned by its makers. Accepted until a newer Superset comes out, then the image is moved to it and this is taken away (R14.4, D907).",
       "until": "2027-02-24",
       "by": "owner, 24 Nov 2026, 06:39: \"Newest Superset, then accept what's left\" (D907)"
+    },
+    {
+      "id": "bandit:B323",
+      "where": "eax/console_cli.py",
+      "reason": "Bandit: the text console's remote sign-in skips the certificate check only when the person asks for it with --insecure (a laptop's own certificate), the same line Semgrep's rule found and the owner accepted in D835. To be looked at again by the date.",
+      "until": "2027-05-21",
+      "by": "owner, 21 Nov 2026, 20:29: \"accept all, log them as a decision\" (D835); Bandit's name for it added 24 Nov 2026 (D912)"
+    },
+    {
+      "id": "CVE-2026-17106",
+      "where": "image ops",
+      "reason": "Inside Docker's own command-line plug-ins of the ops image (docker:29-cli): github.com/moby/go-archive 0.2.0 in docker-buildx, fixed in 0.3.0. No release has the fix yet (compose 5.8.0 still has golang.org/x/net 0.60.0, buildx still github.com/moby/go-archive 0.2.0, checked 24 Nov 2026); nothing of ours can change it. The only exception to D835 (package updates are updated, not accepted). To take away when docker:29-cli carries the fix; a clean rebuild picks it up.",
+      "until": "2026-12-31",
+      "by": "owner, 24 Nov 2026, 19:59: \"accept the 2 issues\" (D912)"
+    },
+    {
+      "id": "CVE-2026-78661",
+      "where": "image ops",
+      "reason": "Inside Docker's own command-line plug-ins of the ops image (docker:29-cli): golang.org/x/net 0.60.0 in docker-compose, fixed in 0.62.0. No release has the fix yet (compose 5.8.0 still has golang.org/x/net 0.60.0, buildx still github.com/moby/go-archive 0.2.0, checked 24 Nov 2026); nothing of ours can change it. The only exception to D835 (package updates are updated, not accepted). To take away when docker:29-cli carries the fix; a clean rebuild picks it up.",
+      "until": "2026-12-31",
+      "by": "owner, 24 Nov 2026, 19:59: \"accept the 2 issues\" (D912)"
     }
   ]
 }

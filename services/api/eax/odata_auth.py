@@ -24,7 +24,7 @@ from collections.abc import Callable
 from flask import g, request
 from flask_smorest import abort
 
-from . import auth, permissions
+from . import auth, httpopen, permissions
 from .config import get_settings
 
 CLIENT_ID = "eax-odata"
@@ -50,7 +50,7 @@ def _keycloak_claims(username: str, password: str) -> dict | None:
     body = urllib.parse.urlencode({"grant_type": "password", "client_id": CLIENT_ID, "username": username, "password": password,
                                    "scope": "openid"}).encode()
     try:
-        with urllib.request.urlopen(urllib.request.Request(url, data=body, method="POST"), timeout=10) as r:
+        with httpopen.urlopen(urllib.request.Request(url, data=body, method="POST"), timeout=10) as r:
             token = json.loads(r.read()).get("access_token") or ""
     except urllib.error.HTTPError:
         return None

@@ -29,6 +29,7 @@ import urllib.request
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 
+from .. import httpopen
 from .api_matrix import NOTHING, fill
 
 KINDS = ("bad JSON", "not an object", "unknown id", "too long", "SQL text")
@@ -55,7 +56,7 @@ def send(base: str, method: str, path: str, token: str, raw: bytes | None, timeo
                                  headers={"Content-Type": "application/json", "Accept": "application/json",
                                           "Authorization": f"Bearer {token}"})
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
+        with httpopen.urlopen(req, timeout=timeout) as r:
             return r.status, (r.read(limit) if limit else r.read()).decode("utf-8", "replace")
     except urllib.error.HTTPError as exc:
         try:

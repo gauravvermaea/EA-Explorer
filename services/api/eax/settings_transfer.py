@@ -43,7 +43,7 @@ from typing import Any
 
 from sqlalchemy import text
 
-from . import __version__
+from . import __version__, httpopen
 
 FORMAT = "eax-settings/1"
 SECRET_WORDS = re.compile(r"(password|secret|token|private|key_enc|key_hash|credential)", re.I)
@@ -82,7 +82,7 @@ def ops_call(method: str, path: str, body: dict | None = None, timeout: int = 60
     req = urllib.request.Request(f"{url}{path}", method=method, data=data,
                                  headers={"X-Ops-Token": token, "Content-Type": "application/json"})
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
+        with httpopen.urlopen(req, timeout=timeout) as r:
             return json.load(r)
     except urllib.error.HTTPError as exc:
         try:

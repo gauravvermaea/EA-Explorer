@@ -15,7 +15,7 @@ from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from sqlalchemy import text
 
-from .. import audit
+from .. import audit, httpopen
 from .. import services as sv
 from .. import settings as st
 from ..auth import require_auth
@@ -33,7 +33,7 @@ def _ops_raw(method: str, path: str, body: dict | None = None, timeout: int = 10
     data = json.dumps(body).encode() if body is not None else (b"" if method == "POST" else None)
     req = urllib.request.Request(f"{url}{path}", method=method, data=data,
                                  headers={"X-Ops-Token": token, "Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
+    with httpopen.urlopen(req, timeout=timeout) as r:
         return json.load(r)
 
 
@@ -43,7 +43,7 @@ def _ops(method: str, path: str, body: dict | None = None, timeout: int = 10) ->
     req = urllib.request.Request(f"{url}{path}", method=method, data=data,
                                  headers={"X-Ops-Token": token, "Content-Type": "application/json"})
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
+        with httpopen.urlopen(req, timeout=timeout) as r:
             return json.load(r)
     except urllib.error.HTTPError as exc:
         try:
@@ -650,13 +650,18 @@ class Container(MethodView):
 
 @blp.route("/admin/containers/<service>/logs")
 class ContainerLogs(MethodView):
-    """/api/v1/admin/containers/{service}/logs: GET the container's last log lines (?tail=, at most 5,000)."""
-    @blp.doc(security=SECURITY, parameters=[{"in": "query", "name": "tail", "schema": {"type": "integer"}}])
+    """/api/v1/admin/containers/{service}/logs: GET the container's last log lines (?tail=, at most 5,000; ?match=text:
+    the last of its whole log that contain the text)."""
+    @blp.doc(security=SECURITY, parameters=[{"in": "query", "name": "tail", "schema": {"type": "integer"}},
+                                            {"in": "query", "name": "match", "schema": {"type": "string"}}])
     @blp.response(200, Free)
     @require_auth("system.operate")
     def get(self, service):
-        """The container's last log lines (?tail=, at most 5,000)"""
-        return _ops("GET", f"/containers/{service}/logs?tail={int(request.args.get('tail', 300))}", timeout=60)
+        """The container's last log lines (?tail=, at most 5,000; ?match=text: the last of its whole log with the text)"""
+        from urllib.parse import quote
+        match = (request.args.get("match") or "")[:200]
+        extra = f"&match={quote(match)}" if match else ""
+        return _ops("GET", f"/containers/{service}/logs?tail={int(request.args.get('tail', 300))}{extra}", timeout=90)
 
 
 @blp.route("/admin/containers/<service>/terminal")

@@ -26,6 +26,8 @@ import urllib.request
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 
+from .. import httpopen
+
 NO_GLOBAL_ROLE = "no-role"
 NOTHING = "self-test-nothing"      # the id a write is called with when the test data has none: never there (R3.13)          # the run's account with no global role and no role on any model
 # reads too heavy or not meant for an automated reader (whole-estate files, live logs, terminals, the SQL window). Since
@@ -49,7 +51,7 @@ def call(base: str, method: str, path: str, token: str | None = None, timeout: i
                                  headers={"Content-Type": "application/json", "Accept": "application/json",
                                           **({"Authorization": f"Bearer {token}"} if token else {})})
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
+        with httpopen.urlopen(req, timeout=timeout) as r:
             return r.status, r.read(size if size else -1).decode("utf-8", "replace")
     except urllib.error.HTTPError as exc:
         try:
@@ -311,7 +313,7 @@ def run(base: str, spec: dict, tokens: dict[str, str], ids: dict[str, str], othe
 def fetch_spec(base: str) -> dict:
     """The main API's OpenAPI document, with the paths of the services of its own beside it (R2.27 part 2, R2.53):
     each one's own document, when the main API's container is called directly and the service answers."""
-    with urllib.request.urlopen(f"{base}/api/openapi.json", timeout=30) as r:
+    with httpopen.urlopen(f"{base}/api/openapi.json", timeout=30) as r:
         spec = json.load(r)
     from ..service_split import SERVICES, route
     for s in SERVICES.values():
@@ -319,7 +321,7 @@ def fetch_spec(base: str) -> dict:
         if other.rstrip("/") == base.rstrip("/"):
             continue
         try:
-            with urllib.request.urlopen(f"{other}/api/openapi.json", timeout=30) as r:
+            with httpopen.urlopen(f"{other}/api/openapi.json", timeout=30) as r:
                 theirs = json.load(r)
         except (urllib.error.URLError, TimeoutError, OSError, ValueError):
             continue

@@ -106,7 +106,9 @@ JOURNEYS: list[dict] = [
          {"choose": "Transition Planning", "within": "[role=dialog]"},
          {"fill": "Note (optional)", "value": "self-test {sid} {role}", "within": "[role=dialog]"},
          {"click": "Save", "exact": True, "within": "[role=dialog]"},
-         {"expect": "Now a Transition Planning"},          # what saving said, in the dialog (it closes after)
+         # what saving said, in the dialog (it closes after); up to a minute: a laptop busy building the run's repository in
+         # Documents answered slower than 20 seconds (the full test of 24 Nov 2026, as architect)
+         {"expect": "Now a Transition Planning", "timeout": 60000},
          {"expect_not": "Note (optional)", "timeout": 5000},   # the dialog closed: the iteration was saved
          {"expect": "Transition Planning"},
          {"open": "#/projects/{p}/phases?phase=B", "expect": "isn't part of this", "optional": True},
@@ -114,7 +116,7 @@ JOURNEYS: list[dict] = [
          {"click": "Change…", "within": ".iteration-bar"},
          {"choose": "Full cycle", "within": "[role=dialog]"},
          {"click": "Save", "exact": True, "within": "[role=dialog]"},
-         {"expect": "Now a Full cycle"},                   # R4.17: what saving said (or why it did not), not just a wait
+         {"expect": "Now a Full cycle", "timeout": 60000},   # R4.17: what saving said (or why it did not), not just a wait
          {"expect_not": "Note (optional)", "timeout": 8000},
          {"click": "Iteration history", "optional": True},
          {"expect": "Full cycle"},
@@ -384,6 +386,14 @@ JOURNEYS: list[dict] = [
     {"name": "project plan: RACI, a gate, a phase planned, a milestone, a status", "smoke": False, "roles": ["super-admin"],
      "refused": {"role": "report-viewer", "open": "#/projects/{p}/projectplan", "disabled_or_absent": "Save the settings"},
      "steps": [
+         # a Full cycle first: phase B is frozen in another iteration and has no "Mark the phase complete" (the full test of
+         # 24 Nov 2026: the iteration journey failed as architect and left the project in Transition Planning)
+         {"open": "#/projects/{p}", "expect": "{project_name}"},
+         {"click": "Change…", "optional_alt": "Choose…", "within": ".iteration-bar"},
+         {"choose": "Full cycle", "within": "[role=dialog]"},
+         {"click": "Save", "exact": True, "within": "[role=dialog]"},
+         {"expect": "a Full cycle", "timeout": 60000},              # "Now a Full cycle" or "Already a Full cycle"
+         {"expect_not": "Note (optional)", "timeout": 8000},
          {"open": "#/projects/{p}/projectplan", "expect": "The phases"},
          {"click": "Settings", "within": ".project-plan"},
          {"select": "How RACI is recorded", "option": "Per phase"},
@@ -1087,11 +1097,17 @@ def _page_says(page) -> str:
             return { at: location.hash || location.pathname, h1: t("h1").slice(0, 1),
                      status: t(".status, .rag, .error, [role=alert]").slice(0, 3),
                      dialog: [...document.querySelectorAll("[role=dialog]")].filter((e) => e.offsetParent !== null)
-                       .map((e) => (e.innerText || "").split(/\\s+/).join(" ").trim().slice(0, 200)).pop() || "" };
+                       .map((e) => (e.innerText || "").split(/\\s+/).join(" ").trim().slice(0, 200)).pop() || "",
+                     // what the open pop-up answered (its status or error line): drawn last, after the page's own status
+                     // lines, so the three above never reached it (the full test of 24 Nov 2026: the iteration's save)
+                     dialog_said: [...document.querySelectorAll("[role=dialog]")].filter((e) => e.offsetParent !== null)
+                       .flatMap((e) => [...e.querySelectorAll(".status, .error, [role=alert]")])
+                       .map((e) => (e.innerText || "").trim()).filter(Boolean).slice(-2) };
         }""")
         parts = [f"at {said['at']}"] + [f"heading \"{x[:80]}\"" for x in said["h1"]] + [f"\"{x[:100]}\"" for x in said["status"]]
         if said.get("dialog"):                         # what an open pop-up said (R3.14: "Sending…", an error, nothing)
             parts.append(f"the open dialog: \"{said['dialog']}\"")
+        parts += [f"the dialog answered: \"{x[:200]}\"" for x in said.get("dialog_said") or []]
         return " · the page showed: " + ", ".join(parts)
     except Exception:  # noqa: BLE001 - the page is gone
         return ""

@@ -17,13 +17,13 @@ import { ArchivedRows } from "./Archive";
 const ModelTree = lazy(() => import("./ModelTree"));
 
 // who may use Model admin and Project admin: one definition, with the top menu's (menu.js, D586)
-import { mayModelAdmin, mayProjectAdmin } from "./menu";
-export { mayModelAdmin, mayProjectAdmin };
+import { mayModelAdmin, mayProjectAdmin, maySystemAdmin } from "./menu";
+export { mayModelAdmin, mayProjectAdmin, maySystemAdmin };
 
 export const AREAS = [
   { key: "system", name: "System admin", href: "#/admin", icon: "⚙",
     text: "Settings, users and roles, health, containers, backups and restores, the SQL window, licences and services",
-    ok: () => true },
+    ok: maySystemAdmin, why: () => needsRole(["super-admin", "it-admin", "user-admin"]) },
   { key: "model", name: "Model admin", href: "#/model-admin", icon: "🧭",
     text: "Create, copy and derive models; merge into the parent and freeze; propagate; split; extend or upgrade the metamodel; lock, freeze, tag, promote, hand over, download, archive",
     ok: mayModelAdmin, why: () => needsRole(["model-creator", "library-admin", "model-admin"]) },

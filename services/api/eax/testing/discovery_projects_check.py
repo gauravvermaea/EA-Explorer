@@ -54,6 +54,7 @@ import urllib.request
 from collections.abc import Callable
 from datetime import date, timedelta
 
+from .. import httpopen
 from .negative import send as _send
 
 ADR_FIELDS = {"context": "Self-test context", "options": "Self-test options", "decision": "Self-test decision",
@@ -83,7 +84,7 @@ def mcp_call(url: str, token: str, tool: str, arguments: dict, timeout: int = 12
                                  headers={"Content-Type": "application/json", "Accept": "application/json, text/event-stream",
                                           "Authorization": f"Bearer {token}"})
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:      # noqa: S310 - the installation's own MCP server
+        with httpopen.urlopen(req, timeout=timeout) as r:      # noqa: S310 - the installation's own MCP server
             status, raw = r.status, r.read().decode("utf-8", "replace")
     except urllib.error.HTTPError as exc:
         return exc.code, None, exc.read().decode("utf-8", "replace")[:2000]

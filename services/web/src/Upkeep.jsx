@@ -29,7 +29,7 @@ export function CleanUp() {
     catch (e) { setMsg(e.message); }
     setBusy("");
   };
-  const n = (k) => Math.max(1, parseInt(days[k], 10) || 1);
+  const n = (k) => Math.max(1, Number.parseInt(days[k], 10) || 1);
   const box = (k) => (<input type="number" min="1" max="3650" style={{ width: "5em" }} value={days[k]} disabled={!!busy}
     aria-label="days" onChange={(e) => setDays({ ...days, [k]: e.target.value })} />);
   return (
