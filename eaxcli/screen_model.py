@@ -137,9 +137,12 @@ def disks(paths: list[Path]) -> list[dict]:
     for p in paths:
         try:
             u = shutil.disk_usage(p)
+            dev = p.stat().st_dev
         except OSError:
             continue
-        key = (u.total, u.free)
+        # the same disk by its device, not by its free space: the free space changed between two reads of one busy disk
+        # and it was listed twice (the dev check of 24 Nov 2026, D912)
+        key = (dev, u.total)
         if key in seen:
             continue
         seen.add(key)

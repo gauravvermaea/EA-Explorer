@@ -421,3 +421,35 @@ def test_upload_has_one_return_and_still_says_where(monkeypatch):
 def test_the_two_screen_issues():
     assert "Number.parseInt(days[k], 10)" in _read(WEB / "Upkeep.jsx") and " parseInt(" not in _read(WEB / "Upkeep.jsx")
     assert 'void save({ documents_ocr_from: "", documents_ocr_to: "" })' in _read(WEB / "DocumentsAdmin.jsx")
+
+
+# ---------------------------------------------------------------- 8. the full test of 24 Nov 2026, 21:37 (owner, 06:23: "if they can be fixed with increased time out I am fine")
+def test_the_mcp_calls_wait_up_to_ten_minutes():
+    """docs_list: "HTTP 599: no answer: timed out" after 3 minutes; the documentation tools read every document first."""
+    import inspect
+
+    from eax.testing import mcp_check
+    assert mcp_check.RPC_TIMEOUT == 600
+    assert inspect.signature(mcp_check.rpc).parameters["timeout"].default == 600
+
+
+def test_a_dashboard_page_may_take_five_minutes_to_open():
+    """"Page.goto: Timeout 120000ms exceeded" ended the Reports suite: the page itself now has 5 minutes; its charts are
+    still timed against WARN_MS and FAIL_MS."""
+    from eax.testing import reports_check as R
+    assert R.NAV_MS == 300000 and (R.WARN_MS, R.FAIL_MS) == (30000, 120000)
+    src = _read(API / "eax/testing/reports_check.py")
+    assert 'wait_until="domcontentloaded", timeout=NAV_MS)' in src and "timeout=FAIL_MS)" not in src
+
+
+def test_one_disk_is_listed_once_even_when_its_free_space_changes(monkeypatch, tmp_path):
+    """test_disks found 2 disks for 1: the free space changed between the two reads of one busy disk."""
+    import shutil as sh
+    sys.path.insert(0, str(REPO))
+    from eaxcli import screen_model as sm
+    free = iter([100, 90, 80])
+    monkeypatch.setattr(sm.shutil, "disk_usage", lambda _p: sh._ntuple_diskusage(1000, 1000 - 100, next(free)))
+    a, b = tmp_path / "a", tmp_path / "b"
+    a.mkdir()
+    b.mkdir()
+    assert len(sm.disks([a, b, tmp_path])) == 1

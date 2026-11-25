@@ -72,7 +72,12 @@ def names_in(out: object) -> set[str]:
     return found
 
 
-def rpc(url: str, token: str | None, method: str, params: dict, timeout: int = 180) -> tuple[int, dict | None, str]:
+# up to 10 minutes a call: the documentation tools read every document (and the guides) the first time, and docs_list
+# gave no answer in 3 minutes on a laptop in the full test of 24 Nov 2026 (D912)
+RPC_TIMEOUT = 600
+
+
+def rpc(url: str, token: str | None, method: str, params: dict, timeout: int = RPC_TIMEOUT) -> tuple[int, dict | None, str]:
     """One JSON-RPC call to the MCP server, as an AI client sends it: (HTTP status, the message, the raw text)."""
     headers = {"Content-Type": "application/json", "Accept": "application/json, text/event-stream"}
     if token is not None:

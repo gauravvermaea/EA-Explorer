@@ -524,3 +524,4 @@ source, and the pictures themselves read one by one and measured).
 - 24 Nov 20:10 The full test ended: backup and restore passed; the DR drill and the restart failed on my web image change (nginx modules tied to 1.30.6), now fixed; SonarQube's five fixed. To run: up, then the DR drill and the full test again.
 - 24 Nov 20:00 The owner: "accept the 2 issues": the ops image's two accepted to 2026-12-31 (D912).
 - 24 Nov 20:30 The screens down after the clean restart (the maintenance page): the web container stopped on /tmp/nginx.pid left by nginx -t as root; /tmp emptied after the check (D912).
+- 25 Nov 06:35 The full test of 24 Nov 21:37: dev check 1 failed (test_disks), self-test 3 (docs_list, every report opens, the plan journey's gate); the two time-outs raised and test_disks fixed (D912); the gate not yet explained. Backup and restore running, all passed so far.

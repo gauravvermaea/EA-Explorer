@@ -67,6 +67,9 @@ PEOPLE = {"super-admin": "eax-super-admin", "report-viewer": "eax-user", "it-adm
 # the owner's limits (13 Nov 2026); a report fails at 120 seconds, not 60 (owner, 24 Nov 2026, 06:55: "Make timeout 120");
 # slower than 30 is still a warning
 WARN_MS, FAIL_MS = 30000, 120000
+# how long a dashboard's page itself may take to open, before its charts are timed: 5 minutes (the full test of 24 Nov
+# 2026: "Page.goto: Timeout 120000ms exceeded" on a busy laptop ended the suite; D912)
+NAV_MS = 300000
 QUIET_MS = 2500                          # no chart query for this long: the dashboard has finished loading
 PREFIX = "svc-self-test-"
 
@@ -278,12 +281,12 @@ class Session:
 
     def sign_in(self) -> None:
         """Signs in to Reports through Keycloak in the test's browser."""
-        self.page.goto(f"{self.base}/login/keycloak?next=%2Fdashboard%2Flist%2F", wait_until="domcontentloaded", timeout=FAIL_MS)
-        self.page.wait_for_selector("#username", timeout=FAIL_MS)
+        self.page.goto(f"{self.base}/login/keycloak?next=%2Fdashboard%2Flist%2F", wait_until="domcontentloaded", timeout=NAV_MS)
+        self.page.wait_for_selector("#username", timeout=NAV_MS)
         self.page.fill("#username", self.user)
         self.page.fill("#password", self.pw)
         self.page.click("#kc-login")
-        self.page.wait_for_url(lambda u: u.startswith(self.base) and "/login" not in u, timeout=FAIL_MS)
+        self.page.wait_for_url(lambda u: u.startswith(self.base) and "/login" not in u, timeout=NAV_MS)
 
     def call(self, method: str, path: str, headers: dict | None = None) -> tuple[int, str]:
         """A call to Superset's API from inside the signed-in page (its own fetch, its cookies). Never page.request:
@@ -321,7 +324,7 @@ class Session:
         self.last = t0
         url = dash.get("url") or f"/superset/dashboard/{dash.get('slug') or dash.get('id')}/"
         try:
-            self.page.goto(f"{self.base}{url}", wait_until="domcontentloaded", timeout=FAIL_MS)
+            self.page.goto(f"{self.base}{url}", wait_until="domcontentloaded", timeout=NAV_MS)
             while (time.time() - t0) * 1000 < FAIL_MS + 5000:
                 quiet = (time.time() - self.last) * 1000
                 if self.answers and not self.pending and quiet >= QUIET_MS:
