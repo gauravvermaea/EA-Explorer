@@ -67,7 +67,7 @@ def test_the_drill_is_the_full_tests_last_step_after_sonarqube_and_no_dr_leaves_
     src = (REPO / "eaxcli" / "main.py").read_text(encoding="utf-8")
     full = src[src.index('no_sonar, no_dr = "--no-sonar" in rest, "--no-dr" in rest'):src.index("return full_summary(steps, began)")]
     assert full.index('"SonarQube scan"') < full.index('full_step("DR drill", dr_drill)')
-    assert "if not no_dr:" in full and '"--no-dr")]' in full            # never passed on to the self-test
+    assert "if not no_dr and not part:" in full and '"--no-dr")]' in full            # never passed on to the self-test
     assert F.KINDS["DR drill"] == "dr"
 
 

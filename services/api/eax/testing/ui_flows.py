@@ -1060,6 +1060,30 @@ def _close_tab(state: dict) -> None:
 _LAST_SHOT: dict = {}
 
 
+def acts(s: dict) -> bool:
+    """A step that acts on the screen (a click, typing, a choice, a key): what the screens' coverage counts (R14.5.1)."""
+    from . import screen_coverage
+    return screen_coverage.acted(s) is not None
+
+
+def _here(page) -> str:
+    """The screen the page shows now (its address); "" when the page cannot say."""
+    try:
+        return str(page.evaluate("() => location.hash || '#/'"))
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def _controls_now(page) -> list[dict]:
+    """The controls the screen shows before a journey acts on it, the open dialog's too (R14.5.1); none when it cannot say."""
+    from . import screen_coverage
+    try:
+        got = page.evaluate(screen_coverage.CONTROLS_JS)
+    except Exception:  # noqa: BLE001 - nothing counted; the journey's own result is unchanged
+        return []
+    return got if isinstance(got, list) else []
+
+
 def run_one(page, j: dict, open_route: Callable[..., None]) -> tuple[str, str]:
     """Runs one journey on a page; returns (outcome, detail)."""
     if j.get("refusal"):
@@ -1071,10 +1095,16 @@ def run_one(page, j: dict, open_route: Callable[..., None]) -> tuple[str, str]:
         for s in j["steps"]:
             if caster is not None:
                 caster.tick(f"step {done + len(skipped) + 1}: {_say(s)}")
+            screens = getattr(page, "_eax_screens", None)    # the screens' coverage (R14.5.1, D924)
+            here = _here(state.get("tab") or page) if screens is not None and acts(s) else ""
+            seen = _controls_now(state.get("tab") or page) if here else []
             try:
                 why = step(page, s, open_route, state)
             except Exception as exc:  # noqa: BLE001 - a step that times out is a failed step
                 why = str(exc).splitlines()[0][:200]
+            if here and not why:
+                screens.page(here, seen, True)           # what the screen showed then (a dialog, a later state)
+                screens.action(here, s)                  # the screen the action was on, before it moved on
             if caster is not None and not why:
                 caster.hold()                          # paused after each step, when asked (a run started to be watched)
             if why:

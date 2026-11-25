@@ -35,7 +35,7 @@ def test_the_order_and_the_options():
     order = [body.index(w) for w in ('full_step("dev check"', 'stack.interactive([*ops, "test"]',
                                      'full_step("backup and restore test"', 'full_step("SonarQube scan"', "full_summary(steps, began)")]
     assert order == sorted(order)
-    assert 'if last and "--no-dev-check" not in rest:' in body and "if not no_sonar:" in body
+    assert 'if last and "--no-dev-check" not in rest:' in body and "if not no_sonar and not part:" in body
     assert 'rest = [a for a in rest if a not in ("--no-dev-check", "--no-sonar", "--no-dr")]' in body   # not passed to the helper
 
 

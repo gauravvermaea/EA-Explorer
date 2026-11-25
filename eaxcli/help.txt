@@ -448,6 +448,8 @@ and IT Admins.
           Each step runs whatever the one before found; a list of every
           step ends it, and one summary page with a card a step (D825): work/tests/full-<time>/index.html, kept in
           the database too (eax test summary; System Admin > Self-test > Summary). With --ci only the self-test runs.
+          With --suite (other than all), --role, --area, --journey or --pages-only only the dev check and that part of
+          the self-test run: no backup and restore test, SonarQube or DR drill.
   security  only the security suite (part of full, R5.17): the front door's headers, the dependencies, the code and
           secrets scans, the attacks of Release 3, ZAP signed in and not, Trivy; a high or critical finding not
           accepted (eax/testing/security_accepted.json) fails it. It also runs by itself every Sunday at 03:20.

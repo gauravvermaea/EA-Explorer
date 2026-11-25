@@ -128,6 +128,23 @@ def dev_cli_main(args: list[str]) -> int:
     return dev_cli.main(args)
 
 
+NARROW = ("--role", "--area", "--journey", "--pages-only")
+
+
+def narrowed(rest: list[str]) -> bool:
+    """A full test told to run only part of the self-test: --suite with anything but all, --role, --area, --journey or
+    --pages-only (owner, 25 Nov 2026, 10:41: "full --detailed --suite ui" went on to the backup and restore test). Such a
+    run is the dev check and that part of the self-test; the backup and restore test, SonarQube and the DR drill are left
+    out, as --suite S says (only that suite)."""
+    suites: set[str] = set()
+    for i, a in enumerate(rest):
+        if a == "--suite" and i + 1 < len(rest):
+            suites |= {x.strip().lower() for x in rest[i + 1].split(",") if x.strip()}
+        elif a.startswith("--suite="):
+            suites |= {x.strip().lower() for x in a.split("=", 1)[1].split(",") if x.strip()}
+    return bool(suites - {"all"}) or any(a.split("=", 1)[0] in NARROW for a in rest)
+
+
 def full_step(title: str, run) -> tuple[str, bool, str]:
     """One step of the full test: (title, passed, why not); a step that breaks never stops the next one."""
     say(f"\n=== the full test: {title}")
@@ -644,6 +661,10 @@ def dispatch(command: str, rest: list[str], wait_all: bool) -> None:
             steps: list[tuple[str, bool, str]] = []
             began = time.time()                       # each step's files made since then go on the summary page (D825)
             no_sonar, no_dr = "--no-sonar" in rest, "--no-dr" in rest
+            part = last and narrowed(rest)            # only part of the self-test: no backup and restore, Sonar or DR
+            if part:
+                say("Only part of the self-test was asked for (--suite, --role, --area, --journey or --pages-only): "
+                    "the dev check and that part run; the backup and restore test, SonarQube and the DR drill are left out.")
             if last:                                  # what would slow it down, said first (R14.27, R14.33)
                 from . import preflight
                 preflight.check()
@@ -661,11 +682,12 @@ def dispatch(command: str, rest: list[str], wait_all: bool) -> None:
                 failed = exc
             if last:
                 steps.append(("self-test", failed is None, str(failed or "")))
-                steps.append(full_step("backup and restore test", lambda: backup_restore.main([])))
-                if not no_sonar:
+                if not part:
+                    steps.append(full_step("backup and restore test", lambda: backup_restore.main([])))
+                if not no_sonar and not part:
                     from . import sonar as sonar_
                     steps.append(full_step("SonarQube scan", lambda: sonar_.main([])))
-                if not no_dr:
+                if not no_dr and not part:
                     steps.append(full_step("DR drill", dr_drill))
                 return full_summary(steps, began)
             if failed:
