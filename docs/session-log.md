@@ -526,3 +526,4 @@ source, and the pictures themselves read one by one and measured).
 - 24 Nov 20:30 The screens down after the clean restart (the maintenance page): the web container stopped on /tmp/nginx.pid left by nginx -t as root; /tmp emptied after the check (D912).
 - 25 Nov 06:35 The full test of 24 Nov 21:37: dev check 1 failed (test_disks), self-test 3 (docs_list, every report opens, the plan journey's gate); the two time-outs raised and test_disks fixed (D912); the gate not yet explained. Backup and restore running, all passed so far.
 - 25 Nov 06:50 The plan journey's gate explained and fixed: "choose B" ticked nothing (the RACI label holds "Per deliverable"); choose takes the exact label first (D912).
+- 25 Nov 06:55 The screens no journey uses (180 of 207) put in Release 14.5 as R14.5.7 to R14.5.18 (D914, docs/release-14.5-journeys.md). Backup and restore passed (331 minutes); SonarQube scanning.
