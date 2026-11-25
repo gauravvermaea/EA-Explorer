@@ -103,6 +103,7 @@ def gather(tests: Path, since: float, steps: list[tuple[str, bool, str]], *, ver
             if c.get("percent") is not None:
                 s["coverage"] = {k: c.get(k) for k in ("percent", "live", "unit", "goal", "lines", "run")} | {
                     "api": c.get("goal_percent"), "api_lines": c.get("goal_lines"), "api_run": c.get("goal_run"),
+                    "api_left_out": c.get("goal_left_out_lines"),
                     "jobs": c.get("jobs_percent"), "jobs_lines": c.get("jobs_lines"), "jobs_run": c.get("jobs_run")}
         out["selftest"] = {**s, "folder": run.name}
         out["details"].append(run.name)
@@ -218,6 +219,8 @@ def cards(s: dict) -> list[str]:
     goal = float(cov.get("goal") or 90)
     api = cov.get("api")                                  # the goal's measure: eax/api (D923); else all our code
     pairs = [*([("the API (eax/api), the goal's measure", f"{api}% ({cov.get('api_run', 0)} of {cov.get('api_lines', 0)} lines)"),
+                *([("left out of the goal", f"{cov['api_left_out']} lines: pairing (a second installation) and the routes "
+                    "that stop, restart, restore or wipe it; listed in coverage.json")] if cov.get("api_left_out") else []),
                 *([("the background jobs", f"{cov['jobs']}% ({cov.get('jobs_run', 0)} of {cov.get('jobs_lines', 0)} lines)")]
                   if cov.get("jobs") is not None else []),
                 ("all the server's code", f"{cov.get('percent')}%")] if api is not None else []),

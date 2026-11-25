@@ -58,7 +58,7 @@ def test_a_runs_summary_holds_its_figures_never_its_lines(tmp_path):
     s = run_summary.make(detail, tmp_path)
     assert s["run"] == 12 and s["tally"]["failed"] == 2 and s["health"] == "amber"
     assert s["coverage"] == {"percent": 71.3, "live": 55.0, "unit": 64.4, "goal": 90.0, "lines": 1000, "run": 713, "joined": True,
-                             "api": None, "api_lines": 0, "api_run": 0, "jobs": None, "jobs_lines": 0, "jobs_run": 0}   # the goal's own figure (eax/api, D923)
+                             "api": None, "api_lines": 0, "api_run": 0, "api_left_out": 0, "jobs": None, "jobs_lines": 0, "jobs_run": 0}   # the goal's own figure (eax/api, D923)
     assert "files" not in json.dumps(s)                               # which lines ran stays out: a few kilobytes
     assert s["security"]["failing"] == 1 and s["security"]["accepted"] == 2 and s["security"]["new"] == 1
     assert s["attack"]["findings"] == {"nuclei": {"low": 2}}          # only the attack test's own scanners

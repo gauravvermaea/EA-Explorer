@@ -461,6 +461,69 @@ GOAL_AREA = "api"
 # the background jobs' own code (owner, 25 Nov 2026, 10:57: "background jobs testing should also be done"): the job
 # runner and the tasks it does, reached through the API (a write that starts a task waits for it); shown beside the API
 JOB_FILES = ("eax/background.py", "eax/jobs.py", "eax/tasks.py", "eax/jobqueue.py", "eax/job_priorities.py")
+# left out of the goal's measure, each with why, and listed with the figure (owner, 25 Nov 2026, 11:02: "paring etc you
+# wont be able to do, so maybe you can leave out?"): code one installation cannot reach, and routes that would stop,
+# restart, restore or wipe the installation the test runs on (the backup and restore test and the DR drill cover those)
+LEFT_OUT_FILES = {"eax/api/pairing.py": "pairing needs a second installation"}
+_UNSAFE = "changes the running installation for everyone"
+_RESTORE = "a restore: eax test backup-restore covers it"
+LEFT_OUT_ROUTES = [
+    ("eax/api/admin.py", "/admin/secrets/rotate", None, "rotates the installation's secrets"),
+    ("eax/api/admin.py", "/admin/front-certificate", None, "replaces the front door's certificate"),
+    ("eax/api/admin.py", "/admin/restart", None, "restarts the installation"),
+    ("eax/api/admin.py", "/admin/persist/delete", None, "deletes persisted files"),
+    ("eax/api/admin.py", "/admin/db-integrity/repair", None, "repairs the database"),
+    ("eax/api/admin.py", "/admin/db-maintenance/<string:what>", {"post"}, "runs database maintenance"),
+    ("eax/api/admin.py", "/admin/config-copies/restore", None, "puts back an earlier config file"),
+    ("eax/api/admin.py", "/admin/config-file/save", None, "saves the config file"),
+    ("eax/api/admin.py", "/admin/servers", {"put"}, _UNSAFE),
+    ("eax/api/admin.py", "/admin/services/<key>", {"put"}, "switches a service on or off"),
+    ("eax/api/admin.py", "/admin/security/mfa/reset", None, "resets a person's second factor"),
+    ("eax/api/admin.py", "/admin/logs/<any(backup, clean):what>", None, "moves or deletes the logs"),
+    ("eax/api/admin.py", "/admin/logs/clean-range", None, "deletes logs"),
+    ("eax/api/admin.py", "/admin/optimisation/<int:report_id>/apply", None, "applies database changes"),
+    ("eax/api/admin.py", "/admin/first-run", {"post"}, _UNSAFE),
+    ("eax/api/admin.py", "/admin/resources", {"delete"}, "deletes the resource history"),
+    ("eax/api/backups.py", "/admin/backups/infrastructure/<name>/restore", None, _RESTORE),
+    ("eax/api/backups.py", "/admin/backups/restore", None, _RESTORE),
+    ("eax/api/backups.py", "/admin/backups/application/<name>/restore-all", None, _RESTORE),
+    ("eax/api/backups.py", "/internal/restore-started", None, _RESTORE),
+    ("eax/api/backups.py", "/admin/backups/stop", None, "stops a backup that is running"),
+    ("eax/api/projects.py", "/projects/restore", None, _RESTORE),
+]
+
+
+def left_out_lines(root: Path | None = None) -> tuple[dict[str, set[int]], list[dict]]:
+    """The lines of the routes left out (LEFT_OUT_ROUTES), found in the code itself (the handler methods of each route's
+    class), and the list to show: file, route, methods and why. A route not found is listed as such, never guessed."""
+    import ast
+    if root is None:
+        import eax
+        root = Path(eax.__file__).resolve().parent.parent
+    lines: dict[str, set[int]] = {}
+    shown: list[dict] = []
+    trees: dict[str, ast.Module | None] = {}
+    for f, route, methods, why in LEFT_OUT_ROUTES:
+        if f not in trees:
+            try:
+                trees[f] = ast.parse((root / f).read_text(encoding="utf-8"))
+            except (OSError, SyntaxError):
+                trees[f] = None
+        found = False
+        for node in ast.walk(trees[f]) if trees[f] else []:
+            if not isinstance(node, ast.ClassDef):
+                continue
+            here = [d.args[0].value for d in node.decorator_list if isinstance(d, ast.Call)
+                    and getattr(d.func, "attr", "") == "route" and d.args and isinstance(d.args[0], ast.Constant)]
+            if route not in here:
+                continue
+            for m in node.body:
+                if isinstance(m, ast.FunctionDef) and (methods is None or m.name in methods):
+                    lines.setdefault(f, set()).update(range(m.lineno, (m.end_lineno or m.lineno) + 1))
+                    found = True
+        shown.append({"file": f, "route": route, "methods": sorted(methods) if methods else "all", "why": why,
+                      "found": found})
+    return lines, shown
 
 
 def coverage_goal() -> float:
@@ -511,13 +574,32 @@ def coverage_gate(c: dict, before: dict | None, goal: float) -> tuple[str, str]:
     return "warning", f"under the goal of {goal:g}% by {round(goal - got, 1)} points"
 
 
-def goal_figures(c: dict, area: str = GOAL_AREA) -> dict:
-    """The goal's own figures: the area the goal is measured on (eax/api, D923), its lines and those run."""
+def goal_figures(c: dict, area: str = GOAL_AREA, root: Path | None = None) -> dict:
+    """The goal's own figures: the area the goal is measured on (eax/api, D923), its lines and those run, without what
+    is left out (LEFT_OUT_FILES, LEFT_OUT_ROUTES; listed in goal_left_out). From the lines themselves when the files carry
+    them; else the area's own totals."""
     a = next((x for x in c.get("areas") or [] if x.get("area") == area), None)
     if not a:
         return {}
     out = {"goal_area": area, "goal_percent": a.get("percent", 0.0), "goal_lines": int(a.get("lines") or 0),
            "goal_run": int(a.get("run") or 0)}
+    mine = [f for f in c.get("files") or [] if str(f.get("file", "")).startswith(f"eax/{area}/") and "statements" in f]
+    if mine:
+        skip, routes = left_out_lines(root)
+        n = hit = gone = 0
+        for f in mine:
+            st = set(f.get("statements") or [])
+            if f["file"] in LEFT_OUT_FILES:
+                gone += len(st)
+                continue
+            keep = st - skip.get(f["file"], set())
+            gone += len(st) - len(keep)
+            n += len(keep)
+            hit += len(set(f.get("ran") or []) & keep)
+        if n:
+            out.update(goal_percent=round(hit / n * 100, 1), goal_lines=n, goal_run=hit, goal_left_out_lines=gone,
+                       goal_left_out=[{"file": k, "route": "the whole file", "methods": "all", "why": v, "found": True}
+                                      for k, v in LEFT_OUT_FILES.items()] + routes)
     jobs = [f for f in c.get("files") or [] if f.get("file") in JOB_FILES]
     n, hit = sum(int(f.get("lines") or 0) for f in jobs), sum(int(f.get("run") or 0) for f in jobs)
     if n:
@@ -569,7 +651,10 @@ def coverage_result(r: Run, token: str, scope: str = "") -> dict | None:
     low = ", ".join(f"{a['area']} {a['percent']}%" for a in (c.get("areas") or [])[:4])
     joined = (f" (this run {c['live']}% joined with the unit tests' {c['unit']}% of eax dev check, {c['joined']} files)"
               if c.get("unit") is not None else " (this run only: no unit tests' coverage yet, eax dev check makes it)")
-    api = (f"the API (eax/api, the goal's measure) {c['goal_percent']}% ({c['goal_run']} of {c['goal_lines']} lines); "
+    out_n = len(c.get("goal_left_out") or [])
+    api = (f"the API (eax/api, the goal's measure) {c['goal_percent']}% ({c['goal_run']} of {c['goal_lines']} lines"
+           + (f"; {c.get('goal_left_out_lines', 0)} lines left out: pairing and {out_n - len(LEFT_OUT_FILES)} routes that "
+              "would stop, restart, restore or wipe this installation, listed in coverage.json" if out_n else "") + "); "
            + (f"the background jobs {c['jobs_percent']}% ({c['jobs_run']} of {c['jobs_lines']} lines); "
               if c.get("jobs_lines") else "") + "all the server's code " if c.get("goal_area") else "")
     rec("coverage: the API's code run by this test", outcome,

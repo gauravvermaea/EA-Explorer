@@ -99,3 +99,52 @@ def test_the_background_jobs_have_their_own_figure():
     from eaxcli import fullreport
     page = "".join(fullreport.cards({"selftest": {"coverage": s}}))
     assert "the background jobs" in page and "30.0% (150 of 500 lines)" in page
+
+
+# left out of the goal's measure, and listed (owner, 25 Nov 2026, 11:02: "paring etc you wont be able to do, so maybe you
+# can leave out?"): pairing needs a second installation; some routes would stop, restart, restore or wipe the installation
+
+
+def test_every_route_left_out_is_found_in_the_code():
+    from eax.testing import run as R
+    lines, shown = R.left_out_lines(API)
+    assert all(x["found"] for x in shown), [x["route"] for x in shown if not x["found"]]
+    assert {"eax/api/admin.py", "eax/api/backups.py", "eax/api/projects.py"} <= set(lines)
+    assert all(x["why"] for x in shown)
+    assert "eax/api/pairing.py" in R.LEFT_OUT_FILES
+
+
+def test_a_route_not_there_is_listed_as_not_found(tmp_path):
+    from eax.testing import run as R
+    (tmp_path / "eax/api").mkdir(parents=True)
+    (tmp_path / "eax/api/admin.py").write_text("x = 1\n", encoding="utf-8")
+    lines, shown = R.left_out_lines(tmp_path)
+    assert not lines.get("eax/api/admin.py") and not any(x["found"] for x in shown if x["file"] == "eax/api/admin.py")
+
+
+def test_what_is_left_out_does_not_count_either_way(tmp_path):
+    from eax.testing import run as R
+    (tmp_path / "eax/api").mkdir(parents=True)
+    (tmp_path / "eax/api/admin.py").write_text(
+        "@blp.route('/admin/restart')\nclass Restart:\n    def post(self):\n        a = 1\n        return a\n\n\n"
+        "@blp.route('/admin/health')\nclass Health:\n    def get(self):\n        return 1\n", encoding="utf-8")
+    c = {"percent": 50.0, "areas": [{"area": "api", "percent": 50.0, "lines": 6, "run": 3}],
+         "files": [{"file": "eax/api/admin.py", "lines": 4, "run": 1, "statements": [3, 4, 5, 11], "ran": [11]},
+                   {"file": "eax/api/pairing.py", "lines": 2, "run": 0, "statements": [1, 2], "ran": []},
+                   {"file": "eax/api/models.py", "lines": 2, "run": 2, "statements": [1, 2], "ran": [1, 2]}]}
+    got = R.goal_figures(c, root=tmp_path)
+    assert (got["goal_lines"], got["goal_run"], got["goal_percent"]) == (3, 3, 100.0)     # admin 11, models 1 and 2
+    assert got["goal_left_out_lines"] == 5                                                 # restart 3-5, pairing 1-2
+    routes = {x["route"] for x in got["goal_left_out"]}
+    assert "the whole file" in routes and "/admin/restart" in routes
+
+
+def test_the_summary_page_says_what_is_left_out():
+    from eaxcli import fullreport
+
+    from eax.testing import run_summary
+    s = run_summary.coverage({"percent": 58.2, "goal": 90, "goal_percent": 73.1, "goal_lines": 11861, "goal_run": 8666,
+                              "goal_left_out_lines": 499})
+    assert s["api_left_out"] == 499
+    page = "".join(fullreport.cards({"selftest": {"coverage": s}}))
+    assert "left out of the goal" in page and "499 lines: pairing" in page
