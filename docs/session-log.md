@@ -530,3 +530,4 @@ source, and the pictures themselves read one by one and measured).
 - 25 Nov 07:00 The owner: an in-place upgrade from the command line, from a folder or from git. R22.11 `eax update --from` added to Release 22 (D915); nothing built. The DR drill running (backup step).
 - 25 Nov 07:05 The owner: upgrade testing, at least from the version before. R22.12 added (D916).
 - 25 Nov 07:10 The owner: production must never be wiped. R22.13 added (D917): found that clean-restart does not ask on a server, the Versions check advises clean-restart, and the Command Centre can schedule a nightly one.
+- 25 Nov 07:15 The owner set out the upgrade test and the upgrade package: R22.12 rewritten to his steps, R22.14 (the from-to package), R22.15 (the DR backup first, where the person says), R22.16 (the release candidate's mark) (D918).
