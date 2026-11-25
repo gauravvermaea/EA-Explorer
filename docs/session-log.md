@@ -527,3 +527,6 @@ source, and the pictures themselves read one by one and measured).
 - 25 Nov 06:35 The full test of 24 Nov 21:37: dev check 1 failed (test_disks), self-test 3 (docs_list, every report opens, the plan journey's gate); the two time-outs raised and test_disks fixed (D912); the gate not yet explained. Backup and restore running, all passed so far.
 - 25 Nov 06:50 The plan journey's gate explained and fixed: "choose B" ticked nothing (the RACI label holds "Per deliverable"); choose takes the exact label first (D912).
 - 25 Nov 06:55 The screens no journey uses (180 of 207) put in Release 14.5 as R14.5.7 to R14.5.18 (D914, docs/release-14.5-journeys.md). Backup and restore passed (331 minutes); SonarQube scanning.
+- 25 Nov 07:00 The owner: an in-place upgrade from the command line, from a folder or from git. R22.11 `eax update --from` added to Release 22 (D915); nothing built. The DR drill running (backup step).
+- 25 Nov 07:05 The owner: upgrade testing, at least from the version before. R22.12 added (D916).
+- 25 Nov 07:10 The owner: production must never be wiped. R22.13 added (D917): found that clean-restart does not ask on a server, the Versions check advises clean-restart, and the Command Centre can schedule a nightly one.
