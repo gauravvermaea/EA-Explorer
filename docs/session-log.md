@@ -531,3 +531,5 @@ source, and the pictures themselves read one by one and measured).
 - 25 Nov 07:05 The owner: upgrade testing, at least from the version before. R22.12 added (D916).
 - 25 Nov 07:10 The owner: production must never be wiped. R22.13 added (D917): found that clean-restart does not ask on a server, the Versions check advises clean-restart, and the Command Centre can schedule a nightly one.
 - 25 Nov 07:15 The owner set out the upgrade test and the upgrade package: R22.12 rewritten to his steps, R22.14 (the from-to package), R22.15 (the DR backup first, where the person says), R22.16 (the release candidate's mark) (D918).
+- 25 Nov 07:35 The DR drill passed (9 minutes to recover). The owner: a nightly smoke and weekly full test; R22.17 added to Release 22 (D919). He is running up then test failed to confirm the four fixes.
+- 25 Nov 08:05 The owner: a Videos page with the YouTube channel's playlists, dynamic, notifications for new videos, on the website and in the app: R20.1 (D920). A LinkedIn post and a YouTube title drafted for EA Explorer's industry content.
