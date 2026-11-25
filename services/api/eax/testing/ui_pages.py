@@ -120,6 +120,16 @@ def judge(found: dict, errors: list[str], help_state: str) -> tuple[str, str]:
     return "warning", "; ".join(bad)
 
 
+def _controls(page) -> list[dict]:
+    """The controls on the page's own content (screen_coverage.CONTROLS_JS); none when the page cannot say."""
+    from . import screen_coverage
+    try:
+        got = page.evaluate(screen_coverage.CONTROLS_JS)
+    except Exception:  # noqa: BLE001 - a page that cannot be read has no controls counted; its result says why
+        return []
+    return got if isinstance(got, list) else []
+
+
 def break_glass_page(page, base: str, record: Record) -> str:
     """The break-glass sign-in page in a browser of its own, signed in to nothing (R3.13): it opens and says what it is
     (the form, or that break-glass is not set up here). Nothing is typed into it."""
@@ -142,10 +152,11 @@ def csp_blocked(kind: str, text: str) -> bool:
 
 
 def sweep(page, open_route: Callable[[str], None], ids: dict[str, str], record: Record, max_pages: int = MAX_PAGES,
-          role: str = "super-admin", routes: list[str] | None = None) -> dict[str, int]:
+          role: str = "super-admin", routes: list[str] | None = None, screens=None) -> dict[str, int]:
     """Opens every page reachable from the seeds through tab links, in scope; records one result per page
     ("page: <route>"). open_route(route) loads a route (the self-test's sign-in in the URL). Returns the counts.
-    routes: these pages only, no links followed (a repeat of the failed pages, R2.36)."""
+    routes: these pages only, no links followed (a repeat of the failed pages, R2.36). screens: a
+    screen_coverage.Collector given each page's controls (R14.5.1, D924)."""
     errors: list[str] = []
     mine: set[int] = set()            # the requests this page made: a late answer to the page before is not this one's (R12.2)
     page.on("request", lambda q: mine.add(id(q)))
@@ -194,6 +205,8 @@ def sweep(page, open_route: Callable[[str], None], ids: dict[str, str], record: 
             help_state = page.evaluate(HELP_JS)
             page.keyboard.press("Escape")
             outcome, detail = judge(found, list(errors), help_state)
+            if screens is not None:                        # the page's controls, for the screens' coverage (R14.5.1)
+                screens.page(route, _controls(page), outcome != "failed")
             for link in ([] if only else found["links"]):
                 n = norm(link)
                 if n not in seen and in_scope(n, ids):

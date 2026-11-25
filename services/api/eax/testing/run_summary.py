@@ -43,7 +43,17 @@ def coverage(c: dict | None) -> dict | None:
         return None
     return {"percent": _num(c.get("percent")), "live": _num(c.get("live")), "unit": _num(c.get("unit")),
             "goal": _num(c.get("goal")), "lines": int(c.get("lines") or 0), "run": int(c.get("run") or 0),
-            "joined": bool(c.get("joined"))}
+            "joined": bool(c.get("joined")),
+            # the goal's own figure (eax/api, D923); percent stays all the server's code, shown beside it
+            "api": _num(c.get("goal_percent")), "api_lines": int(c.get("goal_lines") or 0),
+            "api_run": int(c.get("goal_run") or 0),
+            "jobs": _num(c.get("jobs_percent")), "jobs_lines": int(c.get("jobs_lines") or 0),
+            "jobs_run": int(c.get("jobs_run") or 0)}
+
+
+def _screens(got: dict | None) -> dict | None:
+    from . import screen_coverage
+    return screen_coverage.summary(got)
 
 
 def security(found: dict | None) -> dict | None:
@@ -99,6 +109,7 @@ def make(detail: dict, folder: Path | None) -> dict[str, Any]:
                      for s, v in (hs.get("suites") or {}).items()},
         "mcp": mcp(detail.get("results") or []),
         "coverage": coverage(_load(folder, "coverage.json")),
+        "screens": _screens(_load(folder, "screens-coverage.json")),   # by the journeys (R14.5.1, D924)
         "security": sec,
         "attack": attack(_load(folder, "attack-tools.json"), sec),
     }

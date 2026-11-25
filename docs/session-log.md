@@ -535,3 +535,7 @@ source, and the pictures themselves read one by one and measured).
 - 25 Nov 08:05 The owner: a Videos page with the YouTube channel's playlists, dynamic, notifications for new videos, on the website and in the app: R20.1 (D920). A LinkedIn post and a YouTube title drafted for EA Explorer's industry content.
 - 25 Nov 08:35 Self-test 8 (the failed checks of run 6 again): docs_list and the project plan journey passed; every report opens failed again (a page did not open in 5 minutes; the test browser 6.6 GB, the host paged). R14.5.19 added after the coverage stories (D921).
 - 25 Nov 08:50 The dev check passed (2,646, none failed). The owner closed Release 14: version 14.0.0, migration 0123, releases/14.0.0.md, the README, the handover and the capabilities (D922). Next: Release 14.5.
+- 25 Nov 09:40 Release 14.5 started: the bar is 90% for the server (no file under 60%); the screens as far as is doable, their bar set once measured (D923).
+- 25 Nov 09:50 The screens' coverage settled with the owner: by journeys, a screen used (controls shown), read-only screens covered by opening, risky controls left out and listed (D924). Not built yet.
+- 25 Nov 10:15 R14.5.1 built (testing code only, as the owner allowed: "you can in this release build testing code"): the screens' coverage by journeys; to run with eax up and a full test (or the browser suite).
+- 25 Nov 10:10 The owner: the database always local, the files may be on a NAS mounted as a local folder: R21.4 (D925).

@@ -101,7 +101,9 @@ def gather(tests: Path, since: float, steps: list[tuple[str, bool, str]], *, ver
         if not s.get("coverage"):
             c = _json(run / "coverage.json") or {}
             if c.get("percent") is not None:
-                s["coverage"] = {k: c.get(k) for k in ("percent", "live", "unit", "goal", "lines", "run")}
+                s["coverage"] = {k: c.get(k) for k in ("percent", "live", "unit", "goal", "lines", "run")} | {
+                    "api": c.get("goal_percent"), "api_lines": c.get("goal_lines"), "api_run": c.get("goal_run"),
+                    "jobs": c.get("jobs_percent"), "jobs_lines": c.get("jobs_lines"), "jobs_run": c.get("jobs_run")}
         out["selftest"] = {**s, "folder": run.name}
         out["details"].append(run.name)
     br = _newest(tests, lambda p: p.is_dir() and p.name.startswith("backup-restore-"), since)
@@ -214,14 +216,29 @@ def cards(s: dict) -> list[str]:
     cov = run.get("coverage") or {}
     unit = ((s.get("dev") or {}).get("coverage") or {}).get("percent")
     goal = float(cov.get("goal") or 90)
-    pairs = [("this run alone", f"{cov['live']}%" if cov.get("live") is not None else "-"),
+    api = cov.get("api")                                  # the goal's measure: eax/api (D923); else all our code
+    pairs = [*([("the API (eax/api), the goal's measure", f"{api}% ({cov.get('api_run', 0)} of {cov.get('api_lines', 0)} lines)"),
+                *([("the background jobs", f"{cov['jobs']}% ({cov.get('jobs_run', 0)} of {cov.get('jobs_lines', 0)} lines)")]
+                  if cov.get("jobs") is not None else []),
+                ("all the server's code", f"{cov.get('percent')}%")] if api is not None else []),
+             ("this run alone", f"{cov['live']}%" if cov.get("live") is not None else "-"),
              ("the unit tests alone", f"{cov.get('unit') if cov.get('unit') is not None else unit}%" if
               (cov.get("unit") is not None or unit is not None) else "-"),
              ("lines", f"{cov.get('run', 0)} of {cov.get('lines', 0)} run" if cov.get("lines") else "-"),
              ("goal", f"{goal:.0f}%")]
-    out.append(f'<section class="card"><h2>Code coverage</h2><div class="ring">{ring(cov.get("percent"), goal)}</div>'
-               f'{_rows(pairs)}<p class="quiet">Our code only: the API, the job runner and the MCP server, joined line '
-               'by line with the unit tests\'.</p></section>')
+    shown = api if api is not None else cov.get("percent")
+    out.append(f'<section class="card"><h2>Code coverage</h2><div class="ring">{ring(shown, goal, label="the API" if api is not None else "our code")}</div>'
+               f'{_rows(pairs)}<p class="quiet">The goal is measured on the API (eax/api); the rest of our code is shown, '
+               'not judged. Joined line by line with the unit tests\'.</p></section>')
+    scr = run.get("screens") or {}
+    if scr.get("percent") is not None:              # the screens, by the journeys (R14.5.1, D924)
+        pairs = [("screens covered", f"{scr.get('covered', 0)} of {scr.get('screens', 0)}"),
+                 ("acted on by a journey", str(scr.get("acted_on", 0))), ("read only, opened", str(scr.get("read_only", 0))),
+                 ("controls used", f"{scr.get('controls_used', 0)} of {scr.get('controls', 0)} ({scr.get('controls_percent')}%)"),
+                 ("risky controls left out", str(scr.get("left_out", 0)))]
+        out.append(f'<section class="card"><h2>Screens covered by journeys</h2><div class="ring">{ring(scr.get("percent"), 100.0, label="the screens")}</div>'
+                   f'{_rows(pairs)}<p class="quiet">A screen a journey acts on, or a read-only one that opens; the list is in '
+                   'screens-coverage.json in the self-test\'s folder. No bar yet: this reading sets it (D923).</p></section>')
     stp = steps.get("selftest")
     if run or stp:
         t = run.get("tally") or {}

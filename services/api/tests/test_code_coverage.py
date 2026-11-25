@@ -38,7 +38,7 @@ def test_the_self_test_keeps_the_coverage_with_its_run(monkeypatch, tmp_path):
          "files": [{"file": "eax/x.py", "run": 1, "lines": 2, "percent": 50.0}]}
     monkeypatch.setattr(R.api_matrix, "call", lambda *a, **k: (200, json.dumps(c)))
     assert R.coverage_result(r, "tok")["percent"] == 61.5
-    assert got[0][1] == "warning" and "61.5% of lines" in got[0][2] and r.counts["coverage %"] == 61.5
+    assert got[0][1] == "warning" and "61.5% of lines" in got[0][2] and r.counts["coverage %"] == 40.0   # the goal's measure: eax/api (D923)
     assert "under the goal of 90%" in got[0][2]
     assert "Code coverage of the API: 61.5%" in (r.dir / "coverage.html").read_text()
     assert json.loads((r.dir / "coverage.json").read_text())["run"] == 615

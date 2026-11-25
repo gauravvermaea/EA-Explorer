@@ -455,6 +455,12 @@ def coverage_html(c: dict) -> str:
 
 GOAL = 90.0          # the share of the API's lines a test should run (R3.9; owner: "It needs to be above 90%")
 DROP = 2.0           # an area that falls by more than this since the last run of the same kind fails the check
+# what the goal is measured on (owner, 25 Nov 2026, 10:56: "our goals need to be for API and UI nothing else"; asked which
+# code counts as the API: "Route layer eax/api/"): the API's own area; the rest of the server is shown, not judged
+GOAL_AREA = "api"
+# the background jobs' own code (owner, 25 Nov 2026, 10:57: "background jobs testing should also be done"): the job
+# runner and the tasks it does, reached through the API (a write that starts a task waits for it); shown beside the API
+JOB_FILES = ("eax/background.py", "eax/jobs.py", "eax/tasks.py", "eax/jobqueue.py", "eax/job_priorities.py")
 
 
 def coverage_goal() -> float:
@@ -489,16 +495,34 @@ def coverage_gate(c: dict, before: dict | None, goal: float) -> tuple[str, str]:
     """passed at or over the goal; a warning under it (R3.9: not critical until reached); failed when an area fell by
     more than DROP points since the last run of the same kind."""
     fell = []
+    judged = c.get("goal_area")                       # only the goal's area when the run names one (eax/api, D923)
     if before:
         was = {a["area"]: a.get("percent", 0.0) for a in before.get("areas") or []}
         for a in c.get("areas") or []:
+            if judged and a["area"] != judged:
+                continue
             if a["area"] in was and was[a["area"]] - a.get("percent", 0.0) > DROP:
                 fell.append(f"{a['area']} {was[a['area']]}% to {a['percent']}%")
     if fell:
         return "failed", "fell since the last run of this kind: " + ", ".join(fell)
-    if c.get("percent", 0.0) >= goal:
+    got = c.get("goal_percent", c.get("percent", 0.0)) or 0.0
+    if got >= goal:
         return "passed", f"at or over the goal of {goal:g}%"
-    return "warning", f"under the goal of {goal:g}% by {round(goal - c.get('percent', 0.0), 1)} points"
+    return "warning", f"under the goal of {goal:g}% by {round(goal - got, 1)} points"
+
+
+def goal_figures(c: dict, area: str = GOAL_AREA) -> dict:
+    """The goal's own figures: the area the goal is measured on (eax/api, D923), its lines and those run."""
+    a = next((x for x in c.get("areas") or [] if x.get("area") == area), None)
+    if not a:
+        return {}
+    out = {"goal_area": area, "goal_percent": a.get("percent", 0.0), "goal_lines": int(a.get("lines") or 0),
+           "goal_run": int(a.get("run") or 0)}
+    jobs = [f for f in c.get("files") or [] if f.get("file") in JOB_FILES]
+    n, hit = sum(int(f.get("lines") or 0) for f in jobs), sum(int(f.get("run") or 0) for f in jobs)
+    if n:
+        out.update(jobs_percent=round(hit / n * 100, 1), jobs_lines=n, jobs_run=hit)
+    return out
 
 
 def with_unit_tests(live: dict, results: Path) -> dict:
@@ -532,6 +556,7 @@ def coverage_result(r: Run, token: str, scope: str = "") -> dict | None:
         rec("coverage: the API's code run by this test", "skipped", c.get("why") or f"HTTP {s}", ms)
         return None
     c = with_unit_tests(c, r.dir.parent)
+    c.update(goal_figures(c))
     goal = coverage_goal()
     before = previous_coverage(r.dir.parent, r.dir, scope)
     outcome, why = coverage_gate(c, before, goal)
@@ -544,10 +569,13 @@ def coverage_result(r: Run, token: str, scope: str = "") -> dict | None:
     low = ", ".join(f"{a['area']} {a['percent']}%" for a in (c.get("areas") or [])[:4])
     joined = (f" (this run {c['live']}% joined with the unit tests' {c['unit']}% of eax dev check, {c['joined']} files)"
               if c.get("unit") is not None else " (this run only: no unit tests' coverage yet, eax dev check makes it)")
+    api = (f"the API (eax/api, the goal's measure) {c['goal_percent']}% ({c['goal_run']} of {c['goal_lines']} lines); "
+           + (f"the background jobs {c['jobs_percent']}% ({c['jobs_run']} of {c['jobs_lines']} lines); "
+              if c.get("jobs_lines") else "") + "all the server's code " if c.get("goal_area") else "")
     rec("coverage: the API's code run by this test", outcome,
-        f"{c['percent']}% of lines ({c['run']} of {c['lines']}){joined}: {why}; least covered areas: {low}; coverage.html "
-        "in the run's folder", ms)
-    r.counts["coverage %"] = c["percent"]
+        f"{api}{c['percent']}% of lines ({c['run']} of {c['lines']}){joined}: {why}; least covered areas: {low}; "
+        "coverage.html in the run's folder", ms)
+    r.counts["coverage %"] = c.get("goal_percent", c["percent"])
     return c
 
 

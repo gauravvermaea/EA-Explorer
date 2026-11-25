@@ -147,6 +147,10 @@ def run_all(ids: dict[str, str], ticket: str, folder: Path, record: Record, role
     live = live or {}
     from . import screencast
     n_browser = [0]
+    from . import screen_coverage
+    # the screens' coverage (R14.5.1, D924): only in a whole browser suite, the page sweep and every journey
+    whole = not repeat and not journeys and not pages_only
+    screens = screen_coverage.Collector() if whole else None
     with sync_playwright() as pw:
         browser = pw.chromium.launch(args=[f"--host-resolver-rules=MAP {host} {proxy}, MAP *.{host} {proxy}", "--disable-dev-shm-usage"],
                                      **({"slow_mo": screencast.SLOW_MS} if live.get("slow") else {}))
@@ -167,6 +171,7 @@ def run_all(ids: dict[str, str], ticket: str, folder: Path, record: Record, role
                 except Exception:  # noqa: BLE001 - no live view: the run goes on as before
                     caster = None
             page._eax_caster = caster                    # ui_flows ticks it at each step
+            page._eax_screens = screens                  # ui_flows notes each action's screen (R14.5.1)
 
             def open_route(route: str, r=as_role) -> None:
                 if caster is not None:
@@ -181,7 +186,7 @@ def run_all(ids: dict[str, str], ticket: str, folder: Path, record: Record, role
             ctx, page, open_route = context(role if role else "super-admin", video=False, label="the page sweep")
             counts.update({f"pages_{k}" if k != "pages" else k: v
                            for k, v in ui_pages.sweep(page, open_route, ids, rec, role=role or "super-admin",
-                                                      routes=list(routes) if repeat else None).items()})
+                                                      routes=list(routes) if repeat else None, screens=screens).items()})
             _close_caster(page)
             ctx.close()
             if not repeat or "#/break-glass" in (routes or []):        # in a browser of its own (R3.13)
@@ -223,7 +228,23 @@ def run_all(ids: dict[str, str], ticket: str, folder: Path, record: Record, role
             jc = ui_flows.run(factory, js, rec)
             counts.update({f"journeys_{k}" if k != "journeys" else k: v for k, v in jc.items()})
         browser.close()
+    if screens is not None:
+        counts.update(screens_result(screens, folder, rec))
     return counts
+
+
+def screens_result(screens, folder: Path, rec) -> dict[str, float]:
+    """The screens' coverage (R14.5.1, D924): screens-coverage.json in the run's folder and one result line."""
+    from . import screen_coverage
+    t0 = time.time()
+    got = screen_coverage.summarise(screens)
+    try:
+        screen_coverage.save(folder, got)
+    except OSError:
+        pass
+    outcome, detail = screen_coverage.line(got)
+    rec("coverage: the screens used by the journeys", outcome, detail, int((time.time() - t0) * 1000))
+    return {"screens %": got["percent"]} if got.get("percent") is not None else {}
 
 
 def _close_caster(page) -> None:

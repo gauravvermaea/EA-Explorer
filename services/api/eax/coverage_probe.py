@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import atexit
 import os
+import re
 import shutil
 import tempfile
 import threading
@@ -89,15 +90,29 @@ def area_of(path: str) -> str:
     return rel.split("/", 1)[0] if "/" in rel else "core"
 
 
+_OURS = re.compile(r"(?:^|/)eax/(.+)$")
+
+
+def ours(name: str) -> str | None:
+    """eax/<path> for a file of the eax package wherever it was measured (/app/eax/..., eax/... in the test runner's
+    copy); None for anything else (25 Nov 2026: the unit tests' copies of eaxcli in pytest's own folders,
+    /tmp/pytest-of-eax/pytest-0/..., and the runner's /tmp/repo/eaxcli were counted as 8,689 lines of "our code", most of
+    them not run) and for the tests' own code (eax/testing)."""
+    m = _OURS.search((name or "").replace("\\", "/"))
+    if not m or m.group(1).startswith("testing/"):
+        return None
+    return "eax/" + m.group(1)
+
+
 def summarise(files: dict) -> dict:
     """A coverage.py JSON report's files -> the totals, each area and the files least covered."""
     rows = []
     for name, f in files.items():
         s = f.get("summary") or {}
         n, hit = int(s.get("num_statements") or 0), int(s.get("covered_lines") or 0)
-        if not n:
+        short = ours(name)
+        if not n or short is None:
             continue
-        short = "eax/" + name.split("eax/", 1)[-1]
         row = {"file": short, "lines": n, "run": hit, "percent": round(hit / n * 100, 1)}
         if "executed_lines" in f:                               # which lines (D807): to join with the unit tests'
             row["ran"] = sorted(f.get("executed_lines") or [])
