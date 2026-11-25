@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clear the self-test&#x27;s data · EA Explorer</title>
+<meta name="description" content="Remove test fixtures and results for good.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html" class="here">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Clear the self-test&#x27;s data</h1>
+    <p class="who">For: System Admin</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">Remove test fixtures and results for good.</p>
+    <figure class="shot"><img src="../shots/clear-test-data.png" alt="The screen: Clear the self-test&#x27;s data" loading="lazy"><figcaption>The screen: <code>#/admin/self-test</code></figcaption></figure>
+    
+    <h2 id="why-do-this">Why do this</h2>
+<p>The self-test makes its own models, projects and accounts to test in, so nothing real is touched. Clearing them when you no longer need their evidence keeps the database lean.</p>
+<p>The installation is built to look after itself as far as it can, and to ask before anything risky. These tasks are the decisions it leaves to you: what to run, when, and how far to trust a change.</p>
+<p><strong>In TOGAF terms:</strong> Outside the method: this keeps the tool that holds the Architecture Repository running. See <a href="../concepts/ea-explorer-and-togaf.html">EA Explorer and the TOGAF Standard</a>.</p>
+<p><strong>The goal:</strong> Old self-test data no longer takes up space.</p>
+<blockquote class="before"><p><strong>Before you start</strong> You need the Super Admin or IT Admin role.</p></blockquote>
+<h2 id="steps">Steps</h2>
+<ol><li>Open <strong>System Admin › Tools › Self-test</strong>, <strong>Test data</strong>.</li><li>Tick what to remove.</li><li>Type DELETE to confirm; this cannot be undone.</li></ol>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="14.0.0">Version 14.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: how-do-i/clear-test-data.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

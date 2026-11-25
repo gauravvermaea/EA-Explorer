@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Update to a new release · EA Explorer</title>
+<meta name="description" content="Move EA Explorer to a newer release, with a full backup first and a way back.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html" class="here">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Update to a new release</h1>
+    <p class="who">For: System Admin</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">Move EA Explorer to a newer release, with a full backup first and a way back.</p>
+    <figure class="shot"><img src="../shots/update-to-a-new-release.png" alt="The screen: Update to a new release" loading="lazy"><figcaption>The screen: <code>#/admin/updates</code></figcaption></figure>
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-do-this">Why do this</a></li><li><a href="#steps">Steps</a></li><li><a href="#check-it-worked">Check it worked</a></li><li><a href="#if-something-goes-wrong">If something goes wrong</a></li><li><a href="#related">Related</a></li></ul></nav>
+    <h2 id="why-do-this">Why do this</h2>
+<p>Updates bring fixes and features. EA Explorer takes a pinned backup first, moves one release at a time, and can roll back, so updating is routine rather than risky. See <a href="../concepts/running-the-installation.html">Running the installation</a>.</p>
+<p>The installation is built to look after itself as far as it can, and to ask before anything risky. These tasks are the decisions it leaves to you: what to run, when, and how far to trust a change.</p>
+<p><strong>In TOGAF terms:</strong> Outside the method: this keeps the tool that holds the Architecture Repository running. See <a href="../concepts/ea-explorer-and-togaf.html">EA Explorer and the TOGAF Standard</a>.</p>
+<p><strong>The goal:</strong> EA Explorer is on the newer release, safely.</p>
+<blockquote class="before"><p><strong>Before you start</strong> You need the Super Admin or IT Admin role. Read the release's notes: they say what changes and anything to do before.</p></blockquote>
+<h2 id="steps">Steps</h2>
+<ol><li>Open <strong>System Admin › Updates</strong>. It shows the version installed and the newer releases offered, each with its notes.</li><li>Choose the release and <strong>Update now</strong>, or at a time (a banner tells people beforehand).</li><li>EA Explorer takes a pinned full backup first, then moves one release at a time.</li></ol>
+<p>On the machine: <code>eax update --list</code> shows what is offered; <code>eax update</code> moves to the newest.</p>
+<h2 id="check-it-worked">Check it worked</h2>
+<p>The version at the top left of every screen changes; everyone sees <strong>What's new</strong> once. Run the smoke test (System Admin › Tools › Self-test, or <code>eax test smoke</code>).</p>
+<h2 id="if-something-goes-wrong">If something goes wrong</h2>
+<ul><li>A failed step stops and asks: <strong>Retry</strong> or <strong>Roll back</strong>. On the machine: <code>eax rollback</code> goes back to the release before, with its data as it was.</li></ul>
+<h2 id="related">Related</h2>
+<ul><li><a href="../how-do-i/run-the-self-test.html">Run the self-test</a></li><li><a href="../releases/index.html">Releases</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="14.0.0">Version 14.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: how-do-i/update-to-a-new-release.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

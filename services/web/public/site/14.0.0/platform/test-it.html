@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Test it · EA Explorer</title>
+<meta name="description" content="The checks before a change, the Python and SQL tests, the self-test, and the rule that every fix has a test.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html" class="here">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Test it</h1>
+    <p class="who">For: Platform developers</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">The checks before a change, the Python and SQL tests, the self-test, and the rule that every fix has a test.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-so-much-testing">Why so much testing</a></li><li><a href="#the-layers">The layers</a></li><li><a href="#the-rule">The rule</a></li><li><a href="#read-next">Read next</a></li></ul></nav>
+    <h2 id="why-so-much-testing">Why so much testing</h2>
+<p>EA Explorer holds an organisation's record and runs unattended on many machines. A bug that reaches an installation is expensive to find and fix there. Tests catch it on your machine instead, and a test for every fix stops the same bug coming back.</p>
+<h2 id="the-layers">The layers</h2>
+<div class="table"><table><thead><tr><th>Layer</th><th>Command</th><th>What it checks</th></tr></thead><tbody><tr><td>Before anything</td><td><code>.\eax dev check</code> (<code>--quick</code>, <code>--web</code>)</td><td>Lint, the Python tests, the documents' cross-checks, the help is ASCII; <code>--web</code> builds the screens</td></tr><tr><td>Python tests</td><td><code>pytest</code> in <code>services/api</code></td><td>Units and contracts, no database needed</td></tr><tr><td>Database checks</td><td><code>tests/sql/phaseN_checks.sql</code></td><td>Run in a transaction that is rolled back</td></tr><tr><td>The self-test</td><td><code>.\eax test smoke</code> / <code>full</code></td><td>The running installation: every role signs in, every page opens, the journeys, security, backups</td></tr></tbody></table></div>
+<h2 id="the-rule">The rule</h2>
+<p>Every fix comes with a test that fails without the fix and passes with it. Write the test first, watch it fail, then fix.</p>
+<h2 id="read-next">Read next</h2>
+<ul><li><a href="../platform/make-a-change.html">Make a change</a></li><li><a href="../how-do-i/run-the-self-test.html">Run the self-test</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="14.0.0">Version 14.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: platform/test-it.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

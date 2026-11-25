@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MCP for developers · EA Explorer</title>
+<meta name="description" content="The MCP server that lets AI agents work with the repository, and how to build on it.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html" class="here">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>MCP for developers</h1>
+    <p class="who">For: Developers</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">The MCP server that lets AI agents work with the repository, and how to build on it.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#what-it-is">What it is</a></li><li><a href="#using-it">Using it</a></li><li><a href="#building-on-it">Building on it</a></li><li><a href="#read-next">Read next</a></li></ul></nav>
+    <h2 id="what-it-is">What it is</h2>
+<p>EA Explorer runs a Model Context Protocol (MCP) server beside its API, at <code>/mcp</code>. MCP is an open protocol that lets AI assistants and agents call tools. Each tool is a thin wrapper over the same functions the REST API uses, with the same permission checks, so an agent can do exactly what the person or account it acts for may do.</p>
+<h2 id="using-it">Using it</h2>
+<p>Any MCP client connects with the address on <strong>AI (MCP) › Connect your AI assistant</strong> and a token. <strong>AI (MCP) › What it can do</strong> lists every tool by area. Every call is recorded in the AI activity. See <a href="../how-do-i/connect-your-ai-assistant.html">Connect your AI assistant</a> and <a href="../concepts/ai-in-ea-explorer.html">AI in EA Explorer</a>.</p>
+<h2 id="building-on-it">Building on it</h2>
+<ul><li>An agent of your own (in your organisation's agent platform) can use the same tools as a person's assistant: give it a service account with only the rights it needs.</li><li>New tools are added in the code beside their REST call (<code>eax/mcp_server.py</code>), with a tile on What it can do and a How do I page; a test fails if a tool area has none. See <a href="../platform/make-a-change.html">Make a change</a>.</li></ul>
+<h2 id="read-next">Read next</h2>
+<ul><li><a href="../how-do-i/discover-the-enterprise-with-ai.html">Discover the enterprise with AI</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="14.0.0">Version 14.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: integrate/mcp-for-developers.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

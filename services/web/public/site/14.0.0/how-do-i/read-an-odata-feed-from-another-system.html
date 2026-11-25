@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Read an OData feed from another system · EA Explorer</title>
+<meta name="description" content="EA Explorer reads a feed your organisation already has and proposes it for a model.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html" class="here">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Read an OData feed from another system</h1>
+    <p class="who">For: Developers, Model Admin</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">EA Explorer reads a feed your organisation already has and proposes it for a model.</p>
+    <figure class="shot"><img src="../shots/read-an-odata-feed-from-another-system.png" alt="The screen: Read an OData feed from another system" loading="lazy"><figcaption>The screen: <code>#/metamodel/{m}/import/discovery</code></figcaption></figure>
+    
+    <h2 id="why-do-this">Why do this</h2>
+<p>If a system already publishes an OData feed, EA Explorer can read it on a schedule and propose what changed as a delivery, with no file handling. See <a href="../concepts/bringing-data-in-and-out.html">Data in and out: integration</a>.</p>
+<p>Every route in ends the same way: what arrives is shown as new, changed, kept and problem rows, and a person decides. That review is what lets you automate feeds without losing control of the model.</p>
+<p><strong>In TOGAF terms:</strong> Supports the content of phases B, C and D (baseline architectures), keeping the Architecture Landscape current from the systems that already know it. See <a href="../concepts/ea-explorer-and-togaf.html">EA Explorer and the TOGAF Standard</a>.</p>
+<p><strong>The goal:</strong> Data another system already publishes reaches the model.</p>
+<blockquote class="before"><p><strong>Before you start</strong> You need a role on the model that may change content (Architect or higher). IT may need to list the feed's host in EAX_DISCOVERY_ALLOWED_HOSTS.</p></blockquote>
+<h2 id="steps">Steps</h2>
+<ol><li>Open the model, <strong>Import and export › Discovery</strong>, add an <strong>OData feed</strong> source with its address.</li><li><strong>Look</strong>: it shows the sets and fields and suggests where each goes; correct and save the mapping.</li><li>Run it, on demand, daily or weekly; each run proposes what changed as a delivery.</li></ol>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="14.0.0">Version 14.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: how-do-i/read-an-odata-feed-from-another-system.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

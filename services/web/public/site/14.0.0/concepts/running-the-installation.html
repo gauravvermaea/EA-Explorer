@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Running the installation · EA Explorer</title>
+<meta name="description" content="What EA Explorer is made of, what keeps it healthy, and the jobs a System Admin owns.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html" class="here">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Running the installation</h1>
+    <p class="who">For: System Admin, Developers</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">What EA Explorer is made of, what keeps it healthy, and the jobs a System Admin owns.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#what-it-is-made-of">What it is made of</a></li><li><a href="#keeping-it-healthy">Keeping it healthy</a></li><li><a href="#read-next">Read next</a></li></ul></nav>
+    <h2 id="what-it-is-made-of">What it is made of</h2>
+<p>EA Explorer runs as a set of containers on one machine or several: the screens and the front door, the API and its job workers, the database, Keycloak for sign-in, reporting, documents, draw.io, the AI server and the operations helper. Everything is open source and runs on your own servers or laptop. See <a href="../how-do-i/see-the-estate.html">See the estate</a> and <a href="../how-do-i/see-the-containers.html">See the containers</a>.</p>
+<h2 id="keeping-it-healthy">Keeping it healthy</h2>
+<ul><li><strong>Health and alerts</strong>: a dot in the top bar, every part's state, checks every minute (<a href="../guides/check-health-and-alerts.html">Check the health and alerts</a>).</li><li><strong>Backups</strong>: taken on a schedule, checked by restoring (<a href="../guides/take-and-check-a-backup.html">Take a backup and check it</a>, <a href="../concepts/backups-and-recovery.html">Backups, restores and disaster recovery</a>).</li><li><strong>Secrets</strong>: every password and key a file, rotated when you choose (<a href="../guides/rotate-passwords-and-keys.html">Rotate passwords and keys</a>).</li><li><strong>Updates</strong>: one release at a time, a pinned backup first, a roll back if needed (<a href="../how-do-i/update-to-a-new-release.html">Update to a new release</a>).</li><li><strong>The self-test</strong>: the installation tests itself in its own fixtures (<a href="../how-do-i/run-the-self-test.html">Run the self-test</a>).</li></ul>
+<p>Anything that puts the maintenance page up warns first and waits for you to accept.</p>
+<h2 id="read-next">Read next</h2>
+<ul><li><a href="../concepts/backups-and-recovery.html">Backups, restores and disaster recovery</a></li><li><a href="../how-do-i/follow-a-setup-guide.html">Follow a setup guide</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="14.0.0">Version 14.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: concepts/running-the-installation.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Load data from Excel · EA Explorer</title>
+<meta name="description" content="Download a sheet built for the model, fill it in, upload it and check the preview.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html" class="here">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Load data from Excel</h1>
+    <p class="who">For: Practising architects, Model Admin</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">Download a sheet built for the model, fill it in, upload it and check the preview.</p>
+    <figure class="shot"><img src="../shots/load-data-from-excel.png" alt="The screen: Load data from Excel" loading="lazy"><figcaption>The screen: <code>#/metamodel/{m}/import</code></figcaption></figure>
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-do-this">Why do this</a></li><li><a href="#steps">Steps</a></li><li><a href="#if-something-goes-wrong">If something goes wrong</a></li><li><a href="#related">Related</a></li></ul></nav>
+    <h2 id="why-do-this">Why do this</h2>
+<p>Excel is how most architecture data starts. Loading a sheet with the model's own columns and drop-downs brings it in with a preview of new, changed and problem rows, and the whole load can be undone. See <a href="../concepts/bringing-data-in-and-out.html">Data in and out: integration</a>.</p>
+<p>Content work is the everyday heart of architecture: recording what exists and what should, and how it all connects. EA Explorer checks it against the metamodel as you go and keeps it as your change until it is reviewed.</p>
+<p><strong>In TOGAF terms:</strong> Phases B, C and D: recording the building blocks and relationships of the baseline and target architectures. See <a href="../concepts/ea-explorer-and-togaf.html">EA Explorer and the TOGAF Standard</a>.</p>
+<p><strong>The goal:</strong> Many entities and relationships go in at once from a sheet.</p>
+<blockquote class="before"><p><strong>Before you start</strong> You need the Architect role (or higher) on the model.</p></blockquote>
+<h2 id="steps">Steps</h2>
+<ol><li>Open the model, <strong>Import and export</strong> (or Model Admin › Wizards, <strong>Load data</strong>).</li><li>Choose the entity types and download the sheet: one sheet per type with drop-downs, and a Relationships sheet.</li><li>Fill it in. Leave the IDs as they are for rows already there; new rows need a name.</li><li>Upload it. A preview shows the new, changed and problem rows before anything loads.</li><li>Load: the rows become your uncommitted changes. Commit them.</li></ol>
+<h2 id="if-something-goes-wrong">If something goes wrong</h2>
+<ul><li>The preview names each problem row and why (a value not in the pick list, a relationship the metamodel does not allow).</li><li>Undo a whole load on its load page.</li></ul>
+<h2 id="related">Related</h2>
+<ul><li><a href="../guides/change-content-and-commit.html">Change content and commit it</a></li><li><a href="../guides/send-data-with-a-delivery.html">Send data with a delivery</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="14.0.0">Version 14.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: how-do-i/load-data-from-excel.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

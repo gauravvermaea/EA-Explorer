@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Working on EA Explorer itself: start here · EA Explorer</title>
+<meta name="description" content="For developers changing EA Explorer: get the code, run it on your machine, find your way round, and the rules the project keeps.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html" class="here">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Working on EA Explorer itself: start here</h1>
+    <p class="who">For: Platform developers</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">For developers changing EA Explorer: get the code, run it on your machine, find your way round, and the rules the project keeps.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#who-this-is-for">Who this is for</a></li><li><a href="#the-route">The route</a></li><li><a href="#the-rules-the-project-keeps">The rules the project keeps</a></li><li><a href="#read-next">Read next</a></li></ul></nav>
+    <h2 id="who-this-is-for">Who this is for</h2>
+<p>People who change EA Explorer itself: fixing a bug, adding a screen, a report, an API call or an MCP tool, improving the installer. (If you connect other systems to EA Explorer, see <a href="../integrate/overview.html">integrating with EA Explorer</a> instead.)</p>
+<h2 id="the-route">The route</h2>
+<ol><li><a href="../platform/get-the-code.html">Get the code</a>: the repository and what is in it.</li><li><a href="../platform/run-it-on-your-machine.html">Run it on your machine</a>: a full installation on your laptop with Docker.</li><li><a href="../platform/find-your-way-round-the-code.html">Find your way round the code</a>: the services, the API, the screens, the command line.</li><li><a href="../platform/debug-it.html">Debug it</a>: logs, the debug mode, the database, the browser.</li><li><a href="../platform/test-it.html">Test it</a>: the checks before a change, the tests, the self-test.</li><li><a href="../platform/make-a-change.html">Make a change</a>: the pattern for a feature and the definition of done.</li><li><a href="../platform/database-changes-and-versions.html">Database changes and versions</a>: migrations and the version.</li><li><a href="../platform/release-it.html">Release it</a>: how a version reaches installations.</li></ol>
+<h2 id="the-rules-the-project-keeps">The rules the project keeps</h2>
+<ul><li>Discuss before building; build what was asked; bugs before features; every fix has a test that fails without it.</li><li>No platform-specific code: it runs the same on a laptop, a server and a container platform.</li><li>No logic in the database: tables and rows in migrations only; the code decides.</li><li><code>eax.ps1</code>, <code>eax.sh</code>, <code>eaxcli/</code> and <code>eaxcli/help.txt</code> stay in step; <code>eax.ps1</code> and <code>help.txt</code> are plain ASCII.</li><li>Plain British English in everything people read; no other EA platform or vendor named; no copyrighted text.</li><li>Done means tests, documents, help, the help catalogue and the release notes, all current.</li></ul>
+<h2 id="read-next">Read next</h2>
+<ul><li><a href="../platform/get-the-code.html">Get the code</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="14.0.0">Version 14.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: platform/start-here.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

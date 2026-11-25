@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The published import formats · EA Explorer</title>
+<meta name="description" content="The Excel and CSV formats every way in uses: columns, matching, relationships, and what a delivery never does.">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html" class="here">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>The published import formats</h1>
+    <p class="who">For: Developers, Model Admin</p><p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    <p class="summary">The Excel and CSV formats every way in uses: columns, matching, relationships, and what a delivery never does.</p>
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#why-published-formats">Why published formats</a></li><li><a href="#excel">Excel</a></li><li><a href="#csv">CSV</a></li><li><a href="#getting-the-exact-shape-for-a-model">Getting the exact shape for a model</a></li><li><a href="#read-next">Read next</a></li></ul></nav>
+    <h2 id="why-published-formats">Why published formats</h2>
+<p>A format that is written down and kept stable lets anyone build a connector without talking to the EA Explorer team, and lets EA Explorer change inside without breaking them. The formats are the same for a person's upload, a folder delivery and a push.</p>
+<h2 id="excel">Excel</h2>
+<p>One sheet per entity type, named by the type. Row 1 the column names (<code>*</code> marks a required one), row 2 the field codes (hidden; this is how EA Explorer reads each column), data from row 3.</p>
+<div class="table"><table><thead><tr><th>Column</th><th>Meaning</th></tr></thead><tbody><tr><td><code>name</code></td><td>The entity's name: with the type, <strong>how a delivery is matched</strong></td></tr><tr><td><code>guid</code>, <code>display_id</code></td><td>EA Explorer's keys: match rows in an upload, <strong>ignored in a delivery</strong></td></tr><tr><td><code>description</code>, <code>parent</code>, <code>tags</code></td><td>As on the screens; <code>parent</code> by name or id; tags comma-separated</td></tr><tr><td>attribute codes</td><td>Values as text: dates <code>YYYY-MM-DD</code>, Yes/No, numbers with a point, a pick list's value; a link `address</td><td>note`</td></tr><tr><td><code>delete</code></td><td>Yes deletes in an upload; <strong>a delivery never deletes</strong></td></tr></tbody></table></div>
+<p>A <strong>Relationships</strong> sheet: <code>source</code>, <code>relationship_type</code> (code or name), <code>target</code>, <code>name</code>, <code>delete</code>; ends by name, display id, or a new row's provisional id (<code>NEW-APP-0001</code>).</p>
+<h2 id="csv">CSV</h2>
+<p>The same columns, one CSV per sheet, first line the field codes, UTF-8 (Windows-1252 is read too), comma, semicolon or tab, and a <code>master.csv</code> listing the files:</p>
+<pre class="code"><code>file,kind,entity_type,entity_type_name
+applications.csv,entities,ApplicationComponent,Application Component
+relationships.csv,relationships,,</code></pre>
+<h2 id="getting-the-exact-shape-for-a-model">Getting the exact shape for a model</h2>
+<p>The model's <strong>Import and export</strong>, choose the types, tick <strong>Empty template</strong> (<a href="../how-do-i/download-an-empty-template.html">Download an empty template</a>). Or from code: <code>POST /api/v1/models/&lt;model&gt;/sheets</code> with <code>{&quot;types&quot;: [...], &quot;format&quot;: &quot;xlsx&quot; or &quot;zip&quot;, &quot;blank&quot;: true}</code>.</p>
+<h2 id="read-next">Read next</h2>
+<ul><li><a href="../integrate/deliveries.html">Deliveries: the folder way in</a></li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="14.0.0">Version 14.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: integrate/import-formats.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EA Explorer 14.0.0: Release 14, stabilisation · EA Explorer</title>
+<meta name="description" content="EA Explorer 14.0.0: Release 14, stabilisation">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html" class="here">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>EA Explorer 14.0.0: Release 14, stabilisation</h1>
+    <p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#what-the-last-full-test-showed">What the last full test showed</a></li><li><a href="#for-everyone">For everyone</a></li><li><a href="#for-system-administrators">For system administrators</a></li><li><a href="#testing">Testing</a></li><li><a href="#accepted-in-writing">Accepted in writing</a></li><li><a href="#known-issues">Known issues</a></li><li><a href="#next">Next</a></li></ul></nav>
+    <p>Release 14 (built 21 to 25 Nov 2026; <strong>accepted 25 Nov 2026</strong>, the owner: "Close it", "I think only reports is the issue"): every bug the full test found fixed, and the full test itself made something you can start and trust to finish. After a clean restart the dev check, the self-test, backup and restore, SonarQube and the DR drill all pass, except one check: <strong>every report opens</strong> (see Known issues).</p>
+<p><strong>Before updating:</strong> take a backup (<code>.\eax backup before-14.0.0</code>). The update runs migrations 0122 (five indexes on project tables) and 0123 (the version only). The api, web, ops and test runner images change: <code>.\eax down</code> then <code>.\eax up</code> is enough (no data is changed), then <code>.\eax test smoke</code>. Refresh the browser (Ctrl+F5).</p>
+<h2 id="what-the-last-full-test-showed">What the last full test showed</h2>
+<ul><li><strong>Self-test:</strong> 3,101 checks passed, 3 failed, then 2 of the 3 passed when run again (the third is the reports check).</li><li><strong>Dev check:</strong> 2,646 unit tests passed, none failed.</li><li><strong>Backup and restore:</strong> passed: two backups, two full restores of the same backup, nothing lost (451 tables and 6,771 files compared).</li><li><strong>DR drill:</strong> passed, <strong>9 minutes</strong> from shutting the installation down to the DR copy restored and signed in to; every model, element, relationship, project, document and person counted the same before and after.</li><li><strong>Security gate:</strong> no failing finding. <strong>SonarQube:</strong> nothing to fix.</li><li><strong>Code coverage:</strong> 65.2% (the unit tests and the live run joined); the 90% bar is Release 14.5.</li></ul>
+<h2 id="for-everyone">For everyone</h2>
+<ul><li><strong>Every list of models opens again</strong>: a name defined twice in the server code made every models list answer with an error; a test now refuses a name defined twice.</li><li><strong>The start page's System admin tile</strong> is greyed, with the reason, for anyone the menu does not offer System Admin to (it was open to a Report Viewer).</li><li><strong>The Documentation pages</strong> show their heading while the list loads.</li><li><strong>Documents' text recognition (OCR) is off unless chosen</strong>, on its own Documents tab, any time or only between two times you set.</li></ul>
+<h2 id="for-system-administrators">For system administrators</h2>
+<ul><li><strong>The web server runs nginx 1.30.7</strong> (Alpine's), with the security fixes its makers' image does not carry yet.</li><li><strong>The images take Alpine's newest package fixes</strong> at every build, not only when the base image changes.</li><li><strong>Every container at a fixed version tag.</strong></li><li>**<code>eax diag</code><strong> writes its whole report; </strong><code>eax test sonar</code>** runs one scan at a time; four Jenkins pipelines that could never run now ask for confirmation and run.</li><li><strong>Before a full test</strong> the command says when Docker has too little memory (12 GB is needed).</li><li><strong>Mail to an SMTP server over TLS</strong> checks the server's certificate and name.</li><li><strong>Web addresses</strong> are opened over http and https only.</li><li><strong>Containers' logs</strong> can be searched over the whole log, not only the last 5,000 lines.</li></ul>
+<h2 id="testing">Testing</h2>
+<ul><li><strong>The full test can be started and trusted to finish</strong>: the unit tests run on a copy of the code; a browser page that crashes fails only its own check; every step writes a summary even when one fails; SonarQube's findings are on the test report.</li><li><strong>A failed browser step says what the open pop-up answered</strong>, so a failure can be understood from the report.</li><li><strong>Journeys tick exactly the choice they name</strong> (a gate on phase B was never set: the RACI field's label held a "b").</li><li>Time limits that a busy laptop could not meet were raised (the AI tools 10 minutes a call, a report page 5 minutes).</li></ul>
+<h2 id="accepted-in-writing">Accepted in writing</h2>
+<ul><li>171 SonarQube findings (each with its reason) and the security findings with no fix released yet.</li><li>Two findings inside Docker's own command-line plug-ins in the ops image, until 31 Dec 2026 (no Docker release has the fix yet).</li></ul>
+<h2 id="known-issues">Known issues</h2>
+<ul><li><strong>Every report opens</strong> fails on a laptop: a report dashboard can take more than 5 minutes to open while the test runs, and ten take 31 to 91 seconds. Fixed in Release 14.5 (R14.5.19): the reports' queries made fast, the test made lighter.</li><li><strong>Before Release 22</strong>, do not run <code>clean-restart</code>, <code>clean-run</code> or <code>cleanup --all</code> on a server: they delete every database without asking. Use <code>.\eax up</code> or <code>.\eax restart</code>, which keep the data. Keep scheduled backups on and copied off the machine.</li></ul>
+<h2 id="next">Next</h2>
+<p>Release 14.5 (code coverage over 90%, journeys for every screen, then the reports made fast), then Release 22 (upgrading a running installation: <code>eax update --from</code>, the upgrade test in every release, nothing wipes production).</p>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="14.0.0">Version 14.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: releases/14.0.0.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

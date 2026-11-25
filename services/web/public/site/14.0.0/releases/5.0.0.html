@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EA Explorer 5.0.0: Release 5 · EA Explorer</title>
+<meta name="description" content="EA Explorer 5.0.0: Release 5">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html">Install and run</a><a href="../releases/index.html" class="here">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>EA Explorer 5.0.0: Release 5</h1>
+    <p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    
+    
+    <nav class="toc" aria-label="On this page"><strong>On this page</strong><ul><li><a href="#security">Security</a></li><li><a href="#operations">Operations</a></li><li><a href="#testing">Testing</a></li><li><a href="#for-developers">For developers</a></li><li><a href="#fixed-while-testing">Fixed while testing</a></li></ul></nav>
+    <p>Release 5 (released 15 Nov 2026; D696: built whole, tested with the automation, its bugs fixed, then released, nothing carried forward): running EA Explorer on a server with confidence: security at the front door, alerts, logs, database maintenance, an optimisation report, a service desk, and testing that runs by itself.</p>
+<p><strong>Before updating:</strong> take a backup (<code>.\eax backup before-5.0.0</code>). From 4.0.0 the update runs migrations 0078 to 0089 (machine credentials' addresses, the Auditor role, alerts, database maintenance runs, the service desk and its rework, the optimisation reports, the performance suite, sizing estimates, the live browser, a duplicate index removed, the version; tables and data only). A <strong>clean rebuild</strong> is needed: the operations helper, the front door's configuration, the set-up and the test runner change (<code>.\eax clean-restart</code>). Then <code>.\eax test full</code>.</p>
+<h2 id="security">Security</h2>
+<ul><li><strong>IP allow lists</strong> at the front door, per place (the screens, sign-in, administration, MCP, machine access), never locking out the person who sets them; a machine credential limited to its own addresses (R5.2, D686; <code>eax allow</code>).</li><li><strong>Multi-factor sign-in</strong> as a setting, off by default: for admins or everyone (R5.3, D690).</li><li><strong>The Auditor role</strong> (eax-audit): sees everything a Super Admin sees, changes nothing, never sees a secret (R5.22, D693).</li><li><strong>Signed deployments</strong>, for an organisation that wants them: <code>eax sign</code> and <code>eax verify</code>; an update refuses a version not signed by a trusted key once one is trusted (R5.10, D685).</li><li><strong>Automated security testing</strong>: weekly by itself and nightly in CI; a signed-in ZAP scan; code, secrets and licence scanning; the attacks of Release 3 kept as tests; a gate on high and critical findings with accepted ones that expire; the trend on Self-test › Security and an alert on a new finding (R5.17, D698).</li></ul>
+<h2 id="operations">Operations</h2>
+<ul><li><strong>Alerts</strong>: checks with levels, hold, flapping, acknowledge, silence, escalation, email and webhooks (R5.9, D689).</li><li><strong>Logs</strong>: levels, every container's logs kept and rolled, the web log of every call, on System Admin › Logs (R5.6 to R5.8, D688).</li><li><strong>Log files roll at a size set on System Admin › Logs</strong> (Size and keeping): 100 KB by default for every log file, and for Docker's own copy of each container's output from the next <code>.\eax up</code>; kept 7 days, however many files (R5.26, D701).</li><li><strong>Database maintenance</strong>: every database checked daily, tidied nightly without locks, compacting and lock resolution after a preview (R5.12, D691; <code>eax db</code>).</li><li><strong>The optimisation report</strong>: monthly suggestions with their evidence and the people who made and look after each model or project, applied only with a yes, for a whole model or project; on screen and as Excel (R5.1, D697; <code>eax optimise</code>).</li><li><strong>Server sizing</strong>: a best estimate of RAM, CPU and disk, per container too, with a compose override (R5.19; <code>eax estimate</code>).</li><li><strong>Where the data lives</strong>: one base folder, a folder per kind of data (R5.4, D687; <code>eax folders</code>).</li><li><strong>The service desk</strong>: choose a group, then what you need (or "Something else"); every request goes to the Super Admins, who assign it to a person (R5.11, R5.27, D692, D700; <code>eax ticket</code>).</li><li><strong>The version review</strong> every three months, as a scheduled task (R5.21, D694).</li></ul>
+<h2 id="testing">Testing</h2>
+<ul><li><strong>Performance testing</strong>: <code>eax test performance</code>, k6 with many people at once, compared with the last release's baseline; run only when asked for, never as part of the full test (R5.18, D695, R5.29).</li><li><strong>Watch the tests' browsers live</strong>, streamed only while watched; slow motion and pause after each step; every journey's video and trace kept for a watched run (R5.20; <code>eax test watch --browser</code>).</li></ul>
+<h2 id="for-developers">For developers</h2>
+<ul><li><strong>Every module, class and function documented</strong>, kept so by a test; <code>docs/functional-description.md</code> (R5.14, R5.15).</li><li><strong>docs/handover.md</strong> and <code>eax dev check</code> for whoever takes the work over (R5.16).</li></ul>
+<h2 id="fixed-while-testing">Fixed while testing</h2>
+<ul><li>The clean rebuild stopped at the Reports image: it asked for an image library (Pillow 13) that Superset 6.1.0 cannot run. Superset's own version is kept; its findings are accepted until the version review on 1 Feb 2027, because the features that use it are off (R5.23, D699).</li><li>After the clean rebuild the site could not be reached: one line of the front door's configuration (the web log's day) was written in a way nginx refuses, so it never started (R5.24).</li><li>Multi-factor sign-in turned off still asked for a code from people who had set one up when it was on: turning it off now also removes the codes EA Explorer asked people to set up (R5.25).</li><li>Database maintenance found the background tasks' index made twice: the extra one is removed (R5.28).</li></ul>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="14.0.0">Version 14.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: releases/5.0.0.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

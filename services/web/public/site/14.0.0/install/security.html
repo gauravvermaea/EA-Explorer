@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security hardening · EA Explorer</title>
+<meta name="description" content="Security hardening">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html" class="here">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Security hardening</h1>
+    <p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    
+    
+    
+    <p>A checklist for a security review.</p>
+<p>On screen: System Admin &gt; Setup &gt; Security hardening, where you fill in your values and get every command ready to copy. On the machine: <code>eax setup security</code> with <code>--set KEY=VALUE</code> for each value. In Jenkins: the <code>setup</code> pipeline with <code>security</code>.</p>
+<h2 id="your-values">Your values</h2>
+<div class="table"><table><thead><tr><th>Value</th><th>What it is</th><th>For example</th></tr></thead><tbody><tr><td><code>&lt;ADDRESS&gt;</code></td><td>An address or range to let in</td><td><code>10.20.0.0/16</code></td></tr></tbody></table></div>
+<h2 id="steps">Steps</h2>
+<h3 id="1-certificate-mode">1. Certificate mode</h3>
+<p>The services sign in with certificates.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax certs</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh certs</code></pre>
+<h3 id="2-multi-factor-sign-in">2. Multi-factor sign-in</h3>
+<p>System Admin &gt; Security: admins or everyone.</p>
+<h3 id="3-ip-allow-listing">3. IP allow-listing</h3>
+<p>System Admin &gt; Security &gt; Allowed addresses, or from the machine: <code>&lt;ADDRESS&gt;</code> let in to the site.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax allow add site &lt;ADDRESS&gt;</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh allow add site &lt;ADDRESS&gt;</code></pre>
+<h3 id="4-secrets">4. Secrets</h3>
+<p>Every password's age; rotation every 90 days.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax secrets show</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh secrets show</code></pre>
+<h3 id="5-the-front-door-s-certificate">5. The front door's certificate</h3>
+<p>The organisation's own (guide: certificates).</p>
+<h3 id="6-the-security-test">6. The security test</h3>
+<p>Scans and attacks.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax test security</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh test security</code></pre>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="14.0.0">Version 14.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: install/security.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

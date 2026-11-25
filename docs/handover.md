@@ -4,7 +4,7 @@ The state of the work, for whoever picks it up next: a person or another AI with
 13 Nov 2026: "what happens if I need another ai to work on this"). **Updated at the end of every working session.**
 Read [AGENTS.md](../AGENTS.md) first, run `eax dev check`, then read this.
 
-Last updated: 23 Nov 2026, night. Releases 9, 10 and 11 are accepted (**9.0.0**, **10.0.0**, **11.0.0**); **Release 12 is closed as an unstable release, 12.0.0** (D897; every problem found is in Release 14, R14.27 to R14.33); **Release 13 is accepted, 13.0.0** (D900): System Admin in seven groups with multi-level tabs and the same structure in the menu (D898), every command-line option documented with a test (D899); R13.3 dropped. **Next: Release 14, stabilisation: every test runs and passes, the full test included (R14.34, R14.36); it starts from the owner's full test (the baseline). Then Release 14.5: code coverage over 90% for the server and for the screens, the screens through use cases in the browser, error screens by faked answers, no file under 60% (R14.5.1 to R14.5.6). Then Release 21, then 15** (D901). The releases are numbered in the order they are built (D869): **10** scenario planning, **11** certificate mode, **12** templates (closed, unstable), **13** System Admin regrouped and every
+Last updated: 25 Nov 2026, morning. **Release 14 is accepted and closed, 14.0.0** (D922): stabilisation; after a clean restart the dev check (2,646 passed), backup and restore, SonarQube (nothing to fix), the security gate (none failing) and the DR drill (9 minutes to recover) pass, and the self-test passes but for one known check, every report opens (R14.5.19). Releases 9 to 13 accepted earlier (13.0.0, D900; 12.0.0 closed as unstable, D897). The order now: **14.5** (coverage, journeys for every screen, then the reports made fast), **22** (upgrading a running installation, D913 to D919), **21** (deploy), **15** to **20** (documents, pictures and website, the books, the videos with the Videos page R20.1, D920).
 command-line option documented (accepted), **14** stabilisation (the bugs, R14.n, were R12.n), **15** the documents, **16** every picture and the website (D873), the books **17**
 (project types), **18** (the Architect's Bible, D861, D862) and **19** (scenario planning), **20** the videos. Until Release 16 no
 documentation for users changes (D850). Push after each change (D853).
@@ -16,6 +16,16 @@ docs/manual-tests.md, the themes (R9.5: System admin > Branding, then My look), 
 (R9.3), and last `.\eax test full` (R9.10: the DR drill is now its last step; hours). What fails goes to Release 14.
 Known before the run: R14.18 (four Jenkins pipelines that can never run, found by eax test jenkins).
 
+**Pick up here (25 Nov 2026, Release 14 closed):**
+- Next is Release 14.5. Start with the coverage bar, to be discussed with the owner (R14.5.1, R14.5.2); then the use cases in
+  the browser (R14.5.3) and the journeys for the 180 screens no journey uses (R14.5.7 to R14.5.18, docs/release-14.5-journeys.md);
+  after the coverage work, the reports (R14.5.19: the queries measured and made fast, the check made lighter; the test browser
+  reached 6.6 GB and the host paged).
+- Open small items: the repeat run's progress counter leaves out what a repeat adds ("26 of about 26" while two checks wait);
+  the PDF test reads whole 600 KB documents (to shorten); the drill's leftovers on the owner's laptop (remove-copy, delete-backup).
+- Until Release 22: never clean-restart a server (it deletes every database without asking; R22.13).
+
+**Earlier (kept for the record):**
 **Pick up here (the owner's full test of 21 Nov 2026, 16:24 to about 20:20, after a clean restart):**
 - Dev check: 2,288 passed, 3 failed, then pytest-cov INTERNALERROR (two coverage measurers; fixed, R14.7): the 3
   failures were not named and no unit coverage saved. Next: the owner runs `.\eax dev check` again (no rebuild).

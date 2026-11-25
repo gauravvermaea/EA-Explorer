@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Restores · EA Explorer</title>
+<meta name="description" content="Restores">
+<link rel="stylesheet" href="../assets/site.css">
+</head>
+<body data-root="../">
+<a class="skip" href="#main">Skip to the page</a>
+<header class="top">
+  <a class="brand" href="../index.html">EA Explorer</a>
+  <nav class="sections" aria-label="The site"><a href="../index.html">Home</a><a href="../roles/index.html">Your role</a><a href="../concepts/index.html">Concepts</a><a href="../how-do-i/index.html">How do I</a><a href="../faq.html">Questions</a><a href="../guides/index.html">Guides</a><a href="../printed-guides/index.html">Printed guides</a><a href="../reports/index.html">Reports</a><a href="../integrate/index.html">Integrate</a><a href="../platform/index.html">Platform</a><a href="../install/index.html" class="here">Install and run</a><a href="../releases/index.html">Releases</a><a href="../videos.html">Videos</a><a href="../further-reading.html">Further reading</a></nav>
+  <form class="search" role="search" action="../search.html">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
+</header>
+<main id="main" class="page">
+  <article>
+    <h1>Restores</h1>
+    <p class="page-tools"><button type="button" class="print">Print or save as PDF</button></p>
+    
+    
+    
+    <p>A model, a project, a part or everything put back.</p>
+<p>On screen: System Admin &gt; Setup &gt; Restores, where you fill in your values and get every command ready to copy. On the machine: <code>eax setup restores</code> with <code>--set KEY=VALUE</code> for each value. In Jenkins: the <code>setup</code> pipeline with <code>restores</code>.</p>
+<h2 id="your-values">Your values</h2>
+<div class="table"><table><thead><tr><th>Value</th><th>What it is</th><th>For example</th></tr></thead><tbody><tr><td><code>&lt;BACKUP&gt;</code></td><td>A backup's name, or latest</td><td><code>latest</code></td></tr></tbody></table></div>
+<h2 id="steps">Steps</h2>
+<h3 id="1-a-model">1. A model</h3>
+<p>Model Admin &gt; the model &gt; Backups &gt; Restore (over itself or as a new model).</p>
+<h3 id="2-a-project">2. A project</h3>
+<p>The project's About tab &gt; Back up and restore.</p>
+<h3 id="3-a-part">3. A part</h3>
+<p>Backups &gt; a backup &gt; Restore &gt; the databases, the files or the config (<code>&lt;BACKUP&gt;</code>: a backup's name, or latest).</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax restore &lt;BACKUP&gt; --what db</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh restore &lt;BACKUP&gt; --what db</code></pre>
+<h3 id="4-everything">4. Everything</h3>
+<p>Backups &gt; a backup &gt; Restore &gt; everything: EA Explorer is read only meanwhile.</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax restore &lt;BACKUP&gt; --what full</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh restore &lt;BACKUP&gt; --what full</code></pre>
+<h3 id="5-check-it">5. Check it</h3>
+<p>The integrity check runs by itself after every restore (guide: database checks).</p>
+<p>Windows (PowerShell):</p>
+<pre class="code"><code>.\eax db integrity</code></pre>
+<p>Linux or macOS:</p>
+<pre class="code"><code>./eax.sh db integrity</code></pre>
+    
+  </article>
+</main>
+<footer class="foot">
+  <span>EA Explorer: free and open source (AGPL-3.0).</span>
+  <span class="site-build" data-version="14.0.0">Version 14.0.0</span>
+  <a href="https://www.youtube.com/@ea-explorer-os" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="https://github.com/gauravvermaea/EA-Explorer" target="_blank" rel="noopener">The code on GitHub ↗</a>
+  <span class="printed-from">Printed from the EA Explorer website: install/restores.html</span>
+</footer>
+<script src="../assets/search-index.js"></script>
+<script src="../assets/site.js"></script>
+</body>
+</html>
