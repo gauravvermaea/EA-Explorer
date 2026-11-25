@@ -453,3 +453,84 @@ def test_one_disk_is_listed_once_even_when_its_free_space_changes(monkeypatch, t
     a.mkdir()
     b.mkdir()
     assert len(sm.disks([a, b, tmp_path])) == 1
+
+
+# ---------------------------------------------------------------- 9. the project plan journey's gate (owner, 06:36: "Why cant we fix Project plan journey")
+class _Labels:
+    """Playwright's label list, as far as choose uses it: has_text a text (any case, anywhere) or a pattern."""
+    def __init__(self, texts):
+        self.texts = texts
+
+    def filter(self, has_text):
+        if isinstance(has_text, re.Pattern):
+            return _Labels([t for t in self.texts if has_text.search(t)])
+        return _Labels([t for t in self.texts if has_text.lower() in t.lower()])
+
+    def count(self):
+        return len(self.texts)
+
+    def nth(self, i):
+        return _Label(self.texts[i])
+
+
+class _Label:
+    def __init__(self, text):
+        self.text, self.clicked = text, False
+
+    def locator(self, _sel):
+        return _Box(self.text)
+
+    def click(self):
+        _Label.last = self.text
+
+
+class _Box:
+    def __init__(self, text):
+        self.text = text
+
+    def count(self):
+        return 0 if self.text.startswith("RACI") else 1
+
+    @property
+    def first(self):
+        return self
+
+    def get_attribute(self, _a):
+        return "checkbox"
+
+    def is_checked(self):
+        return getattr(_Label, "last", None) == self.text
+
+
+class _Within:
+    def __init__(self, texts):
+        self.texts = texts
+
+    def locator(self, _sel):
+        return _Labels(self.texts)
+
+    def wait_for_timeout(self, _ms):
+        pass
+
+
+def test_choose_takes_the_label_that_says_exactly_b(monkeypatch):
+    """Phase B was completed where its approval gate should have refused it: "choose B" took the first label holding a
+    b in any case, the RACI field's (its list says "Per deliverable"), so the gate on B was never ticked."""
+    from eax.testing import ui_flows
+    page = _Within(["RACI No RACI Per phase Per deliverable Per step", " P", " A", " B", " C"])
+    monkeypatch.setattr(ui_flows, "_visible", lambda _l: True)
+    monkeypatch.setattr(ui_flows, "_root", lambda pg, _s: pg)
+    monkeypatch.setattr(ui_flows, "_in_modal_first", lambda _p, root, _s, fn: fn(root))
+    _Label.last = None
+    why = ui_flows.step(page, {"choose": "B", "within": ".project-plan details", "checked": True}, lambda *_a: None)
+    assert why == "" and _Label.last == " B"
+    _Label.last = None                                  # a longer choice that is no label's whole text: as before
+    page = _Within(["Full cycle (P, A, B, C, D, E, F, G, H)", "Transition Planning (E, F)"])
+    assert ui_flows.step(page, {"choose": "Full cycle", "within": "[role=dialog]"}, lambda *_a: None) == ""
+    assert _Label.last.startswith("Full cycle")
+
+
+def test_the_old_way_took_the_raci_label():
+    texts = ["RACI No RACI Per phase Per deliverable Per step", " P", " A", " B"]
+    assert [t for t in texts if "b" in t.lower()][0].startswith("RACI")             # what went wrong
+    assert [t for t in texts if re.search(r"^\s*B\s*$", t)] == [" B"]                # what is taken now

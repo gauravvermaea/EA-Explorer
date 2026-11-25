@@ -902,10 +902,14 @@ def step(page, s: dict, open_route: Callable[..., None], state: dict | None = No
                 page.wait_for_selector(s["opens"], timeout=timeout)
     elif "choose" in s:
         def label(w):
-            lab = w.locator("label").filter(has_text=s["choose"])
-            for i in range(min(lab.count(), 10)):
-                if _visible(lab.nth(i)):
-                    return lab.nth(i)
+            # the label that says exactly that first, then one that holds it: a bare "B" (the approval gate on phase B)
+            # matched the RACI field's label first, whose list holds "Per deliverable", and the gate was never ticked
+            # (the full test of 24 Nov 2026: phase B completed where the gate should have refused it, D912)
+            for lab in (w.locator("label").filter(has_text=re.compile(rf"^\s*{re.escape(s['choose'])}\s*$")),
+                        w.locator("label").filter(has_text=s["choose"])):
+                for i in range(min(lab.count(), 10)):
+                    if _visible(lab.nth(i)):
+                        return lab.nth(i)
             return None
         loc = _in_modal_first(page, root, s, label)
         if loc is None:
