@@ -3002,9 +3002,14 @@ label.check.inline { display: inline-flex; margin-right: 8px; }
 /* System admin > Self-test > Summary: the full test, one card a step (D825) */
 .full-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; margin-top: 10px; }
 .full-card { border: 1px solid var(--line, #d0d7de); border-radius: 10px; padding: 12px 14px; background: var(--panel, #fff); }
+.full-wide { margin-top: 14px; overflow-x: auto; }
+.full-where { margin: 8px 0 4px; padding: 8px 12px; border-left: 4px solid var(--accent, #2563eb); background: var(--panel, #fff); }
+.full-wide td { vertical-align: top; }
 .full-card h3 { font-size: 16px; margin: 0 0 8px; } .full-card h4 { font-size: 13px; margin: 8px 0 4px; color: var(--quiet); }
 .full-card th { text-align: left; font-weight: 500; color: var(--quiet); padding: 2px 8px 2px 0; vertical-align: top; }
 .full-ring { text-align: center; }
+.full-overall { grid-column: 1 / -1; }
+.full-pair { display: flex; justify-content: center; gap: 32px; margin: 4px 0 8px; }
 .full-summary .pill, .full-card .pill { font-size: 12px; border-radius: 10px; padding: 2px 8px; margin-left: 6px; color: #fff; vertical-align: middle; }
 .full-summary .pill.good { background: #1a7f37; } .full-summary .pill.bad { background: #c62828; } .full-summary .pill.none { background: #8a8f98; }
 

@@ -58,7 +58,8 @@ def test_a_runs_summary_holds_its_figures_never_its_lines(tmp_path):
     s = run_summary.make(detail, tmp_path)
     assert s["run"] == 12 and s["tally"]["failed"] == 2 and s["health"] == "amber"
     assert s["coverage"] == {"percent": 71.3, "live": 55.0, "unit": 64.4, "goal": 90.0, "lines": 1000, "run": 713, "joined": True,
-                             "api": None, "api_lines": 0, "api_run": 0, "api_left_out": 0, "jobs": None, "jobs_lines": 0, "jobs_run": 0}   # the goal's own figure (eax/api, D923)
+                             "api": None, "api_lines": 0, "api_run": 0, "api_left_out": 0, "jobs": None, "jobs_lines": 0, "jobs_run": 0,
+                             "risky": False}   # the goal's own figure (eax/api, D923)
     assert "files" not in json.dumps(s)                               # which lines ran stays out: a few kilobytes
     assert s["security"]["failing"] == 1 and s["security"]["accepted"] == 2 and s["security"]["new"] == 1
     assert s["attack"]["findings"] == {"nuclei": {"low": 2}}          # only the attack test's own scanners
@@ -313,7 +314,7 @@ def test_the_self_test_page_has_the_summary_and_keep_summary_only():
     assert '["summary", "Summary"]' in runs and "<FullSummary onOpen={setOpen} />" in runs
     assert "Keep summary only" in runs and "Delete the detailed files, keep the summaries..." in runs
     page = (REPO / "services/web/src/FullSummary.jsx").read_text(encoding="utf-8")
-    for x in ("/api/v1/admin/tests/full", "<Ring percent={cov.percent}", "Attack test", "SonarQube", "Keep the summary only..."):
+    for x in ("/api/v1/admin/tests/full", "<Ring percent={api ?? cov.percent}", "Attack test", "SonarQube", "Keep the summary only..."):
         assert x in page
 
 
@@ -327,3 +328,13 @@ def test_scheduled_upkeep_cleans_up_the_logs_and_the_test_files():
     for url in ("/api/v1/admin/logs/clean", "/api/v1/admin/tests/prune", "/api/v1/admin/tests/delete"):
         assert url in up
     assert "<UpkeepChoices cleanup />" in (REPO / "services/web/src/CommandCentre.jsx").read_text(encoding="utf-8")
+
+
+
+def test_the_summary_screen_shows_the_api_the_screens_and_what_is_not_covered():
+    """Owner, 25 Nov 2026, 16:13: the app's Summary screen showed 63.8% "our code", not the API's 83.3% nor the screens."""
+    page = (REPO / "services/web/src/FullSummary.jsx").read_text(encoding="utf-8")
+    for x in ("the API (eax/api), the goal's measure", "the background jobs", "all the server's code", "left out of the goal",
+              "Screens covered by journeys", 'label="the screens"', "<Gaps g={s.gaps} />", "Not covered yet",
+              "The API: files under the goal of", "Screens not covered yet, by area", "Screens left out of the bar"):
+        assert x in page, x

@@ -77,13 +77,14 @@ def test_the_coverage_counts_acted_on_and_read_only_screens():
 def test_the_result_line_and_the_summary(tmp_path):
     got = S.summarise(_collect())
     outcome, detail = S.line(got)
-    assert outcome == "passed"                               # no bar yet: the first reading sets it (D923)
-    assert detail.startswith("60.0% of 5 screens covered (1 acted on by a journey, 3 read only and opened)")
+    assert outcome == "warning"                              # under the bar of 90% (owner, 25 Nov 2026, 12:12)
+    assert "60.0% of 5 screens covered (1 acted on by a journey, 3 read only and opened)" in detail
     assert "controls used 2 of 5 (40.0%)" in detail and "3 risky controls left out" in detail
     S.save(tmp_path, got)
     back = json.loads((tmp_path / S.FILE).read_text(encoding="utf-8"))
     assert S.summary(back) == {"screens": 5, "covered": 3, "percent": 60.0, "acted_on": 1, "read_only": 3, "controls": 5,
-                               "controls_used": 2, "controls_percent": 40.0, "left_out": 3}
+                               "controls_used": 2, "controls_percent": 40.0, "left_out": 3, "bar": 90.0,
+                               "screens_left_out": 0}
     assert S.line({"screens": 0}) [0] == "skipped" and S.summary(None) is None
 
 
@@ -203,3 +204,71 @@ def test_a_full_test_of_one_suite_runs_no_backup_restore_sonar_or_dr():
                  "if not no_sonar and not part:", "if not no_dr and not part:"):
         assert gate in src, gate
     assert "or --pages-only only the dev check and that part of" in (REPO / "eaxcli/help.txt").read_text(encoding="utf-8")
+
+
+# the screens' bar (owner, 25 Nov 2026, 12:12: "Bar for screens is currently 90%") and the screens left out of the count
+
+
+def test_the_bar_is_90_and_under_it_is_a_warning():
+    assert S.BAR == 90.0
+    got = S.summarise(_collect())                         # 60% of 5 screens
+    outcome, detail = S.line(got)
+    assert outcome == "warning" and detail.startswith("under the bar of 90% by 30.0 points: 60.0% of 5 screens")
+    c = S.Collector()
+    for n in range(10):
+        c.page(f"#/admin/area{n}", [], True)              # ten read-only screens that open: all covered
+    outcome, detail = S.line(S.summarise(c))
+    assert outcome == "passed" and detail.startswith("at or over the bar of 90%")
+
+
+def test_the_screens_left_out_are_not_counted_and_are_listed():
+    c = _collect()
+    c.page("#/admin/pairings", [{"words": "Pair with another installation", "kind": "button"}], True)
+    c.page("#/admin/self-test/run", [{"words": "Start", "kind": "button"}], True)
+    got = S.summarise(c)
+    assert got["screens"] == 5 and got["percent"] == 60.0                       # as without them
+    assert {x["screen"] for x in got["screens_left_out"]} == {"#/admin/pairings", "#/admin/self-test/run"}
+    assert all(x["why"] for x in got["screens_left_out"])
+    assert "2 screens left out (#/admin/pairings, #/admin/self-test/run)" in S.line(got)[1]
+    s = S.summary(got)
+    assert (s["bar"], s["screens_left_out"]) == (90.0, 2)
+
+
+def test_the_summary_page_shows_the_bar():
+    sys.path.insert(0, str(REPO))
+    from eaxcli import fullreport
+    page = "".join(fullreport.cards({"selftest": {"screens": {"screens": 210, "covered": 49, "percent": 23.3, "bar": 90.0,
+                                                              "screens_left_out": 5, "controls": 2545, "controls_used": 108,
+                                                              "controls_percent": 4.2, "left_out": 78}}}))
+    assert "screens left out" in page and "The bar: 90% of the screens counted." in page
+
+
+def test_a_projects_frame_counts_on_its_own_page_only():
+    """Pin, Mark complete, Finish and Choose… show on every tab of a project: counted on the project's own page."""
+    frame = [{"words": "Pin self_test_x_3", "kind": "button", "frame": True},
+             {"words": "Finish the project…", "kind": "button", "frame": True}]
+    c = S.Collector()
+    c.page("#/projects/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", frame + [{"words": "Open", "kind": "button"}], True)
+    c.page("#/projects/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/models", frame, True)
+    c.page("#/projects/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/tasks", frame + [{"words": "A new task", "kind": "field"}], True)
+    rows = {r["screen"]: r for r in S.summarise(c)["by_screen"]}
+    assert rows["#/projects/{id}"]["controls"] == 3
+    assert rows["#/projects/{id}/models"]["read_only"] and rows["#/projects/{id}/models"]["covered"]
+    assert rows["#/projects/{id}/tasks"]["controls"] == 1 and not rows["#/projects/{id}/tasks"]["covered"]
+    assert ".project-head, .iteration-bar, .model-head" in S.CONTROLS_JS and "frame: true" in S.CONTROLS_JS
+
+
+def test_a_models_frame_counts_on_its_own_page_only():
+    frame = [{"words": "Pin self_test_x_1", "kind": "button", "frame": True}, {"words": "Lock...", "kind": "button", "frame": True}]
+    c = S.Collector()
+    c.page("#/metamodel/11111111-1111-1111-1111-111111111111", frame, True)
+    c.page("#/metamodel/11111111-1111-1111-1111-111111111111/business", frame, True)
+    c.page("#/model-admin/11111111-1111-1111-1111-111111111111/documents", frame, True)
+    rows = {r["screen"]: r for r in S.summarise(c)["by_screen"]}
+    assert rows["#/metamodel/{id}"]["controls"] == 2
+    assert rows["#/metamodel/{id}/business"]["read_only"] and rows["#/model-admin/{id}/documents"]["read_only"]
+
+
+def test_a_download_acts_on_its_screen():
+    """Pressing a download button is using the screen (25 Nov 2026: the estate pictures' only safe action)."""
+    assert S.acted({"download": "Download SVG"}) == ("download", "Download SVG")

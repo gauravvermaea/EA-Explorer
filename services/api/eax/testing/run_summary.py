@@ -48,7 +48,7 @@ def coverage(c: dict | None) -> dict | None:
             "api": _num(c.get("goal_percent")), "api_lines": int(c.get("goal_lines") or 0),
             "api_run": int(c.get("goal_run") or 0), "api_left_out": int(c.get("goal_left_out_lines") or 0),
             "jobs": _num(c.get("jobs_percent")), "jobs_lines": int(c.get("jobs_lines") or 0),
-            "jobs_run": int(c.get("jobs_run") or 0)}
+            "jobs_run": int(c.get("jobs_run") or 0), "risky": bool(c.get("risky"))}
 
 
 def _screens(got: dict | None) -> dict | None:

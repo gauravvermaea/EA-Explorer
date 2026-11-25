@@ -446,7 +446,11 @@ def coverage_html(c: dict) -> str:
                     for f in c.get("files") or [])
     return ("<!doctype html><meta charset='utf-8'><title>Code coverage</title><style>body{font-family:sans-serif}"
             "td,th{padding:2px 8px;text-align:left}</style>"
-            f"<h1>Code coverage of the API: {c.get('percent')}%</h1><p>{c.get('run')} of {c.get('lines')} lines of EA Explorer's "
+            + (f"<h1>The API (eax/api), the goal's measure: {c.get('goal_percent')}%</h1><p>{c.get('goal_run')} of "
+               f"{c.get('goal_lines')} lines; {c.get('goal_left_out_lines', 0)} lines left out (pairing, the routes that stop, "
+               "restart, restore or wipe the installation, the self-test's own controls). The bar of the area api below "
+               "counts them.</p>" if c.get("goal_percent") is not None else "")
+            + f"<h2>All the server's code: {c.get('percent')}%</h2><p>{c.get('run')} of {c.get('lines')} lines of EA Explorer's "
             "code ran while the API was up (since it started; D642).</p>"
             f"<h2>By area</h2><table><tr><th>Area</th><th>Lines run</th><th>Lines</th><th>Covered</th></tr>{rows}</table>"
             f"<h2>By file, the least covered first</h2><table><tr><th>File</th><th>Lines run</th><th>Lines</th><th>Covered</th></tr>"
@@ -467,6 +471,7 @@ JOB_FILES = ("eax/background.py", "eax/jobs.py", "eax/tasks.py", "eax/jobqueue.p
 LEFT_OUT_FILES = {"eax/api/pairing.py": "pairing needs a second installation"}
 _UNSAFE = "changes the running installation for everyone"
 _RESTORE = "a restore: eax test backup-restore covers it"
+_SELF = "the self-test's own control: a test run inside the test run"
 LEFT_OUT_ROUTES = [
     ("eax/api/admin.py", "/admin/secrets/rotate", None, "rotates the installation's secrets"),
     ("eax/api/admin.py", "/admin/front-certificate", None, "replaces the front door's certificate"),
@@ -490,10 +495,56 @@ LEFT_OUT_ROUTES = [
     ("eax/api/backups.py", "/internal/restore-started", None, _RESTORE),
     ("eax/api/backups.py", "/admin/backups/stop", None, "stops a backup that is running"),
     ("eax/api/projects.py", "/projects/restore", None, _RESTORE),
+    ("eax/api/backups.py", "/admin/backups/restore-model", None, _RESTORE),
+    ("eax/api/backups.py", "/admin/backups/infrastructure", {"post"}, "a full backup: the containers paused while it runs"),
+    ("eax/api/backups.py", "/admin/backups/override", None, "changes where the backups are kept"),
+    # changes a live installation's people, front door or logging, or ends work in progress (R14.5 batch 3)
+    ("eax/api/access.py", "/people/mfa-reset", None, "resets a person's second factor"),
+    ("eax/api/jobs.py", "/queue/clear-stuck", None, "kills every stuck job, not only the run's"),
+    ("eax/api/jobs.py", "/queue/restart-runner", None, "restarts the job runner"),
+    ("eax/api/jobs.py", "/queue/history", {"delete"}, "deletes the finished jobs' history"),
+    ("eax/api/settings_transfer.py", "/admin/settings-transfer/import", None, "replaces the installation's settings"),
+    ("eax/api/settings_transfer.py", "/admin/settings-transfer/undo", None, "puts back the settings before an import"),
+    ("eax/api/admin.py", "/admin/logs/rolling", {"put"}, "writes the config file (how logs roll)"),
+    ("eax/api/admin.py", "/admin/allow", {"put"}, "reloads the front door with new allow lists"),
+    ("eax/api/admin.py", "/admin/logs/web-debug", None, "switches the screens' debug logging"),
+    ("eax/api/admin.py", "/admin/containers/<service>/terminal", None, "opens a shell in a container"),
+    ("eax/api/admin.py", "/admin/alerting/test-email", None, "sends an email to real people"),
+    # the self-test's own controls (owner, 25 Nov 2026, 12:11: agreed): run from inside a test run they would start, stop,
+    # repeat or delete test runs, the running one too; their reads (a run's report, files, screenshots) stay in
+    ("eax/api/platform_tests.py", "/tests", {"post"}, _SELF),
+    ("eax/api/platform_tests.py", "/tests/build", {"post"}, _SELF),
+    ("eax/api/platform_tests.py", "/tests/delete", None, _SELF),
+    ("eax/api/platform_tests.py", "/tests/prune", None, _SELF),
+    ("eax/api/platform_tests.py", "/tests/<int:run_id>/repeat", None, _SELF),
+    ("eax/api/platform_tests.py", "/tests/<int:run_id>/live-browser", {"post"}, _SELF),
+    ("eax/api/platform_tests.py", "/tests/<int:run_id>/stop", None, _SELF),
+    ("eax/api/platform_tests.py", "/tests/<int:run_id>/browser", None, _SELF),
+    ("eax/api/platform_tests.py", "/tests/fixtures/purge", None, _SELF),
+    ("eax/api/platform_tests.py", "/scaling", {"put"}, "changes how many API servers run"),
 ]
 
 
-def left_out_lines(root: Path | None = None) -> tuple[dict[str, set[int]], list[dict]]:
+# the routes the risky suite runs (D927; owner, 25 Nov 2026, 16:41: "Model restore is ok, deleting anything like logs
+# models etc is ok"): left out of the goal on an ordinary run, counted when the run has --risky. Never a restart, the
+# installation taken down, the secrets rotated or a full infrastructure restore (those stay left out always).
+RISKY_RUNS = {
+    ("eax/api/backups.py", "/admin/backups/restore-model"),
+    ("eax/api/access.py", "/people/mfa-reset"),
+    ("eax/api/jobs.py", "/queue/clear-stuck"),
+    ("eax/api/jobs.py", "/queue/history"),
+    ("eax/api/settings_transfer.py", "/admin/settings-transfer/import"),
+    ("eax/api/settings_transfer.py", "/admin/settings-transfer/undo"),
+    ("eax/api/admin.py", "/admin/logs/rolling"),
+    ("eax/api/admin.py", "/admin/allow"),
+    ("eax/api/admin.py", "/admin/logs/web-debug"),
+    ("eax/api/admin.py", "/admin/alerting/test-email"),
+    ("eax/api/admin.py", "/admin/logs/<any(backup, clean):what>"),
+    ("eax/api/admin.py", "/admin/resources"),
+}
+
+
+def left_out_lines(root: Path | None = None, risky: bool = False) -> tuple[dict[str, set[int]], list[dict]]:
     """The lines of the routes left out (LEFT_OUT_ROUTES), found in the code itself (the handler methods of each route's
     class), and the list to show: file, route, methods and why. A route not found is listed as such, never guessed."""
     import ast
@@ -504,6 +555,8 @@ def left_out_lines(root: Path | None = None) -> tuple[dict[str, set[int]], list[
     shown: list[dict] = []
     trees: dict[str, ast.Module | None] = {}
     for f, route, methods, why in LEFT_OUT_ROUTES:
+        if risky and (f, route) in RISKY_RUNS:      # the risky suite runs it (D927): it counts again
+            continue
         if f not in trees:
             try:
                 trees[f] = ast.parse((root / f).read_text(encoding="utf-8"))
@@ -574,7 +627,7 @@ def coverage_gate(c: dict, before: dict | None, goal: float) -> tuple[str, str]:
     return "warning", f"under the goal of {goal:g}% by {round(goal - got, 1)} points"
 
 
-def goal_figures(c: dict, area: str = GOAL_AREA, root: Path | None = None) -> dict:
+def goal_figures(c: dict, area: str = GOAL_AREA, root: Path | None = None, risky: bool = False) -> dict:
     """The goal's own figures: the area the goal is measured on (eax/api, D923), its lines and those run, without what
     is left out (LEFT_OUT_FILES, LEFT_OUT_ROUTES; listed in goal_left_out). From the lines themselves when the files carry
     them; else the area's own totals."""
@@ -585,8 +638,9 @@ def goal_figures(c: dict, area: str = GOAL_AREA, root: Path | None = None) -> di
            "goal_run": int(a.get("run") or 0)}
     mine = [f for f in c.get("files") or [] if str(f.get("file", "")).startswith(f"eax/{area}/") and "statements" in f]
     if mine:
-        skip, routes = left_out_lines(root)
+        skip, routes = left_out_lines(root, risky)
         n = hit = gone = 0
+        files = []
         for f in mine:
             st = set(f.get("statements") or [])
             if f["file"] in LEFT_OUT_FILES:
@@ -594,16 +648,22 @@ def goal_figures(c: dict, area: str = GOAL_AREA, root: Path | None = None) -> di
                 continue
             keep = st - skip.get(f["file"], set())
             gone += len(st) - len(keep)
+            ran = len(set(f.get("ran") or []) & keep)
             n += len(keep)
-            hit += len(set(f.get("ran") or []) & keep)
+            hit += ran
+            if keep:                                  # each file as the goal counts it (shown under "Not covered yet")
+                files.append({"file": f["file"], "lines": len(keep), "run": ran, "percent": round(ran / len(keep) * 100, 1)})
         if n:
+            out.update(goal_files=sorted(files, key=lambda x: (x["run"] - x["lines"], x["file"])))
             out.update(goal_percent=round(hit / n * 100, 1), goal_lines=n, goal_run=hit, goal_left_out_lines=gone,
                        goal_left_out=[{"file": k, "route": "the whole file", "methods": "all", "why": v, "found": True}
                                       for k, v in LEFT_OUT_FILES.items()] + routes)
     jobs = [f for f in c.get("files") or [] if f.get("file") in JOB_FILES]
     n, hit = sum(int(f.get("lines") or 0) for f in jobs), sum(int(f.get("run") or 0) for f in jobs)
     if n:
-        out.update(jobs_percent=round(hit / n * 100, 1), jobs_lines=n, jobs_run=hit)
+        out.update(jobs_percent=round(hit / n * 100, 1), jobs_lines=n, jobs_run=hit,
+                   jobs_files=[{"file": f["file"], "lines": int(f.get("lines") or 0), "run": int(f.get("run") or 0),
+                                "percent": f.get("percent")} for f in jobs])
     return out
 
 
@@ -638,7 +698,8 @@ def coverage_result(r: Run, token: str, scope: str = "") -> dict | None:
         rec("coverage: the API's code run by this test", "skipped", c.get("why") or f"HTTP {s}", ms)
         return None
     c = with_unit_tests(c, r.dir.parent)
-    c.update(goal_figures(c))
+    c.update(goal_figures(c, risky=getattr(r, "risky", False)))
+    c["risky"] = bool(getattr(r, "risky", False))
     goal = coverage_goal()
     before = previous_coverage(r.dir.parent, r.dir, scope)
     outcome, why = coverage_gate(c, before, goal)
@@ -962,6 +1023,11 @@ def cmd_run(args) -> int:
         ids = fixtures.models_and_project(repo, run, by, roles, r.log)
         with engine.begin() as conn:
             store.set_fixture_ids(conn, run_id, ids)
+        r.risky = bool(getattr(args, "risky", False)) and not rep_of
+        if r.risky:                                  # the risky suite (D927): its API writes and journeys join the plan
+            ids = {**ids, "risky": "yes"}
+            r.log("the risky suite is on (--risky): model restores, deletions and settings put back as they were; never a "
+                  "restart, the installation taken down, the secrets rotated or a full restore")
         p = None
         if rep_of:                                   # only the failed checks are recorded from here (R2.36)
             with engine.connect() as conn:
@@ -1256,6 +1322,7 @@ def main(argv: list[str] | None = None) -> int:
     a.add_argument("--watch", action="store_true")
     a.add_argument("--journey", action="append", default=[])
     a.add_argument("--pages-only", action="store_true")
+    a.add_argument("--risky", action="store_true", help="the risky suite too (R14.5, D927): only on a test installation")
     a.add_argument("--run-id", type=int, default=0)
     a.add_argument("--trigger", default="eax", choices=["web", "eax", "ci"])
     a.add_argument("--by", default="")

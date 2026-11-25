@@ -229,15 +229,15 @@ def run_all(ids: dict[str, str], ticket: str, folder: Path, record: Record, role
             counts.update({f"journeys_{k}" if k != "journeys" else k: v for k, v in jc.items()})
         browser.close()
     if screens is not None:
-        counts.update(screens_result(screens, folder, rec))
+        counts.update(screens_result(screens, folder, rec, risky=bool(ids.get("risky"))))
     return counts
 
 
-def screens_result(screens, folder: Path, rec) -> dict[str, float]:
+def screens_result(screens, folder: Path, rec, risky: bool = False) -> dict[str, float]:
     """The screens' coverage (R14.5.1, D924): screens-coverage.json in the run's folder and one result line."""
     from . import screen_coverage
     t0 = time.time()
-    got = screen_coverage.summarise(screens)
+    got = screen_coverage.summarise(screens, risky=risky)
     try:
         screen_coverage.save(folder, got)
     except OSError:

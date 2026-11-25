@@ -16,7 +16,37 @@ docs/manual-tests.md, the themes (R9.5: System admin > Branding, then My look), 
 (R9.3), and last `.\eax test full` (R9.10: the DR drill is now its last step; hours). What fails goes to Release 14.
 Known before the run: R14.18 (four Jenkins pipelines that can never run, found by eax test jenkins).
 
-**Pick up here (25 Nov 2026, Release 14 closed):**
+**Pick up here (25 Nov 2026, Release 14.5 under way):**
+- The measures are set (D926): the API (eax/api/) to 90%, the screens to 90%, both warnings under the bar; background
+  jobs shown on their own; what one installation cannot test is left out and listed. The full summary page has a
+  "Not covered yet" card. Baseline (run 10, 11:25): API 78.6% (80.0% with the self-test's controls out), jobs 50.4%,
+  screens 49 of 215.
+- Run 12 (25 Nov 2026, 13:42): API 83.3%, jobs 53.7%, screens 77.3%; its failures fixed in the testing code (D926).
+  Open: the key questions tab lists none after "Key question added." (a likely product bug, to discuss once the next run
+  says whether the server or the screen holds it back); the menu bar journey's "Wizards" once (a menu left open).
+  The app's Summary screen and coverage pictures now show the API, the jobs and the screens (web: needs `eax up`).
+- Everything built (the owner tests it in one go): the API's writes in api_writes.project_workspace
+  (the project's 12 areas) and api_writes.platform_writes (models, tags, compare, backups, drafts, jobs, admin,
+  alerting, SQL window, role mappings, people, the self-test's reads); the journeys in ui_flows.PROJECT_JOURNEYS (12)
+  and ui_flows.AREA_JOURNEYS (6, one an area, about 115 screens). Next: the owner runs
+  `.\eax test full --detailed --suite api --suite ui --suite jobs`; the failures are read (testing code may be fixed;
+  a bug in the product is discussed first); then the figures against the bars, from the "Not covered yet" card.
+- Batch 3 built (25 Nov 2026, after run 12; D926): api_writes.model_extras, project_extras and admin_extras (12 more
+  areas); 14 more routes left out with why; the area journeys cut into parts of four screens (ui_flows.in_parts);
+  an overall coverage ring (the API and the screens counted equally) over the two. Tests: test_r14_5_8, test_r14_5_9.
+- The risky suite built (D927): `.\eax test full --risky` adds api_writes.risky_writes and ui_flows.RISKY_JOURNEYS;
+  their routes (run.RISKY_RUNS) and the restores page count only in such a run. Never a restart, the installation
+  down, the secrets or a full restore. Not yet run by the owner.
+- Batch 4 built (D928): unit tests with stand-ins for every background task, every job of the job runner (the nightly and
+  weekly ones too), `eax jobs` and the task functions (test_r14_5_11 to 14); the self-test starts more background tasks
+  through the API and follows them (api_writes.job_starters, test_r14_5_15). Not yet run by the owner.
+- Run 13 (25 Nov 2026, 16:48) stopped by the owner during the journeys (he needed the laptop). Its API part: 3 failures:
+  the logs read needs a day (fixed: a kept day found first); the project's documents' zip and the merge plan from the
+  child model failed in the background (both passed or failed differently in run 12; the runner now writes the task's
+  own message, so the next run says why). Two more journeys for the screens no journey opened in run 12 (admin security,
+  deploy plan, maturity, service-desk catalogue; a project's analysis, charter, home and other documents).
+
+**Earlier (25 Nov 2026, Release 14 closed):**
 - Next is Release 14.5. Start with the coverage bar, to be discussed with the owner (R14.5.1, R14.5.2); then the use cases in
   the browser (R14.5.3) and the journeys for the 180 screens no journey uses (R14.5.7 to R14.5.18, docs/release-14.5-journeys.md);
   after the coverage work, the reports (R14.5.19: the queries measured and made fast, the check made lighter; the test browser

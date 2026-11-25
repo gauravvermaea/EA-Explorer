@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import html
 import json
+import math
 from collections.abc import Callable, Iterable
 
 GOAL = 90.0
@@ -35,10 +36,11 @@ def _load(raw: bytes | None) -> dict | None:
 
 
 def run_files(folder: str, reader: Reader) -> dict:
-    """{coverage, negative} of one run (either None when the run has not got it)."""
+    """{coverage, negative, screens} of one run (each None when the run has not got it)."""
     if not folder:
-        return {"coverage": None, "negative": None}
-    return {"coverage": _load(reader(folder, "coverage.json")), "negative": _load(reader(folder, "negative.json"))}
+        return {"coverage": None, "negative": None, "screens": None}
+    return {"coverage": _load(reader(folder, "coverage.json")), "negative": _load(reader(folder, "negative.json")),
+            "screens": _load(reader(folder, "screens-coverage.json"))}
 
 
 def colour(percent: float, goal: float = GOAL) -> str:
@@ -208,26 +210,93 @@ def ring_svg(percent: float, run: int | None = None, lines: int | None = None, s
             f"fill='currentColor' opacity='0.7'>{html.escape(sub)}</text></svg>")
 
 
+def to_reach(percent, bar: float, total, done, what: str = "lines") -> str:
+    """How far a figure is from its bar, in the owner's words (25 Nov 2026, 16:24: "show the actual measure that you say
+    here"): "short by 6.7 points: about 783 more lines to run", or "at or over the goal of 90%". The same as the app's
+    Summary screen (FullSummary.jsx toReach) and the summary page (eaxcli/fullreport.to_reach)."""
+    if percent is None or not total:
+        return "-"
+    p, b = float(percent), float(bar or GOAL)
+    if p >= b:
+        return f"at or over the {'bar' if what == 'screens' else 'goal'} of {b:g}%"
+    more = max(0, math.ceil(b * float(total) / 100 - float(done or 0)))
+    return f"short by {b - p:.1f} points: about {more:,} more {'screens covered' if what == 'screens' else 'lines to run'}"
+
+
 def rings_svg(c: dict) -> str:
-    """The ring of our own code (eax, the tests' code left out) and, when the run's coverage is joined with the unit
-    tests' (D807), a smaller ring for each of the two."""
+    """The ring of the goal's measure, the API (eax/api, D926; before it our own code, eax), and smaller rings beside it:
+    the background jobs, all the server's code, and, when the run's coverage is joined with the unit tests' (D807), each
+    of the two."""
     if c.get("percent") is None:
         return ""
     goal = float(c.get("goal") or GOAL)
-    main = f"<figure class='cov-ring'>{ring_svg(c['percent'], c.get('run'), c.get('lines'), 190, 'Our code', goal)}" \
-           f"<figcaption>Our code, every line{' (this run and the unit tests together)' if c.get('unit') is not None else ''}</figcaption></figure>"
+    together = " (this run and the unit tests together)" if c.get("unit") is not None else ""
+    if c.get("goal_percent") is not None:
+        main = f"<figure class='cov-ring'>{ring_svg(c['goal_percent'], c.get('goal_run'), c.get('goal_lines'), 190, 'The API', goal)}" \
+               f"<figcaption>The API (eax/api), the goal's measure{together}: " \
+               f"{html.escape(to_reach(c['goal_percent'], goal, c.get('goal_lines'), c.get('goal_run')))}" \
+               + (f"; {c['goal_left_out_lines']} lines left out (pairing, the routes that stop, restart, restore or wipe "
+                  "the installation, the self-test's own controls)" if c.get("goal_left_out_lines") else "") + "</figcaption></figure>"
+        extra = [(c.get("jobs_percent"), "The background jobs (shown, not judged)"), (c.get("percent"), "All the server's code")]
+    else:
+        main = f"<figure class='cov-ring'>{ring_svg(c['percent'], c.get('run'), c.get('lines'), 190, 'Our code', goal)}" \
+               f"<figcaption>Our code, every line{together}</figcaption></figure>"
+        extra = []
+    extra_html = "".join(f"<figure class='cov-ring'>{ring_svg(v, size=120, label=t, goal=goal)}<figcaption>{t}</figcaption></figure>"
+                         for v, t in extra if v is not None)
     parts = [(c.get("live"), "This run alone"), (c.get("unit"), "The unit tests alone (eax dev check)")]
     small = "".join(f"<figure class='cov-ring'>{ring_svg(v, size=120, label=t, goal=goal)}<figcaption>{t}</figcaption></figure>"
                     for v, t in parts if v is not None and c.get("unit") is not None)
-    return f"<div class='cov-rings' style='display:flex;flex-wrap:wrap;gap:16px;align-items:center'>{main}{small}</div>"
+    return f"<div class='cov-rings' style='display:flex;flex-wrap:wrap;gap:16px;align-items:center'>{main}{extra_html}{small}</div>"
+
+
+def screens_svg(scr: dict | None) -> str:
+    """The screens covered by the journeys against their bar (D924, D926), as a ring with its figures under it."""
+    if not scr or not scr.get("screens"):
+        return ""
+    bar = float(scr.get("bar") or GOAL)
+    sub = (f"{scr.get('covered')} of {scr.get('screens')} screens, bar {bar:g}%: "
+           f"{to_reach(scr.get('percent'), bar, scr.get('screens'), scr.get('covered'), 'screens')}; controls used "
+           f"{scr.get('controls_used')} of {scr.get('controls')} ({scr.get('controls_percent')}%)")
+    return (f"<figure class='cov-ring'>{ring_svg(float(scr.get('percent') or 0.0), size=190, label='The screens', goal=bar)}"
+            f"<figcaption>{html.escape(sub)}</figcaption></figure>")
+
+
+def overall(c: dict, scr: dict | None) -> float | None:
+    """The overall coverage (owner, 25 Nov 2026, 16:34: "can there a an overall coverage ring too, these two can be under
+    it"): the API's figure and the screens', counted equally (lines and screens are not the same unit), to one decimal;
+    one alone when only it was measured. Bar 90%. As eaxcli/fullreport.overall and FullSummary.jsx overall."""
+    got = [float(x) for x in (c.get("goal_percent"), (scr or {}).get("percent") if (scr or {}).get("screens") else None)
+           if x is not None]
+    return round(sum(got) / len(got), 1) if got else None
+
+
+def overall_svg(c: dict, scr: dict | None) -> str:
+    """The overall ring, with the API's and the screens' rings under it; '' unless both were measured."""
+    whole = overall(c, scr)
+    if whole is None or c.get("goal_percent") is None or not (scr or {}).get("screens"):
+        return ""
+    goal, bar = float(c.get("goal") or GOAL), float(scr.get("bar") or GOAL)
+    words = "at or over the bar" if whole >= GOAL else f"short by {GOAL - whole:.1f} points"
+    return (f"<div class='cov-overall' style='display:flex;flex-direction:column;align-items:center;gap:8px'>"
+            f"<figure class='cov-ring'>{ring_svg(whole, size=200, label='Overall', goal=GOAL)}"
+            f"<figcaption>Overall: the API and the screens counted equally; bar {GOAL:g}%: {words}</figcaption></figure>"
+            f"<div style='display:flex;gap:24px;flex-wrap:wrap;justify-content:center'>"
+            f"<figure class='cov-ring'>{ring_svg(c['goal_percent'], c.get('goal_run'), c.get('goal_lines'), 130, 'The API', goal)}"
+            f"<figcaption>The API</figcaption></figure>"
+            f"<figure class='cov-ring'>{ring_svg(float(scr.get('percent') or 0.0), size=130, label='The screens', goal=bar)}"
+            f"<figcaption>The screens</figcaption></figure></div></div>")
 
 
 def charts(files: dict, points: list[dict] | None = None) -> dict[str, str]:
     """The pictures for a run (each '' when there is nothing to draw): the rings first (D824), then the four of R3.10."""
     c = files.get("coverage") or {}
     goal = float(c.get("goal") or GOAL)
-    return {"rings": rings_svg(c),
-            "gauge": gauge_svg(float(c["percent"]), goal) if c.get("percent") is not None else "",
+    figure = c.get("goal_percent") if c.get("goal_percent") is not None else c.get("percent")
+    return {"overall": overall_svg(c, files.get("screens")),
+            "rings": rings_svg(c),
+            "screens": screens_svg(files.get("screens")),
+            "gauge": gauge_svg(float(figure), goal) if figure is not None else "",
             "areas": areas_svg(c.get("areas") or [], goal),
             "trend": trend_svg(points or [], goal),
             "negative": negative_svg(files.get("negative"))}
@@ -237,12 +306,27 @@ def summary_line(files: dict) -> str:
     """One line for `eax test`'s summary: the coverage against the goal and the negative tests."""
     c, neg = files.get("coverage") or {}, files.get("negative")
     parts = []
-    if c.get("percent") is not None:
+    scr = files.get("screens") or {}
+    whole = overall(c, scr)
+    if whole is not None and c.get("goal_percent") is not None and scr.get("screens"):
+        parts.append(f"Overall {whole:g}% (the API and the screens counted equally; bar {GOAL:g}%: "
+                     + ("at or over it)" if whole >= GOAL else f"short by {GOAL - whole:.1f} points)"))
+    if c.get("goal_percent") is not None:          # the goal's measure: the API, eax/api (D926)
+        goal = float(c.get("goal") or GOAL)
+        parts.append(f"The API {c['goal_percent']:g}% of its {c.get('goal_lines', 0):,} lines (goal {goal:g}%: "
+                     f"{to_reach(c['goal_percent'], goal, c.get('goal_lines'), c.get('goal_run'))})"
+                     + (f", background jobs {c['jobs_percent']:g}%" if c.get("jobs_percent") is not None else "")
+                     + f", all the server's code {c['percent']:g}%")
+    elif c.get("percent") is not None:
         goal = float(c.get("goal") or GOAL)
         worst = (sorted(c.get("areas") or [], key=lambda a: a.get("percent", 0.0)) or [{}])[0]
         parts.append(f"Coverage {c['percent']:g}% of the API's lines (goal {goal:g}%"
                      + (f", was {c['before']:g}%" if c.get("before") is not None else "") + ")"
                      + (f"; least covered: {worst['area']} {worst['percent']:g}%" if worst.get("area") else ""))
+    if scr.get("screens"):
+        bar = float(scr.get("bar") or GOAL)
+        parts.append(f"the screens {scr.get('percent')}% covered by journeys ({scr.get('covered')} of {scr.get('screens')}; "
+                     f"bar {bar:g}%: {to_reach(scr.get('percent'), bar, scr.get('screens'), scr.get('covered'), 'screens')})")
     if neg:
         t = negative_totals(neg)
         parts.append(f"negative tests {sum(t.values())}: {t['passed']} passed, {t['warning']} warnings, {t['failed']} failed")
@@ -255,7 +339,8 @@ def html_section(files: dict, points: list[dict] | None = None) -> str:
     if not any(ch.values()):
         return ("<h2>Code coverage</h2><p class='q'>This run kept no code coverage (EAX_COVERAGE=on measures it) and ran no "
                 "negative tests.</p>")
-    figs = [(k, t) for k, t in (("rings", "Our code: the lines run, against the goal"),
+    figs = [(k, t) for k, t in (("overall", "Overall: the API and the screens"), ("rings", "The API's lines run, against the goal"),
+                                ("screens", "The screens covered by journeys, against the bar"),
                                 ("gauge", "Share of the API's lines run"), ("areas", "By area, the least covered first"),
                                 ("trend", "Over the last runs of this kind"), ("negative", "Negative tests by kind")) if ch[k]]
     line = html.escape(summary_line(files))

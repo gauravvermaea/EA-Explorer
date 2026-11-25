@@ -109,7 +109,11 @@ def test_every_route_left_out_is_found_in_the_code():
     from eax.testing import run as R
     lines, shown = R.left_out_lines(API)
     assert all(x["found"] for x in shown), [x["route"] for x in shown if not x["found"]]
-    assert {"eax/api/admin.py", "eax/api/backups.py", "eax/api/projects.py"} <= set(lines)
+    assert {"eax/api/admin.py", "eax/api/backups.py", "eax/api/projects.py", "eax/api/platform_tests.py"} <= set(lines)
+    # the self-test's own controls are out; its reads stay in (owner, 25 Nov 2026, 12:11)
+    routes = {(x["route"], str(x["methods"])) for x in shown}
+    assert ("/tests", "['post']") in routes and ("/tests/<int:run_id>/stop", "all") in routes
+    assert not any(r.endswith("/report") or "/files/" in r or "/screenshot/" in r for r, _ in routes)
     assert all(x["why"] for x in shown)
     assert "eax/api/pairing.py" in R.LEFT_OUT_FILES
 
@@ -148,3 +152,50 @@ def test_the_summary_page_says_what_is_left_out():
     assert s["api_left_out"] == 499
     page = "".join(fullreport.cards({"selftest": {"coverage": s}}))
     assert "left out of the goal" in page and "499 lines: pairing" in page
+
+
+# what is not covered, called out in tables on the summary page (owner, 25 Nov 2026, 12:19: "In the coverage clearly call
+# out areas not being covered in a table")
+
+
+def test_the_goal_lists_each_api_file_as_it_counts_it(tmp_path):
+    from eax.testing import run as R
+    (tmp_path / "eax/api").mkdir(parents=True)
+    (tmp_path / "eax/api/admin.py").write_text("x = 1\n", encoding="utf-8")
+    c = {"percent": 50.0, "areas": [{"area": "api", "percent": 50.0, "lines": 4, "run": 2}],
+         "files": [{"file": "eax/api/models.py", "lines": 2, "run": 2, "statements": [1, 2], "ran": [1, 2]},
+                   {"file": "eax/api/grids.py", "lines": 2, "run": 0, "statements": [1, 2], "ran": []},
+                   {"file": "eax/background.py", "lines": 10, "run": 4, "percent": 40.0}]}
+    got = R.goal_figures(c, root=tmp_path)
+    assert got["goal_files"][0] == {"file": "eax/api/grids.py", "lines": 2, "run": 0, "percent": 0.0}   # most missed first
+    assert got["jobs_files"] == [{"file": "eax/background.py", "lines": 10, "run": 4, "percent": 40.0}]
+
+
+def test_the_summary_page_has_a_table_of_what_is_not_covered():
+    from eaxcli import fullreport
+    cov = {"goal": 90.0, "goal_files": [{"file": "eax/api/projects.py", "lines": 100, "run": 70, "percent": 70.0},
+                                        {"file": "eax/api/models.py", "lines": 10, "run": 10, "percent": 100.0}],
+           "goal_left_out": [{"file": "eax/api/pairing.py", "route": "the whole file", "methods": "all",
+                              "why": "pairing needs a second installation", "found": True},
+                             {"file": "eax/api/admin.py", "route": "/admin/restart", "methods": None,
+                              "why": "restarts the installation", "found": True}],
+           "jobs_files": [{"file": "eax/background.py", "lines": 10, "run": 4, "percent": 40.0}]}
+    scr = {"bar": 90.0, "not_covered": ["#/admin/users", "#/admin/jobs", "#/projects/{id}/tasks"],
+           "screens_left_out": [{"screen": "#/admin/pairings", "why": "pairing needs a second installation"}],
+           "left_out": [{"screen": "#/admin/containers", "words": "Restart", "kind": "button"}]}
+    g = fullreport.gaps(cov, scr)
+    assert [f["file"] for f in g["api_files"]] == ["eax/api/projects.py"]                 # only those under the goal
+    assert g["screens_not_covered"][0] == {"area": "admin", "screens": ["#/admin/users", "#/admin/jobs"]}
+    page = fullreport.page({"finished_at": "x", "steps": [], "gaps": g})
+    for words in ("Not covered yet", "The API: files under the goal of 90% (1)", "eax/api/projects.py", "30",
+                  "The API: left out of the goal (2)", "/admin/restart", "restarts the installation",
+                  "Background jobs", "eax/background.py", "40.0%",
+                  "Screens not covered yet, by area (3)", "#/admin/users, #/admin/jobs",
+                  "Screens left out of the bar (1)", "#/admin/pairings", "1 risky controls"):
+        assert words in page, words
+    assert fullreport.gaps_card(None) == ""
+
+
+def test_the_full_summary_gathers_the_gaps_from_the_self_tests_folder():
+    src = (API.parents[1] / "eaxcli/fullreport.py").read_text(encoding="utf-8")
+    assert 'out["gaps"] = gaps(_json(run / "coverage.json") or {}, _json(run / "screens-coverage.json") or {})' in src

@@ -496,6 +496,414 @@ JOURNEYS: list[dict] = [
      ]},
 ]
 
+# The project's workspace, a journey a tab (R14.5, batch 1; owner, 25 Nov 2026, 12:12: "Please build both API and screens").
+# Each works in the run's own project ({p}, self_test_<id>_3) as its Architect, takes out what it made where the screen
+# can, and is refused for the Report Viewer, the project's Stakeholder (the button that would add is not offered).
+# A tracking sheet has no delete on its screen: it goes with the run's project. window.confirm is accepted headless.
+_RV = "report-viewer"
+PROJECT_JOURNEYS: list[dict] = [
+    {"name": "project tasks: add one, change its status, delete it", "smoke": False, "roles": ["architect"],
+     "refused": {"role": _RV, "open": "#/projects/{p}/tasks", "disabled_or_absent": "＋ Add", "exact": True},
+     "steps": [
+         {"open": "#/projects/{p}/tasks", "expect": "a scratchpad, not a plan"},
+         {"fill": "A new task", "value": "self_test_{sid} task {role}"},
+         {"click": "＋ Add", "exact": True},
+         {"expect": "self_test_{sid} task {role}"},
+         {"select": "Status of self_test_{sid} task {role}", "option": "Open"},      # Done would leave the active list
+         {"click": "🗑", "row": "self_test_{sid} task {role}"},
+         {"expect": "Task deleted: self_test_{sid} task {role}"},          # the screen's own message
+     ]},
+    {"name": "project key questions: ask one, take it out", "smoke": False, "roles": ["architect"],
+     "refused": {"role": _RV, "open": "#/projects/{p}/questions", "disabled_or_absent": "+ Add a key question"},
+     "steps": [
+         {"open": "#/projects/{p}/questions", "expect": "Add a key question"},
+         {"click": "+ Add a key question"},
+         {"fill": "The question", "value": "self_test_{sid} question {role}"},
+         {"click": "Add the question"},
+         {"expect": "self_test_{sid} question {role}"},
+         {"click": "Remove", "within": '.kq-card:has-text("self_test_{sid} question {role}")'},
+         {"expect": "Key question removed"},
+     ]},
+    {"name": "project standards: add one, find it, take it out", "smoke": False, "roles": ["architect"],
+     "refused": {"role": _RV, "open": "#/projects/{p}/standards", "disabled_or_absent": "＋ Add a standard"},
+     "steps": [
+         {"open": "#/projects/{p}/standards", "expect": "Add a standard"},
+         {"click": "＋ Add a standard"},
+         {"fill": "Name", "value": "self_test_{sid} standard {role}", "within": ".ed-dialog"},
+         {"click": "Save", "exact": True, "within": ".ed-dialog"},
+         {"fill": "Search standards", "value": "self_test_{sid} standard"},
+         {"expect": "self_test_{sid} standard {role}"},
+         {"click": "Take out", "row": "self_test_{sid} standard {role}"},
+         {"expect": "Standard self_test_{sid} standard {role} taken out."},
+     ]},
+    {"name": "project principles: add one, take it out", "smoke": False, "roles": ["architect"],
+     "headless_only": True, "why_headless": "taking it out asks window.confirm, which the watched browser leaves to a person",
+     "refused": {"role": _RV, "open": "#/projects/{p}/principles", "disabled_or_absent": "＋ Add a principle"},
+     "steps": [
+         {"open": "#/projects/{p}/principles", "expect": "Add a principle"},
+         {"click": "＋ Add a principle"},
+         {"fill": "Name", "value": "self_test_{sid} principle {role}", "within": 'article[aria-label="A new principle"]'},
+         {"click": "Save", "exact": True, "within": 'article[aria-label="A new principle"]'},
+         {"expect": "self_test_{sid} principle {role}"},
+         {"click": "Take out", "within": 'article[aria-label="Principle self_test_{sid} principle {role}"]'},
+         {"expect": "Principle self_test_{sid} principle {role} taken out of the project."},
+     ]},
+    {"name": "project organisation: add a person, find them, take them out", "smoke": False, "roles": ["architect"],
+     "refused": {"role": _RV, "open": "#/projects/{p}/organisation", "disabled_or_absent": "＋ Add", "exact": True},
+     "steps": [
+         {"open": "#/projects/{p}/organisation"},
+         {"fill": "Name", "value": "self_test_{sid} person {role}"},
+         {"fill": "Role on the project", "value": "Reviewer"},
+         {"click": "＋ Add", "exact": True},
+         {"fill": "Search people and roles", "value": "self_test_{sid} person"},
+         {"expect": "self_test_{sid} person {role}"},
+         {"click": "▦ By role"}, {"click": "☰ List"},
+         {"click": "🗑", "row": "self_test_{sid} person {role}"},
+         {"expect": "self_test_{sid} person {role} taken out of the project's organisation."},
+     ]},
+    # taking a record out is for the project's admins: the Super Admin does it all
+    {"name": "project governance: log a decision, open it, take it out", "smoke": False, "roles": ["super-admin"],
+     "refused": {"role": _RV, "open": "#/projects/{p}/governance", "disabled_or_absent": "＋ Log a record"},
+     "steps": [
+         {"open": "#/projects/{p}/governance"},
+         {"click": "＋ Log a record"},
+         {"fill": "Title", "value": "self_test_{sid} decision {role}", "within": ".ed-dialog"},
+         {"click": "Save", "exact": True, "within": ".ed-dialog"},
+         {"fill": "Search the log", "value": "self_test_{sid} decision"},
+         {"click": "self_test_{sid} decision {role}", "opens": ".ed-dialog"},
+         {"click": "Take out", "within": ".ed-dialog"},
+         {"expect": "taken out of the governance log."},
+     ]},
+    {"name": "project stakeholders: add one, open it, take it out", "smoke": False, "roles": ["architect"],
+     "headless_only": True, "why_headless": "taking it out asks window.confirm, which the watched browser leaves to a person",
+     "refused": {"role": _RV, "open": "#/projects/{p}/stakeholders", "disabled_or_absent": "+ Add a stakeholder"},
+     "steps": [
+         {"open": "#/projects/{p}/stakeholders", "expect": "Add a stakeholder"},
+         {"click": "+ Add a stakeholder", "opens": ".ed-dialog"},
+         {"fill": "Name", "value": "self_test_{sid} stakeholder {role}", "within": ".ed-dialog"},
+         {"click": "Position", "exact": True, "within": ".ed-dialog"},
+         {"select": "Power", "option": "High", "within": ".ed-dialog"},
+         {"click": "Save", "exact": True, "within": ".ed-dialog"},
+         {"fill": "Search stakeholders", "value": "self_test_{sid} stakeholder"},
+         {"click": "self_test_{sid} stakeholder {role}", "opens": ".ed-dialog"},
+         {"click": "Take out…", "within": ".ed-dialog"},
+         {"expect": "self_test_{sid} stakeholder {role} taken out of the stakeholders"},
+     ]},
+    {"name": "project canvas: make one, mark it agreed, remove it", "smoke": False, "roles": ["architect"],
+     "refused": {"role": _RV, "open": "#/projects/{p}/canvas", "disabled_or_absent": "＋ New canvas"},
+     "steps": [
+         {"open": "#/projects/{p}/canvas", "expect": "New canvas"},
+         {"click": "＋ New canvas"},
+         {"fill": "Canvas name", "value": "self_test_{sid} canvas {role}"},
+         {"click": "Make the canvas"},
+         {"expect": "self_test_{sid} canvas {role}"},
+         {"select": "More", "option": "Mark it agreed"},
+         {"select": "More", "option": "Remove this canvas"},
+         {"expect": "Canvas self_test_{sid} canvas {role} removed."},
+     ]},
+    {"name": "project journeys: make a journey with a stage, remove it", "smoke": False, "roles": ["architect"],
+     "headless_only": True, "why_headless": "taking it out asks window.confirm, which the watched browser leaves to a person",
+     "refused": {"role": _RV, "open": "#/projects/{p}/journeys", "disabled_or_absent": "＋ New journey"},
+     "steps": [
+         {"open": "#/projects/{p}/journeys", "expect": "New journey"},
+         {"click": "＋ New journey"},
+         {"fill": "Journey name", "value": "self_test_{sid} journey {role}"},
+         {"click": "Make the journey"},
+         {"expect": "self_test_{sid} journey {role}"},
+         {"click": "＋ stage"},
+         {"fill": "Stage name", "value": "self_test_{sid} stage {role}"},
+         {"click": "Save", "exact": True},
+         {"expect": "self_test_{sid} stage {role}"},
+         {"select": "More", "option": "Remove this journey"},
+         {"expect": "Journey self_test_{sid} journey {role} removed."},
+     ]},
+    {"name": "project calendar: add an event, open it, delete it", "smoke": False, "roles": ["architect"],
+     "refused": {"role": _RV, "open": "#/projects/{p}/calendar", "disabled_or_absent": "＋ Event"},
+     "steps": [
+         {"open": "#/projects/{p}/calendar", "expect": "Today"},
+         {"click": "＋ Event", "opens": ".ed-dialog"},
+         {"fill": "Topic", "value": "self_test_{sid} event {role}", "within": ".ed-dialog"},
+         {"click": "Save", "exact": True, "within": ".ed-dialog"},
+         {"click": "self_test_{sid} event {role}", "opens": ".ed-dialog"},
+         {"click": "Delete", "exact": True, "within": ".ed-dialog"},
+         {"expect": "self_test_{sid} event {role} deleted."},
+         {"click": "Week", "exact": True}, {"click": "Month", "exact": True},
+     ]},
+    {"name": "project tracking sheet: make one, add a row, download it", "smoke": False, "roles": ["architect"],
+     "refused": {"role": _RV, "open": "#/projects/{p}/sheets", "disabled_or_absent": "＋ New sheet"},
+     "steps": [
+         {"open": "#/projects/{p}/sheets", "expect": "Tracking sheets"},
+         {"click": "＋ New sheet", "opens": ".ed-dialog"},
+         {"fill": "Name", "value": "self_test_{sid} sheet {role}", "within": ".ed-dialog"},
+         {"fill": "Columns", "value": "Name, Owner", "within": ".ed-dialog"},
+         {"click": "Make it", "exact": True, "within": ".ed-dialog"},
+         {"click": "＋ Row"},                                                # the new sheet opens by itself
+         {"download": "⬇ Excel"},
+         {"click": "‹ All sheets"},
+         {"expect": "self_test_{sid} sheet {role}"},
+     ]},
+    # tabs that show and download: a light action each, as any member does
+    {"name": "project tabs that show: the report's CSV, the library's search, a phase opened",
+     "smoke": False, "roles": ["architect", "report-viewer"],
+     "why_no_refusal": "each only reads or downloads; the project's members may all read it",
+     "steps": [
+         {"open": "#/projects/{p}/report", "expect": "CSV"},
+         {"download": "⬇ CSV (opens in Excel)", "exact": True},
+         {"open": "#/projects/{p}/library", "expect": "Search the library"},
+         {"fill": "Search the library", "value": "self_test"},
+         {"open": "#/projects/{p}", "expect": "Preliminary"},
+         {"click": "Preliminary", "optional": True},
+         {"open": "#/projects/{p}/base"}, {"click": "Fit", "exact": True},
+         {"open": "#/projects/{p}/archrepo"}, {"click": "Foundation architectures"},
+         {"open": "#/projects/{p}/business"}, {"select": "Model", "option": "*"},
+         {"open": "#/projects/{p}/library/reference"}, {"click": "🔗 Add a link"}, {"press": "Escape", "wait": 600},
+     ]},
+]
+# a project's tabs no journey opened in run 12 (owner, 25 Nov 2026, 17:01: "Yes please build 1 and 2"): a choice made, a
+# section opened for a change and cancelled, a phase opened, the other documents downloaded; nothing saved
+PROJECT_JOURNEYS.append(
+    {"name": "project tabs that show more: choose, open a change and cancel, a phase, download", "smoke": False,
+     "roles": ["architect"], "why_no_refusal": "it chooses, opens and cancels: nothing is saved; who may open each tab is the "
+                                               "page sweep's check",
+     "steps": [
+         {"open": "#/projects/{p}/analysis"}, {"select": "Source (baseline)", "option": "*"},
+         {"open": "#/projects/{p}/charter"}, {"click": "✎ Change"}, {"click": "Cancel", "exact": True, "optional": True},
+         {"open": "#/projects/{p}/home"}, {"click": "Preliminary", "optional": True},
+         {"open": "#/projects/{p}/otherdocs"}, {"download": "Download", "exact": True, "optional": True},
+     ]})
+JOURNEYS += PROJECT_JOURNEYS
+
+
+# The rest of the screens (R14.5.7 to R14.5.18; owner, 25 Nov 2026, 14:12: "build all i will test everything in one go"):
+# a journey an area that does at least one real thing on each screen a person may do there without changing what others
+# see: search, filter, switch a view, open a part, open a dialog and close it unsaved (Escape), download. Nothing is
+# saved; nothing that stops, restarts, restores, deletes or switches is pressed (those are listed, D924). The labels are
+# the controls the run of 25 Nov 2026 11:25 recorded on each screen.
+def _look(route: str, *acts: dict) -> list[dict]:
+    """Opens a screen and does what it is given there."""
+    return [{"open": route}, *acts]
+
+
+def _dialog(words: str) -> list[dict]:
+    """Opens a dialog with a button and closes it unsaved."""
+    return [{"click": words}, {"press": "Escape", "wait": 600}]
+
+
+_READS = "it searches, filters, opens and closes without saving: nothing another person sees changes; who may open each " \
+         "page is the page sweep's check"
+AREA_JOURNEYS: list[dict] = [
+    {"name": "system admin, people and access: find, filter, open and close", "smoke": False, "roles": ["super-admin"],
+     "why_no_refusal": _READS,
+     "steps": [
+         *_look("#/admin/users", {"fill": "Search name, user name or email", "value": "self-test"}),
+         *_look("#/admin/users/people", {"fill": "Search name, user name or email", "value": "self-test"}),
+         *_look("#/admin/users/mapping", {"select": "Map a Keycloak role or a directory group", "option": "Directory group"}),
+         *_look("#/admin/machine-access", {"click": "Show revoked and expired"}),
+         *_look("#/admin/machine-access/all", {"click": "Show revoked and expired"}),
+         *_look("#/admin/machine-access/mine", {"click": "Show revoked and expired"}),
+         *_look("#/admin/machine-access/service-accounts"), *_dialog("New service account"),
+         *_look("#/admin/self-test/fixtures", {"click": "All runs"}),
+         *_look("#/admin/self-test/harness", {"click": "architect", "exact": True}),
+     ]},
+    {"name": "system admin, running the installation: look, measure, filter", "smoke": False, "roles": ["super-admin"],
+     "why_no_refusal": _READS,
+     "steps": [
+         *_look("#/admin/containers", {"click": "Show stopped"}),
+         *_look("#/admin/containers/properties", {"click": "Show stopped"}),
+         *_look("#/admin/containers/logs", {"click": "Show stopped"}),
+         *_look("#/admin/containers/files", {"click": "Show stopped"}),
+         *_look("#/admin/containers/terminal", {"click": "Show stopped"}),
+         *_look("#/admin/jobs", {"click": "Priorities"}),
+         *_look("#/admin/health", {"click": "Check again"}),
+         *_look("#/admin/logs", {"fill": "Words or a request id", "value": "self_test"}),
+         *_look("#/admin/db-maintenance", {"click": "What a tidy would do"}),
+         *_look("#/admin/optimisation", {"click": "Measure now"}),
+         *_look("#/admin/quality", {"click": "Which models are measured"}),
+         *_look("#/admin/footprint", {"fill": "Label", "value": "self_test_{sid}"}),
+         *_look("#/admin/sizing", {"fill": "People at once", "value": "20"}),
+         {"open": "#/admin/estate/logical", "expect": "Download SVG"}, {"download": "Download SVG"},
+         {"open": "#/admin/estate/physical", "expect": "Download SVG"}, {"download": "Download SVG"},
+         *_look("#/admin/alerts"), *_dialog("Plan a downtime…"),
+         *_look("#/admin/updates"), *_dialog("Change…"),
+     ]},
+    {"name": "system admin, settings and tools: find, choose, download", "smoke": False, "roles": ["super-admin"],
+     "why_no_refusal": _READS,
+     "steps": [
+         *_look("#/admin"), *_dialog("Start…"),
+         *_look("#/admin/commands", {"fill": "Find a command", "value": "backup"}),
+         *_look("#/admin/commands/commands", {"fill": "Find a command", "value": "test"}),
+         *_look("#/admin/commands/history", {"click": "Transcript"}),
+         *_look("#/admin/backups", {"fill": "Search by tag, name or who", "value": "self_test"}),
+         *_look("#/admin/branding", {"download": "Download CSS"}),
+         *_look("#/admin/settings-transfer", {"choose": "System settings"}),
+         *_look("#/admin/setup", {"click": "A laptop"}),
+         *_look("#/admin/sql", {"fill": "SQL", "value": "SELECT 1"}),
+         *_look("#/documentation/readme", {"download": "⬇ Download"}),
+         *_look("#/documentation/capabilities", {"download": "⬇ Download"}),
+         *_look("#/documentation/command-line-help", {"download": "⬇ Download"}),
+         *_look("#/farm"), *_dialog("Add a site"),
+         *_look("#/farm/connect"), *_dialog("+ Add an instance"),
+     ]},
+    {"name": "a model's tabs: filter, find, switch the view", "smoke": False, "roles": ["model-admin"],
+     "why_no_refusal": _READS,
+     "steps": [
+         *_look("#/metamodel/{m}/types", {"fill": "Filter entity types", "value": "Application"}),
+         *_look("#/metamodel/{m}/rels", {"click": "Only types in use"}),
+         *_look("#/metamodel/{m}/reports", {"fill": "Find a report", "value": "capability"}),
+         *_look("#/metamodel/{m}/views", {"fill": "Filter views, concerns or stakeholders", "value": "capability"}),
+         *_look("#/metamodel/{m}/views/standard", {"fill": "Filter views, concerns or stakeholders", "value": "application"}),
+         *_look("#/metamodel/{m}/views/custom", {"fill": "Filter the custom views", "value": "self_test"}),
+         *_look("#/metamodel/{m}/tags", {"fill": "Tag name, e.g. Baseline 2026", "value": "self_test_{sid} not saved"}),
+         *_look("#/metamodel/{m}/backups", {"fill": "Why, e.g. before reorganising capabilities", "value": "not saved"}),
+         *_look("#/metamodel/{m}/graph", {"fill": "Put an entity in the middle...", "value": "Self-test"}),
+         *_look("#/metamodel/{m}/hierarchy", {"click": "Fit", "exact": True}),
+         *_look("#/metamodel/{m}/diagram", {"click": "Free layout"}),
+         *_look("#/metamodel/{m}/designer", {"click": "Copy the address"}),
+         *_look("#/metamodel/{m}/odata", {"click": "Copy the address"}),
+         *_look("#/metamodel/{m}/import", {"click": "⬆ Take data out"}),
+         *_look("#/metamodel/{m}/quality", {"click": "Settings, weights and rules"}),
+         *_look("#/metamodel/{m}/kpis", {"click": "Entities by type"}),
+         *_look("#/metamodel/{m}/merge", {"choose": "Without data"}),
+         *_look("#/metamodel/{m}/pushdown", {"choose": "Force it"}),
+         *_look("#/metamodel/{m}/metamodel"), *_dialog("+ Entity type"),
+         *_look("#/metamodel/{m}/checks", {"click": "Application Component"}),
+         *_look("#/metamodel/{m}/grid", {"select": "Grid of", "option": "Relationships"}),
+     ]},
+    {"name": "model admin and the model lists: find, filter, open and close", "smoke": False, "roles": ["model-admin"],
+     "why_no_refusal": _READS,
+     "steps": [
+         *_look("#/metamodel", {"fill": "Search name, description, owner, industry", "value": "self_test"}),
+         *_look("#/metamodel/hierarchy", {"fill": "Search name, description, owner, industry", "value": "self_test"}),
+         *_look("#/metamodel/drafts", {"click": "Sent back"}),
+         *_look("#/model-admin/list", {"fill": "Search name, description, owner, industry", "value": "self_test"}),
+         *_look("#/model-admin/hierarchy", {"click": "Fit", "exact": True}),
+         *_look("#/model-admin/drafts", {"click": "Rejected"}),
+         *_look("#/model-admin/wizards"), *_dialog("Start…"),
+         *_look("#/model-admin/{m}"), *_dialog("Start…"),
+         *_look("#/model-admin/{m}/wizards"), *_dialog("Start…"),
+         *_look("#/model-admin/{m}/tags", {"fill": "Tag name, e.g. Baseline 2026", "value": "self_test_{sid} not saved"}),
+         *_look("#/model-admin/{m}/backups", {"fill": "Why, e.g. before reorganising capabilities", "value": "not saved"}),
+         *_look("#/model-admin/{m}/merge", {"choose": "Without data"}),
+         *_look("#/model-admin/{m}/pushdown", {"choose": "Force it"}),
+         *_look("#/model-admin/{m}/metamodel", {"fill": "Find an entity by name", "value": "Self-test"}),
+     ]},
+    {"name": "the repository, search, governance, notifications and the service desk: find and filter", "smoke": False,
+     "roles": ["super-admin"], "why_no_refusal": _READS,
+     "steps": [
+         *_look("#/search", {"fill": "Name, ID, description, tag or any value", "value": "self_test"}, {"click": "Search", "exact": True}),
+         *_look("#/work", {"fill": "Search", "value": "self_test"}, {"click": "☰ List"}),
+         *_look("#/archive", {"click": "Show the deleted ones too"}),
+         *_look("#/change-log", {"fill": "Search item, model, user or value", "value": "self_test"}),
+         *_look("#/compare/gaps", {"fill": "Filter by name", "value": "self_test"}),
+         *_look("#/enterprise-library", {"fill": "Search the library", "value": "self_test"}),
+         *_look("#/principles", {"fill": "Search principles", "value": "self_test"}, {"click": "Expand all"}),
+         *_look("#/governance"), *_dialog("＋ Log an ADR"),
+         *_look("#/discovery-projects"), *_dialog("＋ Set up a discovery project"),
+         *_look("#/mcp", {"click": "Copy", "exact": True}),
+         *_look("#/mcp/connect", {"click": "Copy", "exact": True}),
+         *_look("#/mcp/tools", {"fill": "Find a tool", "value": "model"}),
+         *_look("#/repository/calendar", {"click": "Week", "exact": True}),
+         *_look("#/repository/capability", {"fill": "Find", "value": "self_test"}),
+         *_look("#/repository/compliance", {"fill": "Find", "value": "self_test"}),
+         *_look("#/repository/decisions", {"fill": "Find", "value": "self_test"}),
+         *_look("#/repository/people", {"fill": "Find", "value": "self_test"}),
+         *_look("#/repository/sheets", {"click": "Vendor contracts", "optional": True}),
+         *_look("#/notifications", {"fill": "Search", "value": "self_test"}),
+         *_look("#/notifications/tasks", {"fill": "Search", "value": "self_test"}),
+         *_look("#/notifications/received", {"fill": "Search, or a number", "value": "self_test"}),
+         *_look("#/notifications/sent", {"fill": "Search, or a number", "value": "self_test"}),
+         *_look("#/notifications/new", {"fill": "Subject", "value": "self_test_{sid} not sent"}),
+         *_look("#/service-desk/all", {"fill": "Words or REQ-number", "value": "self_test"}),
+         *_look("#/service-desk/mine", {"fill": "Words or REQ-number", "value": "self_test"}),
+         *_look("#/service-desk/queue", {"fill": "Words or REQ-number", "value": "self_test"}),
+         *_look("#/project-admin/principles", {"fill": "Search principles", "value": "self_test"}),
+         *_look("#/project-admin/bases", {"click": "☰ List"}),
+         *_look("#/project-admin/template-setup", {"fill": "Find by name", "value": "Vision"}),
+         *_look("#/project-admin/libprojects"), *_dialog("＋ Make a project a library project…"),
+         *_look("#/project-library"), *_dialog("＋ Make a project a library project…"),
+         *_look("#/project-admin/templates", {"click": "Open", "exact": True}),
+         {"open": "#/projects/new", "expect": "Kind of project"}, {"select": "Kind of project", "option": "*"},
+         *_look("#/projects", {"fill": "Search", "value": "self_test"}, {"click": "☰ List"}),
+         *_look("#/admin/operations", {"click": "People", "exact": True}),
+         *_look("#/admin/mounts", {"click": "Look into"}),
+         *_look("#/mcp/activity", {"select": "Last", "option": "30 days"}),
+         *_look("#/repository/board", {"fill": "User name", "value": "self-test not added"}),
+         *_look("#/service-desk/ask", {"click": "Something else"}),
+     ]},
+]
+
+
+def in_parts(journeys: list[dict], screens: int = 4) -> list[dict]:
+    """Each journey cut into parts of a few screens each (owner, 25 Nov 2026, 16:20: "add more test cases to acheive
+    this goal"): a step that fails ends only its own part, so the screens after it are still opened and counted (run 12
+    lost most of its 48 uncovered screens that way). A part starts at an open step; it keeps the journey's roles, smoke
+    and why_no_refusal, and its name says which part it is."""
+    out: list[dict] = []
+    for j in journeys:
+        parts: list[list[dict]] = []
+        for st in j["steps"]:
+            if "open" in st and (not parts or sum("open" in x for x in parts[-1]) >= screens):
+                parts.append([])
+            if not parts:
+                parts.append([])
+            parts[-1].append(st)
+        for i, steps in enumerate(parts, start=1):
+            name = j["name"] if len(parts) == 1 else f"{j['name']} (part {i} of {len(parts)})"
+            out.append({**j, "name": name, "steps": steps})
+    return out
+
+
+# the screens no journey opened in run 12 (25 Nov 2026, 13:42; owner, 17:01: "Yes please build 1 and 2"), each with one
+# thing done that saves nothing: a plan shown that runs nothing, a form opened and cancelled, a row added unsaved, a choice
+# made in a drop-down (a project's tabs: PROJECT_JOURNEYS). Left for later: the people tabs (a role ticked saves at once), the console (it opens a
+# shell), sign-off (it sends for approval), the settings forms whose fields have no label of their own.
+AREA_JOURNEYS += [
+    {"name": "system admin, the rest: plan, add unsaved, open and cancel", "smoke": False, "roles": ["super-admin"],
+     "why_no_refusal": _READS,
+     "steps": [
+         *_look("#/admin/security", {"click": "Add an address"}),
+         *_look("#/farm/deploy", {"click": "Show the plan (runs nothing)"}),
+         *_look("#/maturity", {"click": "＋ New assessment"}, {"click": "Cancel", "exact": True}),
+         *_look("#/service-desk/catalogue", {"click": "Change", "exact": True}, {"press": "Escape", "wait": 600}),
+     ]},
+]
+AREA_JOURNEYS = in_parts(AREA_JOURNEYS)
+JOURNEYS += AREA_JOURNEYS
+
+# The risky suite's journeys (D927; owner, 25 Nov 2026, 16:37: "they will run if and only if someone in full test enables
+# risky option. This will be for both UI and api"): only in a run with --risky (journeys() leaves them out otherwise).
+# They press what the other journeys never press (Delete, the restores page), on the run's own model or on what is older
+# than ten years; never a restart, a full restore or the secrets. Each asks window.confirm, so headless only.
+_RISKY_WHY = "it deletes, after a confirm the watched browser leaves to a person"
+RISKY_JOURNEYS: list[dict] = [
+    {"name": "risky model backup: made, pinned, unpinned and deleted on its page", "smoke": False, "risky": True,
+     "roles": ["model-admin"], "why_no_refusal": "the API's risky suite checks the same deletion refused",
+     "headless_only": True, "why_headless": _RISKY_WHY,
+     "steps": [
+         {"open": "#/metamodel/{m}/backups", "expect": "Back up now"},
+         {"fill": "Why, e.g. before reorganising capabilities", "value": "self_test_{sid} risky"},
+         {"click": "Back up now"},
+         {"expect": "self_test_{sid} risky", "wait": 2000},
+         {"click": "Pin", "exact": True, "row": "self_test_{sid} risky"},
+         {"click": "Unpin", "exact": True, "row": "self_test_{sid} risky"},
+         {"click": "Delete", "exact": True, "row": "self_test_{sid} risky"},
+         {"expect_not": "self_test_{sid} risky", "wait": 1500},
+     ]},
+    {"name": "risky logs clean-up: those older than ten years deleted from the command centre", "smoke": False, "risky": True,
+     "roles": ["super-admin"], "why_no_refusal": "the API's risky suite checks the same deletion refused",
+     "headless_only": True, "why_headless": _RISKY_WHY,
+     "steps": [
+         {"open": "#/admin/commands/schedules", "expect": "Clean up now"},
+         {"fill": "days", "value": "3650", "row": "Logs older than"},
+         {"click": "Delete", "exact": True, "row": "Logs older than"},
+         {"expect": "Logs:", "wait": 3000},
+     ]},
+    {"name": "risky restores page: opened", "smoke": False, "risky": True, "roles": ["super-admin"],
+     "why_no_refusal": _READS,
+     "steps": [{"open": "#/admin/restores"}]},
+]
+JOURNEYS += RISKY_JOURNEYS
+
 # what a journey needs from the run's fixtures, by the placeholders its steps use: left out when the run has none
 NEEDS = {"project": ("{p}", "{project_name}"), "view": ("{view}", "{view_name}"), "other_model": ("{other}", "{other_name}")}
 
@@ -532,7 +940,9 @@ def fill_text(s: str, ids: dict[str, str], role: str) -> str:
 
 def key(j: dict) -> str:
     """What --journey takes for a journey: its name up to the colon ("model content", "drawn view"). Unique (unit tested)."""
-    return j["name"].split(":")[0].strip()
+    head = j["name"].split(":")[0].strip()
+    part = re.search(r" \(part \d+ of \d+\)$", j["name"])          # an area journey's parts (in_parts): each its own key
+    return head + (part.group(0) if part else "")
 
 
 def missing(j: dict, ids: dict[str, str]) -> list[str]:
@@ -565,6 +975,8 @@ def journeys(ids: dict[str, str], role: str = "", only: list[str] | None = None,
     out = []
     for j in JOURNEYS:
         if smoke and not j["smoke"]:
+            continue
+        if j.get("risky") and not ids.get("risky"):  # the risky suite only when the run asks for it (D927)
             continue
         if only and not any(o.lower() in j["name"].lower() for o in only):
             continue
@@ -979,7 +1391,7 @@ def step(page, s: dict, open_route: Callable[..., None], state: dict | None = No
         root.locator(s["upload"]).first.set_input_files(files=[{"name": s.get("name") or Path(s.get("data", "file")).name,
                                                                 "mimeType": "application/octet-stream", "buffer": content}])
     elif "download" in s:
-        el = _clickable(root, s["download"])
+        el = _clickable(root, s["download"], bool(s.get("exact")))     # exact: the whole words, as a click's
         if el is None:
             return f"no button or link \"{s['download']}\""
         with page.expect_download(timeout=timeout) as d:

@@ -4,7 +4,9 @@
 // from numbers only (eax/testing/coverage_view.py), the same ones as in the HTML report.
 
 const FIGURES = [
-  ["rings", "Our code: the lines run, against the goal"],     // a ring of our own code (D824)
+  ["overall", "Overall: the API and the screens"],             // one ring over the two (owner, 25 Nov 2026, 16:34)
+  ["rings", "The API's lines run, against the goal"],         // the goal's measure, eax/api, with the others beside it (D926)
+  ["screens", "The screens covered by journeys, against the bar"],   // the screens' ring (D924, D926)
   ["gauge", "Share of the API's lines run"],
   ["areas", "By area, the least covered first"],
   ["trend", "Over the last runs of this kind"],

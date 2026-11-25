@@ -702,7 +702,7 @@ def _trivy(hostdir: str, images: list[str], say) -> None:
 def run_sequence(level: str, suites: list[str], role: str = "", area: str = "", watch: bool = False, run_id: int = 0,
                  by: str = "", trigger: str = "web", follow=None, journeys: list[str] | None = None,
                  pages_only: bool = False, repeat: int | None = None, warnings: bool = False,
-                 bench: dict | None = None, live_slow: bool = False) -> dict:
+                 bench: dict | None = None, live_slow: bool = False, risky: bool = False) -> dict:
     """The whole run: the runner, then (detailed with security) ZAP and Trivy, then collect. Returns {run_id, folder, code}."""
     say = follow or (lambda _m: None)
     with _lock:
@@ -745,6 +745,8 @@ def run_sequence(level: str, suites: list[str], role: str = "", area: str = "", 
             cmd += ["--journey", j]
         if pages_only:
             cmd.append("--pages-only")
+        if risky:                                      # the risky suite too (D927)
+            cmd.append("--risky")
         if live_slow:                                  # slow motion and pause after each step, to be watched (R5.20)
             cmd.append("--live-slow")
         for k, v in (bench or {}).items():             # the benchmark's size, people and minutes (R5.18)
@@ -950,11 +952,25 @@ def cli(args: list[str]) -> int:
           "makes its own self_test_<id>_<n> models, project and accounts and tests in them; nothing else changes. The container "
           "is removed when it ends. Results: System Admin > Tools > Self-test, and work/tests.", flush=True)
     bench = {k: _opt(args, f"--{k}") for k in ("size", "users", "minutes") if _opt(args, f"--{k}")}   # R5.18
+    # the risky suite (D927; owner, 25 Nov 2026, 16:37: "they will run if and only if someone in full test enables risky
+    # option"): only when asked, and only where the attack test may run (a laptop, or an installation marked as a test
+    # one), as it deletes and puts settings back
+    risky = "--risky" in args
+    if risky:
+        ok, why = attack_allowed()
+        if not ok:
+            print("The risky suite is left out: " + why.split(":", 1)[0] + ".", flush=True)
+            risky = False
+        else:
+            print("The risky suite is on (--risky): logs and old history deleted, settings saved back as they were, the run's "
+                  "model put back over itself from its own backup. Never a restart, the installation taken down, the "
+                  "secrets rotated or a full restore.", flush=True)
     if bench.get("size") and bench["size"] not in ("small", "medium", "large"):
         print("--size: small, medium or large")
         return 2
     r = run_sequence(level, suites, role, area, False, by="eax test", trigger="ci" if "--ci" in args else "eax",
-                     follow=lambda line: print(line, flush=True), journeys=journeys, pages_only=pages_only, bench=bench)
+                     follow=lambda line: print(line, flush=True), journeys=journeys, pages_only=pages_only, bench=bench,
+                     risky=risky)
     if r.get("error"):
         print(f"The self-test could not finish: {r['error']}")
         return 1

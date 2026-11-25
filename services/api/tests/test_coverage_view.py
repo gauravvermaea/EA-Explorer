@@ -24,9 +24,9 @@ def reader_of(files: dict[tuple[str, str], object]):
 
 def test_run_files_reads_both_and_tolerates_missing_or_broken():
     read = reader_of({("r1", "coverage.json"): COV, ("r1", "negative.json"): b"{broken", ("r2", "negative.json"): [1, 2]})
-    assert cv.run_files("r1", read) == {"coverage": COV, "negative": None}
-    assert cv.run_files("r2", read) == {"coverage": None, "negative": None}     # a list is not a negative.json
-    assert cv.run_files("", read) == {"coverage": None, "negative": None}
+    assert cv.run_files("r1", read) == {"coverage": COV, "negative": None, "screens": None}
+    assert cv.run_files("r2", read) == {"coverage": None, "negative": None, "screens": None}   # a list is not a negative.json
+    assert cv.run_files("", read) == {"coverage": None, "negative": None, "screens": None}
 
 
 def test_trend_oldest_first_same_kind_only_and_limited():
@@ -84,7 +84,7 @@ def test_charts_and_summary_line():
     line = cv.summary_line(files)
     assert "Coverage 72.4% of the API's lines (goal 90%, was 70.1%)" in line
     assert "least covered: <b>odd</b> 10%" in line and "negative tests 53: 50 passed, 1 warnings, 2 failed" in line
-    assert cv.summary_line({}) == "" and cv.charts({}) == {"rings": "", "gauge": "", "areas": "", "trend": "", "negative": ""}
+    assert cv.summary_line({}) == "" and cv.charts({}) == {"overall": "", "rings": "", "screens": "", "gauge": "", "areas": "", "trend": "", "negative": ""}
 
 
 def test_html_section_with_and_without():
@@ -200,8 +200,41 @@ def test_our_code_ring_and_when_joined_one_for_each_measurement():
 
 def test_the_ring_comes_first_in_the_report_and_on_the_page(monkeypatch):
     ch = cv.charts({"coverage": COV, "negative": NEG})
-    assert list(ch)[0] == "rings" and ch["rings"]
+    assert list(ch)[:2] == ["overall", "rings"] and ch["rings"] and ch["overall"] == ""   # no screens: no overall ring
     page = cv.html_section({"coverage": COV})
-    assert page.index("Our code: the lines run, against the goal") < page.index("Share of the API")
+    assert page.index("The API's lines run, against the goal") < page.index("Share of the API")
     comp = (REPO / "services/web/src/CoverageCharts.jsx").read_text()
     assert comp.index('["rings",') < comp.index('["gauge",')
+
+
+
+# the goal's measure (eax/api) and the screens on the run's coverage pictures (owner, 25 Nov 2026, 16:14: "this one
+# doesnt show the UI")
+SCR = {"screens": 211, "covered": 163, "percent": 77.3, "controls": 2519, "controls_used": 253, "controls_percent": 10.0,
+       "bar": 90.0}
+
+
+def test_the_rings_lead_with_the_api_and_the_screens_have_theirs():
+    c = {**COV, "goal_percent": 83.3, "goal_run": 9702, "goal_lines": 11649, "goal_left_out_lines": 711, "jobs_percent": 53.7}
+    ch = cv.charts({"coverage": c, "screens": SCR})
+    assert "The API (eax/api), the goal&#x27;s measure" in ch["rings"] or "The API (eax/api), the goal's measure" in ch["rings"]
+    assert "711 lines left out" in ch["rings"] and "The background jobs" in ch["rings"] and "All the server" in ch["rings"]
+    assert "77.3%" in ch["screens"] and "163 of 211 screens" in ch["screens"]
+    line = cv.summary_line({"coverage": c, "screens": SCR})
+    assert line.startswith("Overall 80.3% (the API and the screens counted equally; bar 90%: short by 9.7 points); ")
+    assert ("; The API 83.3% of its 11,649 lines (goal 90%: short by 6.7 points: about 783 more lines to run), "
+            "background jobs 53.7%") in line
+    assert "the screens 77.3% covered by journeys (163 of 211; bar 90%: short by 12.7 points" in line
+    page = cv.html_section({"coverage": c, "screens": SCR})
+    assert page.index("The API's lines run") < page.index("The screens covered by journeys, against the bar")
+    comp = (REPO / "services/web/src/CoverageCharts.jsx").read_text()
+    assert '["screens", "The screens covered by journeys, against the bar"]' in comp
+    assert cv.screens_svg(None) == "" and cv.screens_svg({"screens": 0}) == ""
+
+
+def test_the_coverage_page_says_the_goals_figure_above_the_areas():
+    from eax.testing import run as R
+    page = R.coverage_html({"percent": 63.8, "run": 1, "lines": 2, "goal_percent": 83.3, "goal_run": 9702,
+                            "goal_lines": 11649, "goal_left_out_lines": 711, "areas": [], "files": []})
+    assert "The API (eax/api), the goal's measure: 83.3%" in page and "711 lines left out" in page
+    assert page.index("83.3%") < page.index("All the server's code: 63.8%")

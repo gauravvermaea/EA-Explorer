@@ -450,6 +450,11 @@ and IT Admins.
           the database too (eax test summary; System Admin > Self-test > Summary). With --ci only the self-test runs.
           With --suite (other than all), --role, --area, --journey or --pages-only only the dev check and that part of
           the self-test run: no backup and restore test, SonarQube or DR drill.
+          --risky adds the risky suite (D927), only on a laptop or an installation marked as a test one: the API and
+          the journeys also delete the logs older than ten years, old job and resource history and the run's own
+          backups, save the log sizes, allow lists and settings back as they were, reset the second factor of the
+          run's own account, and put the run's model back over itself from its own backup; their routes and the
+          restores page then count. Never a restart, the installation taken down, the secrets or a full restore.
   security  only the security suite (part of full, R5.17): the front door's headers, the dependencies, the code and
           secrets scans, the attacks of Release 3, ZAP signed in and not, Trivy; a high or critical finding not
           accepted (eax/testing/security_accepted.json) fails it. It also runs by itself every Sunday at 03:20.
@@ -548,6 +553,7 @@ for the sample data or the industry packs; a switched-off service's checks are s
 The report: work/tests/<run>/report.html (and the Self-test page's History). The exit code is 1 when a test failed.
 $ {eax} test
 $ {eax} test full
+$ {eax} test full --risky
 $ {eax} test performance --size medium --users 50
 $ {eax} test attack
 $ {eax} test backup

@@ -182,6 +182,7 @@ OVERRIDES = {
              {"key": "--no-dev-check", "type": "flag", "required": False},  # full without the dev check (D823)
              {"key": "--no-sonar", "type": "flag", "required": False},      # full without the SonarQube scan (D823)
              {"key": "--no-dr", "type": "flag", "required": False},         # full without the DR drill (R9.10)
+             {"key": "--risky", "type": "flag", "required": False},         # full with the risky suite (D927)
              {"key": "--keep/--open/--reset", "type": "flags", "choices": ["--keep", "--open", "--reset"], "required": False},   # sonar (R8, D805)
              {"key": "--confirm", "type": "flag-value", "flags": ["--confirm"], "required": False, "placeholder": "installation name"}],
 }

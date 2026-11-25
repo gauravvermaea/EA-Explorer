@@ -225,7 +225,7 @@ export async function step(f, s0, role, state = {}) {
     el.dispatchEvent(new Event("change", { bubbles: true }));
   } else if ("download" in s) {
     // the browser saves the file itself: here, the click must not end in an error
-    const el = clickable(root, s.download);
+    const el = clickable(root, s.download, s.exact);   // exact: the whole words, as a click's
     if (!el) return `no button or link "${s.download}"`;
     el.click();
     await pause(2000);

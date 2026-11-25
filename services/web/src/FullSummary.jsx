@@ -4,7 +4,7 @@
 // The figures stay once the detailed files are deleted (Keep summary only, or eax test prune); the links then go.
 import { useEffect, useState } from "react";
 import { apiDownload, apiFetch } from "./auth";
-import { fmtDateTime } from "./fmt";
+import { fmtDateTime, fmtNumber } from "./fmt";
 
 const GOOD = "#1a7f37", NEAR = "#b7791f", LOW = "#c62828", GREY = "#8a8f98";
 
@@ -28,6 +28,24 @@ export function Ring({ percent, goal = 90, size = 140, label = "our code" }) {
   );
 }
 
+// How far a figure is from its bar, as the owner reads it (25 Nov 2026, 16:24: "show the actual measure that you say
+// here"): "short by 6.7 points: about 783 more lines to run", or "at or over the bar".
+export function toReach(percent, bar, total, done, what) {
+  if (percent == null || !total) return "-";
+  const p = Number(percent), b = Number(bar) || 90;
+  if (p >= b) return `at or over the ${what === "screens" ? "bar" : "goal"} of ${b}%`;
+  const more = Math.max(0, Math.ceil((b * Number(total)) / 100 - Number(done || 0)));
+  return `short by ${(b - p).toFixed(1)} points: about ${fmtNumber(more, 0)} more ${what === "screens" ? "screens covered" : "lines to run"}`;
+}
+
+// The overall coverage (owner, 25 Nov 2026, 16:34: "can there a an overall coverage ring too, these two can be under it"):
+// the API's and the screens' figures counted equally, to one decimal; one alone when only it was measured. Bar 90%. As
+// eaxcli/fullreport.overall and coverage_view.overall.
+export function overall(api, screens) {
+  const got = [api, screens].filter((x) => x != null).map(Number);
+  return got.length ? Math.round((got.reduce((a, b) => a + b, 0) / got.length) * 10) / 10 : null;
+}
+
 const State = ({ ok }) => (ok == null ? <span className="pill none">not run</span>
   : ok ? <span className="pill good">passed</span> : <span className="pill bad">failed</span>);
 const Rows = ({ rows }) => (
@@ -38,17 +56,52 @@ export function Cards({ s, onOpen }) {
   const run = s.selftest || {}, cov = run.coverage || {}, sec = run.security, att = run.attack;
   const unit = cov.unit ?? s.dev?.coverage?.percent;
   const goal = Number(cov.goal) || 90;
-  return (
+  const api = cov.api ?? null, scr = run.screens;     // the goal's measure (eax/api) and the screens (D926)
+  const whole = api != null && scr ? overall(api, scr.percent) : null;
+  const where = [whole != null && `Overall ${whole}% (the API and the screens counted equally), bar 90%: ${whole >= 90 ? "at or over the bar" : `short by ${(90 - whole).toFixed(1)} points`}`,
+    api != null && `The API ${api}% of ${cov.api_lines} lines, goal ${goal}%: ${toReach(api, goal, cov.api_lines, cov.api_run, "lines")}`,
+    cov.jobs != null && `background jobs ${cov.jobs}% (shown, not judged)`,
+    scr && `the screens ${scr.percent}% (${scr.covered} of ${scr.screens}), bar ${Number(scr.bar) || 90}%: ${toReach(scr.percent, scr.bar, scr.screens, scr.covered, "screens")}`]
+    .filter(Boolean);
+  return (<>
+    {where.length > 0 && <p className="full-where"><b>Where it stands:</b> {where.join("; ")}.</p>}
     <div className="full-cards">
       {(s.dev || steps.dev) && (
         <section className="full-card"><h3>Dev check <State ok={(steps.dev || s.dev).passed} /></h3>
           {s.dev ? <Rows rows={(s.dev.steps || []).map((x) => [x.title, `${x.passed ? "ok" : "FAILED"}${x.why ? `: ${x.why}` : ""}`])} />
             : <p className="small">{steps.dev.why}</p>}</section>)}
+      {whole != null && (
+        <section className="full-card full-overall"><h3>Overall coverage</h3>
+          <div className="full-ring"><Ring percent={whole} goal={90} size={190} label="overall" /></div>
+          <div className="full-pair">
+            <Ring percent={api} goal={goal} size={120} label="the API" />
+            <Ring percent={scr.percent} goal={Number(scr.bar) || 90} size={120} label="the screens" />
+          </div>
+          <p className="quiet small">Overall: the API ({api}%) and the screens ({scr.percent}%) counted equally. Bar 90%:{" "}
+            {whole >= 90 ? "at or over it" : `short by ${(90 - whole).toFixed(1)} points`}. Each is in full in its own card below.</p>
+        </section>)}
       <section className="full-card"><h3>Code coverage</h3>
-        <div className="full-ring"><Ring percent={cov.percent} goal={goal} /></div>
-        <Rows rows={[["this run alone", cov.live != null ? `${cov.live}%` : "-"], ["the unit tests alone", unit != null ? `${unit}%` : "-"],
+        <div className="full-ring"><Ring percent={api ?? cov.percent} goal={goal} label={api != null ? "the API" : "our code"} /></div>
+        <Rows rows={[
+          ...(api != null ? [["the API (eax/api), the goal's measure", `${api}% (${cov.api_run || 0} of ${cov.api_lines || 0} lines)`],
+            ["to reach the goal", toReach(api, goal, cov.api_lines, cov.api_run, "lines")],
+            ...(cov.api_left_out ? [["left out of the goal", `${cov.api_left_out} lines: pairing, the routes that stop, restart, restore or wipe the installation, the self-test's own controls`]] : []),
+            ...(cov.jobs != null ? [["the background jobs", `${cov.jobs}% (${cov.jobs_run || 0} of ${cov.jobs_lines || 0} lines)`]] : []),
+            ["the risky suite (--risky)", cov.risky ? "on: the routes it runs count" : "off: its routes left out"],
+            ["all the server's code", `${cov.percent}%`]] : []),
+          ["this run alone", cov.live != null ? `${cov.live}%` : "-"], ["the unit tests alone", unit != null ? `${unit}%` : "-"],
           ["lines", cov.lines ? `${cov.run || 0} of ${cov.lines} run` : "-"], ["goal", `${goal}%`]]} />
-        <p className="quiet small">Our code only: the API, the job runner and the MCP server, joined with the unit tests.</p></section>
+        <p className="quiet small">{api != null ? "The goal is measured on the API (eax/api); the rest of our code is shown, not judged."
+          : "Our code only: the API, the job runner and the MCP server, joined with the unit tests."}</p></section>
+      {scr && (
+        <section className="full-card"><h3>Screens covered by journeys</h3>
+          <div className="full-ring"><Ring percent={scr.percent} goal={Number(scr.bar) || 90} label="the screens" /></div>
+          <Rows rows={[["screens covered", `${scr.covered} of ${scr.screens}`],
+            ["to reach the bar", toReach(scr.percent, scr.bar, scr.screens, scr.covered, "screens")], ["acted on by a journey", scr.acted_on],
+            ["read only and opened", scr.read_only], ["controls used", `${scr.controls_used} of ${scr.controls} (${scr.controls_percent}%)`],
+            ["risky controls left out", scr.left_out], ["screens left out", scr.screens_left_out], ["bar", `${Number(scr.bar) || 90}%`]]} />
+          <p className="quiet small">A screen is covered when a journey acts on it, or it only shows and opens. The bar: 90% of the screens counted.</p>
+        </section>)}
       {(s.selftest || steps.selftest) && (
         <section className="full-card"><h3>Self-test <State ok={steps.selftest ? steps.selftest.passed : run.state === "passed"} /></h3>
           <p><b>{run.tally?.passed || 0}</b> passed · <b>{run.tally?.failed || 0}</b> failed · {run.tally?.warning || 0} warnings · {run.tally?.skipped || 0} skipped</p>
@@ -80,6 +133,37 @@ export function Cards({ s, onOpen }) {
           <p className="small">{steps.containers.passed ? "None left running: every scanner, k6 and the test runner removed when done."
             : steps.containers.why}</p></section>)}
     </div>
+    <Gaps g={s.gaps} />
+  </>);
+}
+
+// What is not covered, a table a kind (owner, 25 Nov 2026, 12:19: "In the coverage clearly call out areas not being covered
+// in a table"): the same tables as the summary page (eaxcli/fullreport.gaps_card), from the full test's summary.
+const Table = ({ head, rows }) => (!rows.length ? <p className="quiet small">None.</p>
+  : <table className="small"><thead><tr>{head.map((h) => <th key={h}>{h}</th>)}</tr></thead>
+    <tbody>{rows.map((r, i) => <tr key={i}>{r.map((c, j) => <td key={j}>{c}</td>)}</tr>)}</tbody></table>);
+
+export function Gaps({ g }) {
+  if (!g) return null;
+  const missed = (f) => (Number(f.lines) || 0) - (Number(f.run) || 0);
+  const api = g.api_files || [], out = g.api_left_out || [], jobs = g.jobs_files || [];
+  const nc = g.screens_not_covered || [], sl = g.screens_left_out || [];
+  return (
+    <section className="full-card full-wide"><h3>Not covered yet</h3>
+      <h4>The API: files under the goal of {Number(g.api_goal) || 90}% ({api.length})</h4>
+      <Table head={["file", "covered", "lines not run"]} rows={api.map((f) => [f.file, `${f.percent}%`, missed(f)])} />
+      <h4>The API: left out of the goal ({out.length})</h4>
+      <Table head={["file", "route", "methods", "why"]}
+        rows={out.map((x) => [x.file, x.route, Array.isArray(x.methods) ? x.methods.join(", ") : (x.methods || "all"), x.why])} />
+      <h4>Background jobs (shown, not judged)</h4>
+      <Table head={["file", "covered", "lines not run"]} rows={jobs.map((f) => [f.file, `${f.percent}%`, missed(f)])} />
+      <h4>Screens not covered yet, by area ({nc.reduce((n, x) => n + x.screens.length, 0)})</h4>
+      <Table head={["area", "screens", "which"]} rows={nc.map((x) => [x.area, x.screens.length, x.screens.join(", ")])} />
+      <h4>Screens left out of the bar ({sl.length})</h4>
+      <Table head={["screen", "why"]} rows={sl.map((x) => [x.screen, x.why])} />
+      <p className="quiet small">{Number(g.controls_left_out) || 0} risky controls (stop, restart, restore, delete, ...) are not pressed and not
+        counted; they are listed in screens-coverage.json.</p>
+    </section>
   );
 }
 

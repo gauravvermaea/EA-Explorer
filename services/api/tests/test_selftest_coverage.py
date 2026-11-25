@@ -225,7 +225,8 @@ def test_a_remembered_value_fills_later_steps():
 def test_one_role_runs_what_it_may_and_is_refused_the_rest():
     js = ui_flows.journeys(IDS, role="report-viewer")
     assert js and all(j["role"] == "report-viewer" for j in js)
-    assert all(j.get("refusal") for j in js if not j["name"].startswith(("help", "the libraries")))
+    # the journeys every member may do (no refusal): help, the libraries, the project tabs that only show (R14.5)
+    assert all(j.get("refusal") for j in js if not j["name"].startswith(("help", "the libraries", "project tabs that show")))
     assert any(j["name"].startswith("help") and j["steps"] for j in js)
     assert any(j["name"].startswith("the libraries") and j["steps"] for j in js)   # for everyone
 
@@ -358,7 +359,7 @@ def test_eax_test_has_two_choices_and_clean():
     assert entry["syntax"].startswith("test [smoke|full|jobs|mcp|reports|security|performance|attack|sonar [--keep|--open|--reset]|backup|backup-restore|restore|jenkins [--only NAMES]|commands [--only NAMES]|failed")   # backup-restore: R5.6-B1; sonar: R8 (D792); attack: R8.2; jenkins, commands: R9.13, R9.14
     names = [o["flag"].split()[0] for o in entry["options"]]
     assert names == ["smoke", "full", "backup", "backup-restore", "failed", "watch", "stop", "api", "delete", "prune", "summary", "clean"], names   # restore: R3.8; watch, stop: R3.2   # ui-review removed: D770
-    assert entry["examples"] == ["{eax} test", "{eax} test full", "{eax} test performance --size medium --users 50", "{eax} test attack", "{eax} test backup", "{eax} test backup-restore", "{eax} test api GET /api/v1/models --as architect", "{eax} test watch", "{eax} test watch --browser", "{eax} test stop 12", "{eax} test failed",
+    assert entry["examples"] == ["{eax} test", "{eax} test full", "{eax} test full --risky", "{eax} test performance --size medium --users 50", "{eax} test attack", "{eax} test backup", "{eax} test backup-restore", "{eax} test api GET /api/v1/models --as architect", "{eax} test watch", "{eax} test watch --browser", "{eax} test stop 12", "{eax} test failed",
                                  "{eax} test failed 12 --warnings", "{eax} test delete --older-than 30",
                                  "{eax} test prune --older-than 14", "{eax} test summary", "{eax} test clean", "{eax} test clean --dry-run"]
     ops = (ROOT / "services" / "ops" / "testruns.py").read_text(encoding="utf-8")

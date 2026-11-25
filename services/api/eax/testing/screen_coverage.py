@@ -13,7 +13,7 @@ the screen each of their actions happens on (a click, typing, a choice, a key) a
                the sign-in mode, update, ...): not counted, listed ("Left out, listed")
 
 Kept as screens-coverage.json in the run's folder and as one result line; the summary page shows it beside the API's
-figure. No bar yet: the first reading is the baseline the owner sets the screens' bar from (D923). Pure functions, so
+figure. The bar is 90% of the screens counted (BAR; owner, 25 Nov 2026, 12:12). Pure functions, so
 the unit tests check them; the browser side is CONTROLS_JS."""
 
 from __future__ import annotations
@@ -30,8 +30,27 @@ _UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 RISKY = re.compile(r"\b(stop|restart|shut ?down|restore|delete|remove|purge|wipe|erase|reset|clean[- ]?up|switch|"
                    r"update now|start the update|upgrade|roll ?back|rotate|revoke|disable|break[- ]glass|kill|"
                    r"terminate|drop|uninstall|unpair|scale)\b", re.I)
+# the screens' bar (owner, 25 Nov 2026, 12:12: "Bar for screens is currently 90%"): of the screens counted, the share
+# covered; under it the result is a warning, as the API's goal (D923)
+BAR = 90.0
+# screens left out of the count, each with why, and listed with the figure (as the API's, owner, 11:02): what needs a
+# second installation, restores this one, or starts a test run inside the test run
+LEFT_OUT_SCREENS = {
+    "#/admin/pairings": "pairing needs a second installation",
+    "#/admin/disaster-recovery": "a DR copy needs a second installation (the DR drill covers it)",
+    "#/admin/restores": "restores: eax test backup-restore covers them",
+    "#/admin/self-test/run": "starts a test run inside the test run",
+    "#/admin/self-test/performance": "the benchmark: never part of a test run (R5.29)",
+}
+
+# the screens the risky suite opens (D927): counted when the run has --risky, left out otherwise
+RISKY_SCREENS = ("#/admin/restores",)
+
+# where a project's frame controls are counted (CONTROLS_JS marks them)
+FRAME_HOME = ("#/projects/{id}", "#/metamodel/{id}", "#/model-admin/{id}")
+
 # the kinds of journey step that act on a screen, and the control each names
-ACTS = ("click", "fill", "select", "choose", "press", "upload", "check", "drag")
+ACTS = ("click", "fill", "select", "choose", "press", "upload", "check", "drag", "download")   # a download presses its button
 
 # the browser side: the controls a person can use on the page's own content and in an open pop-up dialog (the menu bar,
 # the page's tab bars and the help panel are how one moves about, not the page's work). One entry a control: its words
@@ -50,6 +69,9 @@ CONTROLS_JS = """() => {
       || e.innerText || e.value || e.placeholder || e.name || e.title || '';
     return w.split(/\\s+/).join(' ').trim().slice(0, 80);
   };
+  // a project's or a model's own frame (its heading, Pin, Mark complete, Finish, the iteration bar; the model's icon,
+  // Pin, Actions, Lock, Details) shows on every tab: marked, and counted on its own page only (Collector.page)
+  const frame = (e) => !!e.closest('.project-head, .iteration-bar, .model-head');
   const out = [];
   const seen = new Set();
   const all = roots.flatMap((r) => [...r.querySelectorAll('button, input:not([type=hidden]), select, textarea, [role=button], [role=checkbox], [role=radio], summary')]);
@@ -62,7 +84,7 @@ CONTROLS_JS = """() => {
     const key = kind + ':' + w.toLowerCase();
     if (!w || seen.has(key)) continue;
     seen.add(key);
-    out.push({ words: w, kind });
+    out.push(frame(e) ? { words: w, kind, frame: true } : { words: w, kind });
   }
   return out;
 }"""
@@ -85,6 +107,9 @@ def risky(words: str) -> bool:
     return bool(RISKY.search(words or ""))
 
 
+is_risky = risky                       # the name summarise uses, beside its risky flag
+
+
 def acted(step: dict) -> tuple[str, str] | None:
     """(kind, the control's words) of a journey step that acts on the screen; None for one that only opens or looks."""
     for k in ACTS:
@@ -103,11 +128,15 @@ class Collector:
         self.actions: list[tuple[str, str, str]] = []
 
     def page(self, route: str, controls: list[dict] | None, loaded: bool) -> None:
-        """The sweep opened route: its controls, and whether it loaded (no failure)."""
+        """The sweep opened route: its controls, and whether it loaded (no failure). A project's frame controls count on
+        the project's own page only (25 Nov 2026: Pin, Mark complete, Finish and Choose… on every one of its 29 tabs kept
+        a tab with nothing of its own from being read only); a model's the same, on the model's own page."""
         s = screen(route)
         have = self.controls.setdefault(s, [])
         known = {(c["kind"], c["words"].lower()) for c in have}
         for c in controls or []:
+            if c.get("frame") and s not in FRAME_HOME:
+                continue
             if (c.get("kind"), str(c.get("words", "")).lower()) not in known:
                 have.append({"words": str(c.get("words", "")), "kind": str(c.get("kind", ""))})
                 known.add((c.get("kind"), str(c.get("words", "")).lower()))
@@ -131,16 +160,24 @@ def _used(control: dict, actions: list[tuple[str, str]]) -> bool:
     return False
 
 
-def summarise(c: Collector) -> dict[str, Any]:
-    """The screens' coverage from what the suite saw (D924)."""
+def summarise(c: Collector, risky: bool = False) -> dict[str, Any]:
+    """The screens' coverage from what the suite saw (D924). With the risky suite (D927) its screens count and the
+    controls it may press (Delete, ...) are counted as any other; without it they are left out and listed."""
+    left = {k: v for k, v in LEFT_OUT_SCREENS.items() if not (risky and k in RISKY_SCREENS)}
     by_screen: dict[str, list[tuple[str, str]]] = {}
     for s, kind, said in c.actions:
         by_screen.setdefault(s, []).append((kind, said))
     rows, left_out = [], []
+    screens_left_out = [{"screen": s, "why": left[s]} for s in sorted(set(c.controls) | set(by_screen)) if s in left]
     for s in sorted(set(c.controls) | set(by_screen)):
+        if s in left:
+            continue
         controls = c.controls.get(s, [])
-        safe = [x for x in controls if not risky(x["words"])]
-        out = [x for x in controls if risky(x["words"])]
+        if risky:
+            safe, out = controls, []
+        else:
+            safe = [x for x in controls if not is_risky(x["words"])]
+            out = [x for x in controls if is_risky(x["words"])]
         left_out += [{"screen": s, "words": x["words"], "kind": x["kind"]} for x in out]
         used = [x for x in safe if _used(x, by_screen.get(s, []))]
         read_only = not safe
@@ -153,12 +190,12 @@ def summarise(c: Collector) -> dict[str, Any]:
     cov = sum(1 for r in rows if r["covered"])
     controls = sum(r["controls"] for r in rows)
     used = sum(r["used"] for r in rows)
-    return {"screens": n, "covered": cov, "percent": round(100 * cov / n, 1) if n else None,
+    return {"risky": risky, "screens": n, "covered": cov, "percent": round(100 * cov / n, 1) if n else None,
             "acted_on": sum(1 for r in rows if r["acted_on"]), "read_only": sum(1 for r in rows if r["read_only"]),
             "controls": controls, "controls_used": used,
             "controls_percent": round(100 * used / controls, 1) if controls else None,
             "left_out": left_out, "not_covered": [r["screen"] for r in rows if not r["covered"]],
-            "by_screen": rows}
+            "bar": BAR, "screens_left_out": screens_left_out, "by_screen": rows}
 
 
 def save(folder: Path, result: dict) -> None:
@@ -167,16 +204,21 @@ def save(folder: Path, result: dict) -> None:
 
 
 def line(result: dict) -> tuple[str, str]:
-    """The result line: (outcome, detail). Passed while there is no bar (D923: set from this first reading)."""
+    """The result line: (outcome, detail): passed at or over the bar (BAR, 90%), a warning under it (as the API's goal)."""
     if not result.get("screens"):
         return "skipped", "no screen seen (the page sweep did not run)"
+    bar = float(result.get("bar") or BAR)
+    gone = result.get("screens_left_out") or []
     lowest = sorted((r for r in result["by_screen"] if r["controls"]),
                     key=lambda r: r["used"] / r["controls"])[:5]
     thin = ", ".join(f"{r['screen']} {r['used']}/{r['controls']}" for r in lowest)
-    return "passed", (f"{result['percent']}% of {result['screens']} screens covered ({result['acted_on']} acted on by a "
+    met = (result.get("percent") or 0.0) >= bar
+    verdict = f"at or over the bar of {bar:g}%" if met else f"under the bar of {bar:g}% by {round(bar - (result.get('percent') or 0.0), 1)} points"
+    return ("passed" if met else "warning"), (f"{verdict}: {result['percent']}% of {result['screens']} screens covered ({result['acted_on']} acted on by a "
                       f"journey, {result['read_only']} read only and opened); controls used {result['controls_used']} of "
                       f"{result['controls']} ({result['controls_percent']}%); {len(result['left_out'])} risky controls left "
-                      f"out; fewest controls used: {thin}; screens-coverage.json in the run's folder")
+                      f"out; {len(gone)} screens left out ({', '.join(g['screen'] for g in gone) or 'none'}); "
+                      f"fewest controls used: {thin}; screens-coverage.json in the run's folder")
 
 
 def summary(result: dict | None) -> dict | None:
@@ -184,4 +226,6 @@ def summary(result: dict | None) -> dict | None:
     if not result or result.get("percent") is None:
         return None
     return {k: result.get(k) for k in ("screens", "covered", "percent", "acted_on", "read_only", "controls",
-                                        "controls_used", "controls_percent")} | {"left_out": len(result.get("left_out") or [])}
+                                        "controls_used", "controls_percent")} | {
+        "left_out": len(result.get("left_out") or []), "bar": result.get("bar"),
+        "screens_left_out": len(result.get("screens_left_out") or [])}

@@ -107,6 +107,7 @@ def gather(tests: Path, since: float, steps: list[tuple[str, bool, str]], *, ver
                     "jobs": c.get("jobs_percent"), "jobs_lines": c.get("jobs_lines"), "jobs_run": c.get("jobs_run")}
         out["selftest"] = {**s, "folder": run.name}
         out["details"].append(run.name)
+        out["gaps"] = gaps(_json(run / "coverage.json") or {}, _json(run / "screens-coverage.json") or {})
     br = _newest(tests, lambda p: p.is_dir() and p.name.startswith("backup-restore-"), since)
     if br:
         r = _json(br / "report.json") or {}
@@ -148,6 +149,105 @@ def sonar_table(rows: list, to_fix=None) -> str:
     more = (f"<p>The first {len(rows)} of {to_fix}; report.md has every one.</p>"
             if isinstance(to_fix, int) and to_fix > len(rows) else "")
     return f"<h3>Still to fix</h3><table>{head}{body}</table>{more}"
+
+
+def to_reach(percent, bar: float, total, done, what: str = "lines") -> str:
+    """How far a figure is from its bar (owner, 25 Nov 2026, 16:24: "show the actual measure that you say here"): "short
+    by 6.7 points: about 783 more lines to run", or "at or over the goal of 90%"; as coverage_view.to_reach and the app's
+    Summary screen (FullSummary.jsx toReach)."""
+    if percent is None or not total:
+        return "-"
+    p, b = float(percent), float(bar or 90.0)
+    if p >= b:
+        return f"at or over the {'bar' if what == 'screens' else 'goal'} of {b:g}%"
+    more = max(0, math.ceil(b * float(total) / 100 - float(done or 0)))
+    return f"short by {b - p:.1f} points: about {more:,} more {'screens covered' if what == 'screens' else 'lines to run'}"
+
+
+def overall(cov: dict, scr: dict) -> float | None:
+    """The overall coverage (owner, 25 Nov 2026, 16:34: "can there a an overall coverage ring too, these two can be under
+    it"): the API's and the screens' figures, each counted equally (lines and screens are not the same unit, so neither
+    outweighs the other), to one decimal; one alone when only it was measured; None with neither. Its bar is 90%, as
+    both of theirs. As coverage_view.overall and the app's Summary screen (FullSummary.jsx overall)."""
+    got = [float(x) for x in (cov.get("api"), scr.get("percent")) if x is not None]
+    return round(sum(got) / len(got), 1) if got else None
+
+
+def where_it_stands(s: dict) -> str:
+    """The one line at the top of the page: the API and the screens against their bars, the jobs beside them."""
+    run = s.get("selftest") or {}
+    cov, scr = run.get("coverage") or {}, run.get("screens") or {}
+    goal = float(cov.get("goal") or 90.0)
+    parts = []
+    whole = overall(cov, scr)
+    if whole is not None and cov.get("api") is not None and scr.get("percent") is not None:
+        parts.append(f"Overall {whole}% (the API and the screens counted equally), bar 90%: "
+                     + (f"short by {90 - whole:.1f} points" if whole < 90 else "at or over the bar"))
+    if cov.get("api") is not None:
+        parts.append(f"The API {cov['api']}% of {cov.get('api_lines', 0)} lines, goal {goal:g}%: "
+                     f"{to_reach(cov['api'], goal, cov.get('api_lines'), cov.get('api_run'))}")
+    if cov.get("jobs") is not None:
+        parts.append(f"background jobs {cov['jobs']}% (shown, not judged)")
+    if scr.get("percent") is not None:
+        bar = float(scr.get("bar") or 90.0)
+        parts.append(f"the screens {scr['percent']}% ({scr.get('covered')} of {scr.get('screens')}), bar {bar:g}%: "
+                     f"{to_reach(scr['percent'], bar, scr.get('screens'), scr.get('covered'), 'screens')}")
+    return f'<p class="where"><b>Where it stands:</b> {html.escape("; ".join(parts))}.</p>' if parts else ""
+
+
+def gaps(cov: dict, scr: dict, goal: float = 90.0) -> dict:
+    """What is not covered, from the self-test's coverage.json and screens-coverage.json (owner, 25 Nov 2026, 12:19:
+    "In the coverage clearly call out areas not being covered in a table"): the API's files under the goal, what is left
+    out of the API's goal and why, the background jobs' files, the screens not covered yet (by area) and the screens left
+    out and why. Kept in the summary (the figures stay when the detailed files are pruned)."""
+    goal = float(cov.get("goal") or goal)
+    bar = float(scr.get("bar") or 90.0)
+    by_area: dict[str, list[str]] = {}
+    for x in scr.get("not_covered") or []:
+        parts = [y for y in str(x).split("/") if y and y != "#"]
+        by_area.setdefault(parts[0] if parts else "home", []).append(x)
+    return {
+        "api_goal": goal,
+        "api_files": [f for f in cov.get("goal_files") or [] if (f.get("percent") or 0) < goal],
+        "api_left_out": [{k: x.get(k) for k in ("file", "route", "methods", "why")} for x in cov.get("goal_left_out") or []],
+        "jobs_files": sorted(cov.get("jobs_files") or [], key=lambda f: f.get("percent") or 0),
+        "screens_bar": bar,
+        "screens_not_covered": [{"area": a, "screens": v} for a, v in sorted(by_area.items(), key=lambda kv: (-len(kv[1]), kv[0]))],
+        "screens_left_out": scr.get("screens_left_out") or [],
+        "controls_left_out": len(scr.get("left_out") or []),
+    }
+
+
+def gaps_card(g: dict | None) -> str:
+    """The "Not covered yet" card: one table a kind of gap, each line with why or how far from the goal."""
+    if not g:
+        return ""
+    e = html.escape
+
+    def table(head: list[str], rows: list[list[str]]) -> str:
+        if not rows:
+            return '<p class="quiet">None.</p>'
+        return ("<table><tr>" + "".join(f"<th>{e(h)}</th>" for h in head) + "</tr>"
+                + "".join("<tr>" + "".join(f"<td>{e(str(c))}</td>" for c in r) + "</tr>" for r in rows) + "</table>")
+    api = [[f["file"], f"{f.get('percent')}%", str(int(f.get("lines") or 0) - int(f.get("run") or 0))] for f in g.get("api_files") or []]
+    out = [f'<h3>The API: files under the goal of {float(g.get("api_goal") or 90):.0f}% ({len(api)})</h3>',
+           table(["file", "covered", "lines not run"], api),
+           f'<h3>The API: left out of the goal ({len(g.get("api_left_out") or [])})</h3>',
+           table(["file", "route", "methods", "why"],
+                 [[x.get("file", ""), x.get("route", ""), ", ".join(x["methods"]) if isinstance(x.get("methods"), list)
+                   else str(x.get("methods") or "all"), x.get("why", "")] for x in g.get("api_left_out") or []]),
+           '<h3>Background jobs (shown, not judged)</h3>',
+           table(["file", "covered", "lines not run"],
+                 [[f["file"], f"{f.get('percent')}%", str(int(f.get("lines") or 0) - int(f.get("run") or 0))]
+                  for f in g.get("jobs_files") or []]),
+           f'<h3>Screens not covered yet, by area ({sum(len(x["screens"]) for x in g.get("screens_not_covered") or [])})</h3>',
+           table(["area", "screens", "which"], [[x["area"], str(len(x["screens"])), ", ".join(x["screens"])]
+                                                for x in g.get("screens_not_covered") or []]),
+           f'<h3>Screens left out of the bar ({len(g.get("screens_left_out") or [])})</h3>',
+           table(["screen", "why"], [[x.get("screen", ""), x.get("why", "")] for x in g.get("screens_left_out") or []]),
+           f'<p class="quiet">{int(g.get("controls_left_out") or 0)} risky controls (stop, restart, restore, delete, ...) '
+           'are not pressed and not counted; they are listed in screens-coverage.json.</p>']
+    return '<section class="card wide"><h2>Not covered yet</h2>' + "".join(out) + "</section>"
 
 
 def drill_report(path: Path) -> dict:
@@ -219,29 +319,43 @@ def cards(s: dict) -> list[str]:
     goal = float(cov.get("goal") or 90)
     api = cov.get("api")                                  # the goal's measure: eax/api (D923); else all our code
     pairs = [*([("the API (eax/api), the goal's measure", f"{api}% ({cov.get('api_run', 0)} of {cov.get('api_lines', 0)} lines)"),
-                *([("left out of the goal", f"{cov['api_left_out']} lines: pairing (a second installation) and the routes "
-                    "that stop, restart, restore or wipe it; listed in coverage.json")] if cov.get("api_left_out") else []),
+                ("to reach the goal", to_reach(api, goal, cov.get("api_lines"), cov.get("api_run"))),
+                *([("left out of the goal", f"{cov['api_left_out']} lines: pairing (a second installation), the routes "
+                    "that stop, restart, restore or wipe it and the self-test's own controls; listed in coverage.json")] if cov.get("api_left_out") else []),
                 *([("the background jobs", f"{cov['jobs']}% ({cov.get('jobs_run', 0)} of {cov.get('jobs_lines', 0)} lines)")]
                   if cov.get("jobs") is not None else []),
                 ("all the server's code", f"{cov.get('percent')}%")] if api is not None else []),
+             ("the risky suite (--risky)", "on: the routes it runs count" if cov.get("risky") else "off: its routes left out"),
              ("this run alone", f"{cov['live']}%" if cov.get("live") is not None else "-"),
              ("the unit tests alone", f"{cov.get('unit') if cov.get('unit') is not None else unit}%" if
               (cov.get("unit") is not None or unit is not None) else "-"),
              ("lines", f"{cov.get('run', 0)} of {cov.get('lines', 0)} run" if cov.get("lines") else "-"),
              ("goal", f"{goal:.0f}%")]
     shown = api if api is not None else cov.get("percent")
+    scr = run.get("screens") or {}
+    whole = overall(cov, scr)
+    if whole is not None and api is not None and scr.get("percent") is not None:     # one ring over the two below it
+        small = (f'<div class="pair">{ring(api, goal, 120, "the API")}'
+                 f'{ring(scr.get("percent"), float(scr.get("bar") or 90), 120, "the screens")}</div>')
+        out.append(f'<section class="card wide overall"><h2>Overall coverage</h2><div class="ring">{ring(whole, 90.0, 190, "overall")}</div>'
+                   f'{small}<p class="quiet">Overall: the API ({api}%) and the screens ({scr["percent"]}%) counted equally. '
+                   f'Bar 90%: {"at or over it" if whole >= 90 else f"short by {90 - whole:.1f} points"}. Each is in full in its '
+                   'own card below.</p></section>')
     out.append(f'<section class="card"><h2>Code coverage</h2><div class="ring">{ring(shown, goal, label="the API" if api is not None else "our code")}</div>'
                f'{_rows(pairs)}<p class="quiet">The goal is measured on the API (eax/api); the rest of our code is shown, '
                'not judged. Joined line by line with the unit tests\'.</p></section>')
-    scr = run.get("screens") or {}
     if scr.get("percent") is not None:              # the screens, by the journeys (R14.5.1, D924)
         pairs = [("screens covered", f"{scr.get('covered', 0)} of {scr.get('screens', 0)}"),
+                 ("to reach the bar", to_reach(scr.get("percent"), float(scr.get("bar") or 90), scr.get("screens"),
+                                               scr.get("covered"), "screens")),
                  ("acted on by a journey", str(scr.get("acted_on", 0))), ("read only, opened", str(scr.get("read_only", 0))),
                  ("controls used", f"{scr.get('controls_used', 0)} of {scr.get('controls', 0)} ({scr.get('controls_percent')}%)"),
-                 ("risky controls left out", str(scr.get("left_out", 0)))]
-        out.append(f'<section class="card"><h2>Screens covered by journeys</h2><div class="ring">{ring(scr.get("percent"), 100.0, label="the screens")}</div>'
+                 ("risky controls left out", str(scr.get("left_out", 0))),
+                 ("screens left out", f"{scr.get('screens_left_out', 0)} (a second installation, restores, a test run in the run)"),
+                 ("bar", f"{float(scr.get('bar') or 90):.0f}%")]
+        out.append(f'<section class="card"><h2>Screens covered by journeys</h2><div class="ring">{ring(scr.get("percent"), float(scr.get("bar") or 90), label="the screens")}</div>'
                    f'{_rows(pairs)}<p class="quiet">A screen a journey acts on, or a read-only one that opens; the list is in '
-                   'screens-coverage.json in the self-test\'s folder. No bar yet: this reading sets it (D923).</p></section>')
+                   'screens-coverage.json in the self-test\'s folder. The bar: 90% of the screens counted.</p></section>')
     stp = steps.get("selftest")
     if run or stp:
         t = run.get("tally") or {}
@@ -317,7 +431,7 @@ h1{margin:0 0 4px}.quiet{color:#57606a;font-size:13px}.grid{display:grid;grid-te
 th{text-align:left;font-weight:500;color:#57606a;padding:3px 8px 3px 0;vertical-align:top}td{padding:3px 0}
 .pill{font-size:12px;border-radius:10px;padding:2px 8px;margin-left:6px;vertical-align:middle;color:#fff}
 .good{background:#1a7f37}.bad{background:#c62828}.none{background:#8a8f98}.big{font-size:16px;font-weight:600}
-.ring{text-align:center}ol{margin:6px 0 0 18px;padding:0;font-size:14px}"""
+.ring{text-align:center}ol{margin:6px 0 0 18px;padding:0;font-size:14px}.wide{grid-column:1/-1}.pair{display:flex;justify-content:center;gap:32px;margin:4px 0 8px}.where{margin:8px 0;padding:8px 12px;border-left:4px solid #2563eb;background:#fff}"""
 
 
 def page(s: dict) -> str:
@@ -329,7 +443,8 @@ def page(s: dict) -> str:
             f'<h1>EA Explorer full test {_state(s.get("passed"))}</h1>'
             f'<p class="quiet">Version {html.escape(s.get("version") or "?")} · began {html.escape(s.get("started_at") or "")} · '
             f'ended {html.escape(s.get("finished_at") or "")}' + (f' · by {html.escape(s["by"])}' if s.get("by") else "")
-            + '</p><ol>' + steps + '</ol><div class="grid">' + "".join(cards(s)) + '</div>'
+            + '</p><ol>' + steps + '</ol>' + where_it_stands(s) + '<div class="grid">' + "".join(cards(s))
+            + gaps_card(s.get("gaps")) + '</div>'
             '<p class="quiet">The figures on this page stay when the detailed files are deleted (eax test prune, or System '
             'admin &gt; Self-test &gt; History); its links then no longer open.</p></body></html>')
 
