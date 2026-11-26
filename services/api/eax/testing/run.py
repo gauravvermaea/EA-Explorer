@@ -510,6 +510,12 @@ LEFT_OUT_ROUTES = [
     ("eax/api/admin.py", "/admin/logs/web-debug", None, "switches the screens' debug logging"),
     ("eax/api/admin.py", "/admin/containers/<service>/terminal", None, "opens a shell in a container"),
     ("eax/api/admin.py", "/admin/alerting/test-email", None, "sends an email to real people"),
+    # the outside test bench's door into a run (D580): writing results into a run, or opening or closing one, from inside
+    # the run would change the run itself; its read-only parts (state, the database checks) are tested
+    ("eax/api/testbench_api.py", "/runs", None, "the test bench opens a run in the self-test's history"),
+    ("eax/api/testbench_api.py", "/runs/<int:run_id>/results", None, "the test bench writes results into a run"),
+    ("eax/api/testbench_api.py", "/runs/<int:run_id>/finish", None, "the test bench closes a run"),
+    ("eax/api/testbench_api.py", "/runs/<int:run_id>/session", None, "a run's tokens, for the browser the bench drives"),
     # the self-test's own controls (owner, 25 Nov 2026, 12:11: agreed): run from inside a test run they would start, stop,
     # repeat or delete test runs, the running one too; their reads (a run's report, files, screenshots) stay in
     ("eax/api/platform_tests.py", "/tests", {"post"}, _SELF),

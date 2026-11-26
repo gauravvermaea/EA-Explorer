@@ -48,7 +48,9 @@ def test_each_background_task_is_followed_until_it_is_done():
     started = [s for s in STEPS if "background" in s["what"]]
     assert len(started) >= 12
     for s in started:
-        assert s["until"]["status"] == ["done"] and s["until"]["path"] == "/api/v1/tasks/{" + s["save"] + "}", s["what"]
+        assert s["until"]["path"] == "/api/v1/tasks/{" + s["save"] + "}", s["what"]
+        # done; or, where nothing can be chosen, failed with the words that refuse it (run 14)
+        assert s["until"]["status"] == ["done"] or (s["until"]["status"] == ["failed"] and s["until"]["said"]), s["what"]
         assert s.get("save_at") == "task" and 202 in s["ok"], s["what"]
 
 

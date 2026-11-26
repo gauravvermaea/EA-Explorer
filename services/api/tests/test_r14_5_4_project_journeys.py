@@ -81,6 +81,6 @@ def test_the_ones_that_ask_window_confirm_run_headless_only():
 def test_they_run_with_the_project_and_not_without_it():
     names = [j["name"] for j in U.journeys(IDS)]          # a journey of two roles runs as each ("... as architect")
     for j in U.PROJECT_JOURNEYS:
-        assert any(n == j["name"] or n.startswith(j["name"] + " as ") for n in names), j["name"]
+        assert any(n == j["name"] or n.startswith((j["name"] + " as ", j["name"] + " (part ")) for n in names), j["name"]
     none = {j["name"] for j in U.journeys({k: v for k, v in IDS.items() if k != "project"})}
     assert not any(n.startswith("project ") for n in none)

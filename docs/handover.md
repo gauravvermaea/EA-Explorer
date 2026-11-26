@@ -45,6 +45,9 @@ Known before the run: R14.18 (four Jenkins pipelines that can never run, found b
   child model failed in the background (both passed or failed differently in run 12; the runner now writes the task's
   own message, so the next run says why). Two more journeys for the screens no journey opened in run 12 (admin security,
   deploy plan, maturity, service-desk catalogue; a project's analysis, charter, home and other documents).
+- Run 14 (25 Nov 2026, 18:30): API 83.9%, screens 83.9% (177 of 211), jobs 84.8%. The API was restarted at 16:43 by an
+  out-of-memory change log export (a product bug, fixed: it streams, D929), which failed most of the 50 and the negative
+  tests; the testing code's own failures fixed (D929). Next: the owner rebuilds (`.\eax up`) and runs the full test again.
 
 **Earlier (25 Nov 2026, Release 14 closed):**
 - Next is Release 14.5. Start with the coverage bar, to be discussed with the owner (R14.5.1, R14.5.2); then the use cases in

@@ -648,7 +648,7 @@ PROJECT_JOURNEYS: list[dict] = [
      "why_no_refusal": "each only reads or downloads; the project's members may all read it",
      "steps": [
          {"open": "#/projects/{p}/report", "expect": "CSV"},
-         {"download": "⬇ CSV (opens in Excel)", "exact": True},
+         {"click": "⬇ CSV (opens in Excel)", "exact": True},   # made in the page (run 14: no download event headless)
          {"open": "#/projects/{p}/library", "expect": "Search the library"},
          {"fill": "Search the library", "value": "self_test"},
          {"open": "#/projects/{p}", "expect": "Preliminary"},
@@ -670,6 +670,8 @@ PROJECT_JOURNEYS.append(
          {"open": "#/projects/{p}/charter"}, {"click": "✎ Change"}, {"click": "Cancel", "exact": True, "optional": True},
          {"open": "#/projects/{p}/home"}, {"click": "Preliminary", "optional": True},
          {"open": "#/projects/{p}/otherdocs"}, {"download": "Download", "exact": True, "optional": True},
+         {"open": "#/projects/{p}/content"}, {"click": "＋", "exact": True}, {"press": "Escape", "wait": 600},
+         {"open": "#/projects/{p}/views"}, {"click": "VP-05", "optional": True},
      ]})
 JOURNEYS += PROJECT_JOURNEYS
 
@@ -738,9 +740,9 @@ AREA_JOURNEYS: list[dict] = [
          *_look("#/admin/settings-transfer", {"choose": "System settings"}),
          *_look("#/admin/setup", {"click": "A laptop"}),
          *_look("#/admin/sql", {"fill": "SQL", "value": "SELECT 1"}),
-         *_look("#/documentation/readme", {"download": "⬇ Download"}),
-         *_look("#/documentation/capabilities", {"download": "⬇ Download"}),
-         *_look("#/documentation/command-line-help", {"download": "⬇ Download"}),
+         {"open": "#/documentation/readme", "expect": "Print or save as PDF"}, {"download": "⬇ Download"},
+         {"open": "#/documentation/capabilities", "expect": "Print or save as PDF"}, {"download": "⬇ Download"},
+         {"open": "#/documentation/command-line-help", "expect": "Print or save as PDF"}, {"download": "⬇ Download"},
          *_look("#/farm"), *_dialog("Add a site"),
          *_look("#/farm/connect"), *_dialog("+ Add an instance"),
      ]},
@@ -784,7 +786,7 @@ AREA_JOURNEYS: list[dict] = [
          *_look("#/model-admin/{m}/tags", {"fill": "Tag name, e.g. Baseline 2026", "value": "self_test_{sid} not saved"}),
          *_look("#/model-admin/{m}/backups", {"fill": "Why, e.g. before reorganising capabilities", "value": "not saved"}),
          *_look("#/model-admin/{m}/merge", {"choose": "Without data"}),
-         *_look("#/model-admin/{m}/pushdown", {"choose": "Force it"}),
+         *_look("#/model-admin/{m}/pushdown", {"choose": "Force it", "optional": True}),   # only with a version to push
          *_look("#/model-admin/{m}/metamodel", {"fill": "Find an entity by name", "value": "Self-test"}),
      ]},
     {"name": "the repository, search, governance, notifications and the service desk: find and filter", "smoke": False,
@@ -869,6 +871,9 @@ AREA_JOURNEYS += [
 ]
 AREA_JOURNEYS = in_parts(AREA_JOURNEYS)
 JOURNEYS += AREA_JOURNEYS
+# the project journeys that only look are cut into parts too (run 14: the report's CSV failed and the six tabs after it in the
+# same journey were never opened)
+JOURNEYS[:] = [x for j in JOURNEYS for x in (in_parts([j]) if j["name"].startswith("project tabs that show") else [j])]
 
 # The risky suite's journeys (D927; owner, 25 Nov 2026, 16:37: "they will run if and only if someone in full test enables
 # risky option. This will be for both UI and api"): only in a run with --risky (journeys() leaves them out otherwise).
@@ -1169,8 +1174,11 @@ def _field(page, label: str):
                                "(e.tagName === 'INPUT' && !/^(checkbox|radio|button|submit|hidden|file)$/i.test(e.type))")
         except Exception:  # noqa: BLE001
             return False
+    # last, a field inside a <label> that starts with the words ("<label>Kind of project <select>"): the label's name
+    # then holds the options too, and run 14 found no "Kind of project" and no "Source (baseline)" that way
+    inside = page.locator("label").filter(has_text=label).locator("select, input, textarea")
     for loc in (page.get_by_label(label, exact=True), page.get_by_label(label, exact=False),
-                page.get_by_placeholder(label, exact=False)):
+                page.get_by_placeholder(label, exact=False), inside):
         for i in range(min(loc.count(), 10)):
             if _visible(loc.nth(i)) and fillable(loc.nth(i)):
                 return loc.nth(i)

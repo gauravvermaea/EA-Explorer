@@ -49,9 +49,10 @@ def test_a_failed_task_says_why(monkeypatch):
 
 
 def test_a_merge_is_planned_into_the_runs_project_model():
-    """Merging is for project models: the run's second model is a child, so it is merged from, never into."""
+    """Merging is for project models: the run's second model is a child, so it is merged from, never into; and by the
+    Super Admin, who reads both (run 14: the first model's Model Admin may not read the second)."""
     s = API_STEPS["plan a merge from the run's second model (in the background; never applied)"]
-    assert s["path"] == f"/api/v1/models/{M}/merges" and s["body"] == {"source_model": OTHER} and s["who"] == "model-admin"
+    assert s["path"] == f"/api/v1/models/{M}/merges" and s["body"] == {"source_model": OTHER} and s["who"] == "super-admin"
 
 
 def _steps(name):
@@ -77,7 +78,7 @@ def test_power_is_chosen_on_the_position_tab():
 
 def test_the_status_csv_is_named_by_its_whole_words():
     j = next(j for n, j in JOURNEYS.items() if n.startswith("project tabs that show"))
-    assert {"download": "⬇ CSV (opens in Excel)", "exact": True} in j["steps"]
+    assert {"click": "⬇ CSV (opens in Excel)", "exact": True} in j["steps"]       # a click since run 14 (made in the page)
     src = (API / "eax/testing/ui_flows.py").read_text(encoding="utf-8")
     assert '_clickable(root, s["download"], bool(s.get("exact")))' in src
     js = (API.parents[1] / "services/web/src/selfTestDriver.js").read_text(encoding="utf-8")
@@ -93,7 +94,7 @@ def test_the_mapping_is_a_drop_down_and_the_slow_pages_are_waited_for():
 
 def test_the_key_question_is_read_back_as_the_tab_reads_it():
     """Run 12: the tab said "Key question added." and listed none; the API reads the project and the questions again."""
-    reads = [s for s in A.project_workspace(P, TAG) if s.get("shows")]
+    reads = [s for s in A.project_workspace(P, TAG) if s.get("shows") and "what do we decide" in s["shows"]]
     assert [s["path"] for s in reads] == [f"/api/v1/projects/{P}", f"/api/v1/projects/{P}/key-questions"]
     assert all(s["shows"] == f"{TAG} what do we decide?" for s in reads)
     src = (API / "eax/testing/api_writes.py").read_text(encoding="utf-8")
@@ -142,3 +143,27 @@ def test_the_apps_summary_screen_says_it():
               "<b>Where it stands:</b>", "more ${what === \"screens\" ? \"screens covered\" : \"lines to run\"}",
               "Math.ceil((b * Number(total)) / 100 - Number(done || 0))"):
         assert x in js, x
+
+
+def test_run_14_fixes():
+    """Run 14 (25 Nov 2026, 18:30): the steps that failed for the testing code's own reasons."""
+    zip_at = next(i for i, x in enumerate(A.project_workspace(P, TAG)) if x["what"] == "the documents' zip (in the background)")
+    before = [x["what"] for x in A.project_workspace(P, TAG)[:zip_at]]
+    assert "upload a file to the project" in before                 # a document with a file to zip
+    up = next(x for x in A.project_workspace(P, TAG) if x["what"] == "upload a file to the project")
+    assert up["data"] == "deliveries/good.xlsx" and up["save_from"] == "uploads.0.id"
+    starters = {x["what"]: x for x in A.job_starters(M, OTHER, P, TAG)}
+    assert all(f"model={M}" in x["path"] for x in starters.values() if "change-log/export" in x["path"])   # the run's model only
+    decide = starters["decide no close names: refused in words (in the background)"]
+    assert decide["until"]["said"] == "Confirm or reject at least one suggestion."
+    assert '{"click": "⬇ CSV (opens in Excel)", "exact": True}' in (API / "eax/testing/ui_flows.py").read_text(encoding="utf-8")
+    src = (API / "eax/testing/ui_journeys.py").read_text(encoding="utf-8")
+    assert src.count('grant_permissions(["clipboard-read", "clipboard-write"], origin=base)') == 2
+
+
+def test_a_task_that_must_fail_says_why(monkeypatch):
+    until = {"path": "/api/v1/tasks/{t}", "status": ["failed"], "seconds": 1, "said": "Confirm or reject"}
+    monkeypatch.setattr(A, "call", lambda *a, **k: (200, {"status": "failed", "message": "Confirm or reject at least one."}))
+    assert A.wait_for("https://x", "t", until, {"t": "1"})[0] == "passed"
+    monkeypatch.setattr(A, "call", lambda *a, **k: (200, {"status": "failed", "message": "Something else broke."}))
+    assert A.wait_for("https://x", "t", until, {"t": "1"})[0] == "failed"

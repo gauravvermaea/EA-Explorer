@@ -79,6 +79,10 @@ def run(ids: dict[str, str], ticket: str, folder: Path, record: Record, role: st
                 continue
             t0 = time.time()
             ctx = browser.new_context(ignore_https_errors=True, record_video_dir=str(videos), viewport={"width": 1400, "height": 900})
+            try:
+                ctx.grant_permissions(["clipboard-read", "clipboard-write"], origin=base)
+            except Exception:  # noqa: BLE001
+                pass
             page = ctx.new_page()
             errors: list[str] = []
             page.on("pageerror", lambda e, errs=errors: errs.append(str(e)))
@@ -159,6 +163,12 @@ def run_all(ids: dict[str, str], ticket: str, folder: Path, record: Record, role
         def context(as_role: str, video: bool = True, label: str = ""):
             ctx = browser.new_context(ignore_https_errors=True, viewport={"width": 1400, "height": 900},
                                       **({"record_video_dir": str(videos)} if video else {}))
+            # "Copy the address" writes to the clipboard, which a headless page may only do when allowed (run 14:
+            # "Failed to execute 'writeText' on 'Clipboard': Write permission denied")
+            try:
+                ctx.grant_permissions(["clipboard-read", "clipboard-write"], origin=base)
+            except Exception:  # noqa: BLE001 - a browser without these permissions: the copy says so on the page
+                pass
             page = ctx.new_page()
             page.on("dialog", lambda d: d.accept())
             caster = None

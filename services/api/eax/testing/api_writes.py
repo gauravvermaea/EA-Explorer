@@ -362,9 +362,15 @@ def project_workspace(p: str, tag: str) -> list[dict]:
         wr("project repository", "bring the repository back to the tag (in the background)", "post", f"{b}/repo-tags/{{ptag}}/revert",
            who=su, ok={200, 202}, save="ptagtask", save_at="task",
            until={"path": "/api/v1/tasks/{ptagtask}", "status": ["done"], "seconds": 300}),
+        wr("project repository", "upload a file to the project", "post", f"{b}/other-uploads", data="deliveries/good.xlsx",
+           ok={200, 201}, save="pupload", save_from="uploads.0.id"),
+        wr("project repository", "the project's uploads", "get", f"{b}/other-uploads", ok={200}, shows="good.xlsx"),
+        wr("project repository", "name the upload", "put", f"{b}/other-uploads/{{pupload}}", body={"title": f"{tag} file"},
+           ok={200}),
         wr("project repository", "the documents' zip (in the background)", "get", f"{b}/repo-zip?background=true", ok={200, 202},
            save="pziptask", save_at="task", until={"path": "/api/v1/tasks/{pziptask}", "status": ["done"], "seconds": 300}),
         wr("project repository", "remove the tag", "delete", f"{b}/repo-tags/{{ptag}}", who=su, ok={200, 204}),
+        wr("project repository", "delete the upload", "delete", f"{b}/other-uploads/{{pupload}}", who=su, ok={200, 204}),
         refused("project repository", f"{b}/repo-tags", {"name": f"{tag} refused"}),
     ]
     return w
@@ -522,8 +528,10 @@ def platform_writes(m: str, other: str | None, sid: str, tag: str) -> list[dict]
                ok={200, 204}),
             dict(area="model people", what="refused: give a role as an Architect", method="post", path=f"{OM}/people", who=a,
                  body={"username": who["architect"], "role": "report-viewer"}, refused=True, refused_also={404}),
+            # as the Super Admin: the first model's Model Admin may not read the second (run 14: "No model ..., or you
+            # may not read it"), and a merge reads the model it comes from
             wr("model merges", "plan a merge from the run's second model (in the background; never applied)", "post",
-               f"{M}/merges", ma, {"source_model": other}, {200, 202}, **bg("mergetask")),
+               f"{M}/merges", su, {"source_model": other}, {200, 202}, **bg("mergetask")),
             dict(area="model merges", what="refused: plan a merge as a Report Viewer", method="post", path=f"{OM}/merges",
                  who=rv, body={"source_model": m}, refused=True, refused_also={404}),
             wr("model tags", "compare the run's two models", "post", "/api/v1/compare?wait=true", su,
@@ -666,6 +674,12 @@ def admin_extras(sid: str, tag: str) -> list[dict]:
            {200}),
         dict(area="job priorities", what="refused: change a level as an Architect", method="put",
              path="/api/v1/jobs/priorities/{jptask}", who=a, body={"level": "{jplevel}"}, refused=True),
+        # the test bench's read-only door (its state, the database checks it runs from outside); the rest is left out
+        wr("test bench", "the installation's state for the test bench", "get", "/api/v1/admin/testbench/state", ok={200}),
+        wr("test bench", "the database checks, from outside", "post", "/api/v1/admin/testbench/db-checks", body={}, ok={200},
+           shows='"results"'),
+        dict(area="test bench", what="refused: the database checks as an Architect", method="post",
+             path="/api/v1/admin/testbench/db-checks", who=a, body={}, refused=True),
         wr("api harness", "one call as yourself", "post", "/api/v1/admin/api-harness/call",
            {"method": "get", "path": "/api/v1/me", "as": "me"}, {200}),
         wr("api harness", "save a case", "post", "/api/v1/admin/api-harness/cases",
@@ -730,6 +744,7 @@ def job_starters(m: str, other: str | None, p: str | None, tag: str) -> list[dic
                ok={200}),
             wr("gap analysis work", "the comparison as Excel (in the background)", "get",
                "/api/v1/gap-runs/compare?a={runa}&b={runb}&background=true&format=xlsx", ok={200, 202}, **bg("gapctask")),
+            wr("gap analysis work", "delete the earlier result", "delete", "/api/v1/gap-runs/{runb}", ok={200, 204}),
             dict(area="gap analysis work", what="refused: compare it again with no role", method="post",
                  path="/api/v1/gaps/{gapid}/refresh", who="no-role", body={}, refused=True, refused_also={404}),
             # the common analysis the run made earlier: compared again, close names matched, downloaded
@@ -737,8 +752,11 @@ def job_starters(m: str, other: str | None, p: str | None, tag: str) -> list[dic
                save="comid", find={"name": f"{tag} common analysis"}),
             wr("common analysis work", "compare it again (in the background)", "post", "/api/v1/commons/{comid}/refresh",
                body={}, ok={200, 202}, **bg("comrtask")),
-            wr("common analysis work", "match close names (in the background)", "post", "/api/v1/commons/{comid}/suggestions",
-               body={}, ok={200, 202}, **bg("comstask")),
+            # the run's two models have no close names to decide on: deciding none is refused in words (run 14)
+            wr("common analysis work", "decide no close names: refused in words (in the background)", "post",
+               "/api/v1/commons/{comid}/suggestions", body={"confirm": [], "reject": []}, ok={200, 202}, save="comstask",
+               save_at="task", until={"path": "/api/v1/tasks/{comstask}", "status": ["failed"], "seconds": 300,
+                                      "said": "Confirm or reject at least one suggestion."}),
             wr("common analysis work", "download it as Word (in the background)", "get",
                "/api/v1/commons/{comid}/download?background=true&format=docx", ok={200, 202}, **bg("comdtask")),
             dict(area="common analysis work", what="refused: compare it again with no role", method="post",
@@ -747,10 +765,10 @@ def job_starters(m: str, other: str | None, p: str | None, tag: str) -> list[dic
     w += [
         # the change log exported, in the background and at once
         wr("change log export", "export it as Excel (in the background)", "get",
-           "/api/v1/change-log/export?background=true&format=xlsx", ok={200, 202}, **bg("cltask")),
-        wr("change log export", "export it as CSV at once", "get", "/api/v1/change-log/export?format=csv", ok={200}),
+           f"/api/v1/change-log/export?background=true&format=xlsx&model={m}", ok={200, 202}, **bg("cltask")),
+        wr("change log export", "export it as CSV at once", "get", f"/api/v1/change-log/export?format=csv&model={m}", ok={200}),
         dict(area="change log export", what="refused: export with no role", method="get",
-             path="/api/v1/change-log/export?format=csv", who="no-role", refused=True, refused_also={404}),
+             path=f"/api/v1/change-log/export?format=csv&model={m}", who="no-role", refused=True, refused_also={404}),
         # the run's model as a package, in the background
         wr("model package", "the model as a package (in the background)", "get",
            f"{M}/package?background=true&format=zip&content=content", ma, ok={200, 202}, **bg("pkgtask")),
@@ -761,6 +779,8 @@ def job_starters(m: str, other: str | None, p: str | None, tag: str) -> list[dic
         # a second draft of the run's model's metamodel, applied: one new metamodel version, nothing in it changed
         wr("metamodel draft applied", "draft the metamodel again", "post", "/api/v1/metamodel-drafts", ma,
            {"kind": "changes", "target": m, "name": f"{tag} draft applied"}, save="mdrafttwo"),
+        wr("metamodel draft applied", "read the draft", "get", "/api/v1/metamodel-drafts/{mdrafttwo}", ma, ok={200},
+           shows=f"{tag} draft applied"),
         wr("metamodel draft applied", "apply it (in the background)", "post", "/api/v1/metamodel-drafts/{mdrafttwo}/apply", su,
            {"version_label": "self-test", "description": "applied by the self-test"}, {200, 202}, **bg("mdatask")),
         dict(area="metamodel draft applied", what="refused: draft as a Report Viewer", method="post",
@@ -929,7 +949,10 @@ def wait_for(base: str, token: str | None, until: dict, saved: dict[str, str], p
         got = (answer.get("status") or (answer.get("load") or {}).get("status")) if isinstance(answer, dict) else None
         last = str(got or status)
         if got in until["status"]:
-            return "passed", f"{last}"
+            said = (answer.get("message") or "") if isinstance(answer, dict) else ""
+            if until.get("said") and until["said"] not in str(said):       # the right status, but not for the reason
+                return "failed", f"{last}, but it said {str(said)[:200]!r}, expected {until['said']!r}"
+            return "passed", f"{last}" + (f": {said}" if until.get("said") else "")
         if got in ("failed", "declined") or status >= 400 or time.time() >= end:
             # what the task said (run 13: "stopped at failed" alone did not say why)
             why = (answer.get("message") or answer.get("error") or "") if isinstance(answer, dict) else ""

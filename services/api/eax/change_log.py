@@ -677,48 +677,65 @@ def _need_super(user, what: str) -> None:
         raise EditError(f"Only a Super Admin {what} the change log.", 403)
 
 
-def export(conn, user, f: dict | None, fmt: str = "csv", cl=None) -> tuple[bytes, str, str]:
-    """Every row the filters select (Super Admin), as CSV or an Excel workbook."""
-    _need_super(user, "exports")
-    cl = cl if cl is not None else conn
-    T = f"{schema()}.entries"
-    where, p = _where(user, scope(conn, user), f or {})
-    rows = [_out(dict(r)) for r in cl.execute(text(f"SELECT {COLS} FROM {T} l WHERE {where} ORDER BY l.at DESC, l.id DESC"),
-                                                p).mappings()]
-    head = ["When", "Model", "User", "Kind", "Action", "Item type", "Item", "Entity or relationship type", "Field", "Old value",
-            "New value", "Summary", "Commit", "Commit message"]
-    flat = []
-    for r in rows:
+EXPORT_HEAD = ["When", "Model", "User", "Kind", "Action", "Item type", "Item", "Entity or relationship type", "Field", "Old value",
+               "New value", "Summary", "Commit", "Commit message"]
+EXPORT_WIDTHS = (19, 28, 18, 11, 22, 16, 32, 20, 18, 30, 30, 60, 8, 40)
+EXPORT_BATCH = 2000          # rows read from the database at a time
+
+
+def export_lines(cl, sql: str, params: dict, batch: int = EXPORT_BATCH):
+    """The export's lines, one at a time (a change with several fields gives a line a field), read from the database a
+    batch at a time: never the whole change log in memory (self-test 14, 25 Nov 2026: exporting a large change log took
+    the API past its 2 GB and it was restarted, so every call for the next minute failed)."""
+    result = cl.execution_options(stream_results=True, max_row_buffer=batch).execute(text(sql), params)
+    for raw in result.mappings():
+        r = _out(dict(raw))
         when = r["at"].isoformat(sep=" ", timespec="seconds") if isinstance(r["at"], (datetime, date)) else str(r["at"])
         base = [when, r["model_name"] or "", r["username"], r["kind_name"], r["action"], r["item_type"], r["item_name"] or "",
                 r["entity_type"] or ""]
         for d in (r["details"] or [{"field": "", "old": None, "new": None}]):
-            flat.append(base + [d.get("field") or "", "" if d.get("old") is None else d["old"], "" if d.get("new") is None else d["new"],
-                                r["summary"], r.get("commit_number") or "", r.get("commit_message") or ""])
+            yield base + [d.get("field") or "", "" if d.get("old") is None else d["old"], "" if d.get("new") is None else d["new"],
+                          r["summary"], r.get("commit_number") or "", r.get("commit_message") or ""]
+
+
+def export(conn, user, f: dict | None, fmt: str = "csv", cl=None) -> tuple[bytes, str, str]:
+    """Every row the filters select (Super Admin), as CSV or an Excel workbook. Written line by line as the rows come
+    (the workbook in openpyxl's write-only mode), so memory stays small whatever the change log holds."""
+    _need_super(user, "exports")
+    cl = cl if cl is not None else conn
+    T = f"{schema()}.entries"
+    where, p = _where(user, scope(conn, user), f or {})
+    sql = f"SELECT {COLS} FROM {T} l WHERE {where} ORDER BY l.at DESC, l.id DESC"
     stamp = datetime.now().strftime("%Y-%m-%d")
     if fmt == "xlsx":
         from openpyxl import Workbook
+        from openpyxl.cell import WriteOnlyCell
         from openpyxl.styles import Font, PatternFill
-        wb = Workbook()
-        ws = wb.active
-        ws.title = "Change log"
-        ws.append(head)
-        for c in ws[1]:
-            c.font, c.fill = Font(bold=True), PatternFill("solid", fgColor="DDE6F0")
-        for row in flat:
-            ws.append([str(x) if x is not None else "" for x in row])
-        ws.freeze_panes = "A2"
-        ws.auto_filter.ref = ws.dimensions
-        for col, w in zip("ABCDEFGHIJKLMN", (19, 28, 18, 11, 22, 16, 32, 20, 18, 30, 30, 60, 8, 40), strict=True):
+        wb = Workbook(write_only=True)
+        ws = wb.create_sheet("Change log")
+        for col, w in zip("ABCDEFGHIJKLMN", EXPORT_WIDTHS, strict=True):     # before the first row (write-only)
             ws.column_dimensions[col].width = w
+        ws.freeze_panes = "A2"
+        head = []
+        for h in EXPORT_HEAD:
+            c = WriteOnlyCell(ws, value=h)
+            c.font, c.fill = Font(bold=True), PatternFill("solid", fgColor="DDE6F0")
+            head.append(c)
+        ws.append(head)
+        n = 0
+        for line in export_lines(cl, sql, p):
+            ws.append([str(x) if x is not None else "" for x in line])
+            n += 1
+        ws.auto_filter.ref = f"A1:N{n + 1}"
         buf = io.BytesIO()
         wb.save(buf)
         return buf.getvalue(), f"change-log-{stamp}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     out = io.StringIO()
     w = csv.writer(out)
-    w.writerow(head)
-    w.writerows(flat)
-    return ("﻿" + out.getvalue()).encode("utf-8"), f"change-log-{stamp}.csv", "text/csv; charset=utf-8"
+    w.writerow(EXPORT_HEAD)
+    for line in export_lines(cl, sql, p):
+        w.writerow(line)
+    return ("\ufeff" + out.getvalue()).encode("utf-8"), f"change-log-{stamp}.csv", "text/csv; charset=utf-8"
 
 
 def delete(conn, user, f: dict | None, cl=None) -> dict:
