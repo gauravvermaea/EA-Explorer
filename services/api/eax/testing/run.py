@@ -478,7 +478,8 @@ LEFT_OUT_ROUTES = [
     ("eax/api/admin.py", "/admin/restart", None, "restarts the installation"),
     ("eax/api/admin.py", "/admin/persist/delete", None, "deletes persisted files"),
     ("eax/api/admin.py", "/admin/db-integrity/repair", None, "repairs the database"),
-    ("eax/api/admin.py", "/admin/db-maintenance/<string:what>", {"post"}, "runs database maintenance"),
+    # the database upkeep's POST is no longer left out (run 16, D931): the run checks, plans a tidy and asks the two
+    # previews; a compact, a stop and a clear are never sent (their lines stay uncovered, in the goal)
     ("eax/api/admin.py", "/admin/config-copies/restore", None, "puts back an earlier config file"),
     ("eax/api/admin.py", "/admin/config-file/save", None, "saves the config file"),
     ("eax/api/admin.py", "/admin/servers", {"put"}, _UNSAFE),
@@ -798,22 +799,37 @@ def services_ready(r, token: str, wait: int = 600, pause: int = 10, call=None, s
     return last
 
 
-def connectivity(r, token: str, call=None) -> None:
+WAIT_FOR_SERVICES = 600    # seconds a run waits for a connection still starting (Documents can take minutes after eax up)
+WAIT_STEP = 20
+
+
+def connectivity(r, token: str, call=None, wait: int | None = None, sleep=time.sleep, clock=time.time) -> None:
     """Every connection the product depends on, made as it makes them (D894), in the smoke and the full runs alike:
     each link a check of its own (critical: the product cannot work without it), switched-off ones skipped. Health says
     a service answers; this says the product can use it (23 Nov 2026: Documents answered, the API could not sign in to
     its database)."""
     import json as _json
     call = call or api_matrix.call
-    rec, t0 = r.recorder("smoke"), time.time()
-    s, body = call(API, "get", "/api/v1/heartbeat/connectivity", token, timeout=90, size=None)
-    try:
-        links = (_json.loads(body).get("links") or []) if s == 200 else []
-    except ValueError:
-        links = []
+    rec, t0 = r.recorder("smoke"), clock()
+    wait = WAIT_FOR_SERVICES if wait is None else wait
+
+    def links_now():
+        s, body = call(API, "get", "/api/v1/heartbeat/connectivity", token, timeout=90, size=None)
+        try:
+            return s, body, (_json.loads(body).get("links") or []) if s == 200 else []
+        except ValueError:
+            return s, body, []
+
+    s, body, links = links_now()
+    # a service still starting is waited for, up to WAIT_FOR_SERVICES seconds, before the run goes on (self-test 15, 25 Nov
+    # 2026: Documents was still starting after `eax up`; its uploads, the project library and the charter all failed)
+    while (clock() - t0) < wait and any(x.get("status") == "down" for x in links):
+        r.log("waiting for " + ", ".join(x["name"] for x in links if x.get("status") == "down") + " to answer")
+        sleep(WAIT_STEP)
+        s, body, links = links_now()
     if not links:
         rec("connectivity: every connection checked", "failed", f"GET /api/v1/heartbeat/connectivity answered {s}",
-            int((time.time() - t0) * 1000), request="GET /api/v1/heartbeat/connectivity  as super-admin", response=f"{s}\n{body[:1500]}")
+            int((clock() - t0) * 1000), request="GET /api/v1/heartbeat/connectivity  as super-admin", response=f"{s}\n{body[:1500]}")
         return
     for x in links:
         outcome = {"up": "passed", "off": "skipped", "down": "failed"}.get(x.get("status"), "failed")
@@ -870,6 +886,7 @@ def _security_suite(r: Run, spec: dict, tokens: dict[str, str], ids: dict[str, s
     r.log("security: headers and cookies at the front door, Python dependencies")
     security.front_door(rec)
     security.secret_files(rec)
+    security.documents_sign_in(rec)
     from . import auth_mode
     r.log(f"security: how the services sign in to the database ({auth_mode.mode()} mode; the other mode's checks skipped)")
     auth_mode.run(rec)

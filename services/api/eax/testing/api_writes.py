@@ -48,7 +48,12 @@ def call(base: str, method: str, path: str, token: str | None, body: dict | None
         return status, raw[:1500]
 
 
-def upload(base: str, path: str, token: str | None, name: str, content: bytes, timeout: int = 120) -> tuple[int, dict | str]:
+# a project's upload goes on to Documents, which the API waits on for up to 300 s (mayan.upload): the run waits longer
+# than that, so a slow Documents answers late rather than "no answer" (run 16: 599 after 120 s)
+UPLOAD_WAIT = 330
+
+
+def upload(base: str, path: str, token: str | None, name: str, content: bytes, timeout: int = UPLOAD_WAIT) -> tuple[int, dict | str]:
     """One multipart upload (field "file"), as the screens and eax import send a delivery."""
     boundary = "eaxselftest" + str(int(time.time() * 1000))
     body = (f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"{name}\"\r\n"
@@ -367,6 +372,8 @@ def project_workspace(p: str, tag: str) -> list[dict]:
         wr("project repository", "the project's uploads", "get", f"{b}/other-uploads", ok={200}, shows="good.xlsx"),
         wr("project repository", "name the upload", "put", f"{b}/other-uploads/{{pupload}}", body={"title": f"{tag} file"},
            ok={200}),
+        wr("project repository", "replace it with a second version", "post", f"{b}/other-uploads/{{pupload}}/replace",
+           data="uploads/document-v2.pdf", ok={200, 201}),
         wr("project repository", "the documents' zip (in the background)", "get", f"{b}/repo-zip?background=true", ok={200, 202},
            save="pziptask", save_at="task", until={"path": "/api/v1/tasks/{pziptask}", "status": ["done"], "seconds": 300}),
         wr("project repository", "remove the tag", "delete", f"{b}/repo-tags/{{ptag}}", who=su, ok={200, 204}),
@@ -480,6 +487,24 @@ def platform_writes(m: str, other: str | None, sid: str, tag: str) -> list[dict]
         wr("admin", "measure the database for optimisation", "post", "/api/v1/admin/optimisation", body={}, save="optreport"),
         wr("admin", "the optimisation report as Excel", "get", "/api/v1/admin/optimisation/{optreport}/xlsx", ok={200}),
         wr("admin", "a sizing estimate (not saved)", "post", "/api/v1/admin/sizing", body={"users": 50, "models": 10}, ok={200}),
+        # a saved estimate read three ways, when the installation has one (the run saves none: nothing deletes one)
+        wr("admin", "the saved sizing estimates", "get", "/api/v1/admin/sizing", ok={200}, save="sizing",
+           save_from="saved.0.id", optional=True),
+        wr("admin", "a saved estimate as JSON", "get", "/api/v1/admin/sizing/{sizing}/json", ok={200}),
+        wr("admin", "a saved estimate as Excel", "get", "/api/v1/admin/sizing/{sizing}/xlsx", ok={200}),
+        wr("admin", "a saved estimate's compose override", "get", "/api/v1/admin/sizing/{sizing}/override", ok={200}),
+        # the database's upkeep, looked at and planned only: the locks, a check, what a tidy would do, and the two
+        # previews asked of what is not there (nothing compacted, no session stopped: their confirmations are never sent)
+        wr("database upkeep", "who blocks whom", "get", "/api/v1/admin/db-maintenance/locks", ok={200}),
+        wr("database upkeep", "check every database now", "post", "/api/v1/admin/db-maintenance/check", body={}, ok={200}),
+        wr("database upkeep", "what a tidy would do", "post", "/api/v1/admin/db-maintenance/tidy", body={"dry_run": True},
+           ok={200}),
+        wr("database upkeep", "a compact preview of a table that is not there", "post",
+           "/api/v1/admin/db-maintenance/compact-preview", body={"database": f"self_test_{sid}", "table": "none"}, ok={400}),
+        wr("database upkeep", "a stop preview of a session that is not there", "post",
+           "/api/v1/admin/db-maintenance/stop-preview", body={"pid": 0}, ok={400}),
+        dict(area="database upkeep", what="refused: check as an Architect", method="post",
+             path="/api/v1/admin/db-maintenance/check", who=a, body={}, refused=True),
         wr("admin", "check a config file's text", "post", "/api/v1/admin/config-file/check", body={"text": ""},
            ok={200, 400}),
         wr("admin", "export the settings", "post", "/api/v1/admin/settings-transfer/export", body={}, ok={200}),
@@ -509,11 +534,36 @@ def platform_writes(m: str, other: str | None, sid: str, tag: str) -> list[dict]
         wr("role mappings", "take the mapping away", "delete", "/api/v1/role-mappings/{rmap}", ok={200, 204}),
         dict(area="role mappings", what="refused: map as an Architect", method="post", path="/api/v1/role-mappings", who=a,
              body={"keycloak_role": f"self_test_{sid}_no", "app_role": "auditor"}, refused=True),
+        # the service desk: a request raised (Something else), talked about, a file added and read, its priority set by
+        # the desk, and cancelled by the one who asked (requests are never deleted: cancelled is where a test's ends)
+        wr("service desk", "raise a request", "post", "/api/v1/service-desk/tickets", by=a,
+           body={"type": "other", "title": f"{tag} request", "priority": "low", "fields": {"what": f"{tag}: nothing, a test"}},
+           ok={200, 201}, save="ticket", save_from="id"),
+        wr("service desk", "read it", "get", "/api/v1/service-desk/tickets/{ticket}", by=a, ok={200}, shows=f"{tag} request"),
+        wr("service desk", "comment on it", "post", "/api/v1/service-desk/tickets/{ticket}/comment", by=a,
+           body={"note": f"{tag} comment"}, ok={200, 201}),
+        wr("service desk", "add a file to it", "post", "/api/v1/service-desk/tickets/{ticket}/files", by=a,
+           data="deliveries/good.xlsx", ok={200, 201}, save="ticketfile", save_from="id"),
+        wr("service desk", "download the file", "get", "/api/v1/service-desk/tickets/{ticket}/files/{ticketfile}", by=a,
+           ok={200}),
+        wr("service desk", "the desk sets its priority", "post", "/api/v1/service-desk/tickets/{ticket}/priority",
+           body={"priority": "normal"}, ok={200}),
+        dict(area="service desk", what="refused: cancel another's request as a Report Viewer", method="post",
+             path="/api/v1/service-desk/tickets/{ticket}/cancel", who=rv, body={"note": "no"}, refused=True,
+             refused_also={404}),
+        wr("service desk", "cancel it", "post", "/api/v1/service-desk/tickets/{ticket}/cancel", by=a,
+           body={"note": f"{tag}: done with"}, ok={200}),
+        wr("service desk", "my requests, cancelled ones too", "get", "/api/v1/service-desk/tickets?view=mine&status=all", by=a,
+           ok={200}, shows=f"{tag} request"),
         # the self-test's own reads, of this run (its controls are left out of the goal, D926)
         wr("self-test", "find this run", "get", "/api/v1/admin/tests", ok={200}, save="thisrun", find={"state": "running"}),
         wr("self-test", "this run's report so far", "get", "/api/v1/admin/tests/{thisrun}/report", ok={200}),
         wr("self-test", "this run's report as Excel", "get", "/api/v1/admin/tests/{thisrun}/report?format=xlsx", ok={200}),
         wr("self-test", "this run's log file", "get", "/api/v1/admin/tests/{thisrun}/files/run.log", ok={200, 404}),
+        wr("self-test", "this run as it stands", "get", "/api/v1/admin/tests/{thisrun}?outcome=failed", ok={200}),
+        wr("self-test", "this run, watched as it happens", "get", "/api/v1/admin/tests/{thisrun}/live?after=0&from=0", ok={200}),
+        wr("self-test", "a screenshot this run does not have", "get", "/api/v1/admin/tests/{thisrun}/screenshot/1",
+           ok={404}),
         wr("self-test", "save the runner's settings unchanged", "put", "/api/v1/admin/tests/settings", body={},
            ok={200, 503}),
         dict(area="self-test", what="refused: the runs' list as a Report Viewer", method="get", path="/api/v1/admin/tests",
@@ -602,6 +652,32 @@ def model_extras(m: str, ent: str | None, sid: str, tag: str) -> list[dict]:
         dict(area="data quality", what="refused: leave a field out as an Architect", method="post",
              path=f"{M}/quality/leave-out", who=a, body={"item": "field:description", "entity_type": "*"}, refused=True,
              refused_also={404}),
+        # the model's sheets made (in the background, and an empty template at once), and an Excel load: uploaded,
+        # previewed, its columns mapped, then deleted before it is added (nothing reaches the model)
+        wr("sheets and loads", "the model's sheets (in the background)", "post", f"{M}/sheets", a,
+           {"types": ["ApplicationComponent"], "format": "xlsx"}, {200, 202}, save="shtask", save_at="task",
+           until={"path": "/api/v1/tasks/{shtask}", "status": ["done"], "seconds": 300}),
+        wr("sheets and loads", "an empty template at once", "post", f"{M}/sheets?wait=true", a,
+           {"types": ["ApplicationComponent"], "format": "xlsx", "blank": True}, {200}),
+        wr("sheets and loads", "load an Excel file", "post", f"{M}/loads", a, ok={200, 201, 202}, data="deliveries/good.xlsx",
+           save="loadid", save_from="load.id"),
+        wr("sheets and loads", "its preview", "get", "/api/v1/loads/{loadid}", a, ok={200},
+           until={"path": "/api/v1/loads/{loadid}", "status": ["previewed"], "seconds": 300}),
+        wr("sheets and loads", "map its columns as they are", "post", "/api/v1/loads/{loadid}/mapping", a, {"mapping": {}},
+           {200, 202}),
+        wr("sheets and loads", "the model's loads", "get", f"{M}/loads", a, ok={200}),
+        # the metamodel as packages read it, and a move to another framework asked about (never made)
+        wr("metamodel", "the model's metamodel as one document", "get", f"{M}/metamodel-spec", a, ok={200},
+           shows="entity_types"),
+        wr("metamodel", "a framework move asked with a map that is not JSON", "get",
+           f"{M}/framework-preview?target={m}&map=not-json", a, ok={400}),
+        wr("metamodel", "a framework move to a framework that is not one", "get",
+           f"{M}/framework-preview?target=self_test_{sid}", a, ok={400, 404}),
+        dict(area="metamodel", what="refused: the metamodel with no role", method="get", path=f"{M}/metamodel-spec",
+             who="no-role", refused=True, refused_also={404}),
+        dict(area="sheets and loads", what="refused: delete it as a Report Viewer", method="delete",
+             path="/api/v1/loads/{loadid}", who=rv, refused=True, refused_also={404}),
+        wr("sheets and loads", "delete the load before it is added", "delete", "/api/v1/loads/{loadid}", a, ok={200, 204}),
         # publishing: asked for and withdrawn (409: already published or already waiting; never approved here)
         wr("publishing", "the model's publishing state", "get", f"{M}/publishing", ok={200}),
         wr("publishing", "ask for it to be published", "post", f"{M}/request-publish", body={"note": tag}, ok={200, 409}),
@@ -635,7 +711,7 @@ def project_extras(p: str, tag: str) -> list[dict]:
              who=a, body={"path": f"{tag} folder"}, ok={200, 201}, save="rfolder", save_from="folder"),
         dict(area="reference folders", what="read Reference", method="get", path=f"{b}/reference", who=a, ok={200}),
         dict(area="reference folders", what="take the folder away", method="post", path=f"{b}/reference/folders", who=a,
-             body={"path": "{rfolder}", "delete": True}, ok={200}),
+             body={"path": "{rfolder}", "delete": True}, ok={200, 201}),     # 201 in run 15
         dict(area="reference folders", what="refused: add as the project's Stakeholder", method="post",
              path=f"{b}/reference/folders", who=rv, body={"path": f"{tag} refused"}, refused=True),
     ]

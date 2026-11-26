@@ -57,7 +57,7 @@ def test_each_screen_opened_is_acted_on():
 
 
 def test_they_need_no_project_and_read_only():
-    assert len({j['name'].split(' (part ')[0] for j in U.AREA_JOURNEYS}) == 7       # seven areas, each in parts
+    assert len({j['name'].split(' (part ')[0] for j in U.AREA_JOURNEYS}) == 8       # eight areas, each in parts
     opened = [s["open"] for j in U.AREA_JOURNEYS for s in j["steps"] if "open" in s]
     assert len(opened) == len(set(opened)) >= 100                       # each screen once
     assert not any(o.startswith("#/projects/{") for o in opened)      # a project's tabs are the project journeys'

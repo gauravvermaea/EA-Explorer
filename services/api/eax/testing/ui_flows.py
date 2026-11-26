@@ -649,25 +649,34 @@ PROJECT_JOURNEYS: list[dict] = [
      "steps": [
          {"open": "#/projects/{p}/report", "expect": "CSV"},
          {"click": "⬇ CSV (opens in Excel)", "exact": True},   # made in the page (run 14: no download event headless)
-         {"open": "#/projects/{p}/library", "expect": "Search the library"},
+         # "Search the library" is the search box's placeholder, never text on the page: the open waited 60 s for it
+         # (runs 15 and 16); the fill below waits for the box
+         {"open": "#/projects/{p}/library"},
          {"fill": "Search the library", "value": "self_test"},
          {"open": "#/projects/{p}", "expect": "Preliminary"},
          {"click": "Preliminary", "optional": True},
          {"open": "#/projects/{p}/base"}, {"click": "Fit", "exact": True},
          {"open": "#/projects/{p}/archrepo"}, {"click": "Foundation architectures"},
          {"open": "#/projects/{p}/business"}, {"select": "Model", "option": "*"},
-         {"open": "#/projects/{p}/library/reference"}, {"click": "🔗 Add a link"}, {"press": "Escape", "wait": 600},
+         # a Report Viewer has no "Add a link" (run 15): it is clicked where it is there
+         {"open": "#/projects/{p}/library/reference"}, {"click": "🔗 Add a link", "optional": True}, {"press": "Escape", "wait": 600},
      ]},
 ]
 # a project's tabs no journey opened in run 12 (owner, 25 Nov 2026, 17:01: "Yes please build 1 and 2"): a choice made, a
 # section opened for a change and cancelled, a phase opened, the other documents downloaded; nothing saved
+# the charter's sections are changed by the Project Admin or the Lead Architect (governance.charter: may_edit is "admin"):
+# an Architect sees no "✎ Change" (runs 15 and 16), so the Super Admin opens one and cancels it
+PROJECT_JOURNEYS.append(
+    {"name": "project tabs that show the charter: a section opened for a change and cancelled", "smoke": False,
+     "roles": ["super-admin"],
+     "why_no_refusal": "it opens and cancels: nothing is saved; who may change the charter is the API's check",
+     "steps": [{"open": "#/projects/{p}/charter"}, {"click": "✎ Change"}, {"click": "Cancel", "exact": True, "optional": True}]})
 PROJECT_JOURNEYS.append(
     {"name": "project tabs that show more: choose, open a change and cancel, a phase, download", "smoke": False,
      "roles": ["architect"], "why_no_refusal": "it chooses, opens and cancels: nothing is saved; who may open each tab is the "
                                                "page sweep's check",
      "steps": [
          {"open": "#/projects/{p}/analysis"}, {"select": "Source (baseline)", "option": "*"},
-         {"open": "#/projects/{p}/charter"}, {"click": "✎ Change"}, {"click": "Cancel", "exact": True, "optional": True},
          {"open": "#/projects/{p}/home"}, {"click": "Preliminary", "optional": True},
          {"open": "#/projects/{p}/otherdocs"}, {"download": "Download", "exact": True, "optional": True},
          {"open": "#/projects/{p}/content"}, {"click": "＋", "exact": True}, {"press": "Escape", "wait": 600},
@@ -824,7 +833,10 @@ AREA_JOURNEYS: list[dict] = [
          *_look("#/project-admin/libprojects"), *_dialog("＋ Make a project a library project…"),
          *_look("#/project-library"), *_dialog("＋ Make a project a library project…"),
          *_look("#/project-admin/templates", {"click": "Open", "exact": True}),
-         {"open": "#/projects/new", "expect": "Kind of project"}, {"select": "Kind of project", "option": "*"},
+         # the models step opened (run 15: no "Kind of project" drop-down found on the new project's page)
+         # #/projects/new is the gallery of kinds of project; the wizard is a kind's (run 16: no "+ Select existing models")
+         {"open": "#/projects/new?template=blank", "expect": "Kind of project"}, {"click": "+ Select existing models"},
+         {"press": "Escape", "wait": 600},
          *_look("#/projects", {"fill": "Search", "value": "self_test"}, {"click": "☰ List"}),
          *_look("#/admin/operations", {"click": "People", "exact": True}),
          *_look("#/admin/mounts", {"click": "Look into"}),
@@ -868,6 +880,12 @@ AREA_JOURNEYS += [
          *_look("#/maturity", {"click": "＋ New assessment"}, {"click": "Cancel", "exact": True}),
          *_look("#/service-desk/catalogue", {"click": "Change", "exact": True}, {"press": "Escape", "wait": 600}),
      ]},
+    # the project library's page, which no journey opened in run 16 (owner, 26 Nov 2026: "add more cases to get to 90%"):
+    # a library opened. Not here: system, application, scaling, secrets and the console, whose every control changes a
+    # setting, restarts, rotates or opens a shell (a screen with controls counts only when one is used, R14.5.1)
+    {"name": "the project content library: a library opened", "smoke": False, "roles": ["super-admin"],
+     "why_no_refusal": _READS,
+     "steps": [*_look("#/project-admin/library", {"click": "Open", "exact": True})]},
 ]
 AREA_JOURNEYS = in_parts(AREA_JOURNEYS)
 JOURNEYS += AREA_JOURNEYS
@@ -1556,9 +1574,15 @@ def _page_says(page) -> str:
                      // lines, so the three above never reached it (the full test of 24 Nov 2026: the iteration's save)
                      dialog_said: [...document.querySelectorAll("[role=dialog]")].filter((e) => e.offsetParent !== null)
                        .flatMap((e) => [...e.querySelectorAll(".status, .error, [role=alert]")])
-                       .map((e) => (e.innerText || "").trim()).filter(Boolean).slice(-2) };
+                       .map((e) => (e.innerText || "").trim()).filter(Boolean).slice(-2),
+                     // the page's first words when it has no heading or status line (run 16: the organisation tab
+                     // said nothing at all, so the report could not tell a blank page from one still loading)
+                     text: ((document.querySelector(".page, main, #root") || document.body).innerText || "")
+                       .split(/\\s+/).join(" ").trim().slice(0, 160) };
         }""")
         parts = [f"at {said['at']}"] + [f"heading \"{x[:80]}\"" for x in said["h1"]] + [f"\"{x[:100]}\"" for x in said["status"]]
+        if not said["h1"] and not said["status"]:
+            parts.append(f"its first words \"{said.get('text') or ''}\"" if said.get("text") else "a blank page")
         if said.get("dialog"):                         # what an open pop-up said (R3.14: "Sending…", an error, nothing)
             parts.append(f"the open dialog: \"{said['dialog']}\"")
         parts += [f"the dialog answered: \"{x[:200]}\"" for x in said.get("dialog_said") or []]

@@ -89,7 +89,7 @@ def test_the_mapping_is_a_drop_down_and_the_slow_pages_are_waited_for():
     st = [s for j in U.AREA_JOURNEYS for s in j["steps"]]
     assert {"select": "Map a Keycloak role or a directory group", "option": "Directory group"} in st
     assert {"open": "#/admin/estate/logical", "expect": "Download SVG"} in st
-    assert {"open": "#/projects/new", "expect": "Kind of project"} in st
+    assert {"open": "#/projects/new?template=blank", "expect": "Kind of project"} in st      # the wizard (run 16)
 
 
 def test_the_key_question_is_read_back_as_the_tab_reads_it():
@@ -167,3 +167,20 @@ def test_a_task_that_must_fail_says_why(monkeypatch):
     assert A.wait_for("https://x", "t", until, {"t": "1"})[0] == "passed"
     monkeypatch.setattr(A, "call", lambda *a, **k: (200, {"status": "failed", "message": "Something else broke."}))
     assert A.wait_for("https://x", "t", until, {"t": "1"})[0] == "failed"
+
+
+def test_run_15_fixes():
+    """Run 15 (25 Nov 2026, 22:09): the testing code's own failures, and the new steps."""
+    ws = {x["what"]: x for x in A.project_workspace(P, TAG)}
+    folder = {x["what"]: x for x in A.project_extras(P, TAG)}
+    assert folder["take the folder away"]["ok"] == {200, 201}
+    assert ws["replace it with a second version"]["data"] == "uploads/document-v2.pdf"
+    mx = {x["what"]: x for x in A.model_extras(M, None, "sid", TAG)}
+    load = mx["load an Excel file"]
+    assert load["data"] == "deliveries/good.xlsx" and load["save_from"] == "load.id"
+    assert mx["its preview"]["until"]["status"] == ["previewed"]
+    order = [x["what"] for x in A.model_extras(M, None, "sid", TAG)]
+    assert order.index("delete the load before it is added") > order.index("map its columns as they are")
+    assert not any("/add" in x["path"] for x in mx.values() if "loads" in x["path"])        # never added to the model
+    src = (API / "eax/testing/ui_flows.py").read_text(encoding="utf-8")
+    assert '{"click": "+ Select existing models"}' in src and '{"click": "🔗 Add a link", "optional": True}' in src

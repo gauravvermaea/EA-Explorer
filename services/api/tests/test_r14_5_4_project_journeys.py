@@ -46,7 +46,7 @@ def test_every_label_a_project_journey_names_is_on_its_screen():
 
 
 def test_each_project_journey_works_in_the_runs_project_and_is_refused_for_the_stakeholder():
-    assert len(U.PROJECT_JOURNEYS) == 13
+    assert len(U.PROJECT_JOURNEYS) == 14
     for j in U.PROJECT_JOURNEYS:
         assert j["name"].startswith("project ")
         assert all(s["open"].startswith("#/projects/{p}") for s in j["steps"] if "open" in s), j["name"]

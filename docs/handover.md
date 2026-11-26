@@ -48,6 +48,18 @@ Known before the run: R14.18 (four Jenkins pipelines that can never run, found b
 - Run 14 (25 Nov 2026, 18:30): API 83.9%, screens 83.9% (177 of 211), jobs 84.8%. The API was restarted at 16:43 by an
   out-of-memory change log export (a product bug, fixed: it streams, D929), which failed most of the 50 and the negative
   tests; the testing code's own failures fixed (D929). Next: the owner rebuilds (`.\eax up`) and runs the full test again.
+- Run 15 (25 Nov 2026, 22:09): API 86.6%, screens 86.7% (183 of 211), jobs 85.2%; no restart. A package with data
+  failed (KeyError 'metamodel_versions'; fixed, D930); Documents was still starting (the run now waits for it). Open
+  to discuss: the key questions tab does not show a question just added.
+- Run 16 (26 Nov 2026, 04:26): API 86.8%, screens 87.7% (185 of 211), jobs 85.6%; 8 failed. Key questions and principles
+  passed (not a bug: Documents was starting in run 15). Fixed (D931): the package without data (dev check), and the
+  testing code's load 202, upload wait, library placeholder, charter as Super Admin, the wizard's address. More cases:
+  database upkeep plans, sizing reads, this run read, a service desk request, the metamodel spec, six screens only read.
+  Open: the organisation tab showed no form for the Architect (passed in run 15); the next failure says what the page
+  showed. Next: the owner rebuilds (`.\eax up`) and runs the full test again.
+- Documents showed its administrator's password on its sign-in page (Mayan's first-start notice): the API now deletes
+  the notice when it reads Documents' token, and the security suite fails if a password is on the page (D932). The owner
+  may rotate that password. After the full run: create some documents from the application and test them (owner, 08:26).
 
 **Earlier (25 Nov 2026, Release 14 closed):**
 - Next is Release 14.5. Start with the coverage bar, to be discussed with the owner (R14.5.1, R14.5.2); then the use cases in

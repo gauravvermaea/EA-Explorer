@@ -14,6 +14,7 @@ import ssl
 import subprocess
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from collections.abc import Callable
 from pathlib import Path
@@ -141,6 +142,57 @@ def front_door(record: Record) -> None:
         check_cookies(cookies, "sign-in page", record)
     except (urllib.error.URLError, OSError) as exc:
         record("front door reachable", "failed", f"the proxy did not answer: {exc}", 0)
+
+
+def _page(url: str, host: str) -> tuple[int, str, str]:
+    """A page through the front door, as it answers (no redirect followed): its status, its text and where it sends."""
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    req = urllib.request.Request(url, headers={"Host": host, "User-Agent": "EA Explorer test runner"})
+    opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=ctx), _NoRedirect())
+    try:
+        r = opener.open(req, timeout=30)
+        return r.status, r.read(400_000).decode("utf-8", "replace"), r.headers.get("Location", "")
+    except urllib.error.HTTPError as exc:
+        return exc.code, exc.read(400_000).decode("utf-8", "replace"), exc.headers.get("Location", "")
+
+
+def documents_sign_in(record: Record, page: Callable[[str, str], tuple[int, str, str]] | None = None,
+                      password: str | None = None) -> None:
+    """Documents' sign-in page shows no password (D932): Mayan showed the administrator it made at first start, with its
+    password, to anyone who opened docs.<host>, until that administrator changed it (nobody does: people sign in
+    through Keycloak). The page is followed from docs.<host>/ to where Documents sends (its own pages only)."""
+    name = "Documents' sign-in page shows no password"
+    from .. import services
+    if not services.enabled("documents"):
+        record(name, "skipped", "Documents is switched off", 0)
+        return
+    from ..config import secret
+    pw = secret("EAX_MAYAN_ADMIN_PASSWORD") if password is None else password
+    if not pw:
+        record(name, "skipped", "the runner cannot read Documents' administrator password to look for it", 0)
+        return
+    host = "docs." + os.environ.get("EAX_HOSTNAME", "localhost")
+    proxy = os.environ.get("EAX_TEST_PROXY", "https://proxy")
+    get = page or _page
+    path, seen = "/", []
+    try:
+        for _ in range(4):                      # / sends to the sign-in page; never off Documents' own host
+            status, text, where = get(proxy + path, host)
+            seen.append(f"{path} ({status})")
+            if pw in text:
+                record(name, "failed", f"the administrator's password is on {path}: anyone who opens docs.<host> can "
+                       "sign in as Documents' administrator", 0)
+                return
+            parts = urllib.parse.urlsplit(where) if 300 <= status < 400 and where else None
+            if not parts or (parts.netloc and parts.netloc.split(":")[0] != host):
+                break
+            path = parts.path + (f"?{parts.query}" if parts.query else "")
+    except (urllib.error.URLError, OSError) as exc:
+        record(name, "failed", f"Documents did not answer through the front door: {exc}", 0)
+        return
+    record(name, "passed", "no password on " + ", ".join(seen), 0)
 
 
 def secret_files(record: Record, fetch: Callable[[], dict] | None = None) -> None:

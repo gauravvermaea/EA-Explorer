@@ -63,6 +63,7 @@ def _db_token() -> str:
             row = conn.execute("SELECT id FROM auth_user WHERE username = %s", (user,)).fetchone()
             if not row:
                 raise MayanError(f"Mayan has no administrator '{user}' yet: it is still setting itself up.")
+            hide_admin_notice(conn)
             tok = conn.execute("SELECT key FROM authtoken_token WHERE user_id = %s", (row[0],)).fetchone()
             if tok:
                 return tok[0]
@@ -73,6 +74,23 @@ def _db_token() -> str:
         raise
     except Exception as exc:  # noqa: BLE001
         raise MayanError(f"Documents (Mayan) cannot be reached yet: {str(exc).splitlines()[0][:200]}") from exc
+
+
+# Mayan's first-start notice: the administrator it made, with its password, shown on its sign-in page until that
+# administrator signs in with the password and changes it, which nobody does (people sign in through Keycloak). So anyone
+# who could open docs.<host> read a full administrator's password (owner, 26 Nov 2026, 08:26: "docs.localhost shows the
+# admin password"; D932). The notice is one row of Mayan's own; it goes, and with it the copy of the password Mayan
+# kept there. Mayan's sign-in page then shows no notice (an empty one has no account). The password stays in our secrets.
+NOTICE_TABLE = "autoadmin_autoadminsingleton"
+
+
+def hide_admin_notice(conn) -> bool:
+    """Takes Mayan's first-start notice (its administrator's password) off its sign-in page; True when there was one.
+    Run with Mayan's database each time the API reads its token (once a process). Nothing when Mayan has no such
+    table (another version): its sign-in page is then the self-test's to check (security.documents_sign_in)."""
+    if not conn.execute("SELECT to_regclass(%s)", (f"public.{NOTICE_TABLE}",)).fetchone()[0]:
+        return False
+    return bool(conn.execute(f"DELETE FROM public.{NOTICE_TABLE}").rowcount)
 
 
 def _key() -> str:

@@ -1400,7 +1400,9 @@ def write_package(manifest: dict, spec: dict, content: dict, hist: dict | None, 
             z.writestr(f"entities/{code}.csv", _csv(rows, ENTITY_COLS))
         if content["relationships"]:
             z.writestr("relationships.csv", _csv(content["relationships"], REL_COLS))
-        if hist:
+        # a deep package's histories: hist also holds the views, icons and reports of any package with data (self-test 15,
+        # 25 Nov 2026: a package with data, or a merge plan that reads one, failed with KeyError 'metamodel_versions')
+        if hist and "metamodel_versions" in hist:
             z.writestr("history/metamodel-versions.csv", _csv(hist["metamodel_versions"], ["version", "published_at", "published_by", "note"]))
             z.writestr("history/metamodel-changes.csv", _csv(hist["metamodel_changes"], ["version", "at", "by", "kind", "item", "change", "field", "old", "new"]))
             if hist.get("rows") is not None:
@@ -1481,7 +1483,7 @@ def _to_xlsx(manifest: dict, spec: dict, content: dict, hist: dict | None = None
     if content["relationships"]:
         rows = content["relationships"]
         sheet("Relationships", REL_COLS + sorted({k for r in rows for k in r} - set(REL_COLS)), rows)
-    if hist:   # a deep package (D132): the histories, to read, and the rows to load again
+    if hist and "metamodel_versions" in hist:   # a deep package (D132): the histories, to read, and the rows to load again
         def when(rows):
             return [{k: (v.strftime("%Y-%m-%d %H:%M:%S") if isinstance(v, (dt.datetime, dt.date)) else v) for k, v in r.items()}
                     for r in rows]

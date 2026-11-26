@@ -73,9 +73,32 @@ def test_in_the_smoke_and_full_runs(monkeypatch):
                               log=lambda m: got.append(("log", m, "")))
     body = ('{"links": [{"name": "Documents", "to": "Documents", "how": "its key", "status": "down", "detail": "refused", "ms": 3},'
             '{"name": "draw.io", "status": "up", "detail": "ok"}, {"name": "Library service", "status": "off"}]}')
-    R.connectivity(r, "t", call=lambda *a, **k: (200, body))
+    R.connectivity(r, "t", call=lambda *a, **k: (200, body), wait=0)
     assert ("smoke", "connectivity: Documents", "failed") in got and ("smoke", "connectivity: draw.io", "passed") in got
     assert ("smoke", "connectivity: Library service", "skipped") in got
     got.clear()
-    R.connectivity(r, "t", call=lambda *a, **k: (500, "oops"))
+    R.connectivity(r, "t", call=lambda *a, **k: (500, "oops"), wait=0)
     assert got[0][1] == "connectivity: every connection checked" and got[0][2] == "failed"
+
+
+
+def test_a_connection_still_starting_is_waited_for():
+    """Self-test 15 (25 Nov 2026): Documents was still starting after `eax up`, so its uploads, the project library and the
+    charter failed; the run now waits for a connection that is down, up to WAIT_FOR_SERVICES, then records what it found."""
+    import types
+    got, now = [], [0.0]
+    r = types.SimpleNamespace(recorder=lambda suite: (lambda name, outcome, *a, **k: got.append((name, outcome))),
+                              log=lambda m: got.append((m, "log")))
+    answers = iter(['{"links": [{"name": "Documents", "status": "down", "detail": "refused"}]}'] * 3
+                   + ['{"links": [{"name": "Documents", "status": "up", "detail": "ok"}]}'])
+
+    def sleep(s):
+        now[0] += s
+    R.connectivity(r, "t", call=lambda *a, **k: (200, next(answers)), wait=600, sleep=sleep, clock=lambda: now[0])
+    assert ("connectivity: Documents", "passed") in got and now[0] == 3 * R.WAIT_STEP
+    assert ("waiting for Documents to answer", "log") in got
+    got.clear()
+    now[0] = 0.0
+    R.connectivity(r, "t", call=lambda *a, **k: (200, '{"links": [{"name": "Documents", "status": "down"}]}'), wait=60,
+                   sleep=sleep, clock=lambda: now[0])
+    assert ("connectivity: Documents", "failed") in got and now[0] >= 60     # given up after the wait: recorded as down
