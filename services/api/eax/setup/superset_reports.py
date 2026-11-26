@@ -615,7 +615,7 @@ def build_report_bundles(folder: Path, db_password: str, db_name: str = "eaexplo
 _LABEL = "{{ ((filter_values('entity_label', None, True) or [''])[0]) | replace(\"'\", \"''\") }}"
 _STEPS = "{{ ((filter_values('steps', None, True) or [4])[0]) | int }}"
 VIRTUAL: dict[str, tuple[str, list[tuple[str, str]]]] = {
-    "dr_dependencies": ("SELECT model_id, model_name, chosen_entity, direction, depth, entity, entity_type, layer AS domain, lifecycle, "
+    "dr_dependencies": ("SELECT model_id, model_name, chosen_entity, direction, depth, entity, entity_type, domain, lifecycle, "
                         f"criticality, last_relationship, path, link FROM rpt.f_dependencies('{_LABEL}', {_STEPS})", [
         ("model_id", "BIGINT"), ("model_name", "TEXT"), ("chosen_entity", "TEXT"), ("direction", "TEXT"), ("depth", "INTEGER"),
         ("entity", "TEXT"), ("entity_type", "TEXT"), ("domain", "TEXT"), ("lifecycle", "TEXT"), ("criticality", "NUMERIC"),

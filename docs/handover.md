@@ -80,6 +80,16 @@ Known before the run: R14.18 (four Jenkins pipelines that can never run, found b
   to record six); a full run is unchanged.
 - D945: Stop is seen at the next check (every 10 s at most), not only at the next log line; Stopped is no longer
   an Exception a suite swallows.
+- Run 20 (run 18's failures again, 26 Nov 2026, 19:06): 26 passed, 9 failed. D946: the 6 reports failed on Superset's old
+  DR-01 dataset ("layer AS domain"): Reports' import now overwrites a dashboard's datasets (every dashboard imported again
+  once). D947: the 3 project journeys still fail with the API answering at once, so D943 was not the cause; a failed step
+  now says what the database was busy with.
+- Run 21 (run 18's failures again, 19:28): the 6 reports pass (one a warning, 61 s on a first open after the re-import).
+  D949: the project page's goals query read the whole repository (guid::text), the cause of the 3 project journeys. D948:
+  the logs files list read 5,000 file sizes each time (503 after 40 s).
+- Run 22 (19:03 UTC): 9 of the 11 pass. D950: the project report's CSV handed objects to downloadCsv ("s.map is not a
+  function"), the last two. Next: `eax up`, `eax test failed 22`; then clean-restart and the full run. To do: `eax test`
+  waits while `eax up` still starts things in the background; the reports test's Superset user is not deleted (422).
 
 **Earlier (25 Nov 2026, Release 14 closed):**
 - Next is Release 14.5. Start with the coverage bar, to be discussed with the owner (R14.5.1, R14.5.2); then the use cases in

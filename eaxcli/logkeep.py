@@ -227,9 +227,14 @@ def compress_closed(base: Path, now: float | None = None) -> int:
 
 def _lines(f: Path):
     import gzip
+    if not f.name.endswith(".gz") and not f.exists() and f.with_name(f.name + ".gz").exists():
+        f = f.with_name(f.name + ".gz")             # compressed since it was listed (D939)
     opener = gzip.open if f.name.endswith(".gz") else open
-    with opener(f, "rt", encoding="utf-8", errors="replace") as fh:
-        yield from fh
+    try:
+        with opener(f, "rt", encoding="utf-8", errors="replace") as fh:
+            yield from fh
+    except FileNotFoundError:
+        return                                      # closed and renamed since it was listed: its new name is read too
 
 
 def _day_files(folder: Path, day: str) -> list[Path]:
@@ -241,20 +246,42 @@ def _day_files(folder: Path, day: str) -> list[Path]:
 
 
 # ---------------------------------------------------------------- reading (the web, R2.31)
+# the sizes of the compressed files, which never change once made (D948): a file's size is read once, not at every
+# listing. At 100 KB a file (R5.26) the laptop kept over 5,000 of them, and reading each one's size through Docker
+# Desktop's folder sharing took over 30 s: the Logs page's list, and the self-test's call of it, timed out (runs 20, 21)
+_GZ_SIZES: dict[str, int] = {}
+
+
 def files(base: Path, service: str = "") -> list[dict]:
     """The daily files kept: service, day, size; the newest first."""
     out = []
     root = base / "containers"
     if not root.is_dir():
         return out
+    seen: set[str] = set()
     for d in sorted(root.iterdir()):
         if not d.is_dir() or (service and d.name != service):
             continue
         sizes: dict[str, int] = {}
         for f in d.iterdir():
             if DAY.match(f.name):
-                sizes[f.name[:10]] = sizes.get(f.name[:10], 0) + f.stat().st_size
+                key = f"{d.name}/{f.name}"
+                seen.add(key)
+                try:
+                    size = _GZ_SIZES.get(key) if f.name.endswith(".gz") else None
+                    if size is None:
+                        size = f.stat().st_size
+                        if f.name.endswith(".gz"):
+                            _GZ_SIZES[key] = size
+                except FileNotFoundError:
+                    # closed and compressed between the listing and here (its .log.gz is listed or comes next):
+                    # self-test 18's IT Admin read the files list at that instant and got a server error (D939)
+                    continue
+                sizes[f.name[:10]] = sizes.get(f.name[:10], 0) + size
         out += [{"service": d.name, "day": day, "size": size} for day, size in sizes.items()]
+    if not service:                                  # files deleted (kept days passed) leave the memory too
+        for gone in [k for k in _GZ_SIZES if k not in seen]:
+            _GZ_SIZES.pop(gone, None)
     return sorted(out, key=lambda x: (x["day"], x["service"]), reverse=True)
 
 

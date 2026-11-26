@@ -159,10 +159,14 @@ def goals(conn, p: dict) -> list[dict]:
                                      JOIN core.models m ON m.id = e.model_id
                                     WHERE m.guid = CAST(:m AS uuid) AND NOT e.is_deleted AND :t = ANY (e.tags)
                                       AND et.name IN ('Goal', 'Outcome') ORDER BY e.name""", m=str(p["home_model"]), t=_tag(p))
-    links = _rows(pj.core(conn), """SELECT s.guid::text AS outcome, t.guid::text AS goal FROM core.relationships r
-                                      JOIN core.entities s ON s.id = r.source_entity_id JOIN core.entities t ON t.id = r.target_entity_id
-                                     WHERE NOT r.is_deleted AND s.guid::text = ANY (CAST(:ids AS text[]))""",
-                  ids=[r["id"] for r in rows if r["type"] == OUTCOME])
+    # the outcomes' links by their ids as uuids, so the entities' unique index on guid finds them (D949): comparing guid::text
+    # read every entity and relationship of the repository, 20 s and more on the laptop, on every opening of a project
+    # page; and none read at all when there is no outcome (runs 19 to 21: the project page "Loading..." for 25 s)
+    outcome_ids = [r["id"] for r in rows if r["type"] == OUTCOME]
+    links = _rows(pj.core(conn), """SELECT s.guid::text AS outcome, t.guid::text AS goal FROM core.entities s
+                                      JOIN core.relationships r ON r.source_entity_id = s.id AND NOT r.is_deleted
+                                      JOIN core.entities t ON t.id = r.target_entity_id
+                                     WHERE s.guid = ANY (CAST(:ids AS uuid[]))""", ids=outcome_ids) if outcome_ids else []
     of = {link["outcome"]: link["goal"] for link in links}
     out = [{"id": g["id"], "name": g["name"], "description": g["description"], "outcomes": []} for g in rows if g["type"] == GOAL]
     by = {g["id"]: g for g in out}

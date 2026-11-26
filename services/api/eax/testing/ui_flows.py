@@ -1351,6 +1351,10 @@ def step(page, s: dict, open_route: Callable[..., None], state: dict | None = No
                         return lab.nth(i)
             return None
         loc = _in_modal_first(page, root, s, label)
+        end = time.time() + (3 if s.get("optional") else timeout / 1000)
+        while loc is None and time.time() < end:       # choices that come with the page's data, as a field's do (fill)
+            page.wait_for_timeout(300)                 # (run 18: the merge page's "Without data" looked for at once)
+            loc = _in_modal_first(page, root, s, label)
         if loc is None:
             return f"no choice \"{s['choose']}\""
         box = loc.locator("input[type=radio], input[type=checkbox]")
@@ -1555,14 +1559,34 @@ def run_one(page, j: dict, open_route: Callable[..., None]) -> tuple[str, str]:
                 except Exception:  # noqa: BLE001
                     _LAST_SHOT["png"] = None
                 return "failed", (f"step {done + len(skipped) + 1} ({_say(s)}): {why}{_page_says(state.get('tab') or page)}"
-                                  f"{_api_answers(state.get('tab') or page)}")
+                                  f"{_api_answers(state.get('tab') or page)}{_db_says()}")
             done += 1
     finally:
         _close_tab(state)                              # a tab a "popup" step opened
     return "passed", f"{done} steps as {j['role']}" + (f"; {len(skipped)} optional skipped" if skipped else "")
 
 
+def _script_error(exc, page) -> str:
+    """A script error, with the page it happened on: run 18's "s.map is not a function" (minified names) said nothing of
+    which of the journey's four tabs threw it (D939)."""
+    try:
+        at = "#" + page.url.split("#", 1)[1] if "#" in page.url else page.url
+    except Exception:  # noqa: BLE001 - a closed page: the error alone
+        at = ""
+    return f"script error{f' at {at}' if at else ''}: {str(exc)[:200]}"
+
+
 API_WAIT_MS = 20000
+# what the database was doing as a step failed (D947), set by the run (run.db_waits): run 20's project page stayed on
+# "Loading..." for 25 s while the API answered its health check (no database) at once
+DB_LOOK: Callable[[], str] | None = None
+
+
+def _db_says() -> str:
+    try:
+        return DB_LOOK() if DB_LOOK is not None else ""
+    except Exception:  # noqa: BLE001 - only a hint for the report
+        return ""
 
 
 def _api_answers(page) -> str:
@@ -1636,7 +1660,7 @@ def run(page_factory: Callable[[str], tuple], js: list[dict], record: Record) ->
         named = len(inspect.signature(page_factory).parameters) > 1   # named for the live view (R5.20)
         page, open_route, close = page_factory(j["role"], j["name"]) if named else page_factory(j["role"])
         errors: list[str] = []
-        page.on("pageerror", lambda e, errs=errors: errs.append(f"script error: {str(e)[:200]}"))
+        page.on("pageerror", lambda e, errs=errors, pg=page: errs.append(_script_error(e, pg)))
         page.on("response", lambda r, errs=errors: errs.append(f"{r.request.method} {r.url.split('?')[0]}: {r.status}")
                 if "/api/" in r.url and r.status >= 500 else None)
         try:

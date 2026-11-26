@@ -468,6 +468,26 @@ def _nothing():
     return contextlib.nullcontext()
 
 
+def db_waits(engine, slow_s: float = 2.0):
+    """What the database is busy with, for a failed step's report (D947): the statements running longer than slow_s
+    seconds, what each waits on and which sessions block it. Only what this login may see (the API's own sessions)."""
+    def look() -> str:
+        with engine.connect() as conn:
+            rows = conn.execute(text("""
+                SELECT pid, coalesce(application_name, '') AS app, coalesce(wait_event_type || ':' || wait_event, 'running') AS waits,
+                       round(extract(epoch FROM now() - query_start)::numeric, 1) AS secs, pg_blocking_pids(pid) AS blocked_by,
+                       left(regexp_replace(coalesce(query, ''), '[[:space:]]+', ' ', 'g'), 140) AS query
+                  FROM pg_stat_activity
+                 WHERE state <> 'idle' AND pid <> pg_backend_pid() AND query_start < now() - make_interval(secs => :s)
+                 ORDER BY query_start LIMIT 5"""), {"s": slow_s}).mappings().all()
+        if not rows:
+            return f" · the database: nothing running longer than {slow_s:g} s"
+        return " · the database: " + "; ".join(
+            f"{r['secs']} s {r['waits']}" + (f" blocked by {list(r['blocked_by'])}" if r["blocked_by"] else "")
+            + f" [{r['pid']}{' ' + r['app'] if r['app'] else ''}] {r['query']}" for r in rows)
+    return look
+
+
 def stall_recorder(r: Run):
     """What the watchdog does on a stall (D942): a failed check "stalled at <step>" in the suite at hand, and a log line."""
     def on_stall(step: str, idle: int) -> None:
@@ -1080,6 +1100,8 @@ def cmd_run(args) -> int:
                                 {"id": run_id}).mappings().first())
     print(f"RUN_ID={run_id}", flush=True)
     r = Run(engine, run_id, folder, repo)
+    from . import ui_flows as _uf
+    _uf.DB_LOOK = db_waits(repo)                     # a failed step says what the database was busy with (D947)
     alive.keep_beating(r.dir)                        # "being run" for as long as this process lives (R2.64)
     r.suite_now = "smoke" if level == "smoke" else (list(suites) or ["api"])[0]
     r.dog = watchdog.Watchdog(stall_recorder(r))    # and moving: a stall is recorded, then the run ends (D942)

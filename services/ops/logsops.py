@@ -70,8 +70,18 @@ def shipper(pause: float = 60) -> None:
 
 
 def start() -> None:
-    """Starts copying the logs in the background."""
+    """Starts copying the logs in the background, and reads the kept files' sizes once now (D948), so the first look at
+    the Logs page after a start does not wait for them."""
     threading.Thread(target=shipper, daemon=True).start()
+    threading.Thread(target=_warm, daemon=True, name="logs-sizes").start()
+
+
+def _warm() -> None:
+    try:
+        if K is not None:
+            K.files(LOGS)
+    except Exception as exc:  # noqa: BLE001 - only a head start; the page reads them itself
+        print(f"ops: the kept logs' sizes were not read ahead ({exc})", flush=True)
 
 
 def files(service: str = "") -> dict:

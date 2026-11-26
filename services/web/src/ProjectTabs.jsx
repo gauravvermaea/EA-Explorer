@@ -110,6 +110,13 @@ function PlanningSummary({ p }) {
   );
 }
 
+// the status table as CSV: headings first, then a row of values for each phase (downloadCsv takes arrays; the rows
+// themselves are objects, and run 22's report CSV failed with "s.map is not a function", D950)
+const STATUS_COLUMNS = [["phase", "Phase"], ["steps_done", "Steps done"], ["steps", "Steps"], ["classes_with_documents", "Classes with documents"],
+  ["classes", "Classes"], ["documents", "Documents"], ["draft", "Draft"], ["in_review", "In review"],
+  ["accepted_or_approved", "Accepted or approved"], ["rejected", "Rejected"], ["checked_out", "Checked out"]];
+export const statusCsv = (rows) => [STATUS_COLUMNS.map(([, h]) => h), ...rows.map((r) => STATUS_COLUMNS.map(([k]) => r[k]))];
+
 // the project's own report (Home › Project report) and its models' reports (the Reports tab) (owner, 8 Nov 2026)
 export function ProjectReports({ p, part = "all" }) {
   const models = projectModels(p);
@@ -133,7 +140,7 @@ export function ProjectReports({ p, part = "all" }) {
       {part !== "models" && <>
       <h3>Project status</h3>
       <p className="quiet small">Where {p.name} stands, phase by phase: its steps, its deliverables and artifacts (document classes), their documents
-        and approvals. <button className="linkish" onClick={() => downloadCsv(rows, `${p.name} status`)}>⬇ CSV (opens in Excel)</button></p>
+        and approvals. <button className="linkish" onClick={() => downloadCsv(statusCsv(rows), `${p.name} status`)}>⬇ CSV (opens in Excel)</button></p>
       {p.iteration && <p className="small">ADM cycle {p.cycle}: <b>{p.iteration.label}</b>{p.iteration.chosen ? "" : " (not chosen yet)"}
         {p.iteration.frozen_phases?.length > 0 && <> · frozen (read only): {p.iteration.frozen_phases.map((c) => (c === "P" ? "Preliminary" : c)).join(", ")}</>}</p>}
       <table className="grid-table small">

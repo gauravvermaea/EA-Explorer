@@ -21,7 +21,7 @@ secret (R5.22, D693).
 
 ## Models
 
-**The metamodel** (`eax/metamodel_edit.py`, `eax/trees.py`, `eax/grids.py`): entity types in layers, relationship
+**The metamodel** (`eax/metamodel_edit.py`, `eax/trees.py`, `eax/grids.py`): entity types in domains, relationship
 types and the pairs they may join, attributes and pick lists, rules (mandatory, ranges, multiplicity). One change
 publishes one metamodel version; a change is never blocked by content already there (D64). Root metamodels (Root,
 ArchiMate 4) and reference models are shipped locked.

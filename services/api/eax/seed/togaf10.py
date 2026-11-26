@@ -14,7 +14,7 @@ NAME = "TOGAF 10 content metamodel"
 LAYERS = [("Motivation", "D1BADC"), ("Strategy", "EFBD5D"), ("Business", "ECD678"), ("Data", "B0D0D9"), ("Application", "B0D0D9"),
           ("Technology", "BBD8AD"), ("Implementation and Migration", "F1BBB7"), ("Governance", "D1BADC")]
 
-# (code, name, layer, ID prefix, content framework area, description)
+# (code, name, domain, ID prefix, content framework area, description)
 TYPES = [
     ("Stakeholder", "Stakeholder", "Motivation", "STK", "vision.stakeholders", "A person or group with an interest in the architecture"),
     ("Driver", "Driver", "Motivation", "DRV", "motivation.drivers", "Something inside or outside the enterprise that prompts change"),

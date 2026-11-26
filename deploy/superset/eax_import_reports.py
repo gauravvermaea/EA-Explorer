@@ -5,6 +5,11 @@ Phase 5 ran `superset import-dashboards` once per dashboard. Each run starts the
 once and imports every zip in /rendered/superset/reports with the same command the CLI uses, one dashboard at
 a time, so one that fails does not stop the others. A dashboard whose zip has not changed since the last
 import (same SHA-256, kept in superset_home) and still in Superset is skipped, so later starts are quick.
+
+Importing a dashboard does not change a dataset Superset has already (D946; run 20, 26 Nov 2026: DR-01's dataset kept
+its old SQL, "layer AS domain", after the database function's column became domain, and three dashboards failed). So each
+dashboard imported is followed by its datasets, imported on their own and overwritten. RULES is part of each stamp: when
+how a dashboard is imported changes, every dashboard is imported again once, whatever its zip.
 """
 
 from __future__ import annotations
@@ -18,6 +23,7 @@ from zipfile import ZipFile
 
 REPORTS = Path("/rendered/superset/reports")
 STAMPS = Path("/app/superset_home/eax-report-imports.json")
+RULES = "datasets-overwritten"          # D946: the datasets too; changing it imports every dashboard again once
 
 
 def _contents(bundle: ZipFile) -> dict[str, str]:
@@ -27,6 +33,20 @@ def _contents(bundle: ZipFile) -> dict[str, str]:
     except ImportError:
         return {name.split("/", 1)[1] if "/" in name else name: bundle.read(name).decode("utf-8")
                 for name in bundle.namelist() if not name.endswith("/")}
+
+
+def datasets_only(contents: dict[str, str]) -> dict[str, str]:
+    """A dashboard bundle's databases and datasets, as a dataset bundle (what ImportDatasetsCommand accepts)."""
+    out = {k: v for k, v in contents.items() if k.startswith(("databases/", "datasets/"))}
+    if not any(k.startswith("datasets/") for k in out):
+        return {}
+    out["metadata.yaml"] = f"version: 1.0.0\ntype: SqlaTable\ntimestamp: '{time.strftime('%Y-%m-%dT%H:%M:%S+00:00', time.gmtime())}'\n"
+    return out
+
+
+def stamp(digest: str) -> str:
+    """What is kept for a zip imported: its SHA-256 and the import rules it was imported by."""
+    return f"{digest}:{RULES}"
 
 
 def main() -> int:
@@ -50,6 +70,10 @@ def main() -> int:
             from superset.commands.dashboard.importers.dispatcher import ImportDashboardsCommand
         except ImportError:   # Superset before 4.0
             from superset.dashboards.commands.importers.dispatcher import ImportDashboardsCommand
+        try:
+            from superset.commands.dataset.importers.dispatcher import ImportDatasetsCommand
+        except ImportError:   # Superset before 4.0
+            from superset.datasets.commands.importers.dispatcher import ImportDatasetsCommand
 
         from superset.models.dashboard import Dashboard
 
@@ -63,13 +87,17 @@ def main() -> int:
         started = time.monotonic()
         for i, z in enumerate(zips, 1):
             digest = hashlib.sha256(z.read_bytes()).hexdigest()
-            if stamps.get(z.name) == digest and z.stem in have:   # unchanged and still there
+            if stamps.get(z.name) == stamp(digest) and z.stem in have:   # unchanged and still there
                 skipped += 1
                 continue
             try:
                 with ZipFile(z) as bundle:
-                    ImportDashboardsCommand(_contents(bundle), overwrite=True).run()
-                stamps[z.name] = digest
+                    contents = _contents(bundle)
+                ImportDashboardsCommand(contents, overwrite=True).run()
+                ds = datasets_only(contents)
+                if ds:                       # the dashboard's datasets as they are now, their SQL and columns (D946)
+                    ImportDatasetsCommand(ds, overwrite=True).run()
+                stamps[z.name] = stamp(digest)
                 done += 1
                 print(f"EA Explorer: imported report {z.stem} ({i} of {len(zips)})", flush=True)
             except Exception as exc:  # noqa: BLE001 - one failure must not stop the others

@@ -180,3 +180,24 @@ def test_a_failed_step_says_how_fast_the_api_was_answering():
 def test_force_it_is_chosen_only_when_there_is_a_version_to_push():
     steps = [s for j in U.AREA_JOURNEYS + U.PROJECT_JOURNEYS for s in j["steps"] if s.get("choose") == "Force it"]
     assert len(steps) == 2 and all(s.get("optional") for s in steps)
+
+
+class _At:
+    def __init__(self, url):
+        self.url = url
+
+
+def test_a_script_error_says_the_page_it_happened_on():
+    """Run 18 (D939): "s.map is not a function" on one of a journey's four tabs, which one not said."""
+    assert U._script_error(TypeError("s.map is not a function"), _At("https://localhost/#/projects/x/library")) == \
+        "script error at #/projects/x/library: s.map is not a function"
+    assert U._script_error(TypeError("boom"), _At("about:blank")) == "script error at about:blank: boom"
+    src = (API / "eax/testing/ui_flows.py").read_text(encoding="utf-8")
+    assert 'errs.append(_script_error(e, pg))' in src
+
+
+def test_a_choice_is_waited_for_as_a_field_is():
+    """Run 18 (D939): the merge page's "Without data" was looked for before the page had drawn it."""
+    src = (API / "eax/testing/ui_flows.py").read_text(encoding="utf-8")
+    part = src[src.index('elif "choose" in s:'):src.index('elif "fill" in s:')]
+    assert "while loc is None and time.time() < end:" in part and "page.wait_for_timeout(300)" in part
