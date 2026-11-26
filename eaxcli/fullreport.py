@@ -26,6 +26,7 @@ import re
 import time
 from pathlib import Path
 
+BAR = 85.0   # the bar of the API, the screens and the overall figure (D934; owner, 26 Nov 2026, 11:00: "Ok the target is 85%")
 RUN_FOLDER = re.compile(r"^\d{8}T\d{6}Z$")
 KINDS = {"dev check": "dev", "self-test": "selftest", "backup and restore test": "backup", "SonarQube scan": "sonar",
          "DR drill": "dr", "no test container left running": "containers"}
@@ -153,11 +154,11 @@ def sonar_table(rows: list, to_fix=None) -> str:
 
 def to_reach(percent, bar: float, total, done, what: str = "lines") -> str:
     """How far a figure is from its bar (owner, 25 Nov 2026, 16:24: "show the actual measure that you say here"): "short
-    by 6.7 points: about 783 more lines to run", or "at or over the goal of 90%"; as coverage_view.to_reach and the app's
+    by 6.7 points: about 783 more lines to run", or "at or over the goal of 85%"; as coverage_view.to_reach and the app's
     Summary screen (FullSummary.jsx toReach)."""
     if percent is None or not total:
         return "-"
-    p, b = float(percent), float(bar or 90.0)
+    p, b = float(percent), float(bar or BAR)
     if p >= b:
         return f"at or over the {'bar' if what == 'screens' else 'goal'} of {b:g}%"
     more = max(0, math.ceil(b * float(total) / 100 - float(done or 0)))
@@ -167,7 +168,7 @@ def to_reach(percent, bar: float, total, done, what: str = "lines") -> str:
 def overall(cov: dict, scr: dict) -> float | None:
     """The overall coverage (owner, 25 Nov 2026, 16:34: "can there a an overall coverage ring too, these two can be under
     it"): the API's and the screens' figures, each counted equally (lines and screens are not the same unit, so neither
-    outweighs the other), to one decimal; one alone when only it was measured; None with neither. Its bar is 90%, as
+    outweighs the other), to one decimal; one alone when only it was measured; None with neither. Its bar is 85% (D934), as
     both of theirs. As coverage_view.overall and the app's Summary screen (FullSummary.jsx overall)."""
     got = [float(x) for x in (cov.get("api"), scr.get("percent")) if x is not None]
     return round(sum(got) / len(got), 1) if got else None
@@ -177,31 +178,31 @@ def where_it_stands(s: dict) -> str:
     """The one line at the top of the page: the API and the screens against their bars, the jobs beside them."""
     run = s.get("selftest") or {}
     cov, scr = run.get("coverage") or {}, run.get("screens") or {}
-    goal = float(cov.get("goal") or 90.0)
+    goal = float(cov.get("goal") or BAR)
     parts = []
     whole = overall(cov, scr)
     if whole is not None and cov.get("api") is not None and scr.get("percent") is not None:
-        parts.append(f"Overall {whole}% (the API and the screens counted equally), bar 90%: "
-                     + (f"short by {90 - whole:.1f} points" if whole < 90 else "at or over the bar"))
+        parts.append(f"Overall {whole}% (the API and the screens counted equally), bar {BAR:g}%: "
+                     + (f"short by {BAR - whole:.1f} points" if whole < BAR else "at or over the bar"))
     if cov.get("api") is not None:
         parts.append(f"The API {cov['api']}% of {cov.get('api_lines', 0)} lines, goal {goal:g}%: "
                      f"{to_reach(cov['api'], goal, cov.get('api_lines'), cov.get('api_run'))}")
     if cov.get("jobs") is not None:
         parts.append(f"background jobs {cov['jobs']}% (shown, not judged)")
     if scr.get("percent") is not None:
-        bar = float(scr.get("bar") or 90.0)
+        bar = float(scr.get("bar") or BAR)
         parts.append(f"the screens {scr['percent']}% ({scr.get('covered')} of {scr.get('screens')}), bar {bar:g}%: "
                      f"{to_reach(scr['percent'], bar, scr.get('screens'), scr.get('covered'), 'screens')}")
     return f'<p class="where"><b>Where it stands:</b> {html.escape("; ".join(parts))}.</p>' if parts else ""
 
 
-def gaps(cov: dict, scr: dict, goal: float = 90.0) -> dict:
+def gaps(cov: dict, scr: dict, goal: float = BAR) -> dict:
     """What is not covered, from the self-test's coverage.json and screens-coverage.json (owner, 25 Nov 2026, 12:19:
     "In the coverage clearly call out areas not being covered in a table"): the API's files under the goal, what is left
     out of the API's goal and why, the background jobs' files, the screens not covered yet (by area) and the screens left
     out and why. Kept in the summary (the figures stay when the detailed files are pruned)."""
     goal = float(cov.get("goal") or goal)
-    bar = float(scr.get("bar") or 90.0)
+    bar = float(scr.get("bar") or BAR)
     by_area: dict[str, list[str]] = {}
     for x in scr.get("not_covered") or []:
         parts = [y for y in str(x).split("/") if y and y != "#"]
@@ -230,7 +231,7 @@ def gaps_card(g: dict | None) -> str:
         return ("<table><tr>" + "".join(f"<th>{e(h)}</th>" for h in head) + "</tr>"
                 + "".join("<tr>" + "".join(f"<td>{e(str(c))}</td>" for c in r) + "</tr>" for r in rows) + "</table>")
     api = [[f["file"], f"{f.get('percent')}%", str(int(f.get("lines") or 0) - int(f.get("run") or 0))] for f in g.get("api_files") or []]
-    out = [f'<h3>The API: files under the goal of {float(g.get("api_goal") or 90):.0f}% ({len(api)})</h3>',
+    out = [f'<h3>The API: files under the goal of {float(g.get("api_goal") or BAR):.0f}% ({len(api)})</h3>',
            table(["file", "covered", "lines not run"], api),
            f'<h3>The API: left out of the goal ({len(g.get("api_left_out") or [])})</h3>',
            table(["file", "route", "methods", "why"],
@@ -270,7 +271,7 @@ def _colour(p: float | None, goal: float) -> str:
     return GREY if p is None else GOOD if p >= goal else NEAR if p >= goal - 15 else LOW
 
 
-def ring(percent: float | None, goal: float = 90.0, size: int = 150, label: str = "our code") -> str:
+def ring(percent: float | None, goal: float = BAR, size: int = 150, label: str = "our code") -> str:
     """A ring: the share of our code's lines run, a tick at the goal (as coverage_view.ring_svg)."""
     r, w = size / 2 - 12, 16
     c = 2 * math.pi * r
@@ -316,7 +317,7 @@ def cards(s: dict) -> list[str]:
     run = s.get("selftest") or {}
     cov = run.get("coverage") or {}
     unit = ((s.get("dev") or {}).get("coverage") or {}).get("percent")
-    goal = float(cov.get("goal") or 90)
+    goal = float(cov.get("goal") or BAR)
     api = cov.get("api")                                  # the goal's measure: eax/api (D923); else all our code
     pairs = [*([("the API (eax/api), the goal's measure", f"{api}% ({cov.get('api_run', 0)} of {cov.get('api_lines', 0)} lines)"),
                 ("to reach the goal", to_reach(api, goal, cov.get("api_lines"), cov.get("api_run"))),
@@ -336,26 +337,26 @@ def cards(s: dict) -> list[str]:
     whole = overall(cov, scr)
     if whole is not None and api is not None and scr.get("percent") is not None:     # one ring over the two below it
         small = (f'<div class="pair">{ring(api, goal, 120, "the API")}'
-                 f'{ring(scr.get("percent"), float(scr.get("bar") or 90), 120, "the screens")}</div>')
-        out.append(f'<section class="card wide overall"><h2>Overall coverage</h2><div class="ring">{ring(whole, 90.0, 190, "overall")}</div>'
+                 f'{ring(scr.get("percent"), float(scr.get("bar") or BAR), 120, "the screens")}</div>')
+        out.append(f'<section class="card wide overall"><h2>Overall coverage</h2><div class="ring">{ring(whole, BAR, 190, "overall")}</div>'
                    f'{small}<p class="quiet">Overall: the API ({api}%) and the screens ({scr["percent"]}%) counted equally. '
-                   f'Bar 90%: {"at or over it" if whole >= 90 else f"short by {90 - whole:.1f} points"}. Each is in full in its '
+                   f'Bar {BAR:g}%: {"at or over it" if whole >= BAR else f"short by {BAR - whole:.1f} points"}. Each is in full in its '
                    'own card below.</p></section>')
     out.append(f'<section class="card"><h2>Code coverage</h2><div class="ring">{ring(shown, goal, label="the API" if api is not None else "our code")}</div>'
                f'{_rows(pairs)}<p class="quiet">The goal is measured on the API (eax/api); the rest of our code is shown, '
                'not judged. Joined line by line with the unit tests\'.</p></section>')
     if scr.get("percent") is not None:              # the screens, by the journeys (R14.5.1, D924)
         pairs = [("screens covered", f"{scr.get('covered', 0)} of {scr.get('screens', 0)}"),
-                 ("to reach the bar", to_reach(scr.get("percent"), float(scr.get("bar") or 90), scr.get("screens"),
+                 ("to reach the bar", to_reach(scr.get("percent"), float(scr.get("bar") or BAR), scr.get("screens"),
                                                scr.get("covered"), "screens")),
                  ("acted on by a journey", str(scr.get("acted_on", 0))), ("read only, opened", str(scr.get("read_only", 0))),
                  ("controls used", f"{scr.get('controls_used', 0)} of {scr.get('controls', 0)} ({scr.get('controls_percent')}%)"),
                  ("risky controls left out", str(scr.get("left_out", 0))),
                  ("screens left out", f"{scr.get('screens_left_out', 0)} (a second installation, restores, a test run in the run)"),
-                 ("bar", f"{float(scr.get('bar') or 90):.0f}%")]
-        out.append(f'<section class="card"><h2>Screens covered by journeys</h2><div class="ring">{ring(scr.get("percent"), float(scr.get("bar") or 90), label="the screens")}</div>'
+                 ("bar", f"{float(scr.get('bar') or BAR):.0f}%")]
+        out.append(f'<section class="card"><h2>Screens covered by journeys</h2><div class="ring">{ring(scr.get("percent"), float(scr.get("bar") or BAR), label="the screens")}</div>'
                    f'{_rows(pairs)}<p class="quiet">A screen a journey acts on, or a read-only one that opens; the list is in '
-                   'screens-coverage.json in the self-test\'s folder. The bar: 90% of the screens counted.</p></section>')
+                   'screens-coverage.json in the self-test\'s folder. The bar: 85% of the screens counted.</p></section>')
     stp = steps.get("selftest")
     if run or stp:
         t = run.get("tally") or {}

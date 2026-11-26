@@ -39,7 +39,7 @@ def test_the_self_test_keeps_the_coverage_with_its_run(monkeypatch, tmp_path):
     monkeypatch.setattr(R.api_matrix, "call", lambda *a, **k: (200, json.dumps(c)))
     assert R.coverage_result(r, "tok")["percent"] == 61.5
     assert got[0][1] == "warning" and "61.5% of lines" in got[0][2] and r.counts["coverage %"] == 40.0   # the goal's measure: eax/api (D923)
-    assert "under the goal of 90%" in got[0][2]
+    assert "under the goal of 85%" in got[0][2]
     assert "All the server's code: 61.5%" in (r.dir / "coverage.html").read_text()
     assert json.loads((r.dir / "coverage.json").read_text())["run"] == 615
     monkeypatch.setattr(R.api_matrix, "call", lambda *a, **k: (200, json.dumps({"on": False, "why": "off"})))
@@ -83,7 +83,7 @@ def test_the_goal_from_the_environment(monkeypatch):
     monkeypatch.setenv("EAX_COVERAGE_GOAL", "75")
     assert R.coverage_goal() == 75.0
     monkeypatch.setenv("EAX_COVERAGE_GOAL", "lots")
-    assert R.coverage_goal() == 90.0
+    assert R.coverage_goal() == 85.0
 
 
 def test_previous_coverage_is_the_newest_of_the_same_kind(tmp_path):

@@ -13,7 +13,7 @@ the screen each of their actions happens on (a click, typing, a choice, a key) a
                the sign-in mode, update, ...): not counted, listed ("Left out, listed")
 
 Kept as screens-coverage.json in the run's folder and as one result line; the summary page shows it beside the API's
-figure. The bar is 90% of the screens counted (BAR; owner, 25 Nov 2026, 12:12). Pure functions, so
+figure. The bar is 85% of the screens (D934) counted (BAR; owner, 25 Nov 2026, 12:12). Pure functions, so
 the unit tests check them; the browser side is CONTROLS_JS."""
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ RISKY = re.compile(r"\b(stop|restart|shut ?down|restore|delete|remove|purge|wipe
                    r"terminate|drop|uninstall|unpair|scale)\b", re.I)
 # the screens' bar (owner, 25 Nov 2026, 12:12: "Bar for screens is currently 90%"): of the screens counted, the share
 # covered; under it the result is a warning, as the API's goal (D923)
-BAR = 90.0
+BAR = 85.0                     # D934, owner, 26 Nov 2026, 11:00: "Ok the target is 85%"
 # screens left out of the count, each with why, and listed with the figure (as the API's, owner, 11:02): what needs a
 # second installation, restores this one, or starts a test run inside the test run
 LEFT_OUT_SCREENS = {
@@ -204,7 +204,7 @@ def save(folder: Path, result: dict) -> None:
 
 
 def line(result: dict) -> tuple[str, str]:
-    """The result line: (outcome, detail): passed at or over the bar (BAR, 90%), a warning under it (as the API's goal)."""
+    """The result line: (outcome, detail): passed at or over the bar (BAR, 85%), a warning under it (as the API's goal)."""
     if not result.get("screens"):
         return "skipped", "no screen seen (the page sweep did not run)"
     bar = float(result.get("bar") or BAR)

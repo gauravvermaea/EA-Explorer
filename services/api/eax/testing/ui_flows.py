@@ -775,7 +775,8 @@ AREA_JOURNEYS: list[dict] = [
          *_look("#/metamodel/{m}/quality", {"click": "Settings, weights and rules"}),
          *_look("#/metamodel/{m}/kpis", {"click": "Entities by type"}),
          *_look("#/metamodel/{m}/merge", {"choose": "Without data"}),
-         *_look("#/metamodel/{m}/pushdown", {"choose": "Force it"}),
+         # "Force it" shows only with a version to push, as on the model's own pushdown (run 17: none to push)
+         *_look("#/metamodel/{m}/pushdown", {"choose": "Force it", "optional": True}),
          *_look("#/metamodel/{m}/metamodel"), *_dialog("+ Entity type"),
          *_look("#/metamodel/{m}/checks", {"click": "Application Component"}),
          *_look("#/metamodel/{m}/grid", {"select": "Grid of", "option": "Relationships"}),
@@ -1553,11 +1554,36 @@ def run_one(page, j: dict, open_route: Callable[..., None]) -> tuple[str, str]:
                     _LAST_SHOT["png"] = (state.get("tab") or page).screenshot(full_page=False)
                 except Exception:  # noqa: BLE001
                     _LAST_SHOT["png"] = None
-                return "failed", f"step {done + len(skipped) + 1} ({_say(s)}): {why}{_page_says(state.get('tab') or page)}"
+                return "failed", (f"step {done + len(skipped) + 1} ({_say(s)}): {why}{_page_says(state.get('tab') or page)}"
+                                  f"{_api_answers(state.get('tab') or page)}")
             done += 1
     finally:
         _close_tab(state)                              # a tab a "popup" step opened
     return "passed", f"{done} steps as {j['role']}" + (f"; {len(skipped)} optional skipped" if skipped else "")
+
+
+API_WAIT_MS = 20000
+
+
+def _api_answers(page) -> str:
+    """How fast the API answered the page's browser just as a step failed: its liveness (no database), so a slow
+    answer means its workers were all busy. Run 17: nine project tabs failed in twelve minutes, the library's saying
+    "EA Explorer's API does not answer (timed out)", while the journeys either side passed (D933)."""
+    try:
+        ms = page.evaluate("""async (wait) => {
+            const ctl = new AbortController(); const t0 = performance.now();
+            const stop = setTimeout(() => ctl.abort(), wait);
+            try { const r = await fetch("/api/health", {signal: ctl.signal, cache: "no-store"});
+                  return r.ok ? Math.round(performance.now() - t0) : -r.status; }
+            catch (e) { return null; } finally { clearTimeout(stop); }
+        }""", API_WAIT_MS)
+    except Exception:  # noqa: BLE001 - the page could not ask: nothing said
+        return ""
+    if ms is None:
+        return f" · the API did not answer its health check in {API_WAIT_MS // 1000} s"
+    if ms < 0:
+        return f" · the API answered its health check with HTTP {-ms}"
+    return f" · the API answered its health check in {ms / 1000:.1f} s"
 
 
 def _page_says(page) -> str:
@@ -1577,7 +1603,10 @@ def _page_says(page) -> str:
                        .map((e) => (e.innerText || "").trim()).filter(Boolean).slice(-2),
                      // the page's first words when it has no heading or status line (run 16: the organisation tab
                      // said nothing at all, so the report could not tell a blank page from one still loading)
-                     text: ((document.querySelector(".page, main, #root") || document.body).innerText || "")
+                     // the open tab's own content first: in run 17 "main" was found after the header's words
+                     // ("● Local EA Explorer 14…"), which said nothing of the tab
+                     text: (([".tab-panel", ".wizard-body", "main .page", "main", "#root"].map((q) => document.querySelector(q))
+                       .find(Boolean) || document.body).innerText || "")
                        .split(/\\s+/).join(" ").trim().slice(0, 160) };
         }""")
         parts = [f"at {said['at']}"] + [f"heading \"{x[:80]}\"" for x in said["h1"]] + [f"\"{x[:100]}\"" for x in said["status"]]

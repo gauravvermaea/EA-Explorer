@@ -145,3 +145,38 @@ def test_the_metamodel_is_read_and_a_framework_move_only_asked_about():
 def test_the_upkeep_route_is_in_the_goal_now():
     from eax.testing import run
     assert not any(r[1] == "/admin/db-maintenance/<string:what>" for r in run.LEFT_OUT_ROUTES)
+
+
+def test_the_first_words_are_the_open_tabs_own():
+    """Run 17: the organisation tab's failure quoted the app's header; the tab's panel is read first now."""
+    src = (API / "eax/testing/ui_flows.py").read_text(encoding="utf-8")
+    js = src[src.index("def _page_says"):src.index("parts = [f", src.index("def _page_says"))]
+    assert '[".tab-panel", ".wizard-body", "main .page", "main", "#root"]' in js
+    assert 'className="tab-panel"' in (WEB / "Projects.jsx").read_text(encoding="utf-8")
+
+
+class _Health:
+    def __init__(self, answer):
+        self.answer = answer
+
+    def evaluate(self, _js, *args):
+        if isinstance(self.answer, Exception):
+            raise self.answer
+        return self.answer
+
+
+def test_a_failed_step_says_how_fast_the_api_was_answering():
+    """Run 17 (D933): nine project tabs failed in twelve minutes while the API timed out; a failure now says whether
+    the API was answering just then."""
+    assert U._api_answers(_Health(240)) == " · the API answered its health check in 0.2 s"
+    assert U._api_answers(_Health(None)) == f" · the API did not answer its health check in {U.API_WAIT_MS // 1000} s"
+    assert U._api_answers(_Health(-502)) == " · the API answered its health check with HTTP 502"
+    assert U._api_answers(_Health(RuntimeError("page closed"))) == ""
+    src = (API / "eax/testing/ui_flows.py").read_text(encoding="utf-8")
+    assert '{_api_answers(state.get(\'tab\') or page)}' in src and 'fetch("/api/health"' in src
+    assert '@app.get("/api/health")' in (API / "eax/app.py").read_text(encoding="utf-8")
+
+
+def test_force_it_is_chosen_only_when_there_is_a_version_to_push():
+    steps = [s for j in U.AREA_JOURNEYS + U.PROJECT_JOURNEYS for s in j["steps"] if s.get("choose") == "Force it"]
+    assert len(steps) == 2 and all(s.get("optional") for s in steps)

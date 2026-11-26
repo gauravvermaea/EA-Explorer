@@ -1,5 +1,5 @@
 // Code coverage as pictures on a self-test run (R3.10; owner, 13 Nov 2026: "coverage should be shown with results in UI
-// with some sort of graph"): the share of the API's lines run against the goal (90%), each area the least covered first,
+// with some sort of graph"): the share of the API's lines run against the goal (85%, D934), each area the least covered first,
 // the trend over the last runs of the same kind, and the negative tests by kind (R3.9). The pictures are drawn by the API
 // from numbers only (eax/testing/coverage_view.py), the same ones as in the HTML report.
 

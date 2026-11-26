@@ -31,7 +31,7 @@ def test_the_overall_figure_counts_the_two_equally():
 
 def test_the_summary_page_shows_one_ring_over_the_two():
     s = {"finished_at": "x", "steps": [], "selftest": {"coverage": COV12, "screens": SCR12}}
-    assert "Overall 80.3% (the API and the screens counted equally), bar 90%: short by 9.7 points" in F.where_it_stands(s)
+    assert "Overall 80.3% (the API and the screens counted equally), bar 85%: short by 4.7 points" in F.where_it_stands(s)
     card = next(c for c in F.cards(s) if "Overall coverage" in c)
     assert "card wide overall" in card and card.count("<svg") == 3
     big, api, screens = card.index("overall:"), card.index("the API:"), card.index("the screens:")
@@ -46,7 +46,7 @@ def test_the_summary_page_shows_one_ring_over_the_two():
 def test_the_coverage_pictures_put_it_first():
     ch = cv.charts({"coverage": C12, "screens": SCR12})
     assert list(ch)[0] == "overall" and ch["overall"].count("<svg") == 3
-    assert "short by 9.7 points" in ch["overall"] and ch["overall"].index("Overall") < ch["overall"].index("The API")
+    assert "short by 4.7 points" in ch["overall"] and ch["overall"].index("Overall") < ch["overall"].index("The API")
     assert cv.charts({"coverage": C12})["overall"] == ""
     assert cv.summary_line({"coverage": C12, "screens": SCR12}).startswith("Overall 80.3% (the API and the screens")
     sec = cv.html_section({"coverage": C12, "screens": SCR12})
@@ -56,7 +56,7 @@ def test_the_coverage_pictures_put_it_first():
 def test_the_apps_screens_show_it():
     js = (ROOT / "services/web/src/FullSummary.jsx").read_text(encoding="utf-8")
     for x in ("export function overall(", "<h3>Overall coverage</h3>", 'label="overall"', 'className="full-pair"',
-              "Overall ${whole}% (the API and the screens counted equally), bar 90%"):
+              "Overall ${whole}% (the API and the screens counted equally), bar ${BAR}%"):
         assert x in js, x
     assert js.index("<h3>Overall coverage</h3>") < js.index("<h3>Code coverage</h3>")
     css = (ROOT / "services/web/src/styles.css").read_text(encoding="utf-8")

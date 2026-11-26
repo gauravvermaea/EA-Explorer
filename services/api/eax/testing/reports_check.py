@@ -71,6 +71,9 @@ WARN_MS, FAIL_MS = 30000, 120000
 # 2026: "Page.goto: Timeout 120000ms exceeded" on a busy laptop ended the suite; D912)
 NAV_MS = 300000
 QUIET_MS = 2500                          # no chart query for this long: the dashboard has finished loading
+# a fresh page every so many dashboards, in the same signed-in context: one page that opened thirty dashboards grew the
+# test runner's browser to 6.7 GB on a laptop already paging, and the next one never loaded (run 17, D936)
+PAGE_EVERY = 10
 PREFIX = "svc-self-test-"
 
 
@@ -87,6 +90,16 @@ class Keycloak:
         self.open, self.token = opener, ""
 
     def _call(self, method: str, path: str, body=None, form: dict | None = None) -> tuple[int, object, dict]:
+        """One call of Keycloak's admin API; signed in again once when Keycloak says the sign-in has run out (401). The
+        master realm's admin sign-in lasts about a minute, and the run's users are removed after the reports, twenty
+        minutes on: run 17 left all three behind (D934)."""
+        got = self._once(method, path, body, form)
+        if got[0] == 401 and self.token and not form:
+            self.sign_in()
+            got = self._once(method, path, body, form)
+        return got
+
+    def _once(self, method: str, path: str, body=None, form: dict | None = None) -> tuple[int, object, dict]:
         url = path if path.startswith("http") else f"{self.base}/admin/realms/{self.realm}{path}"
         data = urllib.parse.urlencode(form).encode() if form else json.dumps(body).encode() if body is not None else None
         headers = {"Content-Type": "application/x-www-form-urlencoded" if form else "application/json"}
@@ -315,9 +328,19 @@ class Session:
                 break
         return out
 
+    def _fresh_page(self) -> None:
+        try:
+            self.page.close()
+        except Exception:  # noqa: BLE001 - a crashed or stuck page may not close
+            pass
+        self.page = self._new_page()
+        self.pending.clear()
+
     def open(self, dash: dict) -> tuple[int, list[tuple[int, str]]]:
         """Opens a dashboard and waits until its charts have answered (quiet for QUIET_MS) or FAIL_MS has passed."""
         self.gen += 1
+        if self.gen > 1 and (self.gen - 1) % PAGE_EVERY == 0:
+            self._fresh_page()
         self.pending.clear()
         self.answers = []
         t0 = time.time()
@@ -332,18 +355,17 @@ class Session:
                 if not self.answers and (time.time() - t0) * 1000 > FAIL_MS:
                     break
                 self.page.wait_for_timeout(250)
-        except Exception as exc:  # noqa: BLE001 - only a crash is kept; anything else goes on up
-            # the browser's page crashed (the full test of 24 Nov 2026: "Page.goto: Page crashed" ended the whole suite):
-            # this dashboard counts as failed and the next one opens in a new page of the same signed-in context
-            if "crash" not in str(exc).lower():
+        except Exception as exc:  # noqa: BLE001 - a crash or a page that never opened is kept; anything else goes on up
+            # the browser's page crashed (the full test of 24 Nov 2026: "Page.goto: Page crashed" ended the whole suite),
+            # or the page never opened (run 17: "Page.goto: Timeout 300000ms exceeded" ended it too, with four dashboards
+            # and every Report Viewer check not yet run, D936): this dashboard counts as failed and the next one opens in
+            # a new page of the same signed-in context
+            said = str(exc).lower()
+            if "crash" not in said and "timeout" not in said:
                 raise
-            try:
-                self.page.close()
-            except Exception:  # noqa: BLE001 - a crashed page may not close
-                pass
-            self.page = self._new_page()
-            self.pending.clear()
-            return int((time.time() - t0) * 1000), list(self.answers) + [(0, f"the browser's page crashed: {str(exc).splitlines()[0][:200]}")]
+            self._fresh_page()
+            what = "the browser's page crashed" if "crash" in said else "the dashboard's page did not open"
+            return int((time.time() - t0) * 1000), list(self.answers) + [(0, f"{what}: {str(exc).splitlines()[0][:200]}")]
         ms = int((self.last - t0) * 1000) if self.answers else int((time.time() - t0) * 1000)
         return ms, list(self.answers)
 
@@ -578,8 +600,12 @@ def import_log(base: str, token: str, rec, send) -> None:
         lines = []
     said = [ln for ln in lines if "report dashboards imported:" in ln]
     if not said:
-        rec("the import at start-up says what it did", "warning",
-            f"HTTP {status}: no import line in Reports' log (still loading, or its log was rolled)")
+        # Docker keeps 500 KB of a container's log (EAX_DOCKER_LOG_KB x 5 files): hours into a run, Reports' start has
+        # gone from it (run 17: up seven hours, its oldest line 07:44, the import at 06:08). Not a fault of Reports; the
+        # dashboards the import brings are opened one by one below ("every report opens"), so nothing goes unchecked (D936)
+        rec("the import at start-up says what it did", "skipped" if status == 200 else "warning",
+            "the line Reports' import wrote at its start is no longer in its log (Docker keeps its last 500 KB); the "
+            "dashboards it imported are opened below" if status == 200 else f"HTTP {status}: Reports' log could not be read")
         return
     last = said[-1].split("report dashboards imported:", 1)[1].strip()
     none_failed = failed_count(last) == "0"

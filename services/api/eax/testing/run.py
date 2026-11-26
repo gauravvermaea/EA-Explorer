@@ -457,7 +457,7 @@ def coverage_html(c: dict) -> str:
             f"{files}</table>")
 
 
-GOAL = 90.0          # the share of the API's lines a test should run (R3.9; owner: "It needs to be above 90%")
+GOAL = 85.0          # the share of the API's lines a test should run (R3.9; D934, owner, 26 Nov 2026, 11:00: "Ok the target is 85%")
 DROP = 2.0           # an area that falls by more than this since the last run of the same kind fails the check
 # what the goal is measured on (owner, 25 Nov 2026, 10:56: "our goals need to be for API and UI nothing else"; asked which
 # code counts as the API: "Route layer eax/api/"): the API's own area; the rest of the server is shown, not judged
@@ -690,7 +690,7 @@ def with_unit_tests(live: dict, results: Path) -> dict:
 
 def coverage_result(r: Run, token: str, scope: str = "") -> dict | None:
     """The API's code coverage at the run's end (EAX_COVERAGE=on, D642): kept as coverage.json and coverage.html in the
-    run's folder and as one result line, judged against the goal (EAX_COVERAGE_GOAL, 90%) and the last run of the same
+    run's folder and as one result line, judged against the goal (EAX_COVERAGE_GOAL, 85%) and the last run of the same
     kind (R3.9)."""
     import json as _json
     t0 = time.time()

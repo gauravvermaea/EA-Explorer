@@ -83,7 +83,7 @@ def test_the_result_line_and_the_summary(tmp_path):
     S.save(tmp_path, got)
     back = json.loads((tmp_path / S.FILE).read_text(encoding="utf-8"))
     assert S.summary(back) == {"screens": 5, "covered": 3, "percent": 60.0, "acted_on": 1, "read_only": 3, "controls": 5,
-                               "controls_used": 2, "controls_percent": 40.0, "left_out": 3, "bar": 90.0,
+                               "controls_used": 2, "controls_percent": 40.0, "left_out": 3, "bar": 85.0,
                                "screens_left_out": 0}
     assert S.line({"screens": 0}) [0] == "skipped" and S.summary(None) is None
 
@@ -209,16 +209,16 @@ def test_a_full_test_of_one_suite_runs_no_backup_restore_sonar_or_dr():
 # the screens' bar (owner, 25 Nov 2026, 12:12: "Bar for screens is currently 90%") and the screens left out of the count
 
 
-def test_the_bar_is_90_and_under_it_is_a_warning():
-    assert S.BAR == 90.0
+def test_the_bar_is_85_and_under_it_is_a_warning():     # 90% until D934 (owner, 26 Nov 2026, 11:00)
+    assert S.BAR == 85.0
     got = S.summarise(_collect())                         # 60% of 5 screens
     outcome, detail = S.line(got)
-    assert outcome == "warning" and detail.startswith("under the bar of 90% by 30.0 points: 60.0% of 5 screens")
+    assert outcome == "warning" and detail.startswith("under the bar of 85% by 25.0 points: 60.0% of 5 screens")
     c = S.Collector()
     for n in range(10):
         c.page(f"#/admin/area{n}", [], True)              # ten read-only screens that open: all covered
     outcome, detail = S.line(S.summarise(c))
-    assert outcome == "passed" and detail.startswith("at or over the bar of 90%")
+    assert outcome == "passed" and detail.startswith("at or over the bar of 85%")
 
 
 def test_the_screens_left_out_are_not_counted_and_are_listed():
@@ -231,16 +231,16 @@ def test_the_screens_left_out_are_not_counted_and_are_listed():
     assert all(x["why"] for x in got["screens_left_out"])
     assert "2 screens left out (#/admin/pairings, #/admin/self-test/run)" in S.line(got)[1]
     s = S.summary(got)
-    assert (s["bar"], s["screens_left_out"]) == (90.0, 2)
+    assert (s["bar"], s["screens_left_out"]) == (85.0, 2)
 
 
 def test_the_summary_page_shows_the_bar():
     sys.path.insert(0, str(REPO))
     from eaxcli import fullreport
-    page = "".join(fullreport.cards({"selftest": {"screens": {"screens": 210, "covered": 49, "percent": 23.3, "bar": 90.0,
+    page = "".join(fullreport.cards({"selftest": {"screens": {"screens": 210, "covered": 49, "percent": 23.3, "bar": 85.0,
                                                               "screens_left_out": 5, "controls": 2545, "controls_used": 108,
                                                               "controls_percent": 4.2, "left_out": 78}}}))
-    assert "screens left out" in page and "The bar: 90% of the screens counted." in page
+    assert "screens left out" in page and "The bar: 85% of the screens counted." in page
 
 
 def test_a_projects_frame_counts_on_its_own_page_only():

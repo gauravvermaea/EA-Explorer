@@ -2,7 +2,7 @@
 graph"): for a run, its code coverage (coverage.json, D642) and its negative tests (negative.json, R3.9), and the trend
 over the last runs.
 
-  gauge     the share of the API's lines run, against the goal (90%)
+  gauge     the share of the API's lines run, against the goal (85%)
   areas     each area's share, the worst first
   trend     the share over the last runs of the same kind, with the goal as a line
   negative  the negative tests by kind: passed, warnings, failed (a stacked bar each)
@@ -17,7 +17,7 @@ import json
 import math
 from collections.abc import Callable, Iterable
 
-GOAL = 90.0
+GOAL = 85.0                    # D934, owner, 26 Nov 2026, 11:00: "Ok the target is 85%"
 GOOD, NEAR, LOW = "#1a9e5a", "#c98a00", "#d64545"       # at the goal; within 15 points; further off
 BAR, GRID = "#3d7bd9", "#8a93a0"
 OUTCOME_COLOUR = {"passed": GOOD, "warning": NEAR, "failed": LOW}
@@ -212,7 +212,7 @@ def ring_svg(percent: float, run: int | None = None, lines: int | None = None, s
 
 def to_reach(percent, bar: float, total, done, what: str = "lines") -> str:
     """How far a figure is from its bar, in the owner's words (25 Nov 2026, 16:24: "show the actual measure that you say
-    here"): "short by 6.7 points: about 783 more lines to run", or "at or over the goal of 90%". The same as the app's
+    here"): "short by 6.7 points: about 783 more lines to run", or "at or over the goal of 85%". The same as the app's
     Summary screen (FullSummary.jsx toReach) and the summary page (eaxcli/fullreport.to_reach)."""
     if percent is None or not total:
         return "-"
@@ -265,7 +265,7 @@ def screens_svg(scr: dict | None) -> str:
 def overall(c: dict, scr: dict | None) -> float | None:
     """The overall coverage (owner, 25 Nov 2026, 16:34: "can there a an overall coverage ring too, these two can be under
     it"): the API's figure and the screens', counted equally (lines and screens are not the same unit), to one decimal;
-    one alone when only it was measured. Bar 90%. As eaxcli/fullreport.overall and FullSummary.jsx overall."""
+    one alone when only it was measured. Bar 85% (D934). As eaxcli/fullreport.overall and FullSummary.jsx overall."""
     got = [float(x) for x in (c.get("goal_percent"), (scr or {}).get("percent") if (scr or {}).get("screens") else None)
            if x is not None]
     return round(sum(got) / len(got), 1) if got else None

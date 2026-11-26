@@ -60,6 +60,12 @@ Known before the run: R14.18 (four Jenkins pipelines that can never run, found b
 - Documents showed its administrator's password on its sign-in page (Mayan's first-start notice): the API now deletes
   the notice when it reads Documents' token, and the security suite fails if a password is on the page (D932). The owner
   may rotate that password. After the full run: create some documents from the application and test them (owner, 08:26).
+- Run 17 (D933): API none failed; API 87.3%, screens 86.7%. Nine project tabs failed in one twelve-minute window when
+  the API was not answering (memory: 10.3 GB of 11.6 GB, swap full); reports timed out. A failure now says how fast the
+  API answered. To decide with the owner: Docker's memory, or fewer suites in one run.
+- D934: the coverage target is 85% (API, screens, overall); no more coverage work: fix bugs, then the release is accepted.
+  Fixed: Keycloak test users left behind (sign-in ran out). Reports (D936): the test's browser stalled, not Reports;
+  a page that never opens fails one dashboard, a fresh page every 10; the rolled-out import line is skipped, not warned.
 
 **Earlier (25 Nov 2026, Release 14 closed):**
 - Next is Release 14.5. Start with the coverage bar, to be discussed with the owner (R14.5.1, R14.5.2); then the use cases in

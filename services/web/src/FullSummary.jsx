@@ -8,7 +8,10 @@ import { fmtDateTime, fmtNumber } from "./fmt";
 
 const GOOD = "#1a7f37", NEAR = "#b7791f", LOW = "#c62828", GREY = "#8a8f98";
 
-export function Ring({ percent, goal = 90, size = 140, label = "our code" }) {
+// the bar of the API, the screens and the overall figure (D934; owner, 26 Nov 2026, 11:00: "Ok the target is 85%")
+export const BAR = 85;
+
+export function Ring({ percent, goal = BAR, size = 140, label = "our code" }) {
   const r = size / 2 - 12, w = 16, c = 2 * Math.PI * r;
   const p = Math.max(0, Math.min(100, Number(percent) || 0));
   const colour = percent == null ? GREY : p >= goal ? GOOD : p >= goal - 15 ? NEAR : LOW;
@@ -32,14 +35,14 @@ export function Ring({ percent, goal = 90, size = 140, label = "our code" }) {
 // here"): "short by 6.7 points: about 783 more lines to run", or "at or over the bar".
 export function toReach(percent, bar, total, done, what) {
   if (percent == null || !total) return "-";
-  const p = Number(percent), b = Number(bar) || 90;
+  const p = Number(percent), b = Number(bar) || BAR;
   if (p >= b) return `at or over the ${what === "screens" ? "bar" : "goal"} of ${b}%`;
   const more = Math.max(0, Math.ceil((b * Number(total)) / 100 - Number(done || 0)));
   return `short by ${(b - p).toFixed(1)} points: about ${fmtNumber(more, 0)} more ${what === "screens" ? "screens covered" : "lines to run"}`;
 }
 
 // The overall coverage (owner, 25 Nov 2026, 16:34: "can there a an overall coverage ring too, these two can be under it"):
-// the API's and the screens' figures counted equally, to one decimal; one alone when only it was measured. Bar 90%. As
+// the API's and the screens' figures counted equally, to one decimal; one alone when only it was measured. Bar 85% (D934). As
 // eaxcli/fullreport.overall and coverage_view.overall.
 export function overall(api, screens) {
   const got = [api, screens].filter((x) => x != null).map(Number);
@@ -55,13 +58,13 @@ export function Cards({ s, onOpen }) {
   const steps = Object.fromEntries((s.steps || []).map((x) => [x.kind, x]));
   const run = s.selftest || {}, cov = run.coverage || {}, sec = run.security, att = run.attack;
   const unit = cov.unit ?? s.dev?.coverage?.percent;
-  const goal = Number(cov.goal) || 90;
+  const goal = Number(cov.goal) || BAR;
   const api = cov.api ?? null, scr = run.screens;     // the goal's measure (eax/api) and the screens (D926)
   const whole = api != null && scr ? overall(api, scr.percent) : null;
-  const where = [whole != null && `Overall ${whole}% (the API and the screens counted equally), bar 90%: ${whole >= 90 ? "at or over the bar" : `short by ${(90 - whole).toFixed(1)} points`}`,
+  const where = [whole != null && `Overall ${whole}% (the API and the screens counted equally), bar ${BAR}%: ${whole >= BAR ? "at or over the bar" : `short by ${(BAR - whole).toFixed(1)} points`}`,
     api != null && `The API ${api}% of ${cov.api_lines} lines, goal ${goal}%: ${toReach(api, goal, cov.api_lines, cov.api_run, "lines")}`,
     cov.jobs != null && `background jobs ${cov.jobs}% (shown, not judged)`,
-    scr && `the screens ${scr.percent}% (${scr.covered} of ${scr.screens}), bar ${Number(scr.bar) || 90}%: ${toReach(scr.percent, scr.bar, scr.screens, scr.covered, "screens")}`]
+    scr && `the screens ${scr.percent}% (${scr.covered} of ${scr.screens}), bar ${Number(scr.bar) || BAR}%: ${toReach(scr.percent, scr.bar, scr.screens, scr.covered, "screens")}`]
     .filter(Boolean);
   return (<>
     {where.length > 0 && <p className="full-where"><b>Where it stands:</b> {where.join("; ")}.</p>}
@@ -72,13 +75,13 @@ export function Cards({ s, onOpen }) {
             : <p className="small">{steps.dev.why}</p>}</section>)}
       {whole != null && (
         <section className="full-card full-overall"><h3>Overall coverage</h3>
-          <div className="full-ring"><Ring percent={whole} goal={90} size={190} label="overall" /></div>
+          <div className="full-ring"><Ring percent={whole} goal={BAR} size={190} label="overall" /></div>
           <div className="full-pair">
             <Ring percent={api} goal={goal} size={120} label="the API" />
-            <Ring percent={scr.percent} goal={Number(scr.bar) || 90} size={120} label="the screens" />
+            <Ring percent={scr.percent} goal={Number(scr.bar) || BAR} size={120} label="the screens" />
           </div>
-          <p className="quiet small">Overall: the API ({api}%) and the screens ({scr.percent}%) counted equally. Bar 90%:{" "}
-            {whole >= 90 ? "at or over it" : `short by ${(90 - whole).toFixed(1)} points`}. Each is in full in its own card below.</p>
+          <p className="quiet small">Overall: the API ({api}%) and the screens ({scr.percent}%) counted equally. Bar {BAR}%:{" "}
+            {whole >= BAR ? "at or over it" : `short by ${(BAR - whole).toFixed(1)} points`}. Each is in full in its own card below.</p>
         </section>)}
       <section className="full-card"><h3>Code coverage</h3>
         <div className="full-ring"><Ring percent={api ?? cov.percent} goal={goal} label={api != null ? "the API" : "our code"} /></div>
@@ -95,12 +98,12 @@ export function Cards({ s, onOpen }) {
           : "Our code only: the API, the job runner and the MCP server, joined with the unit tests."}</p></section>
       {scr && (
         <section className="full-card"><h3>Screens covered by journeys</h3>
-          <div className="full-ring"><Ring percent={scr.percent} goal={Number(scr.bar) || 90} label="the screens" /></div>
+          <div className="full-ring"><Ring percent={scr.percent} goal={Number(scr.bar) || BAR} label="the screens" /></div>
           <Rows rows={[["screens covered", `${scr.covered} of ${scr.screens}`],
             ["to reach the bar", toReach(scr.percent, scr.bar, scr.screens, scr.covered, "screens")], ["acted on by a journey", scr.acted_on],
             ["read only and opened", scr.read_only], ["controls used", `${scr.controls_used} of ${scr.controls} (${scr.controls_percent}%)`],
-            ["risky controls left out", scr.left_out], ["screens left out", scr.screens_left_out], ["bar", `${Number(scr.bar) || 90}%`]]} />
-          <p className="quiet small">A screen is covered when a journey acts on it, or it only shows and opens. The bar: 90% of the screens counted.</p>
+            ["risky controls left out", scr.left_out], ["screens left out", scr.screens_left_out], ["bar", `${Number(scr.bar) || BAR}%`]]} />
+          <p className="quiet small">A screen is covered when a journey acts on it, or it only shows and opens. The bar: {BAR}% of the screens counted.</p>
         </section>)}
       {(s.selftest || steps.selftest) && (
         <section className="full-card"><h3>Self-test <State ok={steps.selftest ? steps.selftest.passed : run.state === "passed"} /></h3>
@@ -150,7 +153,7 @@ export function Gaps({ g }) {
   const nc = g.screens_not_covered || [], sl = g.screens_left_out || [];
   return (
     <section className="full-card full-wide"><h3>Not covered yet</h3>
-      <h4>The API: files under the goal of {Number(g.api_goal) || 90}% ({api.length})</h4>
+      <h4>The API: files under the goal of {Number(g.api_goal) || BAR}% ({api.length})</h4>
       <Table head={["file", "covered", "lines not run"]} rows={api.map((f) => [f.file, `${f.percent}%`, missed(f)])} />
       <h4>The API: left out of the goal ({out.length})</h4>
       <Table head={["file", "route", "methods", "why"]}

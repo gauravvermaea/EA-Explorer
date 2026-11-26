@@ -34,14 +34,14 @@ def test_trend_oldest_first_same_kind_only_and_limited():
     files = {(f"r{i}", "coverage.json"): {"percent": 50 + i, "scope": "full api" if i % 2 else "smoke"} for i in range(1, 9)}
     read = reader_of(files)
     pts = cv.trend(runs, read, scope="full api")
-    assert [p["run"] for p in pts] == [1, 3, 5, 7] and pts[-1]["percent"] == 57.0 and pts[0]["goal"] == 90.0
+    assert [p["run"] for p in pts] == [1, 3, 5, 7] and pts[-1]["percent"] == 57.0 and pts[0]["goal"] == 85.0
     assert [p["run"] for p in cv.trend(runs, read, scope="full api", limit=2)] == [5, 7]
     assert len(cv.trend(runs, read)) == 8
     assert cv.trend([{"id": 1, "folder": ""}], read) == []
 
 
 def test_colour_by_distance_from_the_goal():
-    assert cv.colour(90) == cv.GOOD and cv.colour(80) == cv.NEAR and cv.colour(74.9) == cv.LOW
+    assert cv.colour(85) == cv.GOOD and cv.colour(75) == cv.NEAR and cv.colour(69.9) == cv.LOW     # goal 85% (D934)
 
 
 def test_negative_totals():
@@ -221,7 +221,7 @@ def test_the_rings_lead_with_the_api_and_the_screens_have_theirs():
     assert "711 lines left out" in ch["rings"] and "The background jobs" in ch["rings"] and "All the server" in ch["rings"]
     assert "77.3%" in ch["screens"] and "163 of 211 screens" in ch["screens"]
     line = cv.summary_line({"coverage": c, "screens": SCR})
-    assert line.startswith("Overall 80.3% (the API and the screens counted equally; bar 90%: short by 9.7 points); ")
+    assert line.startswith("Overall 80.3% (the API and the screens counted equally; bar 85%: short by 4.7 points); ")
     assert ("; The API 83.3% of its 11,649 lines (goal 90%: short by 6.7 points: about 783 more lines to run), "
             "background jobs 53.7%") in line
     assert "the screens 77.3% covered by journeys (163 of 211; bar 90%: short by 12.7 points" in line

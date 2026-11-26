@@ -236,7 +236,11 @@ def test_the_import_at_start_up_must_say_none_failed():
         assert got[0][1] == outcome
     got = []
     rc.import_log("https://api", "t", lambda *a, **k: got.append(a), send=lambda *a: (200, json.dumps({"lines": []})))
-    assert got[0][1] == "warning"
+    # run 17 (D936): the line had rolled out of the 500 KB Docker keeps; the dashboards are opened by another check
+    assert got[0][1] == "skipped" and "Docker keeps its last 500 KB" in got[0][2]
+    got = []
+    rc.import_log("https://api", "t", lambda *a, **k: got.append(a), send=lambda *a: (502, "down"))
+    assert got[0][1] == "warning" and "HTTP 502" in got[0][2]
 
 
 def test_from_the_screens_a_reports_link_opens_it_signed_in(monkeypatch):
