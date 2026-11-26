@@ -32,8 +32,8 @@ case "${EAX_SERVE:-all}" in
     python -m eax.service_split ready
     PORT=$(python -c "from eax.service_split import SERVICES, serving; print(SERVICES[serving()]['port'])")
     echo "EA Explorer: starting the ${EAX_SERVE} service on port ${PORT}"
-    exec gunicorn --bind 0.0.0.0:"${PORT}" --workers "${EAX_SERVICE_WORKERS:-2}" --timeout "${EAX_API_TIMEOUT:-120}" \
-         --access-logfile - "eax.wsgi:app"
+    exec gunicorn --bind 0.0.0.0:"${PORT}" --workers "${EAX_SERVICE_WORKERS:-2}" --worker-class gthread \
+         --threads "${EAX_SERVICE_THREADS:-4}" --timeout "${EAX_API_TIMEOUT:-120}" --access-logfile - "eax.wsgi:app"
     ;;
 esac
 
@@ -45,7 +45,11 @@ python -m eax.startup serial -- sh -c "alembic upgrade head && python -m eax.dat
 echo "EA Explorer: starting the API and the job runner"
 # a request may take up to two minutes (gunicorn's own 30 seconds stopped a project's download and a busy page with a
 # bare server error, R2.0.1, the laptop's full run); EAX_API_TIMEOUT changes it
-gunicorn --bind 0.0.0.0:8000 --workers "${EAX_API_WORKERS:-2}" --timeout "${EAX_API_TIMEOUT:-120}" --access-logfile - "eax.wsgi:app" &
+# each worker answers several requests at once (D943; runs 17 to 19: with two workers of one request each, a page's ten
+# calls, the library service asking the API who someone is, and one slow call (Documents, a download) left the project
+# page on "Loading..." for 35 s and the library saying the API does not answer); EAX_API_THREADS changes it
+gunicorn --bind 0.0.0.0:8000 --workers "${EAX_API_WORKERS:-2}" --worker-class gthread --threads "${EAX_API_THREADS:-8}" \
+         --timeout "${EAX_API_TIMEOUT:-120}" --access-logfile - "eax.wsgi:app" &
 API_PID=$!
 # four jobs at once (was two): long ones (a project repository, the industry packs) no longer hold up a delivery preview
 # or a merge (R2.0.1, the laptop's full run)

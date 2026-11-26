@@ -46,6 +46,7 @@ from . import (
     security_gate,
     store,
     ui_journeys,
+    watchdog,
 )
 
 RESULTS = Path(os.environ.get("EAX_TEST_RESULTS", "/results"))
@@ -81,9 +82,13 @@ def _version_checks(conn, record) -> None:
                "installation; rebuild the installation (.\\eax clean-restart) and test again", 0)
 
 
-class Stopped(Exception):
-    """Someone stopped the run."""
+class Stopped(BaseException):
+    """Someone stopped the run. Not an Exception (D945): a suite's own `except Exception` (each dashboard, each journey)
+    would take it for a failed check and carry on; finally blocks still run, so the test data still goes."""
     pass
+
+
+STOP_EVERY = 10                      # seconds between looks for a stop asked, at a check (D945)
 
 
 class Run:
@@ -99,6 +104,7 @@ class Run:
         self.ids: dict[str, str] = {}                     # this run's fixture ids (for the canon names)
         self.left_out = 0
         self.ready: dict[str, str] = {}               # each container under test: up, starting, failed, off
+        self.dog: watchdog.Watchdog | None = None     # the stall watchdog (D942), started by cmd_run
 
     def where(self) -> str:
         """How far the run is, for the command line (R2.40): "[120 of about 900, 780 left]"."""
@@ -115,6 +121,8 @@ class Run:
         except Exception:  # noqa: BLE001 - only a hint
             pass
         line = f"{datetime.now(UTC).strftime('%H:%M:%S')} {msg}"
+        if getattr(self, "dog", None) is not None:
+            self.dog.touch(msg.split("  [")[0])      # a log line is progress (D942)
         print(line, flush=True)
         with open(self.dir / "run.log", "a", encoding="utf-8") as f:
             f.write(line + "\n")
@@ -124,10 +132,29 @@ class Run:
         if asked:
             raise Stopped(asked)
 
+    def stop_asked(self, now: float | None = None) -> None:
+        """Raises Stopped when someone asked the run to stop (eax test stop, the Self-test page's Stop); looks at most
+        every STOP_EVERY seconds. Run 19 (26 Nov 2026): Stop waited for the reports suite's next log line, an hour away."""
+        now = time.time() if now is None else now
+        if now - getattr(self, "_stop_looked", 0.0) < STOP_EVERY:
+            return
+        self._stop_looked = now
+        try:
+            with self.engine.connect() as conn:
+                asked = conn.execute(text("SELECT stop_asked FROM tests.test_runs WHERE id = :id"), {"id": self.id}).scalar()
+        except Exception:  # noqa: BLE001 - only a look; the next check looks again
+            return
+        if asked:
+            raise Stopped(asked)
+
     def recorder(self, suite: str):
         """A function that records results in a suite (a repeat records only what it repeats)."""
+        self.suite_now = suite                         # where a stall is recorded (D942)
         def record(name: str, outcome: str, detail: str = "", ms: int = 0, screenshot: bytes | None = None, video: str = "",
                    request: str = "", response: str = "", browser: str = "") -> None:
+            if getattr(self, "dog", None) is not None:
+                self.dog.touch()                    # a check done is progress, recorded or not (D942)
+            self.stop_asked()                       # Stop is seen at the next check, not only at the next log line (D945)
             if self.only is not None and (suite, repeat.canon(name, self.ids)) not in self.only:
                 self.left_out += 1                # run because a repeated check needs it, not itself repeated
                 return
@@ -135,6 +162,8 @@ class Run:
                 store.add_result(conn, self.id, suite, name, outcome, detail, ms, screenshot, video, request, response, browser)
             print(f"  {outcome.upper():<8}{suite:<9}{name}" + (f": {detail[:160]}" if outcome in ("failed", "warning") else ""),
                   flush=True)
+        # whether a check is wanted at all: a repeat skips the slow work behind checks it does not repeat (D944)
+        record.wants = lambda name: self.only is None or (suite, repeat.canon(name, self.ids)) in self.only
         return record
 
 
@@ -387,7 +416,8 @@ def _backup_suite(r: Run, tokens: dict[str, str], ids: dict[str, str], run_id: i
         with r.engine.begin() as conn:
             store.add_fixture(conn, run_id, kind, ident, name)
     r.log("backups: an infrastructure and an application backup, a trial restore of each (nothing live is touched)")
-    backups_check.run(API, tokens.get("super-admin", ""), ids, r.recorder("backup"), r.log, r.repo, run_id, add_fixture)
+    with r.dog.allow(BACKUP_ALLOW) if getattr(r, "dog", None) is not None else _nothing():
+        backups_check.run(API, tokens.get("super-admin", ""), ids, r.recorder("backup"), r.log, r.repo, run_id, add_fixture)
 
 
 def negative_tests(r: Run, spec: dict, tokens: dict[str, str], ids: dict[str, str], area: str | None = None,
@@ -428,6 +458,33 @@ def saved_cases(r: Run, tokens: dict[str, str], ids: dict[str, str]) -> int:
     for res in ah.run_cases(rows, tokens, ids, test_ids, base=API):
         rec(f"case: {res['name']}", "passed" if res["passed"] else "failed", res["detail"], 0)
     return len(rows)
+
+
+BACKUP_ALLOW = 3600                                  # the backups and their trial restores may take an hour (D942)
+
+
+def _nothing():
+    import contextlib
+    return contextlib.nullcontext()
+
+
+def stall_recorder(r: Run):
+    """What the watchdog does on a stall (D942): a failed check "stalled at <step>" in the suite at hand, and a log line."""
+    def on_stall(step: str, idle: int) -> None:
+        name = f"stalled at {step}"[:250]
+        detail = (f"nothing moved for {idle // 60} minutes: the browsers this run started were closed so the blocked call "
+                  "fails and the run goes on (D942)")
+        with r.engine.begin() as conn:
+            store.add_result(conn, r.id, getattr(r, "suite_now", "") or "smoke", name, "failed", detail, idle * 1000,
+                             None, "", "", "", "")
+        line = f"{datetime.now(UTC).strftime('%H:%M:%S')} STALLED at {step}: {detail}"
+        print(line, flush=True)
+        try:
+            with open(r.dir / "run.log", "a", encoding="utf-8") as f:
+                f.write(line + "\n")
+        except OSError:
+            pass
+    return on_stall
 
 
 def _restore_suite(r: Run, tokens: dict[str, str], ids: dict[str, str], run_id: int, trigger: str) -> None:
@@ -1024,6 +1081,9 @@ def cmd_run(args) -> int:
     print(f"RUN_ID={run_id}", flush=True)
     r = Run(engine, run_id, folder, repo)
     alive.keep_beating(r.dir)                        # "being run" for as long as this process lives (R2.64)
+    r.suite_now = "smoke" if level == "smoke" else (list(suites) or ["api"])[0]
+    r.dog = watchdog.Watchdog(stall_recorder(r))    # and moving: a stall is recorded, then the run ends (D942)
+    dog_stop = r.dog.start()
     by = run["started_by"]
     # slow motion and pause after each step, for a run started to be watched; never one from CI or a schedule (R5.20)
     r.live_slow = bool(getattr(args, "live_slow", False)) and args.trigger != "ci" and not str(by).startswith("schedule")
@@ -1144,11 +1204,20 @@ def cmd_run(args) -> int:
                         scope=f"{level} {','.join(suites)} {area or ''} {role or ''}".strip())
     except Stopped as exc:
         stopped = str(exc)
+    except KeyboardInterrupt:                        # the watchdog ended a run that stayed stuck (D942)
+        if not r.dog.ended:
+            raise
+        error = r.dog.ended
+        print(f"ERROR: {error}", flush=True)
+        with open(r.dir / "run.log", "a", encoding="utf-8") as f:
+            f.write(f"ERROR: {error}\n")
     except Exception as exc:  # noqa: BLE001 - the run itself broke: kept as an error with the reason
         error = f"{exc}"
         print(f"ERROR: {exc}", flush=True)
         with open(r.dir / "run.log", "a", encoding="utf-8") as f:
             f.write(traceback.format_exc())
+    finally:
+        dog_stop.set()                               # closing the run is not watched: it ends on its own
     if keep_open and not (error or stopped):
         # the run's test users keep their access until `collect` (R5.17, R5.18): the signed-in ZAP scan and k6 use them
         with engine.begin() as conn:

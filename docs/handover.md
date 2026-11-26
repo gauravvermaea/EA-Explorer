@@ -66,6 +66,20 @@ Known before the run: R14.18 (four Jenkins pipelines that can never run, found b
 - D934: the coverage target is 85% (API, screens, overall); no more coverage work: fix bugs, then the release is accepted.
   Fixed: Keycloak test users left behind (sign-in ran out). Reports (D936): the test's browser stalled, not Reports;
   a page that never opens fails one dashboard, a fresh page every 10; the rolled-out import line is skipped, not warned.
+- Run 18 (D939): fixed the DR-01 dependencies function (x.layer, migration 0124) and the logs files 500 (a file
+  compressed while listed); testing code: choices waited for, script errors say their page. Open: the project page slow
+  to open under the full run (12 to 25 s); "s.map is not a function" on a project tab (the next run says which).
+- D940: run 18 hung on a call from the reports' browser page (now given up after 60 s); "layer" checked: only the
+  internal names (core.layers, layer_id) are left, by D391; DR-01's function says domain (0124).
+- D942: a stall watchdog in the runner: 15 minutes with no check or log line records "stalled at <step>" and closes the
+  test browsers so the run goes on; 15 more and the run ends as an error, closed cleanly. Reaches the runner after `eax up`.
+- D943: run 19 (run 18's failures again): 3 project journeys failed, the project page 35 s on "Loading..." and its
+  Library tab after it. The API had two workers of one request each; now 8 threads a worker (EAX_API_THREADS). Needs
+  `eax up`, then the failed checks again. Still open: "s.map is not a function" (the charter journey, not in run 19).
+- D944: a repeat opens only the report dashboards it repeats (run 19 opened all of them as two people, about 90 minutes,
+  to record six); a full run is unchanged.
+- D945: Stop is seen at the next check (every 10 s at most), not only at the next log line; Stopped is no longer
+  an Exception a suite swallows.
 
 **Earlier (25 Nov 2026, Release 14 closed):**
 - Next is Release 14.5. Start with the coverage bar, to be discussed with the owner (R14.5.1, R14.5.2); then the use cases in

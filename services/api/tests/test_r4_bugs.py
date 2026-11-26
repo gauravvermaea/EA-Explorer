@@ -394,7 +394,7 @@ def test_reports_api_calls_go_through_the_page_not_playwrights_own_client():
     assert s.dashboards() == [{"id": 1, "slug": "eax-sr01"}]
     s.call("DELETE", "/api/v1/security/users/7", {"X-CSRFToken": "t"})
     js, args = s.page.calls[-1]
-    assert "fetch(path" in js and 'credentials: "same-origin"' in js and args == ["DELETE", "/api/v1/security/users/7", {"X-CSRFToken": "t"}]
+    assert "fetch(path" in js and 'credentials: "same-origin"' in js and args == ["DELETE", "/api/v1/security/users/7", {"X-CSRFToken": "t"}, rc.CALL_MS]
     s.page.evaluate = lambda js, args: [502, "Bad gateway"]
     assert s.api("/x") == (502, {})
 

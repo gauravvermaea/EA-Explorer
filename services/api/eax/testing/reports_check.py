@@ -75,6 +75,9 @@ QUIET_MS = 2500                          # no chart query for this long: the das
 # test runner's browser to 6.7 GB on a laptop already paging, and the next one never loaded (run 17, D936)
 PAGE_EVERY = 10
 PREFIX = "svc-self-test-"
+# the checks that read every chart the Report Viewer sees (a repeat of any of them opens every dashboard as them)
+VIEWER_WIDE = ("only their own models: the Report Viewer", "the run's own model is in the reports", "committed content shows",
+               "uncommitted content never shows")
 
 
 # ---------------------------------------------------------------- Keycloak test users
@@ -230,9 +233,16 @@ def reports_url() -> str:
 
 # ---------------------------------------------------------------- the browser
 # a call made by the page itself, on its own origin (Reports), with its cookies: [status, text]
-FETCH_JS = """async ([method, path, headers]) => {
-  const r = await fetch(path, {method, headers, credentials: "same-origin"});
-  return [r.status, await r.text()];
+# a call to Reports from inside the page, given up after CALL_MS: Playwright's evaluate waits for ever, and self-test 18
+# hung for hours on its last calls (deleting the Superset test users) when the browser and Reports were starved (D940)
+CALL_MS = 60000
+FETCH_JS = """async ([method, path, headers, wait]) => {
+  const ctl = new AbortController(); const stop = setTimeout(() => ctl.abort(), wait);
+  try {
+    const r = await fetch(path, {method, headers, credentials: "same-origin", signal: ctl.signal});
+    return [r.status, await r.text()];
+  } catch (e) { return [0, `no answer in ${Math.round(wait / 1000)} s (${e.name})`]; }
+  finally { clearTimeout(stop); }
 }"""
 
 
@@ -305,7 +315,7 @@ class Session:
         """A call to Superset's API from inside the signed-in page (its own fetch, its cookies). Never page.request:
         that does not take the browser's --host-resolver-rules, so reports.<host> went to 127.0.0.1:443 inside the
         runner (the full self-test, 14 Nov 2026: "every report opens" failed with ECONNREFUSED 127.0.0.1:443)."""
-        status, text = self.page.evaluate(FETCH_JS, [method, path, headers or {}])
+        status, text = self.page.evaluate(FETCH_JS, [method, path, headers or {}, CALL_MS])
         return int(status), str(text or "")
 
     def api(self, path: str) -> tuple[int, dict]:
@@ -395,6 +405,12 @@ def run(base: str, tokens: dict[str, str], ids: dict[str, str], record: Record, 
         counts[outcome] = counts.get(outcome, 0) + 1
         record(f"reports: {name}", outcome, detail, ms, **kw)
 
+    def wanted(name: str) -> bool:
+        """A repeat (R2.36) opens only the dashboards whose checks it repeats: run 19 opened every one of them as two
+        people (90 minutes in run 18) to record six (D944)."""
+        wants = getattr(record, "wants", None)
+        return wants is None or bool(wants(f"reports: {name}"))
+
     def _checks() -> None:
         # the checks, each early stop a plain return; run() has one way out (SonarQube S3516)
         nonlocal playwright
@@ -464,10 +480,14 @@ def run(base: str, tokens: dict[str, str], ids: dict[str, str], record: Record, 
                         else "no report dashboard (IT Admins see no content, D98)")
                 ours = [d for d in dashboards if d.get("slug") in want] or dashboards
                 viewer_rows: list[dict] = []
+                # the Report Viewer's checks across every chart need every dashboard opened as them
+                every_one = any(wanted(n) for n in VIEWER_WIDE)
                 for who, s in (("super-admin", admin), ("report-viewer", viewer)):
                     if s is None:
                         continue
                     for d in ours:
+                        if not (who == "report-viewer" and every_one) and not wanted(f"{d.get('dashboard_title') or d.get('slug')} as {who}"):
+                            continue
                         ms, answers = s.open(d)
                         errors, rows = [], []
                         for status, body in answers:
