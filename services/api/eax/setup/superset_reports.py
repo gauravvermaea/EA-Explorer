@@ -472,11 +472,12 @@ RANGES = {
 
 
 def _native(slug: str, name: str, kind: str, view: str | None, column: str | None, n_charts: int,
-            description: str = "", multi: bool = True) -> dict:
+            description: str = "", multi: bool = True, required: bool = False) -> dict:
+    """A native filter. required: a value is needed and the first one is chosen when the dashboard opens (D954)."""
     target = {"datasetUuid": uid("dataset", view), "column": {"name": column}} if view else {}
-    control = {"enableEmptyFilter": False}
+    control = {"enableEmptyFilter": required}
     if kind == "filter_select":
-        control.update({"defaultToFirstItem": False, "multiSelect": multi, "searchAllOptions": True, "inverseSelection": False})
+        control.update({"defaultToFirstItem": required, "multiSelect": multi, "searchAllOptions": True, "inverseSelection": False})
     return {
         "id": "NATIVE_FILTER-" + uid("filter", slug, name)[:8], "name": name, "filterType": kind, "type": "NATIVE_FILTER",
         "description": description, "targets": [target], "controlValues": control,
@@ -980,8 +981,12 @@ def dashboard_filters(report: dict, charts: list[dict]) -> list[dict]:
                 _native(slug, "Type", "filter_select", "dr_dependencies", "entity_type", n)]
         return out
     if report["code"] == "DR-02":
-        out += [_native(slug, "Row type", "filter_select", "entity_pairs", "a_type", n, "The type down the side", multi=False),
-                _native(slug, "Column type", "filter_select", "entity_pairs", "b_type", n, "The type across the top", multi=False),
+        # one row type and one column type from the start (D954): with none chosen the matrix was every entity of every
+        # model against every other, and the browser froze drawing it (full tests of 26 and 27 Nov 2026, as the Super Admin)
+        out += [_native(slug, "Row type", "filter_select", "entity_pairs", "a_type", n, "The type down the side", multi=False,
+                        required=True),
+                _native(slug, "Column type", "filter_select", "entity_pairs", "b_type", n, "The type across the top", multi=False,
+                        required=True),
                 _native(slug, "Relationship type", "filter_select", "entity_pairs", "relationship_type", n)]
         return out
     for label, column in THRESHOLD_FILTERS.get(first, []):

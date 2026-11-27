@@ -3,6 +3,10 @@
 Open items that are not part of a build phase yet, or are waiting on a test or a decision.
 Tick an item (`[x]`) when it is done; remove it at the next tidy-up.
 
+## Release 14.7: Monte Carlo simulation, to discuss (owner, 27 Nov 2026)
+
+- [ ] **Discuss the proposal before anything is built** (owner, 08:11: "Please make a new release for this but before we start documentation. We will discuss then"): docs/release-14.7-monte-carlo.md, its seven questions; then the decisions and the rows R14.7.1 to R14.7.6 in docs/build-phases.md.
+
 ## After the last release: to be thought through (owner, 24 Nov 2026)
 
 - [ ] **Unit tests on a real database, not mocks** (owner, 24 Nov 2026, 14:25: "I am not a huge fan of mocks, can we have Unit test pointing to real DB?"; 14:27: "After last release this needs to be thought through"; D910). Today tests/conftest.py points the API at a port nothing listens on, about 40 test files use hand-made fake connections, and the few real-database tests (EAX_MIGRATED_TEST_DSN) are always skipped in the dev check. The idea to think through: the dev check makes a throwaway database on the real PostgreSQL, set up with production rights, runs every migration and the seed as eax_migrator, runs the database-touching tests on it and drops it; mocks only for outside systems (GitHub, mail, Keycloak, SSH, Docker). What it would have caught: D896 (a temporary table the production login may not make) and D909 (every list of models a 500). Costs: the dev check then needs the database running; a minute or two more; the fake-connection tests converted file by file.

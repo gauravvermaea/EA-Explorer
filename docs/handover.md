@@ -96,6 +96,10 @@ Known before the run: R14.18 (four Jenkins pipelines that can never run, found b
   DR drill FAILED: in the DR copy the swap of superset met a session of Reports, still starting; restore.sh now
   shuts a database to new sessions before its swap (D952). Next: commit, `eax up`, `eax drill`.
 - D953: eax console has Test this installation (smoke, full, full --risky, failed again); its prompt names them.
+- Full test 2 (27 Nov, started 08:05): dev check passed; self-test so far one failure, DR-01 as super-admin, the
+  browser frozen by DR-02's matrix of everything (D954: DR-02 opens with one row type and one column type).
+- Release 14.7 proposed (Monte Carlo simulation): docs/release-14.7-monte-carlo.md, to discuss with the owner before
+  anything is built; rows R14.7.1 to R14.7.6 in build-phases.md marked "to discuss".
   Coverage: API 87.3%, screens 93.4%, jobs 85.9%.
 
 **Earlier (25 Nov 2026, Release 14 closed):**
