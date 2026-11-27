@@ -6,7 +6,7 @@ Read [AGENTS.md](../AGENTS.md) first, run `eax dev check`, then read this.
 
 Last updated: 27 Nov 2026, afternoon. **Release 14.5 is accepted and closed, 14.5.0** (D955): the full tests' bugs
 fixed (D931 to D954), coverage over 85% (API 87.3%, screens 93.4%, jobs 85.9%), the DR drill passed (10 minutes to
-recover); the full test runs again at night (the owner). Next: Release 14.6 (layer to domain, the patch kept outside
+recover); the full test runs again at night (the owner). The GitHub home page (README.md) and capabilities.md now say 14.5.0, and `tools/release.py check` and a dev check test fail when a release leaves them behind (D956). Next: Release 14.6 (layer to domain, the patch kept outside
 the repository), Release 14.7 (Monte Carlo, to discuss). Before that: **Release 14 is accepted and closed, 14.0.0** (D922): stabilisation; after a clean restart the dev check (2,646 passed), backup and restore, SonarQube (nothing to fix), the security gate (none failing) and the DR drill (9 minutes to recover) pass, and the self-test passes but for one known check, every report opens (R14.5.19). Releases 9 to 13 accepted earlier (13.0.0, D900; 12.0.0 closed as unstable, D897). The order now: **14.5** (coverage, journeys for every screen, then the reports made fast), **22** (upgrading a running installation, D913 to D919), **21** (deploy), **15** to **20** (documents, pictures and website, the books, the videos with the Videos page R20.1, D920).
 command-line option documented (accepted), **14** stabilisation (the bugs, R14.n, were R12.n), **15** the documents, **16** every picture and the website (D873), the books **17**
 (project types), **18** (the Architect's Bible, D861, D862) and **19** (scenario planning), **20** the videos. Until Release 16 no

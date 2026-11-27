@@ -38,12 +38,16 @@ reached, they say so and offer nothing.
 1. On `main`, with every test green, set the version in `services/api/version.toml` (e.g. `0.19.0`).
 2. Write the notes: `python tools/release.py notes 0.19.0` makes `releases/0.19.0.md` from the commits since the last
    release. Edit it: two or three lines on what people will notice, then anything to check before updating.
+   Then the GitHub home page (D956): `README.md`'s status line says the new version and links its notes, its releases
+   table's row for the release links `releases/0.19.0.md` and no longer says planned, and the title of
+   `docs/capabilities.md` says the version. `python tools/release.py check v0.19.0` and the dev check's
+   test_d956_front_page_names_the_release.py fail until they do.
 3. Print the git commands: `python tools/release.py commands 0.19.0`. For the first release they are:
 
    ```
    git checkout main
    git pull
-   git add releases/0.19.0.md services/api/version.toml
+   git add releases/0.19.0.md services/api/version.toml README.md docs/capabilities.md
    git commit -m "Release 0.19.0"
    git push origin main
 

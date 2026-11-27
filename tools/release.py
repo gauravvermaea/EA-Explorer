@@ -80,10 +80,11 @@ def commands(v: str) -> None:
     note = f"releases/{base}-rc.{rc}.md" if rc else f"releases/{base}.md"
     if toml_version() != base:
         print(f"Note: services/api/version.toml says {toml_version()}, not {base}: change it first (in the same commit).")
-    print(f"""# On main, with the notes written ({note}) and every test green:
+    print(f"""# On main, with the notes written ({note}), README.md's status line and releases row saying {base}
+# (and docs/capabilities.md's title), and every test green; python tools/release.py check {tag} says consistent:
 git checkout main
 git pull
-git add {note} services/api/version.toml
+git add {note} services/api/version.toml README.md docs/capabilities.md
 git commit -m "Release {tag[1:]}"
 git push origin main
 
@@ -96,6 +97,21 @@ git checkout main
 # CI checks the tag and makes the GitHub release with the notes; installations see {tag} on the {'RC' if rc else 'Prod'} channel.""")
 
 
+def front_page(base: str) -> list[str]:
+    """What the GitHub home page (README.md) and docs/capabilities.md must say for a release (D956): the status line
+    names the version and links its notes, and the releases table's row links them too."""
+    out = []
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    if f"**Status: version {base}," not in readme:
+        out.append(f"README.md's status line does not say version {base}")
+    if f"[{base}](releases/{base}.md)" not in readme:
+        out.append(f"README.md's releases table has no row linking releases/{base}.md")
+    caps = (ROOT / "docs" / "capabilities.md").read_text(encoding="utf-8").splitlines()[0]
+    if f"(version {base})" not in caps:
+        out.append(f"docs/capabilities.md's title does not say version {base}")
+    return out
+
+
 def check(ref: str) -> int:
     """Checks a release is consistent (version, notes, migration, tag)."""
     base, rc = split(ref)
@@ -105,6 +121,8 @@ def check(ref: str) -> int:
     files = [ROOT / "releases" / f"{base}-rc.{rc}.md", ROOT / "releases" / f"{base}.md"] if rc else [ROOT / "releases" / f"{base}.md"]
     if not any(f.exists() for f in files):
         problems.append(f"no release notes: {', '.join(str(f.relative_to(ROOT)) for f in files)}")
+    if not rc:
+        problems += front_page(base)
     for p in problems:
         print(f"release check: {p}")
     if not problems:
