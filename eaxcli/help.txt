@@ -821,7 +821,8 @@ $ {eax} deploy --console --kind server --set where=ssh --set ssh_target=ubuntu@2
 > A numbered menu for getting EA Explorer back up, for anyone (D330).
 Status, start, restart, stop, problems and logs, back up, restore (guided), reset a password (a person,
 Keycloak's administrator, break-glass, the database logins), users and roles, settings and switches, background
-tasks, health and data quality, the maintenance page, a diagnostics file, and a prompt for every eax command. On
+tasks, health and data quality, the maintenance page, a diagnostics file, the self-test (smoke, full, full with the
+risky suite, what failed again), and a prompt for every eax command. On
 this machine nobody signs in; anything that changes or replaces data asks you to type YES. With --server it works
 on another installation through its API (sign in with Keycloak, your roles).
 $ {eax} console

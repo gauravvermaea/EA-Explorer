@@ -127,6 +127,8 @@ rollback() {
     at "$DB" kick "$DB"; at "$DB" q "DROP DATABASE IF EXISTS \"$DB\""
     at "$DB" exists "${DB}__before" && at "$DB" q "ALTER DATABASE \"${DB}__before\" RENAME TO \"$DB\""
   done
+  # every live database takes sessions again, the one whose rename failed too (D952)
+  for DB in $LIST; do at "$DB" exists "$DB" && at "$DB" q "ALTER DATABASE \"$DB\" WITH ALLOW_CONNECTIONS true" >/dev/null 2>&1; done
   for SET in $FILES_SWAPPED; do
     DEST=$(dest_of "$SET")
     say "putting the $SET files back as they were"
@@ -180,6 +182,9 @@ for DB in $LIST; do
   say "database $DB: swapping in"
   at "$DB" q "DROP DATABASE IF EXISTS \"${DB}__before\""
   if at "$DB" exists "$DB"; then
+    # no new session while it is renamed (D952): a service still starting (the DR drill restores while Reports is still
+    # coming up) connected again between the kick and the rename: "database superset is being accessed by other users"
+    at "$DB" q "ALTER DATABASE \"$DB\" WITH ALLOW_CONNECTIONS false"
     at "$DB" kick "$DB"
     at "$DB" q "ALTER DATABASE \"$DB\" RENAME TO \"${DB}__before\""
     SWAPPED="$SWAPPED $DB"

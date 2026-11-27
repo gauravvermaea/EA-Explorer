@@ -40,9 +40,36 @@ def ops_console(tmp_path, monkeypatch):
     return importlib.import_module("console"), tmp_path
 
 
-def test_menu_has_the_fourteen_items(ops_console):
+def test_menu_has_the_fifteen_items(ops_console):
     con, _ = ops_console
-    assert len(con.MENU) == 14 and con.MENU[7].startswith("Reset a password")
+    assert len(con.MENU) == 15 and con.MENU[7].startswith("Reset a password")
+    assert con.MENU[14].startswith("Test this installation")       # D953
+
+
+@pytest.mark.parametrize(("answers", "code"), [(["15", "1"], 26), (["15", "2"], 27), (["15", "3", "YES"], 28),
+                                               (["15", "4"], 29)])
+def test_the_tests_are_handed_to_the_machine(ops_console, monkeypatch, answers, code):
+    """D953 (owner, 27 Nov 2026: "When running full test from console there is no command for risky option")."""
+    con, _ = ops_console
+    it = iter(answers)
+    monkeypatch.setattr("builtins.input", lambda _p: next(it))
+    assert con.menu("14.0.0", "laptop") == code
+
+
+def test_the_risky_suite_needs_yes(ops_console, monkeypatch):
+    con, _ = ops_console
+    it = iter(["15", "3", "no", ""])
+    monkeypatch.setattr("builtins.input", lambda _p: next(it))
+    assert con.menu("14.0.0", "laptop") == -1
+
+
+def test_every_form_runs_the_test_chosen_and_names_them_in_its_prompt():
+    root = Path(__file__).resolve().parents[3]
+    ps1, sh = (root / "eax.ps1").read_text(encoding="utf-8"), (root / "eax.sh").read_text(encoding="utf-8")
+    assert "@(0, 20, 21, 23, 25, 26, 27, 28, 29)" in ps1 and "0|20|21|23|25|26|27|28|29)" in sh
+    assert "28 { & $PSCommandPath test full --risky }" in ps1 and '28) "$BASH" "$self" test full --risky || true ;;' in sh
+    for text in (ps1, sh):
+        assert "for example: test, test full, test full --risky, test failed, logs api" in text
 
 
 def test_passwords_are_long_and_plain(ops_console):

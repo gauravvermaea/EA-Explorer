@@ -95,6 +95,7 @@ class Watchdog:
         self._lock = threading.Lock()
 
     def touch(self, step: str | None = None) -> None:
+        """Marks progress now (a check done, a log line), with the step the run is on when one is given."""
         with self._lock:
             self.last = self.clock()
             self.stalls = 0
@@ -137,6 +138,7 @@ class Watchdog:
         return "ended"
 
     def start(self, stop: threading.Event | None = None, every: int = EVERY) -> threading.Event:
+        """Looks every few seconds in a thread of its own until the event returned is set (the run closing)."""
         stop = stop or threading.Event()
 
         def loop() -> None:

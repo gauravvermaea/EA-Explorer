@@ -480,7 +480,8 @@ up_services() {
   if [ "${EAX_BUILD_PULL:-}" = 1 ]; then   # a clean rebuild: fresh base images, with their fixes (R3.12, D673)
     echo "Fetching the current base images and building on them (a clean rebuild)..."
     compose pull --ignore-buildable --quiet || true
-    compose build --pull || return 1
+    # --no-cache too (D951): an unchanged base image kept the Debian fixes' layer built before, without newer fixes
+    compose build --pull --no-cache || return 1
   fi
   tiers
   [ -n "${OFF// }" ] && echo "Switched off (D191):$OFF: created, not started."
@@ -749,7 +750,7 @@ console() {
       echo "Starting the console (the operations helper; the first time it is built, a minute)..."
       if compose up -d --build --no-deps ops >/dev/null 2>&1; then
         set +e; compose exec ops python3 /app/console.py --version "$ver"; code=$?; set -e
-        case "$code" in 0|20|21|23|25) ;; *)   # it failed: the basic menu, not the same failure again
+        case "$code" in 0|20|21|23|25|26|27|28|29) ;; *)   # it failed: the basic menu, not the same failure again
           echo "The console stopped with an error (exit $code); the basic menu follows. Its log: work/logs/console-*.log"; code=99 ;; esac
       fi
     fi
@@ -769,7 +770,11 @@ console() {
       20) stopped=""; "$BASH" "$self" up || true ;;
       21) "$BASH" "$self" down || true; stopped=1 ;;
       23) "$BASH" "$self" diag || true ;;
-      25) echo "Type an eax command (for example: logs api, services, backups). Empty or back: the menu."
+      26) "$BASH" "$self" test || true ;;                 # the tests chosen in the console (D953)
+      27) "$BASH" "$self" test full || true ;;
+      28) "$BASH" "$self" test full --risky || true ;;
+      29) "$BASH" "$self" test failed || true ;;
+      25) echo "Type an eax command (for example: test, test full, test full --risky, test failed, logs api, services, backups). Empty or back: the menu."
           while read -r -p "eax> " line; do
             case "$line" in ""|back|b|menu) break ;; console*) echo "You are in the console already."; continue ;; esac
             # shellcheck disable=SC2086

@@ -195,4 +195,4 @@ def test_a_report_deleted_from_reports_is_imported_again():
     skipped now only when it is unchanged and still there (its dashboard's slug is the file's name)."""
     src = _read("deploy", "superset", "eax_import_reports.py")
     assert "have = {d.slug for d in db.session.query(Dashboard.slug).all()}" in src
-    assert "if stamps.get(z.name) == digest and z.stem in have:" in src
+    assert "if stamps.get(z.name) == stamp(digest) and z.stem in have:" in src   # the stamp carries the import rules (D946)

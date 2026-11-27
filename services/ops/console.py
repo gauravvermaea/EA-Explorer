@@ -8,6 +8,9 @@ nobody signs in (the same as every eax command). What it does is written to work
 The eax command runs it in a loop; a few items need the machine itself and are handed back by exit code:
   20 start everything (eax up)   21 stop everything (eax down)   23 save a diagnostics file (eax diag)
   25 the command prompt (any eax command)   0 quit
+  26 the smoke test (eax test)   27 the full test (eax test full)   28 the full test with the risky suite
+  (eax test full --risky)   29 what failed in the last run again (eax test failed) (D953: the owner, 27 Nov 2026:
+  "When running full test from console there is no command for risky option")
 The parts that need the application's code (settings, background tasks, health and data quality) run in the api
 container: python -m eax.console_cli.
 """
@@ -25,6 +28,7 @@ import time
 import ops
 
 START, STOP, DIAG, PROMPT = 20, 21, 23, 25
+SMOKE, FULL, FULL_RISKY, FAILED = 26, 27, 28, 29          # the tests, run on the machine itself (D953)
 LOG = os.path.join(ops.WORK, "logs", f"console-{time.strftime('%Y%m%d', time.gmtime())}.log")
 DB_ROLES = {    # service password -> its login in PostgreSQL
     "EAX_DB_SUPERUSER_PASSWORD": ("postgres", "the database's administrator"),
@@ -51,6 +55,7 @@ MENU = [
     "Health and data quality, audit trail",
     "Maintenance mode on / off",
     "Save a diagnostics file for support",
+    "Test this installation (smoke, full, full with the risky suite, what failed again)",
 ]
 
 
@@ -601,6 +606,26 @@ def maintenance_mode() -> None:
         say(f"  The maintenance page is {'off' if on else 'on'}.")
 
 
+def tests(kind: str) -> int:
+    """The self-test, chosen here and run on the machine itself (eax test ...): its exit code for the eax command, or 0
+    when nothing was chosen (D953)."""
+    i = choose("Test this installation (the results: System admin > Self-test)", [
+        "Smoke test: a few minutes, nothing changed (eax test)",
+        "Full test: several hours; the dev check, every check, backup and restore, SonarQube, the DR drill (eax test full)",
+        "Full test with the risky suite: also deletes old logs and history and saves settings back; a laptop or a test "
+        "installation only (eax test full --risky)",
+        "What failed in the last run, again (eax test failed)"])
+    if i is None:
+        return 0
+    if i == 2 and not confirm("The risky suite deletes logs older than ten years and old job and resource history, and puts "
+                              "settings back as they were. Run the full test with it?"):
+        return 0
+    if i in (1, 2):
+        say("  The full test runs for several hours; this window shows it. Its summary: System admin > Self-test > Summary.")
+    note(f"test: {['smoke', 'full', 'full --risky', 'failed'][i]}")
+    return [SMOKE, FULL, FULL_RISKY, FAILED][i]
+
+
 # ---------------------------------------------------------------- the menu
 def menu(version: str, kind: str) -> int:
     """The console's main menu."""
@@ -652,6 +677,10 @@ def menu(version: str, kind: str) -> int:
             maintenance_mode()
         elif n == 14:
             return DIAG
+        elif n == 15:
+            code = tests(kind)
+            if code:
+                return code
     except KeyboardInterrupt:
         say("\n  Stopped.")
     except Exception as exc:  # noqa: BLE001 - said plainly, the console goes on

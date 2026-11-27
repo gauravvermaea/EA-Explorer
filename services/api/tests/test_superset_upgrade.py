@@ -118,7 +118,7 @@ def test_the_report_bundles_still_import_as_version_1():
     assert meta["version"] == "1.0.0" and meta["type"] == "Dashboard"
     importer = (SUPERSET / "eax_import_reports.py").read_text()
     assert "from superset.commands.dashboard.importers.dispatcher import ImportDashboardsCommand" in importer
-    assert "ImportDashboardsCommand(_contents(bundle), overwrite=True).run()" in importer
+    assert "ImportDashboardsCommand(contents, overwrite=True).run()" in importer   # then its datasets (D946)
 
 
 def _config_with_stand_ins(monkeypatch):

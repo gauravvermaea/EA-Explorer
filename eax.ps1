@@ -405,7 +405,8 @@ function Invoke-Up([string[]]$Names, [switch]$NoThrow) {
     if ($env:EAX_BUILD_PULL -eq "1") {   # a clean rebuild: fresh base images, with their fixes (R3.12, D673)
         Write-Log "Fetching the current base images and building on them (a clean rebuild)..." "Cyan"
         Invoke-Compose @("pull", "--ignore-buildable", "--quiet") -NoThrow | Out-Null
-        $code = Invoke-Compose @("build", "--pull") -NoThrow:$NoThrow
+        # --no-cache too (D951): an unchanged base image kept the Debian fixes' layer built before, without newer fixes
+        $code = Invoke-Compose @("build", "--pull", "--no-cache") -NoThrow:$NoThrow
         if ($code -ne 0) { return $code }
     }
     $t = Get-Tiers
@@ -1002,7 +1003,7 @@ function Invoke-Console([string[]]$Options) {
                 & docker @(Get-ComposeArgs @("exec", "ops", "python3", "/app/console.py", "--version", (Get-Version)))
                 $code = $LASTEXITCODE
                 # anything but the console's own answers (it failed): the basic menu, not the same failure again
-                if ($code -notin @(0, 20, 21, 23, 25)) {
+                if ($code -notin @(0, 20, 21, 23, 25, 26, 27, 28, 29)) {
                     Write-Host "The console stopped with an error (exit $code); the basic menu follows. Its log: work\logs\console-*.log" -ForegroundColor Yellow
                     $code = 99
                 }
@@ -1024,8 +1025,12 @@ function Invoke-Console([string[]]$Options) {
             20 { $stopped = $false; & $PSCommandPath up }
             21 { & $PSCommandPath down; $stopped = $true }
             23 { & $PSCommandPath diag }
+            26 { & $PSCommandPath test }                       # the tests chosen in the console (D953)
+            27 { & $PSCommandPath test full }
+            28 { & $PSCommandPath test full --risky }
+            29 { & $PSCommandPath test failed }
             25 {
-                Write-Host "Type an eax command (for example: logs api, services, backups). Empty or back: the menu." -ForegroundColor Cyan
+                Write-Host "Type an eax command (for example: test, test full, test full --risky, test failed, logs api, services, backups). Empty or back: the menu." -ForegroundColor Cyan
                 while ($true) {
                     $line = Read-Host "eax"
                     if (-not $line -or $line -in @("back", "b", "menu")) { break }

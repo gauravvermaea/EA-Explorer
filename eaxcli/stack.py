@@ -136,7 +136,9 @@ def up(names: list[str], wait_everything: bool, no_throw: bool = False) -> int:
     if os.environ.get("EAX_BUILD_PULL") == "1":   # a clean rebuild: fresh base images, with their fixes (R3.12, D673)
         say("Fetching the current base images and building on them (a clean rebuild)...", "cyan")
         compose(["pull", "--ignore-buildable", "--quiet"], no_throw=True)
-        code = compose(["build", "--pull"], no_throw=no_throw)
+        # --no-cache too (D951): with a base image that had not changed, Docker kept the Debian fixes' layer it built
+        # before, so a fix released since (libzstd1, CVE-2026-124851, full test of 26 Nov 2026) never came in
+        code = compose(["build", "--pull", "--no-cache"], no_throw=no_throw)
         if code != 0:
             return code
     t = tiers()

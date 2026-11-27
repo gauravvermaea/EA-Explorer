@@ -90,6 +90,13 @@ Known before the run: R14.18 (four Jenkins pipelines that can never run, found b
 - Run 22 (19:03 UTC): 9 of the 11 pass. D950: the project report's CSV handed objects to downloadCsv ("s.map is not a
   function"), the last two. Next: `eax up`, `eax test failed 22`; then clean-restart and the full run. To do: `eax test`
   waits while `eax up` still starts things in the background; the reports test's Superset user is not deleted (422).
+- Full test 1 (26-27 Nov, after the clean restart): self-test 6: 3,629 passed, 3 failed (security gate: libzstd1, D951;
+  DR-01 as super-admin and a stall: the reports browser froze after two hours, the watchdog D942 closed it and the run
+  went on); dev check: 4 tests of this release's own changes (mended, D951); backup and restore test ok; SonarQube ok;
+  DR drill FAILED: in the DR copy the swap of superset met a session of Reports, still starting; restore.sh now
+  shuts a database to new sessions before its swap (D952). Next: commit, `eax up`, `eax drill`.
+- D953: eax console has Test this installation (smoke, full, full --risky, failed again); its prompt names them.
+  Coverage: API 87.3%, screens 93.4%, jobs 85.9%.
 
 **Earlier (25 Nov 2026, Release 14 closed):**
 - Next is Release 14.5. Start with the coverage bar, to be discussed with the owner (R14.5.1, R14.5.2); then the use cases in

@@ -19,11 +19,11 @@ def test_the_clean_commands_ask_for_fresh_bases_in_every_form():
 
 def test_up_then_pulls_and_builds_on_them_in_every_form():
     py = (REPO / "eaxcli/stack.py").read_text()
-    assert 'compose(["pull", "--ignore-buildable", "--quiet"], no_throw=True)' in py and 'compose(["build", "--pull"]' in py
+    assert 'compose(["pull", "--ignore-buildable", "--quiet"], no_throw=True)' in py and 'compose(["build", "--pull", "--no-cache"]' in py
     ps1 = (REPO / "eax.ps1").read_text()
-    assert '@("pull", "--ignore-buildable", "--quiet")' in ps1 and '@("build", "--pull")' in ps1
+    assert '@("pull", "--ignore-buildable", "--quiet")' in ps1 and '@("build", "--pull", "--no-cache")' in ps1
     sh = (REPO / "eax.sh").read_text()
-    assert "compose pull --ignore-buildable --quiet || true" in sh and "compose build --pull || return 1" in sh
+    assert "compose pull --ignore-buildable --quiet || true" in sh and "compose build --pull --no-cache || return 1" in sh
 
 
 def test_up_in_python_pulls_only_when_asked(monkeypatch):
@@ -44,7 +44,7 @@ def test_up_in_python_pulls_only_when_asked(monkeypatch):
         stack.up([], False)
     except StopIteration:
         pass
-    assert calls == [["pull", "--ignore-buildable", "--quiet"], ["build", "--pull"]]
+    assert calls == [["pull", "--ignore-buildable", "--quiet"], ["build", "--pull", "--no-cache"]]
 
 
 def test_a_failed_build_stops_there(monkeypatch):
