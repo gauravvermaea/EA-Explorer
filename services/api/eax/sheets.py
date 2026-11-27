@@ -78,7 +78,7 @@ def types_of(conn, model: Any, types: list[str] | None) -> tuple[dict, list[dict
     m = repo.get_model(conn, model)
     all_types = _rows(conn, """SELECT t.id AS _id, t.guid, t.code, t.name, t.id_prefix, l.name AS domain,
                                       (SELECT count(*) FROM core.entities e WHERE e.entity_type_id = t.id AND NOT e.is_deleted) AS n
-                                 FROM core.entity_types t JOIN core.layers l ON l.id = t.layer_id
+                                 FROM core.entity_types t JOIN core.domains l ON l.id = t.domain_id
                                 WHERE t.model_id = :m AND NOT t.is_deleted ORDER BY l.sort_order, t.sort_order, t.name""", m=m["_id"])
     if types:
         want = {str(x).strip().lower() for x in types if str(x).strip()}

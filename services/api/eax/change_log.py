@@ -182,7 +182,7 @@ def _jsonable(v: Any) -> Any:
 TECH = {"id", "guid", "model_id", "row_version", "created_at", "created_by", "modified_at", "modified_by", "created_mm_version",
         "modified_mm_version", "origin_guid", "is_deleted", "updated_at", "updated_by", "deleted_at", "deleted_by",
         "metamodel_version", "entity_count", "relationship_count", "sort_order", "tx"}
-TYPES = {"entities": "Entity", "relationships": "Relationship", "attribute_values": "Entity", "models": "Model", "layers": "Domain",
+TYPES = {"entities": "Entity", "relationships": "Relationship", "attribute_values": "Entity", "models": "Model", "domains": "Domain", "layers": "Domain",
          "entity_types": "Entity type", "relationship_types": "Relationship type", "pick_lists": "Pick list",
          "pick_list_values": "Pick list value", "attribute_types": "Attribute", "item_attributes": "Attribute of a type",
          "validation_rules": "Rule", "allowed_relationships": "Allowed relationship"}

@@ -31,7 +31,7 @@ commands: [below](#backup-and-restore-from-the-command-line) and in [docs/operat
 
 **Status: version 14.5.0, Release 14.5 (the full tests made to pass: every bug they found fixed, code coverage over 85%, the DR drill passing in 10 minutes), accepted 27 Nov 2026**
 (tag `v14.5.0`, published on the repository's GitHub Releases; release notes: [releases/14.5.0.md](releases/14.5.0.md);
-earlier releases' notes are in [releases](releases)). Next: Release 14.6, ArchiMate's "layer" named "domain" inside the database and the code too (D941), then 14.7, Monte Carlo simulation (to discuss: [docs/release-14.7-monte-carlo.md](docs/release-14.7-monte-carlo.md)), then 22, upgrading a running installation (D913). The releases in short are
+earlier releases' notes are in [releases](releases)). Next: Release 14.6, ArchiMate's "layer" named "domain" inside the database and the code too (D941), then 14.7, Monte Carlo simulation ([docs/release-14.7-monte-carlo.md](docs/release-14.7-monte-carlo.md)), then 22, upgrading a running installation (D913). The releases in short are
 [below](#releases); every phase in detail: [docs/build-phases.md](docs/build-phases.md). Database design:
 [docs/database.md](docs/database.md). How it is built (for developers and AI agents):
 [docs/architecture.md](docs/architecture.md), [AGENTS.md](AGENTS.md); the high-level technical architecture (under 10 pages):
@@ -67,8 +67,9 @@ area by area: [docs/capabilities.md](docs/capabilities.md).
 | 13 | [13.0.0](releases/13.0.0.md) | System Admin in seven groups with multi-level tabs like Projects, the same in the menu, every page and tab with its own address; every command-line option documented, the DR tools' --help, and a test that keeps it so | accepted 23 Nov 2026 |
 | 14 | [14.0.0](releases/14.0.0.md) | Stabilisation: every bug the full test found fixed, the full test started and trusted to finish; backup and restore, SonarQube and the DR drill (9 minutes to recover) passing; the reports check left to 14.5 | accepted 25 Nov 2026 |
 | 14.5 | [14.5.0](releases/14.5.0.md) | The full tests made to pass: every bug they found fixed; code coverage the API 87.3%, the screens 93.4%, the jobs 85.9% (the bar 85%); a project page that opens at once; the dependency matrix that no longer freezes the browser; a stuck test stopped by itself; the console runs the tests; the DR drill passing (10 minutes to recover) | accepted 27 Nov 2026 |
-| 14.6 | | ArchiMate's "layer" becomes "domain" inside too: the database's tables and columns and the code, one migration, earlier backups and packages still restore and import | planned |
-| 14.7 | | Monte Carlo simulation: ranges instead of single numbers for cost, time and risk, run thousands of times by EA Explorer, read by your AI | to discuss |
+| 14.6 | | ArchiMate's "layer" becomes "domain" inside too: the database's tables and columns and the code, one migration, earlier backups and packages still restore and import | built, to be tested (D959) |
+| 14.7 | | Monte Carlo simulation: ranges instead of single numbers, run 10,000 times by EA Explorer: how likely the roadmap is by a date, an option's net value, the year's risk losses, the chance each scenario option is best; ranges drafted by your AI or typed on a screen, kept in a project study | planned (D957) |
+| 14.8 | | The repository in two parts: code/ (everything that builds EA Explorer) and deployment/ (ready-made ways to run it: laptop, server and cloud from Docker Hub, or from source with eax) | planned (D958) |
 | 22 | | Upgrading a running installation, never a clean restart: `eax update --from` a folder or git, the upgrade test in every release, nothing wipes production, a nightly and weekly test | planned: after 14.5, before 21 (D913) |
 | 21 | | Deploy in a Docker container or on distributed servers | planned: built after 14.5, before 15 (D901) |
 | 15 | | Every document checked and brought up to date | planned |

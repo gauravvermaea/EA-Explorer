@@ -95,7 +95,7 @@ def _search(conn, q: str = "", model: Any = None, entity_type: str = "", attribu
         SELECT e.guid AS id, e.display_id, e.name, e.status_code AS status, e.tags, et.name AS entity_type,
                et.guid AS entity_type_id, l.colour, m.guid AS model_id, m.name AS model, b.field, b.snippet, b.rank
           FROM best b JOIN core.entities e ON e.id = b.id
-          JOIN core.entity_types et ON et.id = e.entity_type_id JOIN core.layers l ON l.id = et.layer_id
+          JOIN core.entity_types et ON et.id = e.entity_type_id JOIN core.domains l ON l.id = et.domain_id
           JOIN core.models m ON m.id = e.model_id AND NOT m.is_deleted
          WHERE (CAST(:m AS bigint) IS NULL OR e.model_id = :m)
            AND (:etype = '' OR lower(et.name) = lower(:etype) OR lower(et.code) = lower(:etype))

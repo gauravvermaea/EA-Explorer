@@ -243,7 +243,7 @@ def from_drawn(conn, model: Any, view: str) -> dict:
     root = SafeET.fromstring(got["xml"])
     ents = {r["id"]: r for r in repo._rows(conn, """
         SELECT e.guid::text AS id, e.display_id, e.name, t.name AS type, t.notation, l.name AS domain, l.colour
-          FROM core.entities e JOIN core.entity_types t ON t.id = e.entity_type_id JOIN core.layers l ON l.id = t.layer_id
+          FROM core.entities e JOIN core.entity_types t ON t.id = e.entity_type_id JOIN core.domains l ON l.id = t.domain_id
          WHERE e.model_id = :m AND NOT e.is_deleted""", m=m["_id"])}
     objects, cells, edges = [], {}, []
     for gm in dv._graph_models(root):

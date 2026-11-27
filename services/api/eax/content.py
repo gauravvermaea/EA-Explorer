@@ -376,17 +376,17 @@ def relationship_options(conn, model: Any, entity: Any) -> dict:
         SELECT 'outgoing' AS direction, rt.guid AS relationship_type_id, rt.name AS relationship_type, rt.verb,
                o.guid AS other_type_id, o.name AS other_type, l.colour, ar.from_content
           FROM core.allowed_relationships ar JOIN core.relationship_types rt ON rt.id = ar.relationship_type_id
-          JOIN core.entity_types o ON o.id = ar.target_type_id JOIN core.layers l ON l.id = o.layer_id
+          JOIN core.entity_types o ON o.id = ar.target_type_id JOIN core.domains l ON l.id = o.domain_id
          WHERE ar.source_type_id = :t AND NOT ar.is_deleted AND NOT rt.is_deleted
         UNION ALL
         SELECT 'incoming', rt.guid, rt.name, rt.verb, o.guid, o.name, l.colour, ar.from_content
           FROM core.allowed_relationships ar JOIN core.relationship_types rt ON rt.id = ar.relationship_type_id
-          JOIN core.entity_types o ON o.id = ar.source_type_id JOIN core.layers l ON l.id = o.layer_id
+          JOIN core.entity_types o ON o.id = ar.source_type_id JOIN core.domains l ON l.id = o.domain_id
          WHERE ar.target_type_id = :t AND NOT ar.is_deleted AND NOT rt.is_deleted
          ORDER BY 1 DESC, 3, 6""", t=e["_type"])
     types = _rows(conn, """SELECT guid AS id, name, verb FROM core.relationship_types
                             WHERE model_id = :m AND NOT is_deleted ORDER BY sort_order, name""", m=m["_id"])
-    entity_types = _rows(conn, """SELECT t.guid AS id, t.name, l.name AS domain FROM core.entity_types t JOIN core.layers l ON l.id = t.layer_id
+    entity_types = _rows(conn, """SELECT t.guid AS id, t.name, l.name AS domain FROM core.entity_types t JOIN core.domains l ON l.id = t.domain_id
                                    WHERE t.model_id = :m AND NOT t.is_deleted AND t.status_code <> 'retired' AND NOT t.is_connector
                                    ORDER BY l.sort_order, t.sort_order, t.name""", m=m["_id"])
     return {"entity": {"id": e["id"], "name": e["name"], "entity_type": e["entity_type"]},
@@ -400,7 +400,7 @@ def find_entities(conn, model: Any, q: str = "", entity_types: list[str] | None 
     return _rows(conn, f"""
         SELECT e.guid AS id, e.display_id, e.name, t.name AS entity_type, t.guid AS entity_type_id, l.colour,
                e.status_code AS status
-          FROM core.entities e JOIN core.entity_types t ON t.id = e.entity_type_id JOIN core.layers l ON l.id = t.layer_id
+          FROM core.entities e JOIN core.entity_types t ON t.id = e.entity_type_id JOIN core.domains l ON l.id = t.domain_id
          WHERE e.model_id = :m AND NOT e.is_deleted
            AND (:q = '' OR e.name ILIKE '%' || :q || '%' OR e.display_id ILIKE :q || '%')
            {"AND e.entity_type_id = ANY (:types)" if type_ids else ""}

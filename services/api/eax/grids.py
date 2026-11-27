@@ -24,7 +24,7 @@ def metamodel_grid(conn, model: Any, kind: str) -> dict:
     m = repo.get_model(conn, model)
     mid = m["_id"]
     choices = {
-        "domains": [r["name"] for r in _rows(conn, "SELECT name FROM core.layers WHERE model_id = :m AND NOT is_deleted ORDER BY sort_order", m=mid)],
+        "domains": [r["name"] for r in _rows(conn, "SELECT name FROM core.domains WHERE model_id = :m AND NOT is_deleted ORDER BY sort_order", m=mid)],
         "entity_types": [r["name"] for r in _rows(conn, """SELECT name FROM core.entity_types WHERE model_id = :m AND NOT is_deleted
                                                               AND NOT is_connector
                                                             ORDER BY name""", m=mid)],
@@ -41,7 +41,7 @@ def metamodel_grid(conn, model: Any, kind: str) -> dict:
         rows = _rows(conn, """
             SELECT t.guid AS id, t.name, t.code, l.name AS domain, t.id_prefix, t.aspect, t.description, t.status_code AS status,
                    (SELECT count(*) FROM core.entities e WHERE e.entity_type_id = t.id AND NOT e.is_deleted) AS entities
-              FROM core.entity_types t JOIN core.layers l ON l.id = t.layer_id
+              FROM core.entity_types t JOIN core.domains l ON l.id = t.domain_id
              WHERE t.model_id = :m AND NOT t.is_deleted ORDER BY l.sort_order, t.sort_order, t.name""", m=mid)
     elif kind == "relationship_types":
         rows = _rows(conn, """

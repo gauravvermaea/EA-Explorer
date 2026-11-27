@@ -90,7 +90,7 @@ TABLES: dict[str, tuple[str, ...]] = {
     # each person's own data (R2.53, D632): no foreign key into the repository
     # the library models' content (R2.42, D633): the model rows stay in core.models
     "library_models": tuple(f"library_models.{t}" for t in (
-        "layers", "pick_lists", "pick_list_values", "attribute_types", "entity_types", "relationship_types", "item_attributes",
+        "domains", "pick_lists", "pick_list_values", "attribute_types", "entity_types", "relationship_types", "item_attributes",
         "allowed_relationships", "item_attribute_mappings", "validation_rules", "metamodel_versions", "metamodel_version_changes",
         "display_id_counters", "model_icons", "entities", "entity_aliases", "entity_icons", "attribute_values", "relationships",
         "row_versions")),
@@ -307,6 +307,50 @@ def _run_all(conn, steps: list[str], say) -> int:
     return done
 
 
+# names a release changed in the repository's database (its migration renames them there); a database of its own is
+# brought in line by plan(), which adds and never renames, so a renamed table or column is renamed there first and its
+# rows kept: Release 14.6, ArchiMate's layer is domain inside too (migration 0126, D959)
+RENAMES = {"library_models": (("TABLE", "library_models.layers", "domains"),
+                              ("SEQUENCE", "library_models.layers_id_seq", "domains_id_seq"),
+                              ("COLUMN", "library_models.entity_types.layer_id", "domain_id"),
+                              ("CONSTRAINT", "library_models.domains.layers_pkey", "domains_pkey"),
+                              ("CONSTRAINT", "library_models.domains.layers_guid_key", "domains_guid_key"),
+                              ("CONSTRAINT", "library_models.domains.layers_model_id_code_key", "domains_model_id_code_key"),
+                              ("CONSTRAINT", "library_models.entity_types.entity_types_layer_id_fkey",
+                               "entity_types_domain_id_fkey"),
+                              ("INDEX", "library_models.layers_model_id_idx", "domains_model_id_idx"),
+                              ("INDEX", "library_models.lib_layers_status_code_fk", "lib_domains_status_code_fk"),
+                              ("INDEX", "library_models.entity_types_layer_id_idx", "entity_types_domain_id_idx"))}
+
+
+def renames(conn, key: str) -> list[str]:
+    """The renames a database of its own still needs (RENAMES): only those whose old name is there and new name is not."""
+    out = []
+    for kind, old, new in RENAMES.get(key, ()):
+        if kind == "COLUMN":
+            table, col = old.rsplit(".", 1)
+            s, t = table.split(".")
+            have = {r[0] for r in conn.execute(text(
+                "SELECT column_name FROM information_schema.columns WHERE table_schema = :s AND table_name = :t"),
+                {"s": s, "t": t}).all()}
+            if col in have and new not in have:
+                out.append(f'ALTER TABLE {table} RENAME COLUMN "{col}" TO "{new}"')
+            continue
+        if kind == "CONSTRAINT":
+            table, con = old.rsplit(".", 1)
+            names = {r[0] for r in conn.execute(text(
+                "SELECT conname FROM pg_constraint WHERE conrelid = to_regclass(:t)"), {"t": table}).all()}
+            if con in names and new not in names:
+                out.append(f'ALTER TABLE {table} RENAME CONSTRAINT "{con}" TO "{new}"')
+            continue
+        schema = old.split(".")[0]
+        there = conn.execute(text("SELECT to_regclass(:o) IS NOT NULL, to_regclass(:n) IS NOT NULL"),
+                             {"o": old, "n": f"{schema}.{new}"}).one()
+        if there[0] and not there[1]:
+            out.append(f'ALTER {kind} {old} RENAME TO "{new}"')
+    return out
+
+
 def ensure(say=print) -> int:
     """Every database of its own with tables of EA Explorer's (TABLES): made or brought in line with the shared one."""
     from .db import base_engine
@@ -323,6 +367,10 @@ def ensure(say=print) -> int:
                 except Exception:  # noqa: BLE001 - its contains-search indexes are left out then
                     pass
                 _run_all(conn, plan(shared, conn, DIRECTORY, with_fks=False), say)
+            for _pass in range(3):          # a renamed table's own constraints are seen on the next pass
+                for sql in renames(conn, key):
+                    conn.execute(text(sql))
+                    say(f"  {sql}")
             steps = plan(shared, conn, tables)
             _run_all(conn, steps, say)
         if key == "library_models":

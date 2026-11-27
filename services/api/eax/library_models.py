@@ -32,7 +32,7 @@ log = logging.getLogger(__name__)
 
 SCHEMA = "library_models"
 # the content tables, parents before children (moving in copies in this order and removes in the reverse)
-CONTENT = ("layers", "pick_lists", "pick_list_values", "attribute_types", "entity_types", "relationship_types",
+CONTENT = ("domains", "pick_lists", "pick_list_values", "attribute_types", "entity_types", "relationship_types",
            "item_attributes", "allowed_relationships", "item_attribute_mappings", "validation_rules", "metamodel_versions",
            "metamodel_version_changes", "display_id_counters", "model_icons", "entities", "entity_aliases", "entity_icons",
            "attribute_values", "relationships")
@@ -287,7 +287,7 @@ def move_all(progress=lambda _p, _n: None, by: str = "system") -> list[str]:
     """Every library model still in core moved in, one transaction each (start-up, in the background, with progress)."""
     from .db import base_engine
     # R5.43: one mover at a time. The start-up step and the five-minute job both moved the same models at the same
-    # moment (16 Nov 2026, 05:26: "duplicate key value violates unique constraint layers_pkey"); the second now waits
+    # moment (16 Nov 2026, 05:26: "duplicate key value violates unique constraint layers_pkey, now domains_pkey"); the second now waits
     # for the first, then finds what is still waiting (usually nothing). The lock is held on its own connection in
     # autocommit, so it is never idle in a transaction (R5.38); a session's lock goes when its connection ends.
     with base_engine().connect().execution_options(isolation_level="AUTOCOMMIT") as lock:

@@ -262,7 +262,7 @@ def _types(conn, models: list[dict], p: dict | None = None) -> list[dict]:
     rows = _rows(pj.core(conn), """
         SELECT t.id AS _id, t.guid::text AS id, t.model_id AS _m, t.code, t.name, t.content_area, t.repository_area, l.name AS domain, l.colour,
                (SELECT count(*) FROM core.entities e WHERE e.entity_type_id = t.id AND NOT e.is_deleted) AS entities
-          FROM core.entity_types t JOIN core.layers l ON l.id = t.layer_id
+          FROM core.entity_types t JOIN core.domains l ON l.id = t.domain_id
          WHERE t.model_id = ANY (CAST(:m AS bigint[])) AND NOT t.is_deleted
          ORDER BY l.sort_order, t.sort_order, t.name""", m=[x["_id"] for x in models])
     over = _type_over(conn, p) if p else {}

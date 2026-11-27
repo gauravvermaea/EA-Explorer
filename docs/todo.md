@@ -3,9 +3,13 @@
 Open items that are not part of a build phase yet, or are waiting on a test or a decision.
 Tick an item (`[x]`) when it is done; remove it at the next tidy-up.
 
-## Release 14.7: Monte Carlo simulation, to discuss (owner, 27 Nov 2026)
+## Release 14.7: Monte Carlo simulation, decided (owner, 27 Nov 2026, D957)
 
-- [ ] **Discuss the proposal before anything is built** (owner, 08:11: "Please make a new release for this but before we start documentation. We will discuss then"): docs/release-14.7-monte-carlo.md, its seven questions; then the decisions and the rows R14.7.1 to R14.7.6 in docs/build-phases.md.
+- [x] **Discussed and decided 27 Nov 2026, 15:13 to 15:20 (D957): all four uses; the AI and a screen; ranges kept in a project study; PERT, triangular and an event; move-together groups; a currency per study and the risk scales set once; release 14.7. To be built after 14.6.** Was: **Discuss the proposal before anything is built** (owner, 08:11: "Please make a new release for this but before we start documentation. We will discuss then"): docs/release-14.7-monte-carlo.md, its seven questions; then the decisions and the rows R14.7.1 to R14.7.6 in docs/build-phases.md.
+
+## Release 14.8: the repository in code/ and deployment/ (owner, 27 Nov 2026, D958)
+
+- [ ] **Discuss at the start of the release** (owner: "Lets discuss when we are in this release"): where docs/, documents/ and the DR pack (dr/) go; what today's deploy/ is called inside code/ (build/, deploy/ or images/ were offered); what each deployment/ folder holds before Docker Hub images exist (R21.5). **The website, decided** (owner, 15:21 and 15:22: "Lets keep website in the code folder like it is today, we will change github.io path to point there and it continues"): the built copy stays in the web service, code/services/web/public/site after the move, its source docs/site moving with the docs; GitHub Pages is published by .github/workflows/static.yml (path ./services/web/public/site), and in 14.8 that one path becomes ./code/services/web/public/site. .github stays at the top (GitHub reads it only there).
 
 ## After the last release: to be thought through (owner, 24 Nov 2026)
 

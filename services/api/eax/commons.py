@@ -192,7 +192,7 @@ def analyse(loaded: list[dict], st: dict) -> dict:
     for s in loaded:
         for t in s["spec"].get("entity_types") or []:
             tinfo.setdefault(t["code"], t)
-    domain_names = {lay["code"]: lay["name"] for s in loaded for lay in s["spec"].get("domains") or []}
+    domain_names = {dom["code"]: dom["name"] for s in loaded for dom in s["spec"].get("domains") or []}
     items, keep_idx = [], {}
     for c, mem in enumerate(clusters):
         first = ents[min(mem)][mem[min(mem)]]
@@ -344,11 +344,11 @@ def _store_items(conn, analysis_id: int, result: dict) -> None:
                           and (by_member[mem]["note"] or by_member[mem]["decision"])), None)
             if carry:
                 taken.add(carry["id"])
-        conn.execute(text("""INSERT INTO core.common_items (analysis_id, match_key, entity_type, entity_type_name, layer, name, members,
+        conn.execute(text("""INSERT INTO core.common_items (analysis_id, match_key, entity_type, entity_type_name, domain, name, members,
                                                            sides_count, is_common, differs, note, decision, gone)
                              VALUES (:a, :k, :t, :tn, :l, :n, CAST(:mem AS jsonb), :c, :ic, CAST(:d AS jsonb), :note, :dec, false)
                              ON CONFLICT (analysis_id, match_key) DO UPDATE SET entity_type = EXCLUDED.entity_type,
-                                 entity_type_name = EXCLUDED.entity_type_name, layer = EXCLUDED.layer, name = EXCLUDED.name,
+                                 entity_type_name = EXCLUDED.entity_type_name, domain = EXCLUDED.domain, name = EXCLUDED.name,
                                  members = EXCLUDED.members, sides_count = EXCLUDED.sides_count, is_common = EXCLUDED.is_common,
                                  differs = EXCLUDED.differs, gone = false"""),
                      {"a": analysis_id, "k": it["key"], "t": it["entity_type"], "tn": it["entity_type_name"], "l": it["domain"] or "",
@@ -448,10 +448,10 @@ def get(conn, model: Any, analysis: Any) -> dict:
     """One commons analysis with its items."""
     m = repo.get_model(conn, model)
     a = _analysis(conn, m, analysis)
-    items = _rows(conn, """SELECT guid AS id, match_key, entity_type, entity_type_name, layer AS domain, name, members, sides_count, is_common,
+    items = _rows(conn, """SELECT guid AS id, match_key, entity_type, entity_type_name, domain, name, members, sides_count, is_common,
                                   differs, note, decision, gone, modified_by, modified_at
                              FROM core.common_items WHERE analysis_id = :a
-                            ORDER BY gone, sides_count DESC, layer, entity_type_name, lower(name)""", a=a["id"])
+                            ORDER BY gone, sides_count DESC, domain, entity_type_name, lower(name)""", a=a["id"])
     for i in items:
         i["id"] = str(i["id"])
         i["members"], i["differs"] = cm._json(i["members"]), cm._json(i["differs"])

@@ -91,7 +91,7 @@ def metamodel_spec(conn, model: Any) -> dict:
     entity types with their attributes, relationship types, allowed relationships and rules, by code."""
     m = repo.get_model(conn, model)
     mid = m["_id"]
-    domains = _rows(conn, """SELECT code, name, colour, description FROM core.layers
+    domains = _rows(conn, """SELECT code, name, colour, description FROM core.domains
                              WHERE model_id = :m AND NOT is_deleted ORDER BY sort_order, name""", m=mid)
     lists = _rows(conn, """SELECT id AS _id, code, name, description FROM core.pick_lists
                             WHERE model_id = :m AND NOT is_deleted ORDER BY code""", m=mid)
@@ -113,7 +113,7 @@ def metamodel_spec(conn, model: Any) -> dict:
     types = _rows(conn, """SELECT t.id AS _id, t.code, t.name, l.code AS domain, t.id_prefix, t.aspect, t.description,
                                   t.status_code AS status, t.content_area, t.repository_area, t.notation, t.fill_colour,
                                   t.is_connector AS connector, b.code AS base
-                             FROM core.entity_types t JOIN core.layers l ON l.id = t.layer_id
+                             FROM core.entity_types t JOIN core.domains l ON l.id = t.domain_id
                              LEFT JOIN core.entity_types b ON b.id = t.base_type_id AND NOT b.is_deleted
                             WHERE t.model_id = :m AND NOT t.is_deleted ORDER BY l.sort_order, t.sort_order, t.name""", m=mid)
     rels = _rows(conn, """SELECT id AS _id, code, name, verb, category, is_directed AS directed, description, status_code AS status
@@ -389,7 +389,7 @@ def apply_spec(conn, model_id: int, spec: dict, mode: str = "new", remove_missin
         taken[kind].add(out.lower())
         return out
     for n, domain in enumerate(spec.get("domains") or []):
-        ids["domains"][domain["code"].lower()] = upsert("layers", domain["code"], {
+        ids["domains"][domain["code"].lower()] = upsert("domains", domain["code"], {
             "name": domain["name"].strip(), "colour": str(domain.get("colour") or "DDDDDD").lstrip("#").upper(),
             "description": domain.get("description") or "", "sort_order": (n + 1) * 10})
     for pl in spec.get("pick_lists") or []:
@@ -423,7 +423,7 @@ def apply_spec(conn, model_id: int, spec: dict, mode: str = "new", remove_missin
         while prefix in used_prefix:
             prefix = (prefix[:5] + "X")[:6]
         used_prefix.add(prefix)
-        cols = {"name": t["name"].strip(), "layer_id": ids["domains"][t["domain"].lower()], "id_prefix": prefix,
+        cols = {"name": t["name"].strip(), "domain_id": ids["domains"][t["domain"].lower()], "id_prefix": prefix,
                 "aspect": t.get("aspect") or "", "description": t.get("description") or "", "sort_order": (n + 1) * 10}
         if t.get("content_area") is not None:                   # where it sits in the content framework (D299)
             from .content_framework import clean_area

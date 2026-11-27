@@ -70,9 +70,9 @@ def scope(data: dict, domains: Iterable[str] | None = None, entity_type: str | N
         chosen = list(domains or [])
         domain_ids = set()
         for want in chosen:
-            found = [str(lay["id"]) for lay in data["domains"] if _match(want, lay["id"], lay["code"], lay["name"])]
+            found = [str(dom["id"]) for dom in data["domains"] if _match(want, dom["id"], dom["code"], dom["name"])]
             if not found:
-                raise LookupError(f"No domain {want!r}. Known: {', '.join(lay['name'] for lay in data['domains'])}.")
+                raise LookupError(f"No domain {want!r}. Known: {', '.join(dom['name'] for dom in data['domains'])}.")
             domain_ids.update(found)
         inside = {i for i, t in types.items() if not domain_ids or str(t["domain_id"]) in domain_ids}
         if include_connected:

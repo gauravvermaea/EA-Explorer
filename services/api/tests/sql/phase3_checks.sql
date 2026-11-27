@@ -39,8 +39,8 @@ BEGIN
     -- publishing a version bumps the model, writes the version row and labels the history
     v_ver := core.publish_metamodel_version(v_m, 'check: new entity type');
     ASSERT v_ver = (SELECT metamodel_version FROM core.models WHERE id = v_m), 'model carries the new version';
-    INSERT INTO core.entity_types (model_id, layer_id, code, name, id_prefix, table_name)
-    SELECT v_m, id, 'CheckType', 'Check Type', 'CHK', 'check_type' FROM core.layers WHERE model_id = v_m LIMIT 1
+    INSERT INTO core.entity_types (model_id, domain_id, code, name, id_prefix, table_name)
+    SELECT v_m, id, 'CheckType', 'Check Type', 'CHK', 'check_type' FROM core.domains WHERE model_id = v_m LIMIT 1
     RETURNING id INTO v_t;
     ASSERT (SELECT label FROM history.row_versions WHERE table_name = 'entity_types' AND row_id = v_t)
            = 'metamodel v' || v_ver || ': check: new entity type', 'history labelled with the version';

@@ -1,9 +1,10 @@
-# Release 14.7: Monte Carlo simulation (a proposal, to discuss)
+# Release 14.7: Monte Carlo simulation (decided 27 Nov 2026, D957; to be built)
 
 The owner, 27 Nov 2026, 08:10: "will EA benefit from monte carlo simulation?"; 08:11: "Please make a new release for
-this but before we start documentation. We will discuss then". Nothing here is decided or built: this page is what is
-proposed, for the discussion. The questions to settle are at the end; what the owner decides goes into
-docs/decisions.md, and the release's rows (R14.7.1 to R14.7.6 in docs/build-phases.md) change to match.
+this but before we start documentation. We will discuss then". Discussed at 15:13 to 15:20 the same day ("First
+explain me what is monte carlo and how does it help?"; "Yes lets answer one by one"): the seven questions at the end
+are answered (D957), and the release's rows (R14.7.1 to R14.7.6 in docs/build-phases.md) are planned. Nothing is built
+yet. The test cases, written first (15:34): [release-14.7-test-cases.md](release-14.7-test-cases.md).
 
 ## What it answers
 
@@ -84,3 +85,22 @@ network, a sum of independent ranges).
 6. **Money:** one currency per study, or the installation's currency? And the risk scales: does the organisation set
    once what Likelihood 1 to 5 and Impact 1 to 5 mean in chance and money?
 7. **Its own release number:** 14.7 after the layer-to-domain rename (14.6), or a release of its own (15)?
+
+## The owner's answers (27 Nov 2026, D957)
+
+1. **All four uses** in 14.7: roadmap confidence, an option's cost and benefit, risk exposure, scenario planning with
+   chances (the recommendation was roadmap and risk first; the owner chose all four).
+2. **Both the AI and a screen:** the person's AI drafts the ranges through MCP, each with where it came from, shown as
+   a preview and saved on a yes; a screen (a table with Low, Likely and High) lets a person enter or correct them. The
+   working is always EA Explorer's own code, never the AI's.
+3. **In a study of the project**, as scenario planning: the model is not changed, several studies can differ (the
+   supplier's estimates against our own), each run is kept with the inputs it used. A study starts from the model's
+   dates, costs and risk Assessments, so nothing is typed twice.
+4. **PERT (the default), triangular, and an event** (yes or no, with a chance: a risk happening in the year, a
+   regulator's delay). Log-normal and the rest wait.
+5. **"Move together" groups:** an input may be put in a named group (a supplier, a currency) with a strength (weak,
+   medium, strong) and the group's inputs are drawn together; everything else is independent. No correlation matrix.
+6. **One currency per study** (the installation's currency by default). **The organisation sets the risk scales
+   once**: what Likelihood 1 to 5 means as a chance in the year and Impact 1 to 5 as a range of loss, with defaults
+   given; a study may override one risk's chance and amount.
+7. **Release 14.7**, after 14.6 (layer to domain), before 22; nothing renumbered.

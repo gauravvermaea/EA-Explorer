@@ -136,7 +136,7 @@ def _rel_type_by_ref(conn, model_id: int, ref) -> dict:
 
 def _domain(conn, model_id: int, ref) -> dict:
     g = repo._as_guid(ref)
-    r = _one(conn, f"""SELECT * FROM core.layers WHERE model_id = :m AND NOT is_deleted AND
+    r = _one(conn, f"""SELECT * FROM core.domains WHERE model_id = :m AND NOT is_deleted AND
                        {'guid = :r' if g else 'lower(:r) IN (lower(code), lower(name))'}""", m=model_id, r=g or str(ref))
     if not r:
         raise EditError(f"No domain {ref!r} in this model.", 404)
@@ -257,7 +257,7 @@ def _op_entity_type_create(conn, m, p):
         fill = notation.clean_colour(p.get("fill_colour"))
     except ValueError as exc:
         raise EditError(str(exc)) from exc
-    r = _one(conn, """INSERT INTO core.entity_types (model_id, layer_id, code, name, description, aspect, id_prefix, table_name, sort_order,
+    r = _one(conn, """INSERT INTO core.entity_types (model_id, domain_id, code, name, description, aspect, id_prefix, table_name, sort_order,
                                                      content_area, repository_area, notation, fill_colour)
                       VALUES (:m, :l, :c, :n, :d, :a, :p, :t, :s, :ca, :ra, :no, :fc) RETURNING guid""",
              m=mid, l=domain["id"], c=code, n=p["name"].strip(), d=p.get("description", ""), a=p.get("aspect", ""),
@@ -282,7 +282,7 @@ def _op_entity_type_update(conn, m, p):
         from .content_framework import clean_repo
         fields["repository_area"] = clean_repo(p["repository_area"])
     if "domain" in p and p["domain"]:
-        fields["layer_id"] = _domain(conn, m["_id"], p["domain"])["id"]
+        fields["domain_id"] = _domain(conn, m["_id"], p["domain"])["id"]
     try:                                        # its look on drawn views (phase 28, D354): ArchiMate notation and colour
         if "notation" in p:
             fields["notation"] = notation.clean_notation(p["notation"])

@@ -45,7 +45,7 @@ def metamodel_tree(conn, model: Any) -> dict:
     types = _rows(conn, """SELECT et.id AS _id, et.guid::text AS id, et.code, et.name, l.name AS domain, l.colour,
                                   et.status_code AS status,
                                   (SELECT count(*) FROM core.entities e WHERE e.entity_type_id = et.id AND NOT e.is_deleted) AS entities
-                             FROM core.entity_types et JOIN core.layers l ON l.id = et.layer_id
+                             FROM core.entity_types et JOIN core.domains l ON l.id = et.domain_id
                             WHERE et.model_id = :m AND NOT et.is_deleted ORDER BY l.sort_order, et.sort_order, et.name""",
                   m=m["_id"])
     attrs = defaultdict(list)
@@ -80,7 +80,7 @@ def types_tree(conn, model: Any) -> dict:
     m = repo.get_model(conn, model)
     scores, bands = _quality(conn, m)
     types = _rows(conn, """SELECT et.id AS _id, et.guid::text AS id, et.code, et.name, l.name AS domain, l.colour
-                             FROM core.entity_types et JOIN core.layers l ON l.id = et.layer_id
+                             FROM core.entity_types et JOIN core.domains l ON l.id = et.domain_id
                             WHERE et.model_id = :m AND NOT et.is_deleted ORDER BY l.sort_order, et.sort_order, et.name""",
                   m=m["_id"])
     ents = defaultdict(list)

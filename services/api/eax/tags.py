@@ -49,7 +49,7 @@ def snapshot(conn, m: dict) -> dict:
     ents = _rows(conn, """SELECT e.id, e.guid, e.origin_guid, e.name, e.description, e.display_id, e.status_code AS status, e.tags,
                                  p.guid AS parent, t.code AS type_code, t.name AS entity_type, l.name AS domain
                             FROM core.entities e JOIN core.entity_types t ON t.id = e.entity_type_id
-                            JOIN core.layers l ON l.id = t.layer_id
+                            JOIN core.domains l ON l.id = t.domain_id
                             LEFT JOIN core.entities p ON p.id = e.parent_entity_id
                            WHERE e.model_id = :m AND NOT e.is_deleted ORDER BY t.code, e.display_id""", m=mid)
     vals = _rows(conn, """SELECT av.id, av.entity_id, at.code, av.value_text, av.value_number, av.value_date, av.value_bool,
@@ -427,7 +427,7 @@ def _remove_metamodel_extras(conn, m: dict, spec: dict) -> int:
                                 "AND entity_type_id = :i", m=mid, i=r["id"])
                 _exec(conn, f"UPDATE core.{table} SET is_deleted = true WHERE id = :i", i=r["id"])
                 n += 1
-    for table, section in (("attribute_types", "attributes"), ("pick_lists", "pick_lists"), ("layers", "domains")):
+    for table, section in (("attribute_types", "attributes"), ("pick_lists", "pick_lists"), ("domains", "domains")):
         for r in _rows(conn, f"SELECT id, code FROM core.{table} WHERE model_id = :m AND NOT is_deleted", m=mid):
             if r["code"].lower() not in codes[section]:
                 if table == "attribute_types":
@@ -438,7 +438,7 @@ def _remove_metamodel_extras(conn, m: dict, spec: dict) -> int:
                 if table == "pick_lists":
                     _exec(conn, "UPDATE core.attribute_types SET pick_list_id = NULL WHERE pick_list_id = :i", i=r["id"])
                     _exec(conn, "UPDATE core.pick_list_values SET is_deleted = true WHERE pick_list_id = :i AND NOT is_deleted", i=r["id"])
-                if table == "layers" and _one(conn, "SELECT 1 AS x FROM core.entity_types WHERE layer_id = :i AND NOT is_deleted", i=r["id"]):
+                if table == "domains" and _one(conn, "SELECT 1 AS x FROM core.entity_types WHERE domain_id = :i AND NOT is_deleted", i=r["id"]):
                     continue
                 _exec(conn, f"UPDATE core.{table} SET is_deleted = true WHERE id = :i", i=r["id"])
                 n += 1
@@ -473,7 +473,7 @@ def restore_tag(conn, model: Any, user, tag: Any, note: str = "") -> dict:
     _exec(conn, "SELECT set_config('eax.actor', :a, true)", a=user.username)
     # 1. the tag's metamodel: everything it has comes back (renamed and re-added parts included); parts removed
     #    since (by an earlier restore) are taken back rather than added again, so their codes stay theirs
-    for table, section in (("layers", "domains"), ("pick_lists", "pick_lists"), ("attribute_types", "attributes"),
+    for table, section in (("domains", "domains"), ("pick_lists", "pick_lists"), ("attribute_types", "attributes"),
                            ("entity_types", "entity_types"), ("relationship_types", "relationship_types")):
         codes = [str(i["code"]).lower() for i in tag_spec.get(section) or []]
         if codes:

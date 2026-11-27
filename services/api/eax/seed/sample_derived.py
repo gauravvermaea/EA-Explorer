@@ -28,7 +28,7 @@ def run() -> list[str]:
         guid = have or str(mo.create_model(conn, ACTOR, {"kind": "project", "name": NAME, "source": "ArchiMate 4", "copy": "metamodel",
                                                         "description": "Server, Windows Server and Database Server: a type "
                                                                        "derived from another (R2.9)"})["model"]["id"])
-        domain = conn.execute(text("""SELECT l.code FROM core.layers l JOIN core.models m ON m.id = l.model_id
+        domain = conn.execute(text("""SELECT l.code FROM core.domains l JOIN core.models m ON m.id = l.model_id
                                        WHERE m.guid = CAST(:g AS uuid) AND NOT l.is_deleted
                                        ORDER BY (lower(l.name) LIKE '%technolog%') DESC, l.sort_order LIMIT 1"""), {"g": guid}).scalar()
 

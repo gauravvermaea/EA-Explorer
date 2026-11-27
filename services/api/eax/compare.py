@@ -59,8 +59,8 @@ def fields_for(left: dict, right: dict) -> dict:
             count[k][e["type_code"]] = count[k].get(e["type_code"], 0) + 1
     domains = {}
     for spec in (left["spec"], right["spec"]):
-        for lay in spec.get("domains") or []:
-            domains.setdefault(lay["code"], lay["name"])
+        for dom in spec.get("domains") or []:
+            domains.setdefault(dom["code"], dom["name"])
     rel_names = {r["code"]: r["name"] for spec in (left["spec"], right["spec"]) for r in spec.get("relationship_types") or []}
     type_names = {c: t["name"] for c, t in {**rt, **lt}.items()}
     # the relationships each type takes part in: allowed by either metamodel, or there in either side's content

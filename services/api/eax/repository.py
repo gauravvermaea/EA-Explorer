@@ -156,7 +156,7 @@ def _library_counts(conn, m: dict) -> None:
     m["counts_by_type"] = _rows(conn, """
         SELECT et.name AS entity_type, l.name AS domain, l.colour, count(e.id) AS count
           FROM core.entity_types et
-          JOIN core.layers l ON l.id = et.layer_id
+          JOIN core.domains l ON l.id = et.domain_id
           LEFT JOIN core.entities e ON e.entity_type_id = et.id AND NOT e.is_deleted
          WHERE et.model_id = :m AND NOT et.is_deleted AND NOT et.is_connector
          GROUP BY et.name, l.name, l.colour, l.sort_order, et.sort_order
@@ -167,8 +167,8 @@ def _library_counts(conn, m: dict) -> None:
           FROM core.relationships r JOIN core.relationship_types rt ON rt.id = r.relationship_type_id
          WHERE r.model_id = :m AND NOT r.is_deleted
          GROUP BY rt.name, rt.sort_order ORDER BY count(*) DESC, rt.sort_order""", m=m["_id"])
-    m["domains"] = _rows(conn, """SELECT l.name, l.colour, count(et.id) AS types FROM core.layers l
-          LEFT JOIN core.entity_types et ON et.layer_id = l.id AND NOT et.is_deleted AND NOT et.is_connector
+    m["domains"] = _rows(conn, """SELECT l.name, l.colour, count(et.id) AS types FROM core.domains l
+          LEFT JOIN core.entity_types et ON et.domain_id = l.id AND NOT et.is_deleted AND NOT et.is_connector
          WHERE l.model_id = :m GROUP BY l.name, l.colour, l.sort_order ORDER BY l.sort_order""", m=m["_id"])
     m["relationship_type_count"] = _rows(conn, "SELECT count(*) AS n FROM core.relationship_types WHERE model_id = :m AND NOT is_deleted",
                                          m=m["_id"])[0]["n"]
@@ -193,7 +193,7 @@ def get_metamodel(conn, model: Any) -> dict:
     m = get_model(conn, model)
     mid = m["_id"]
     domains = _rows(conn, """
-        SELECT guid AS id, code, name, description, colour FROM core.layers
+        SELECT guid AS id, code, name, description, colour FROM core.domains
          WHERE model_id = :m AND NOT is_deleted ORDER BY sort_order, name""", m=mid)
     types = _rows(conn, """
         SELECT et.guid AS id, l.guid AS domain_id, et.code, et.name, et.description, et.aspect, et.content_area, et.repository_area, et.id_prefix,
@@ -203,7 +203,7 @@ def get_metamodel(conn, model: Any) -> dict:
                (SELECT count(*) FROM core.entities e
                  WHERE e.entity_type_id = et.id AND NOT e.is_deleted) AS entity_count
           FROM core.entity_types et
-          JOIN core.layers l ON l.id = et.layer_id
+          JOIN core.domains l ON l.id = et.domain_id
          WHERE et.model_id = :m AND NOT et.is_deleted ORDER BY et.sort_order, et.name""", m=mid)
     rel_types = _rows(conn, """
         SELECT rt.guid AS id, rt.code, rt.name, rt.verb, rt.category, rt.is_directed, rt.description, rt.status_code AS status,
@@ -244,7 +244,7 @@ def _find_type(conn, model_id: int, entity_type: Any) -> dict:
                b.guid AS base_id, b.name AS base_name,
                (SELECT coalesce(json_agg(json_build_object('id', d.guid, 'name', d.name) ORDER BY d.name), '[]')
                   FROM core.entity_types d WHERE d.base_type_id = et.id AND NOT d.is_deleted) AS derived
-          FROM core.entity_types et JOIN core.layers l ON l.id = et.layer_id
+          FROM core.entity_types et JOIN core.domains l ON l.id = et.domain_id
           LEFT JOIN core.entity_types b ON b.id = et.base_type_id AND NOT b.is_deleted
          WHERE {where} AND et.model_id = :m AND NOT et.is_deleted""", t=guid or str(entity_type), m=model_id)
     if not rows:
@@ -330,7 +330,7 @@ def get_metamodel_diagram(conn, model: Any) -> dict:
     m = get_model(conn, model)
     mid = m["_id"]
     domains = _rows(conn, """
-        SELECT guid AS id, code, name, colour FROM core.layers
+        SELECT guid AS id, code, name, colour FROM core.domains
          WHERE model_id = :m AND NOT is_deleted ORDER BY sort_order, name""", m=mid)
     types = _rows(conn, """
         SELECT et.id AS _id, et.guid AS id, et.code, et.name, et.table_name, et.id_prefix,
@@ -338,7 +338,7 @@ def get_metamodel_diagram(conn, model: Any) -> dict:
                (SELECT count(*) FROM core.entities e
                  WHERE e.entity_type_id = et.id AND NOT e.is_deleted) AS entity_count,
                b.guid AS base_id
-          FROM core.entity_types et JOIN core.layers l ON l.id = et.layer_id
+          FROM core.entity_types et JOIN core.domains l ON l.id = et.domain_id
           LEFT JOIN core.entity_types b ON b.id = et.base_type_id AND NOT b.is_deleted
          WHERE et.model_id = :m AND NOT et.is_deleted
          ORDER BY l.sort_order, et.sort_order, et.name""", m=mid)
@@ -487,7 +487,7 @@ def list_entities(conn, model: Any, entity_type: Any = None, limit: int = 2000) 
                e.modified_at, e.modified_by
           FROM core.entities e
           JOIN core.entity_types et ON et.id = e.entity_type_id
-          JOIN core.layers l ON l.id = et.layer_id
+          JOIN core.domains l ON l.id = et.domain_id
           LEFT JOIN core.entities pe ON pe.id = e.parent_entity_id
          WHERE e.model_id = :m AND NOT e.is_deleted
            AND (CAST(:t AS bigint) IS NULL OR e.entity_type_id = :t)
@@ -526,10 +526,10 @@ def list_relationships(conn, model: Any, relationship_type: Any = None, limit: i
           JOIN core.relationship_types rt ON rt.id = r.relationship_type_id
           JOIN core.entities s ON s.id = r.source_entity_id
           JOIN core.entity_types st ON st.id = s.entity_type_id
-          JOIN core.layers sl ON sl.id = st.layer_id
+          JOIN core.domains sl ON sl.id = st.domain_id
           JOIN core.entities t ON t.id = r.target_entity_id
           JOIN core.entity_types tt ON tt.id = t.entity_type_id
-          JOIN core.layers tl ON tl.id = tt.layer_id
+          JOIN core.domains tl ON tl.id = tt.domain_id
          WHERE r.model_id = :m AND NOT r.is_deleted AND NOT s.is_deleted AND NOT t.is_deleted
            AND (CAST(:r AS bigint) IS NULL OR r.relationship_type_id = :r)
          ORDER BY rt.sort_order, s.name, t.name
@@ -740,7 +740,7 @@ def _find_entity_now(conn, m: dict, entity: Any) -> dict:
                e.origin_guid AS _origin, et.origin_guid AS _type_origin
           FROM core.entities e
           JOIN core.entity_types et ON et.id = e.entity_type_id
-          JOIN core.layers l ON l.id = et.layer_id
+          JOIN core.domains l ON l.id = et.domain_id
           LEFT JOIN core.entities pe ON pe.id = e.parent_entity_id
          WHERE {where} AND e.model_id = :m AND NOT e.is_deleted
          ORDER BY e.display_id LIMIT 1""", e=guid or str(entity), m=m["_id"])
@@ -814,7 +814,7 @@ def get_entity_detail(conn, model: Any, entity: Any) -> dict:
           JOIN core.entities o ON o.id = CASE WHEN r.source_entity_id = :e THEN r.target_entity_id
                                             ELSE r.source_entity_id END
           JOIN core.entity_types ot ON ot.id = o.entity_type_id
-          JOIN core.layers ol ON ol.id = ot.layer_id
+          JOIN core.domains ol ON ol.id = ot.domain_id
          WHERE (r.source_entity_id = :e OR r.target_entity_id = :e) AND NOT r.is_deleted AND NOT o.is_deleted
          ORDER BY 7 DESC, rt.sort_order, o.name""", e=eid)
     if e["relationships"]:   # each relationship's attribute values (D563)
@@ -1067,7 +1067,7 @@ def get_entity_as_of(conn, model: Any, entity: Any, event: int | None = None, at
                              "direction": "outgoing" if outgoing else "incoming", "other_name": names.get(other, "?")})
     others = {r["id"]: r for r in _rows(conn, """
         SELECT e.id, e.guid, e.display_id, et.name AS entity_type, l.colour
-          FROM core.entities e JOIN core.entity_types et ON et.id = e.entity_type_id JOIN core.layers l ON l.id = et.layer_id
+          FROM core.entities e JOIN core.entity_types et ON et.id = e.entity_type_id JOIN core.domains l ON l.id = et.domain_id
          WHERE e.id = ANY (:i)""", i=[r["_other"] for r in then_rels])} if then_rels else {}
     for r in then_rels:
         o = others.get(r.pop("_other"), {})
@@ -1302,7 +1302,7 @@ def entity_graph(conn, model: Any, focus: Any = None, entity_types: list | None 
                l.name AS domain, l.colour, l.sort_order AS domain_order, et.notation
           FROM core.entities e
           JOIN core.entity_types et ON et.id = e.entity_type_id
-          JOIN core.layers l ON l.id = et.layer_id
+          JOIN core.domains l ON l.id = et.domain_id
          WHERE e.model_id = :m AND NOT e.is_deleted AND {where}
          ORDER BY l.sort_order, et.sort_order, e.display_id
          LIMIT :n""", m=mid, n=limit + 1, **params)
@@ -1384,7 +1384,7 @@ def entity_paths(conn, model: Any, source: Any, target: Any, max_steps: int = 6,
     nodes = _rows(conn, """
         SELECT e.id AS _id, e.guid AS id, e.display_id, e.name, et.name AS entity_type, et.guid AS entity_type_id,
                l.name AS domain, l.colour, l.sort_order AS domain_order, et.notation
-          FROM core.entities e JOIN core.entity_types et ON et.id = e.entity_type_id JOIN core.layers l ON l.id = et.layer_id
+          FROM core.entities e JOIN core.entity_types et ON et.id = e.entity_type_id JOIN core.domains l ON l.id = et.domain_id
          WHERE e.id = ANY (:ids)""", ids=list(on_path or {sid, tid}))
     guid = {n["_id"]: n["id"] for n in nodes}
     for n in nodes:
@@ -1422,9 +1422,9 @@ def entity_paths(conn, model: Any, source: Any, target: Any, max_steps: int = 6,
 
 # ---------------------------------------------------------------- metamodel versions and history (phase 3)
 
-MM_TABLES = ["layers", "entity_types", "relationship_types", "pick_lists", "pick_list_values", "attribute_types",
+MM_TABLES = ["domains", "entity_types", "relationship_types", "pick_lists", "pick_list_values", "attribute_types",
              "item_attributes", "validation_rules", "allowed_relationships"]
-MM_KIND = {"layers": "domain", "entity_types": "entity type", "relationship_types": "relationship type",
+MM_KIND = {"domains": "domain", "entity_types": "entity type", "relationship_types": "relationship type",
            "pick_lists": "pick list", "pick_list_values": "pick-list value", "attribute_types": "attribute definition",
            "item_attributes": "attribute", "validation_rules": "rule", "allowed_relationships": "mapping"}
 _MM_NOISE = _NOISE | {"sort_order", "table_name", "column_name"}
@@ -1447,7 +1447,7 @@ def _mm_names(conn, model_id: int) -> dict:
     def pairs(sql):
         return {r["id"]: r for r in _rows(conn, sql, m=model_id)}
     return {
-        "layers": pairs("SELECT id, name FROM core.layers WHERE model_id = :m"),
+        "domains": pairs("SELECT id, name FROM core.domains WHERE model_id = :m"),
         "entity_types": pairs("SELECT id, name FROM core.entity_types WHERE model_id = :m"),
         "relationship_types": pairs("SELECT id, name, verb FROM core.relationship_types WHERE model_id = :m"),
         "attribute_types": pairs("SELECT id, name FROM core.attribute_types WHERE model_id = :m"),
@@ -1476,12 +1476,12 @@ def _mm_fields(table: str, d: dict, names: dict) -> dict:
         if k in _MM_NOISE or k in ("model_id",):
             continue
         if k.endswith("_id") and v is not None and k != "id":
-            kind = {"layer_id": "layers", "entity_type_id": "entity_types", "relationship_type_id": "relationship_types",
+            kind = {"domain_id": "domains", "entity_type_id": "entity_types", "relationship_type_id": "relationship_types",
                     "attribute_type_id": "attribute_types", "pick_list_id": "pick_lists", "source_type_id": "entity_types",
                     "target_type_id": "entity_types"}.get(k)
             if kind:
                 v = (names[kind].get(int(v)) or {}).get("name", v)
-            k = "domain" if k == "layer_id" else k[:-3]
+            k = k[:-3]
         if k == "status_code":
             k = "status"
         if k == "is_deleted":

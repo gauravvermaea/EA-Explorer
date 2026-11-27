@@ -155,7 +155,7 @@ def rows(conn, m: dict, table: dict) -> list[dict]:
                t.name AS "EntityType", l.name AS "Domain", p.guid::text AS "ParentId", p.name AS "Parent", e.status_code AS "Status",
                e.created_at AS "CreatedAt", e.created_by AS "CreatedBy", e.modified_at AS "ModifiedAt", e.modified_by AS "ModifiedBy"
           FROM core.entities e JOIN core.entity_types t ON t.id = e.entity_type_id AND NOT t.is_connector
-          JOIN core.layers l ON l.id = t.layer_id
+          JOIN core.domains l ON l.id = t.domain_id
           LEFT JOIN core.entities p ON p.id = e.parent_entity_id
          WHERE e.model_id = :m AND NOT e.is_deleted {where} ORDER BY e.display_id, e.name"""),
         {"m": m["_id"], "t": table["type"]}).mappings().all()

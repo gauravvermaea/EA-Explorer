@@ -11,7 +11,7 @@ KEY = "togaf10-content-metamodel-1.0"
 NAME = "TOGAF 10 content metamodel"
 
 # in the ArchiMate 4 notation's colours (D392); Data takes Application's blue and Governance Motivation's purple (owner)
-LAYERS = [("Motivation", "D1BADC"), ("Strategy", "EFBD5D"), ("Business", "ECD678"), ("Data", "B0D0D9"), ("Application", "B0D0D9"),
+DOMAINS = [("Motivation", "D1BADC"), ("Strategy", "EFBD5D"), ("Business", "ECD678"), ("Data", "B0D0D9"), ("Application", "B0D0D9"),
           ("Technology", "BBD8AD"), ("Implementation and Migration", "F1BBB7"), ("Governance", "D1BADC")]
 
 # (code, name, domain, ID prefix, content framework area, description)
@@ -129,12 +129,12 @@ def sql(gid, insert, snake, empty_id: str) -> str:
             "and governance, each placed in the content framework, and the relationships the content metamodel allows. "
             "Read-only; the TOGAF 10 project base points to it, and models start from it.",
             "template", empty_id, NAME, True, "EA Explorer", "10"]]),
-        insert("layer", ["id", "model_id", "code", "name", "colour", "sort_order"],
-               [[gid(k, "layer", n), m, snake(n), n, c, i * 10] for i, (n, c) in enumerate(LAYERS, 1)]),
-        insert("entity_type", ["id", "model_id", "layer_id", "code", "name", "description", "id_prefix", "table_name", "content_area",
+        insert("domain", ["id", "model_id", "code", "name", "colour", "sort_order"],
+               [[gid(k, "layer", n), m, snake(n), n, c, i * 10] for i, (n, c) in enumerate(DOMAINS, 1)]),
+        insert("entity_type", ["id", "model_id", "domain_id", "code", "name", "description", "id_prefix", "table_name", "content_area",
                                "sort_order", "notation"],
-               [[gid(k, "entity_type", c), m, gid(k, "layer", lay), c, n, d, pre, snake(c), area, i * 10, NOTATION.get(c, "")]
-                for i, (c, n, lay, pre, area, d) in enumerate(TYPES, 1)]),
+               [[gid(k, "entity_type", c), m, gid(k, "layer", dom), c, n, d, pre, snake(c), area, i * 10, NOTATION.get(c, "")]
+                for i, (c, n, dom, pre, area, d) in enumerate(TYPES, 1)]),
         insert("relationship_type", ["id", "model_id", "code", "name", "verb", "category", "is_directed", "sort_order"],
                [[gid(k, "relationship_type", c), m, c, c, v, cat, directed, i * 10] for i, (c, v, cat, directed) in enumerate(RELS, 1)]),
         insert("allowed_relationship", ["id", "model_id", "relationship_type_id", "source_type_id", "target_type_id"],

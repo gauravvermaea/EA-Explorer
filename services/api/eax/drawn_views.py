@@ -208,7 +208,7 @@ def _entities(conn, m: dict, ids: list[str]) -> dict[str, dict]:
                                  t.name AS type_name, t.notation, t.fill_colour, t.is_connector, l.colour AS domain_colour,
                                  l.name AS domain, i.content_type AS icon_type, i.content AS icon
                             FROM core.entities e JOIN core.entity_types t ON t.id = e.entity_type_id
-                            JOIN core.layers l ON l.id = t.layer_id
+                            JOIN core.domains l ON l.id = t.domain_id
                             LEFT JOIN core.entity_icons i ON i.entity_id = e.id
                            WHERE e.model_id = :m AND e.guid = ANY(CAST(:ids AS uuid[]))""", m=m["_id"], ids=ids)
     kinds = {r["entity_id"]: r["v"] for r in _rows(conn, """
@@ -364,7 +364,7 @@ def setup(conn, model: Any, user, view: Any = None) -> dict:
     types = {}
     rows = _rows(conn, """SELECT t.code, t.name, t.notation, t.fill_colour, t.is_connector, t.description, t.sort_order,
                                  l.name AS domain, l.colour AS domain_colour
-                            FROM core.entity_types t JOIN core.layers l ON l.id = t.layer_id
+                            FROM core.entity_types t JOIN core.domains l ON l.id = t.domain_id
                            WHERE t.model_id = :m AND NOT t.is_deleted""", m=m["_id"])
     for r in sorted(rows, key=lambda r: (stencil_domain_key(r["domain"]), r["sort_order"] or 0, r["name"])):
         if r["is_connector"]:

@@ -149,7 +149,7 @@ def render(conn, model: Any, definition: dict) -> dict:
     ents = _rows(conn, """
         SELECT e.id AS _id, e.guid AS id, e.display_id, e.name, e.description, t.code AS type_code, t.name AS entity_type,
                t.guid AS entity_type_id, l.name AS domain, l.colour, l.sort_order AS domain_order, pe.name AS parent
-          FROM core.entities e JOIN core.entity_types t ON t.id = e.entity_type_id JOIN core.layers l ON l.id = t.layer_id
+          FROM core.entities e JOIN core.entity_types t ON t.id = e.entity_type_id JOIN core.domains l ON l.id = t.domain_id
           LEFT JOIN core.entities pe ON pe.id = e.parent_entity_id
          WHERE e.model_id = :m AND NOT e.is_deleted AND t.code = ANY (:types)
          ORDER BY l.sort_order, t.name, e.name""", m=m["_id"], types=list(vp["element_types"]))

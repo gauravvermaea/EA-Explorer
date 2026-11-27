@@ -135,7 +135,7 @@ def lit(v) -> str:
 # Foreign-key columns and the table they point at. The seed names every row by its guid; the
 # bigint keys are looked up by guid when the rows are inserted.
 FOREIGN_KEYS = {
-    "model_id": "model", "parent_model_id": "model", "source_model_id": "model", "layer_id": "layer",
+    "model_id": "model", "parent_model_id": "model", "source_model_id": "model", "domain_id": "domain",
     "entity_type_id": "entity_type", "source_type_id": "entity_type", "target_type_id": "entity_type",
     "relationship_type_id": "relationship_type", "pick_list_id": "pick_list",
     "attribute_type_id": "attribute_type", "entity_id": "entity", "source_entity_id": "entity",
@@ -147,7 +147,7 @@ RENAMED = {"id": "guid", "origin_id": "origin_guid"}
 # The seed names things in the singular (also in its guid keys, which must never change); the
 # database tables are plural.
 TABLES = {
-    "model": "models", "layer": "layers", "entity_type": "entity_types",
+    "model": "models", "domain": "domains", "entity_type": "entity_types",
     "relationship_type": "relationship_types", "pick_list": "pick_lists", "pick_list_value": "pick_list_values",
     "attribute_type": "attribute_types", "item_attribute": "item_attributes",
     "validation_rule": "validation_rules", "allowed_relationship": "allowed_relationships",
@@ -214,12 +214,12 @@ def metamodel_sql(model_key: str, origin_key: str | None, missing_only: bool = F
         return gid(model_key, *parts), (gid(origin_key, *parts) if origin_key else None)
 
     out = []
-    # domains (core.layers)
+    # domains (core.domains)
     rows = []
     for i, (domain, colour) in enumerate(A.DOMAIN_COLOURS.items(), 1):
-        i_d, o = ids("layer", domain)
+        i_d, o = ids("layer", domain)  # "layer" kept: the ids derive from it, a new key gives every domain a new id (D959)
         rows.append([i_d, o, m, snake(domain), domain, colour, i * 10])
-    out.append(insert("layer", ["id", "origin_id", "model_id", "code", "name", "colour", "sort_order"], rows))
+    out.append(insert("domain", ["id", "origin_id", "model_id", "code", "name", "colour", "sort_order"], rows))
 
     # entity types
     rows = []
@@ -227,7 +227,7 @@ def metamodel_sql(model_key: str, origin_key: str | None, missing_only: bool = F
         i_d, o = ids("entity_type", code)
         rows.append([i_d, o, m, gid(model_key, "layer", domain), code, name, A.EXTENSION_DESCRIPTIONS.get(code, ""), aspect, prefix,
                      snake(code), i * 10, notation.default_notation(code), code in A.CONNECTOR_TYPES])
-    out.append(insert("entity_type", ["id", "origin_id", "model_id", "layer_id", "code", "name", "description", "aspect",
+    out.append(insert("entity_type", ["id", "origin_id", "model_id", "domain_id", "code", "name", "description", "aspect",
                                       "id_prefix", "table_name", "sort_order", "notation", "is_connector"], rows))
 
     # relationship types
@@ -886,7 +886,7 @@ def lean_sql() -> str:
     types and two attributes; and Karoo Digital, a project model created from it with a little content.
     The root is not locked: its Model Admin (user_model_creator on laptops) changes it."""
     k, p = LEAN_KEY, LEAN_PROJECT_KEY
-    layers = [(d, A.DOMAIN_COLOURS[d].lower()) for d in ("Business", "Application", "Technology")]
+    domains = [(d, A.DOMAIN_COLOURS[d].lower()) for d in ("Business", "Application", "Technology")]
     types = [("Capability", "Capability", "Business", "CAP"), ("BusinessProcess", "Business Process", "Business", "PRC"),
              ("Application", "Application", "Application", "APP"), ("DataEntity", "Data Entity", "Application", "DAT"),
              ("Platform", "Platform", "Technology", "PLT")]
@@ -900,11 +900,11 @@ def lean_sql() -> str:
     def metamodel(key, origin):
         m = gid("model", key)
         o = (lambda *x: gid(origin, *x)) if origin else (lambda *x: None)
-        out = [insert("layer", ["id", "origin_id", "model_id", "code", "name", "colour", "sort_order"],
-                      [[gid(key, "layer", n), o("layer", n), m, snake(n), n, c, i * 10] for i, (n, c) in enumerate(layers, 1)])]
-        out.append(insert("entity_type", ["id", "origin_id", "model_id", "layer_id", "code", "name", "id_prefix", "table_name", "sort_order"],
-                          [[gid(key, "entity_type", c), o("entity_type", c), m, gid(key, "layer", lay), c, n, pre, snake(c), i * 10]
-                           for i, (c, n, lay, pre) in enumerate(types, 1)]))
+        out = [insert("domain", ["id", "origin_id", "model_id", "code", "name", "colour", "sort_order"],
+                      [[gid(key, "layer", n), o("layer", n), m, snake(n), n, c, i * 10] for i, (n, c) in enumerate(domains, 1)])]
+        out.append(insert("entity_type", ["id", "origin_id", "model_id", "domain_id", "code", "name", "id_prefix", "table_name", "sort_order"],
+                          [[gid(key, "entity_type", c), o("entity_type", c), m, gid(key, "layer", dom), c, n, pre, snake(c), i * 10]
+                           for i, (c, n, dom, pre) in enumerate(types, 1)]))
         out.append(insert("relationship_type", ["id", "origin_id", "model_id", "code", "name", "verb", "category", "is_directed", "sort_order"],
                           [[gid(key, "relationship_type", c), o("relationship_type", c), m, c, c, v, cat, True, i * 10]
                            for i, (c, v, cat) in enumerate(rels, 1)]))
@@ -996,9 +996,9 @@ def principles_sql() -> str:
             "implications, category, source). Created from ArchiMate 4. Read-only: projects take their principles from it "
             "and add their own in their own models.",
             "reference", TEMPLATE_ID, "Principles 1.0", True, "EA Explorer", "1.0"]]),
-        insert("layer", ["id", "origin_id", "model_id", "code", "name", "colour", "sort_order"],
+        insert("domain", ["id", "origin_id", "model_id", "code", "name", "colour", "sort_order"],
                [[gid(k, "layer", "Motivation"), gid(o, "layer", "Motivation"), m, "motivation", "Motivation", A.DOMAIN_COLOURS["Motivation"], 10]]),
-        insert("entity_type", ["id", "origin_id", "model_id", "layer_id", "code", "name", "aspect", "id_prefix", "table_name", "sort_order"],
+        insert("entity_type", ["id", "origin_id", "model_id", "domain_id", "code", "name", "aspect", "id_prefix", "table_name", "sort_order"],
                [[gid(k, "entity_type", "Principle"), gid(o, "entity_type", "Principle"), m, gid(k, "layer", "Motivation"), "Principle",
                  "Principle", "Motivation", "PRI", "principle", 10]]),
         insert("relationship_type", ["id", "origin_id", "model_id", "code", "name", "verb", "category", "is_directed", "sort_order"],

@@ -127,7 +127,7 @@ def _coverage(conn, model_id: int) -> tuple[int, int, list[str]]:
           JOIN core.relationships r ON (r.source_entity_id = c.id OR r.target_entity_id = c.id) AND NOT r.is_deleted
           JOIN core.entities o ON o.id = CASE WHEN r.source_entity_id = c.id THEN r.target_entity_id ELSE r.source_entity_id END
                               AND NOT o.is_deleted
-          JOIN core.entity_types ot ON ot.id = o.entity_type_id JOIN core.layers l ON l.id = ot.layer_id
+          JOIN core.entity_types ot ON ot.id = o.entity_type_id JOIN core.domains l ON l.id = ot.domain_id
          WHERE c.model_id = :m AND c.id = ANY (CAST(:ids AS bigint[])) AND l.name = ANY (CAST(:d AS text[]))""",
                                         m=model_id, ids=[c["id"] for c in caps], d=list(DOMAINS_THAT_COVER))}
     return len(caps), len(covered), sorted(c["name"] for c in caps if c["id"] not in covered)

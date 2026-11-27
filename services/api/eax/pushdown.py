@@ -25,7 +25,7 @@ from . import metamodel_edit as ed
 from . import repository as repo
 from .notify import _one, _rows
 
-TABLES = ("entity_types", "relationship_types", "attribute_types", "item_attributes", "layers", "pick_lists",
+TABLES = ("entity_types", "relationship_types", "attribute_types", "item_attributes", "domains", "pick_lists",
           "pick_list_values", "validation_rules", "allowed_relationships")
 
 

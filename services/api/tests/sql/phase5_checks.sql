@@ -54,8 +54,8 @@ BEGIN
     SELECT id INTO v_model FROM core.models WHERE name = 'Karoo Re (independent)' AND NOT is_deleted;
     IF v_model IS NULL THEN RAISE EXCEPTION 'the laptop test model Karoo Re is missing (load the sample)'; END IF;
     PERFORM set_config('eax.rls_bypass', 'on', true);
-    INSERT INTO core.entity_types (model_id, layer_id, code, name, table_name, id_prefix)
-    SELECT v_model, layer_id, 'Phase5CheckType', 'Phase 5 check type', 'phase5_check_type', 'P5C'
+    INSERT INTO core.entity_types (model_id, domain_id, code, name, table_name, id_prefix)
+    SELECT v_model, domain_id, 'Phase5CheckType', 'Phase 5 check type', 'phase5_check_type', 'P5C'
       FROM core.entity_types WHERE model_id = v_model AND NOT is_deleted LIMIT 1
     RETURNING id INTO v_type;
     PERFORM rpt.refresh_typed_views();

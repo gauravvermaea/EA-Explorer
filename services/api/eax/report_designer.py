@@ -86,7 +86,7 @@ def choices(conn, model: Any) -> dict:
     and the relationship types each type has with others (both ways), from the model's allowed relationships."""
     m = repo.get_model(conn, model)
     types = _maps(conn.execute(text("""
-        SELECT t.id, t.code, t.name, l.name AS domain FROM core.entity_types t JOIN core.layers l ON l.id = t.layer_id
+        SELECT t.id, t.code, t.name, l.name AS domain FROM core.entity_types t JOIN core.domains l ON l.id = t.domain_id
          WHERE t.model_id = :m AND NOT t.is_deleted AND NOT t.is_connector AND t.status_code <> 'retired'
          ORDER BY l.sort_order, t.sort_order, t.name"""), {"m": m["_id"]}))
     attrs: dict[int, list[dict]] = {}

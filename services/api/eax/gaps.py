@@ -169,11 +169,11 @@ def _store_items(conn, analysis_id: int, result: dict, user) -> None:
     for i in result["items"]:
         k = _key(i)
         keys.append(k)
-        _exec(conn, """INSERT INTO core.gap_items (analysis_id, match_key, entity_type, entity_type_name, layer, name, status,
+        _exec(conn, """INSERT INTO core.gap_items (analysis_id, match_key, entity_type, entity_type_name, domain, name, status,
                                                    baseline_guid, baseline_name, target_guid, target_name, changes, gone)
                        VALUES (:a, :k, :t, :tn, :l, :n, :s, CAST(:bg AS uuid), :bn, CAST(:tg AS uuid), :tgn, CAST(:c AS jsonb), false)
                        ON CONFLICT (analysis_id, match_key) DO UPDATE SET entity_type = EXCLUDED.entity_type,
-                           entity_type_name = EXCLUDED.entity_type_name, layer = EXCLUDED.layer, name = EXCLUDED.name,
+                           entity_type_name = EXCLUDED.entity_type_name, domain = EXCLUDED.domain, name = EXCLUDED.name,
                            status = EXCLUDED.status, baseline_name = EXCLUDED.baseline_name, target_name = EXCLUDED.target_name,
                            changes = EXCLUDED.changes, gone = false""",
               a=analysis_id, k=k, t=i["entity_type"], tn=i["entity_type_name"], l=i["domain"] or "", n=i["name"], s=i["status"],
@@ -186,7 +186,7 @@ def _store_items(conn, analysis_id: int, result: dict, user) -> None:
 def _new_run(conn, analysis_id: int, user) -> int:
     """Keeps this result of the analysis as its next numbered run."""
     a = _one(conn, "SELECT baseline, target FROM core.gap_analyses WHERE id = :i", i=analysis_id)
-    items = _rows(conn, """SELECT match_key AS key, entity_type, entity_type_name, layer AS domain, name, status, resolution, note, changes
+    items = _rows(conn, """SELECT match_key AS key, entity_type, entity_type_name, domain, name, status, resolution, note, changes
                              FROM core.gap_items WHERE analysis_id = :a AND NOT gone ORDER BY id""", a=analysis_id)
     for i in items:
         i["changes"] = cm._json(i["changes"])
@@ -260,12 +260,12 @@ def get(conn, model: Any, analysis: Any) -> dict:
     """One gap analysis with its items."""
     m = repo.get_model(conn, model)
     a = _analysis(conn, m, analysis)
-    items = _rows(conn, """SELECT i.guid AS id, i.entity_type, i.entity_type_name, i.layer AS domain, i.name, i.status, i.baseline_guid,
+    items = _rows(conn, """SELECT i.guid AS id, i.entity_type, i.entity_type_name, i.domain, i.name, i.status, i.baseline_guid,
                                   i.baseline_name, i.target_guid, i.target_name, i.changes, i.note, i.resolution, i.work_packages,
                                   i.gap_entity, i.gone, i.modified_by, i.modified_at
                              FROM core.gap_items i WHERE i.analysis_id = :a
                             ORDER BY i.gone, CASE i.status WHEN 'new' THEN 1 WHEN 'eliminated' THEN 2 WHEN 'changed' THEN 3 ELSE 4 END,
-                                     i.layer, i.entity_type_name, lower(i.name)""", a=a["id"])
+                                     i.domain, i.entity_type_name, lower(i.name)""", a=a["id"])
     here = {str(r["guid"]): r for r in _rows(conn, """SELECT guid, name, is_deleted FROM core.entities WHERE model_id = :m
                                                        AND (guid = ANY (CAST(:g AS uuid[])))""",
                                               m=m["_id"], g=list({str(x) for i in items for x in [i["baseline_guid"], i["target_guid"],

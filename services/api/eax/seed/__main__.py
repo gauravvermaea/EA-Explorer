@@ -55,7 +55,7 @@ def recolour_domains(conn) -> None:
     conn.execute("SELECT set_config('eax.actor', 'system:seed', true)")
     n = 0
     for name, old, new in pairs:
-        n += conn.execute("""UPDATE core.layers l SET colour = %s
+        n += conn.execute("""UPDATE core.domains l SET colour = %s
                               WHERE l.name = %s AND upper(l.colour) = %s
                                 AND NOT EXISTS (SELECT 1 FROM core.models m WHERE m.id = l.model_id
                                                  AND coalesce(m.lock_level, '') IN ('metamodel', 'content', 'maintenance'))""",

@@ -41,7 +41,7 @@ def conn(monkeypatch):
     c.execute(text("SELECT set_config('eax.rls_bypass', 'on', true)"))
     permissions.current.set(SA)
     m = c.execute(text("INSERT INTO core.models (name, kind_code) VALUES ('Discovery target', 'project') RETURNING id, guid")).first()
-    c.execute(text("INSERT INTO core.layers (model_id, code, name) VALUES (:m, 'app', 'Application')"), {"m": m.id})
+    c.execute(text("INSERT INTO core.domains (model_id, code, name) VALUES (:m, 'app', 'Application')"), {"m": m.id})
     from eax import metamodel_edit as me
     me.apply(c, str(m.guid), "entity_type.create", {"name": "Application", "domain": "app"}, "sue_admin")
     c.model = str(m.guid)
