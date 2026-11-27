@@ -841,6 +841,7 @@ from . import (  # noqa: E402,F401
     mcp_discovery,
     mcp_docs,
     mcp_iterations,
+    mcp_monte_carlo,
     mcp_more,
     mcp_operations,
     mcp_ops,

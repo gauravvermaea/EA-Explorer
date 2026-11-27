@@ -53,7 +53,7 @@ $$;
 
 CREATE FUNCTION rpt.f_entities() RETURNS TABLE (
     model_id bigint, model_name text, entity_id bigint, entity_guid uuid, display_id text, name text, description text,
-    entity_type_code text, entity_type text, layer_code text, layer text, parent_id bigint, parent_name text, status text,
+    entity_type_code text, entity_type text, type_domain_code text, type_domain text, parent_id bigint, parent_name text, status text,
     origin_guid uuid, created_at timestamptz, created_by text, modified_at timestamptz, modified_by text, link text)
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = pg_catalog, core AS $$
 BEGIN
@@ -63,7 +63,7 @@ BEGIN
            e.parent_entity_id, pe.name, e.status_code, e.origin_guid, e.created_at, e.created_by, e.modified_at, e.modified_by,
            '#/metamodel/' || m.guid || '/entity/' || e.guid
       FROM core.entities e JOIN core.models m ON m.id = e.model_id AND NOT m.is_deleted
-      JOIN core.entity_types t ON t.id = e.entity_type_id JOIN core.layers l ON l.id = t.layer_id
+      JOIN core.entity_types t ON t.id = e.entity_type_id JOIN core.domains l ON l.id = t.domain_id
       LEFT JOIN core.entities pe ON pe.id = e.parent_entity_id
      WHERE NOT e.is_deleted;
     PERFORM set_config('eax.rls_bypass', '', true);
@@ -157,7 +157,7 @@ CREATE FUNCTION rpt.snake(p text) RETURNS text LANGUAGE sql IMMUTABLE AS $$
 $$;
 
 CREATE FUNCTION rpt.f_catalogue() RETURNS TABLE (
-    model_id bigint, model_name text, layer text, entity_type_code text, entity_type text, report_view text,
+    model_id bigint, model_name text, domain text, entity_type_code text, entity_type text, report_view text,
     attribute_code text, attribute text, data_type text, pick_list text, pick_list_values text, required boolean, report_column text)
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = pg_catalog, core AS $$
 BEGIN
@@ -168,7 +168,7 @@ BEGIN
              WHERE pv.pick_list_id = pl.id AND NOT pv.is_deleted),
            i.is_required, rpt.snake(a.code)
       FROM core.entity_types t JOIN core.models m ON m.id = t.model_id AND NOT m.is_deleted
-      JOIN core.layers l ON l.id = t.layer_id
+      JOIN core.domains l ON l.id = t.domain_id
       LEFT JOIN core.item_attributes i ON i.entity_type_id = t.id AND NOT i.is_deleted
       LEFT JOIN core.attribute_types a ON a.id = i.attribute_type_id
       LEFT JOIN core.pick_lists pl ON pl.id = a.pick_list_id
@@ -470,7 +470,7 @@ SELECT e.model_id, e.model_name, e.entity_type, e.display_id, e.name, coalesce(n
 -- SR-27 orphans: entities with no relationship, no parent and no children (the Failing checks screen lists
 -- the required relationships that are missing)
 CREATE VIEW rpt.sr27_orphans AS
-SELECT e.model_id, e.model_name, e.layer, e.entity_type, e.display_id, e.name, e.parent_name AS parent, e.modified_at,
+SELECT e.model_id, e.model_name, e.type_domain AS domain, e.entity_type, e.display_id, e.name, e.parent_name AS parent, e.modified_at,
        e.modified_by, e.link
   FROM rpt.entities e
  WHERE NOT EXISTS (SELECT 1 FROM rpt.relationships r WHERE r.source_id = e.entity_id OR r.target_id = e.entity_id)
@@ -555,11 +555,11 @@ SELECT v AS medium_from, v AS high_from, v AS red_within, v AS amber_within
 
 -- ---------------------------------------------------------------- model overview (MOD-010) and heatmaps (RPT-006)
 CREATE VIEW rpt.mo_type_counts AS
-SELECT m.model_id, m.model_name, m.model_kind, l.layer, l.entity_type, count(e.entity_id) AS entities
+SELECT m.model_id, m.model_name, m.model_kind, l.domain, l.entity_type, count(e.entity_id) AS entities
   FROM rpt.models m
-  JOIN (SELECT DISTINCT model_id, layer, entity_type FROM rpt.catalogue) l ON l.model_id = m.model_id
+  JOIN (SELECT DISTINCT model_id, domain, entity_type FROM rpt.catalogue) l ON l.model_id = m.model_id
   LEFT JOIN rpt.entities e ON e.model_id = m.model_id AND e.entity_type = l.entity_type
- GROUP BY m.model_id, m.model_name, m.model_kind, l.layer, l.entity_type;
+ GROUP BY m.model_id, m.model_name, m.model_kind, l.domain, l.entity_type;
 
 CREATE VIEW rpt.mo_recent_changes AS
 SELECT c.model_id, m.model_name, c.at, c.changed_by, c.kind, c.operation, e.name AS entity, e.entity_type, c.label
@@ -598,7 +598,7 @@ DECLARE
     v_changed integer := 0;
     v_wanted text[] := ARRAY[]::text[];
     v_base text[] := ARRAY['model_id', 'model_name', 'entity_id', 'entity_guid', 'display_id', 'name', 'description', 'entity_type_code',
-                           'entity_type', 'layer_code', 'layer', 'parent_id', 'parent_name', 'status', 'origin_guid', 'created_at',
+                           'entity_type', 'type_domain_code', 'type_domain', 'parent_id', 'parent_name', 'status', 'origin_guid', 'created_at',
                            'created_by', 'modified_at', 'modified_by', 'link'];
 BEGIN
     PERFORM pg_advisory_xact_lock(hashtext('rpt.refresh_typed_views'));

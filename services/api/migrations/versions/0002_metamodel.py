@@ -42,7 +42,7 @@ def downgrade() -> None:
         DROP TABLE IF EXISTS core.attribute_values, core.relationships, core.entities,
             core.display_id_counters, core.allowed_relationships, core.validation_rules,
             core.item_attributes, core.attribute_types, core.pick_list_values, core.pick_lists,
-            core.relationship_types, core.entity_types, core.layers, core.models,
+            core.relationship_types, core.entity_types, core.domains, core.models,
             core.rule_types, core.data_types, core.model_kinds, core.item_statuses CASCADE;
         DROP TABLE IF EXISTS history.row_versions CASCADE;
         DROP FUNCTION IF EXISTS core.current_actor(), core.stamp_row(), core.can_read_model(uuid),

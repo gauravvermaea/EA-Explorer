@@ -217,7 +217,7 @@ def metamodel_sql(model_key: str, origin_key: str | None, missing_only: bool = F
     # domains (core.domains)
     rows = []
     for i, (domain, colour) in enumerate(A.DOMAIN_COLOURS.items(), 1):
-        i_d, o = ids("layer", domain)  # "layer" kept: the ids derive from it, a new key gives every domain a new id (D959)
+        i_d, o = ids("domain", domain)
         rows.append([i_d, o, m, snake(domain), domain, colour, i * 10])
     out.append(insert("domain", ["id", "origin_id", "model_id", "code", "name", "colour", "sort_order"], rows))
 
@@ -225,7 +225,7 @@ def metamodel_sql(model_key: str, origin_key: str | None, missing_only: bool = F
     rows = []
     for i, (code, name, domain, aspect, prefix) in enumerate(A.ENTITY_TYPES, 1):
         i_d, o = ids("entity_type", code)
-        rows.append([i_d, o, m, gid(model_key, "layer", domain), code, name, A.EXTENSION_DESCRIPTIONS.get(code, ""), aspect, prefix,
+        rows.append([i_d, o, m, gid(model_key, "domain", domain), code, name, A.EXTENSION_DESCRIPTIONS.get(code, ""), aspect, prefix,
                      snake(code), i * 10, notation.default_notation(code), code in A.CONNECTOR_TYPES])
     out.append(insert("entity_type", ["id", "origin_id", "model_id", "domain_id", "code", "name", "description", "aspect",
                                       "id_prefix", "table_name", "sort_order", "notation", "is_connector"], rows))
@@ -901,9 +901,9 @@ def lean_sql() -> str:
         m = gid("model", key)
         o = (lambda *x: gid(origin, *x)) if origin else (lambda *x: None)
         out = [insert("domain", ["id", "origin_id", "model_id", "code", "name", "colour", "sort_order"],
-                      [[gid(key, "layer", n), o("layer", n), m, snake(n), n, c, i * 10] for i, (n, c) in enumerate(domains, 1)])]
+                      [[gid(key, "domain", n), o("domain", n), m, snake(n), n, c, i * 10] for i, (n, c) in enumerate(domains, 1)])]
         out.append(insert("entity_type", ["id", "origin_id", "model_id", "domain_id", "code", "name", "id_prefix", "table_name", "sort_order"],
-                          [[gid(key, "entity_type", c), o("entity_type", c), m, gid(key, "layer", dom), c, n, pre, snake(c), i * 10]
+                          [[gid(key, "entity_type", c), o("entity_type", c), m, gid(key, "domain", dom), c, n, pre, snake(c), i * 10]
                            for i, (c, n, dom, pre) in enumerate(types, 1)]))
         out.append(insert("relationship_type", ["id", "origin_id", "model_id", "code", "name", "verb", "category", "is_directed", "sort_order"],
                           [[gid(key, "relationship_type", c), o("relationship_type", c), m, c, c, v, cat, True, i * 10]
@@ -997,9 +997,9 @@ def principles_sql() -> str:
             "and add their own in their own models.",
             "reference", TEMPLATE_ID, "Principles 1.0", True, "EA Explorer", "1.0"]]),
         insert("domain", ["id", "origin_id", "model_id", "code", "name", "colour", "sort_order"],
-               [[gid(k, "layer", "Motivation"), gid(o, "layer", "Motivation"), m, "motivation", "Motivation", A.DOMAIN_COLOURS["Motivation"], 10]]),
+               [[gid(k, "domain", "Motivation"), gid(o, "domain", "Motivation"), m, "motivation", "Motivation", A.DOMAIN_COLOURS["Motivation"], 10]]),
         insert("entity_type", ["id", "origin_id", "model_id", "domain_id", "code", "name", "aspect", "id_prefix", "table_name", "sort_order"],
-               [[gid(k, "entity_type", "Principle"), gid(o, "entity_type", "Principle"), m, gid(k, "layer", "Motivation"), "Principle",
+               [[gid(k, "entity_type", "Principle"), gid(o, "entity_type", "Principle"), m, gid(k, "domain", "Motivation"), "Principle",
                  "Principle", "Motivation", "PRI", "principle", 10]]),
         insert("relationship_type", ["id", "origin_id", "model_id", "code", "name", "verb", "category", "is_directed", "sort_order"],
                [[gid(k, "relationship_type", "Association"), gid(o, "relationship_type", "Association"), m, "Association", "Association",

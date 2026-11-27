@@ -418,10 +418,10 @@ BEGIN
     END IF;
     PERFORM set_config('eax.copy_into', p_dst::text, true);
 
-    INSERT INTO core.layers (model_id, code, name, description, colour, sort_order, origin_guid, status_code)
+    INSERT INTO core.domains (model_id, code, name, description, colour, sort_order, origin_guid, status_code)
     SELECT p_dst, code, name, description, colour, sort_order, guid, status_code
-      FROM core.layers WHERE model_id = p_src AND NOT is_deleted;
-    GET DIAGNOSTICS c = ROW_COUNT; n := n || jsonb_build_object('layers', c);
+      FROM core.domains WHERE model_id = p_src AND NOT is_deleted;
+    GET DIAGNOSTICS c = ROW_COUNT; n := n || jsonb_build_object('domains', c);
 
     INSERT INTO core.pick_lists (model_id, code, name, description, origin_guid, status_code)
     SELECT p_dst, code, name, description, guid, status_code FROM core.pick_lists WHERE model_id = p_src AND NOT is_deleted;
@@ -433,11 +433,11 @@ BEGIN
            (SELECT guid FROM core.pick_lists WHERE id = v.pick_list_id)
      WHERE v.model_id = p_src AND NOT v.is_deleted;
 
-    INSERT INTO core.entity_types (model_id, layer_id, code, name, description, aspect, id_prefix, table_name, sort_order,
+    INSERT INTO core.entity_types (model_id, domain_id, code, name, description, aspect, id_prefix, table_name, sort_order,
                                    origin_guid, status_code)
     SELECT p_dst, dl.id, t.code, t.name, t.description, t.aspect, t.id_prefix, t.table_name, t.sort_order, t.guid, t.status_code
-      FROM core.entity_types t JOIN core.layers sl ON sl.id = t.layer_id
-      JOIN core.layers dl ON dl.model_id = p_dst AND dl.origin_guid = sl.guid
+      FROM core.entity_types t JOIN core.domains sl ON sl.id = t.domain_id
+      JOIN core.domains dl ON dl.model_id = p_dst AND dl.origin_guid = sl.guid
      WHERE t.model_id = p_src AND NOT t.is_deleted;
     GET DIAGNOSTICS c = ROW_COUNT; n := n || jsonb_build_object('entity_types', c);
 
@@ -587,7 +587,7 @@ CREATE TABLE core.metamodel_draft_comments (
     guid        uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
     draft_id    bigint NOT NULL REFERENCES core.metamodel_drafts (id) ON DELETE CASCADE,
     round       integer NOT NULL,
-    section     text CHECK (section IS NULL OR section IN ('layers', 'pick_lists', 'attributes', 'entity_types',
+    section     text CHECK (section IS NULL OR section IN ('domains', 'pick_lists', 'attributes', 'entity_types',
                                                          'relationship_types', 'allowed', 'rules')),
     item_code   text,                                  -- the item's code (allowed and rules: a readable key)
     body        text NOT NULL CHECK (body <> ''),

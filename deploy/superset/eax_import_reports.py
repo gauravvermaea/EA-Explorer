@@ -7,7 +7,7 @@ a time, so one that fails does not stop the others. A dashboard whose zip has no
 import (same SHA-256, kept in superset_home) and still in Superset is skipped, so later starts are quick.
 
 Importing a dashboard does not change a dataset Superset has already (D946; run 20, 26 Nov 2026: DR-01's dataset kept
-its old SQL, "layer AS domain", after the database function's column became domain, and three dashboards failed). So each
+its old SQL, its column under its old name, after the database function's column became domain, and three dashboards failed). So each
 dashboard imported is followed by its datasets, imported on their own and overwritten. RULES is part of each stamp: when
 how a dashboard is imported changes, every dashboard is imported again once, whatever its zip.
 """

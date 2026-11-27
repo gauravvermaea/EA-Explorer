@@ -8,6 +8,7 @@
 // Deliverables are signed off (D276); a finished project is frozen, or merged into another (D277).
 import OtherDocsTab from "./OtherDocs";
 import ScenarioPlanningTab from "./ScenarioPlanning";
+import MonteCarloTab from "./MonteCarlo";
 import SprintsTab from "./Sprints";
 import ProjectPlanTab from "./ProjectPlan";
 import ScenariosTab from "./Scenarios";
@@ -1899,7 +1900,7 @@ function Review({ d, lib, purpose, problems }) {
 const TABS = [["home", "Home"], ["phases", "Phases"], ["report", "Project report"], ["base", "Base"], ["charter", "Charter"], ["archrepo", "Enterprise Repository (Project Scope)"], ["content", "Content framework"],
   ["tasks", "Tasks"], ["models", "Models"], ["organisation", "Organisation"], ["stakeholders", "Stakeholders"], ["questions", "Key questions"], ["canvas", "Business model canvas"], ["journeys", "Customer journeys"], ["business", "Business artifacts"], ["otherdocs", "Other views and documents"], ["principles", "Principles"],
   ["standards", "Standards"], ["governance", "Governance log"], ["library", "Library"], ["views", "Views"], ["reports", "Model reports"], ["quality", "Quality"], ["calendar", "Calendar"], ["sheets", "Sheets"],
-  ["analysis", "Gaps and comparison"], ["scenarios", "Scenarios"], ["planning", "Scenario planning"], ["sprints", "Sprints"], ["projectplan", "Project plan"], ["signoff", "Sign-off"]];
+  ["analysis", "Gaps and comparison"], ["scenarios", "Scenarios"], ["planning", "Scenario planning"], ["montecarlo", "Monte Carlo"], ["sprints", "Sprints"], ["projectplan", "Project plan"], ["signoff", "Sign-off"]];
 
 // the project page's groups (D478), the same in the Grouped and Menu styles
 const PROJECT_GROUPS = [
@@ -1907,7 +1908,7 @@ const PROJECT_GROUPS = [
   ["plan", "Plan", "◷", ["phases", "projectplan", "sprints", "charter", "base"]],
   ["business", "Business", "◎", ["organisation", "stakeholders", "questions", "canvas", "journeys", "business"]],
   // the project's repository and its content framework side by side (owner, 11 Nov 2026, R2.0: "arch repo and content f/w will be top level and in project both")
-  ["architecture", "Architecture", "◫", ["archrepo", "content", "models", "views", "reports", "quality", "analysis", "scenarios"]],
+  ["architecture", "Architecture", "◫", ["archrepo", "content", "models", "views", "reports", "quality", "analysis", "scenarios", "montecarlo"]],
   ["governance", "Governance", "⚖", ["principles", "standards", "governance"]],
   ["documents", "Documents", "▤", ["library", "otherdocs", "sheets"]],
 ];
@@ -1994,6 +1995,7 @@ function ProjectPage({ id, tab, sub }) {
         {["analysis", "gaps", "compare"].includes(tab) && <AnalysisTab p={p} start={tab} />}
         {tab === "scenarios" && <ScenariosTab p={p} />}
         {tab === "planning" && <ScenarioPlanningTab p={p} />}
+        {tab === "montecarlo" && <MonteCarloTab p={p} sub={sub} />}
         {tab === "sprints" && p.agile && <SprintsTab p={p} />}
         {tab === "projectplan" && <ProjectPlanTab p={p} />}
       </div>

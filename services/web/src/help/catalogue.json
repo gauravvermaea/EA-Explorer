@@ -4342,5 +4342,35 @@
   "field:OCR runs from": "When Documents may start reading scanned pages each day (HH:MM, local), 22:00 say. Empty, with until empty too: any time.",
   "field:OCR runs until": "When Documents stops reading scanned pages (HH:MM, local; may be past midnight, 06:00 say). Pages left wait for the next window.",
   "field:until": "When Documents stops reading scanned pages (HH:MM, local; may be past midnight). Empty, with From empty too: any time.",
-  "button:Save the window": "Keeps the times Documents may read scanned pages in. Outside them the pages waiting are held; reading carries on in the next window."
+  "button:Save the window": "Keeps the times Documents may read scanned pages in. Outside them the pages waiting are held; reading carries on in the next window.",
+  "tab:Monte Carlo": {
+    "what": "The project's Monte Carlo studies (Release 14.7): ranges instead of single numbers, run thousands of times by EA Explorer's own engine. Roadmap confidence, an option's business case, risk exposure, and scenario planning with chances.",
+    "how": [
+      "Make a study and say what it answers; type each input as three numbers (low, most likely, high), or ask your AI to draft them from the project's documents and models (MCP, the prompt monte_carlo_study).",
+      "Say which inputs move together, then Run: the result says how likely a date or an amount is, and what drives it. Each run is kept with the inputs and seed it used."
+    ]
+  },
+  "field:Currency": "The currency of the study's amounts. One per study; the organisation's when empty.",
+  "field:Durations in": "The unit of a roadmap's durations: days, weeks or months.",
+  "field:Group name": "A name for inputs that move together, such as a supplier or a currency.",
+  "field:Impact *": "The loss for this Impact level: low, most likely and high.",
+  "field:Its work packages": "The work packages that must all have ended for the milestone to be reached.",
+  "field:Likelihood *": "The chance in a year for this Likelihood level, from 0 to 1 (0.2 is 20%).",
+  "field:Members": "The inputs in this group: they are drawn together, so they go wrong together.",
+  "field:Milestone": "A milestone's name, reached when its work packages have ended.",
+  "field:Strength": "How strongly the group's inputs move together: weak, medium or strong.",
+  "field:Target (": "The date that matters, counted from the start in the study's unit: the result says the chance of ending by it.",
+  "field:The chance a year's losses pass (comma-separated)": "Amounts to test: the result says the chance a year's losses pass each, before and after controls.",
+  "field:What it answers": "The kind of study: roadmap confidence, an option's business case, risk exposure, or scenario planning with chances.",
+  "field:ZAR": "The currency of the study's amounts, such as ZAR.",
+  "field:by": "The milestone's date, counted from the start in the study's unit (optional).",
+  "button:+ A group": "Adds a group of inputs that move together.",
+  "button:+ A milestone": "Adds a milestone: a set of work packages and, optionally, its date.",
+  "button:Back to the latest run": "Shows the study's latest run again.",
+  "button:Delete the study": "Deletes the study and every run of it, after you confirm. It cannot be undone.",
+  "button:Make the study": "Makes the study in this project; then add its inputs.",
+  "button:Save the scale": "Saves the organisation's risk scale: studies use it from their next run.",
+  "button:▶ Run": "Runs the study with EA Explorer's engine and keeps the run with the inputs and seed it used.",
+  "button:✎ Change the scale": "Changes what Likelihood and Impact 1 to 5 mean (Super Admins).",
+  "button:⬇ The figures as CSV": "Downloads the run's figures (percentiles, chances, drivers) as a CSV file."
 }

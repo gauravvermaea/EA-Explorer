@@ -162,7 +162,7 @@ DO $$
 DECLARE
     t text;
 BEGIN
-    FOREACH t IN ARRAY ARRAY['layers', 'entity_types', 'relationship_types', 'pick_lists', 'pick_list_values',
+    FOREACH t IN ARRAY ARRAY['domains', 'entity_types', 'relationship_types', 'pick_lists', 'pick_list_values',
                              'attribute_types', 'item_attributes', 'validation_rules', 'allowed_relationships'] LOOP
         EXECUTE format('CREATE TRIGGER %I BEFORE INSERT OR UPDATE OR DELETE ON core.%I
                         FOR EACH ROW EXECUTE FUNCTION core.refuse_model_lock(''metamodel'')', t || '_1_model_lock', t);

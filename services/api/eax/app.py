@@ -136,6 +136,9 @@ def create_app(testing: bool = False) -> Flask:
     # scenario planning (phase 27.1, D490 to D495)
     from .api.scenarios import blp as scenarios_blp
     api.register_blueprint(scenarios_blp)
+    # Monte Carlo studies in a project (Release 14.7, D957, D962)
+    from .api.monte_carlo import blp as monte_carlo_blp
+    api.register_blueprint(monte_carlo_blp)
     # published import formats, deliveries and a model from a metamodel workbook (phase 34, D419, D462 to D468)
     from .api.deliveries import blp as deliveries_blp
     api.register_blueprint(deliveries_blp)

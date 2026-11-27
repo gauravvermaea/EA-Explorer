@@ -17,6 +17,7 @@ AREAS = {  # the file a tool is in: what the tools there are about
     "mcp_operations": "Running the installation", "mcp_discovery": "Enterprise discovery",
     "mcp_docs": "EA Explorer's own documentation", "mcp_scenario_planning": "Futures, players and games",
     "mcp_release12": "Sprints, the project plan, risks, data governance, surveys and skills",
+    "mcp_monte_carlo": "Monte Carlo: ranges, chances and confidence",
 }
 
 

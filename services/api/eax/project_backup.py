@@ -77,6 +77,9 @@ TABLES = [
     # scenario planning studies (Release 10, D857): each run a dated version, its signposts' review marks after it
     ("sp_runs", "project_id = :p", {}),
     ("sp_signpost_marks", "run_id IN (SELECT id FROM proj.sp_runs WHERE project_id = :p)", {"run_id": "sp_runs"}),
+    # Monte Carlo studies (Release 14.7, D962): each study's runs after it
+    ("mc_studies", "project_id = :p", {}),
+    ("mc_runs", "study_id IN (SELECT id FROM proj.mc_studies WHERE project_id = :p)", {"study_id": "mc_studies"}),
     # Agile projects' sprints (Release 12, D879): the usual length, the sprints, the backlog and each review's decisions
     ("agile_settings", "project_id = :p", {}),
     ("sprints", "project_id = :p", {}),
@@ -123,7 +126,7 @@ TABLES = [
     # drawn views as evidence (D408: links only): the view's name rides along so a model made again finds its view
     ("view_evidence", "project_id = :p", {"item_id": "items", "question_id": "key_questions"}),
 ]
-NEW_GUID = {"projects", "items", "documents", "signoff_requests", "steps", "stakeholders", "stakeholder_notes", "tasks", "org_people", "standards", "gov_records", "gov_approvals", "cal_events", "sheets", "repo_tags", "key_questions", "placeholder_views", "canvases", "canvas_items", "view_evidence", "scenario_assessments", "sp_runs", "sprints", "backlog_items", "journeys", "journey_stages", "journey_items", "journey_links"}   # tables whose guid is made new (when they have one)
+NEW_GUID = {"projects", "items", "documents", "signoff_requests", "steps", "stakeholders", "stakeholder_notes", "tasks", "org_people", "standards", "gov_records", "gov_approvals", "cal_events", "sheets", "repo_tags", "key_questions", "placeholder_views", "canvases", "canvas_items", "view_evidence", "scenario_assessments", "sp_runs", "mc_studies", "mc_runs", "sprints", "backlog_items", "journeys", "journey_stages", "journey_items", "journey_links"}   # tables whose guid is made new (when they have one)
 
 
 def folder() -> Path:

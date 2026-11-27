@@ -100,7 +100,7 @@ CREATE TABLE core.gap_items (
     match_key      text NOT NULL,                  -- baseline guid | target guid: kept when compared again
     entity_type    text NOT NULL,                  -- type code
     entity_type_name text NOT NULL DEFAULT '',
-    layer          text NOT NULL DEFAULT '',
+    domain         text NOT NULL DEFAULT '',
     name           text NOT NULL,
     status         text NOT NULL CHECK (status IN ('kept', 'changed', 'new', 'eliminated')),
     baseline_guid  uuid,
@@ -132,7 +132,7 @@ CREATE TABLE core.gap_runs (
     baseline     jsonb NOT NULL,
     target       jsonb NOT NULL,
     totals       jsonb NOT NULL DEFAULT '{}',
-    items        jsonb NOT NULL DEFAULT '[]',   -- [{key, entity_type, entity_type_name, layer, name, status, resolution, note, changes}]
+    items        jsonb NOT NULL DEFAULT '[]',   -- [{key, entity_type, entity_type_name, domain, name, status, resolution, note, changes}]
     UNIQUE (analysis_id, number)
 );
 COMMENT ON TABLE core.gap_runs IS 'Each result of a gap analysis (made or compared again), kept to compare results later';
@@ -165,7 +165,7 @@ $$;
 
 CREATE FUNCTION rpt.f_gap_items() RETURNS TABLE (
     model_id bigint, model_name text, gap_analysis text, template text, baseline text, target text, compared_at timestamptz,
-    entity_type text, entity_type_name text, layer text, name text, status text, togaf_cell text, baseline_name text,
+    entity_type text, entity_type_name text, domain text, name text, status text, togaf_cell text, baseline_name text,
     target_name text, fields_changed integer, changed_fields text, note text, resolution text, work_packages text,
     work_package_count integer, has_gap_entity boolean, link text)
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = pg_catalog, core AS $$
@@ -174,7 +174,7 @@ BEGIN
     PERFORM set_config('eax.rls_bypass', 'on', true);
     RETURN QUERY
     SELECT a.model_id, m.name, a.name, a.template, a.baseline ->> 'label', a.target ->> 'label', a.compared_at,
-           i.entity_type, i.entity_type_name, i.layer, i.name, i.status,
+           i.entity_type, i.entity_type_name, i.domain, i.name, i.status,
            CASE i.status WHEN 'kept' THEN 'Included' WHEN 'changed' THEN 'Changed' WHEN 'new' THEN 'New (gap: to build or buy)'
                          ELSE 'Eliminated (gap: to retire or replace)' END,
            i.baseline_name, i.target_name, jsonb_array_length(i.changes),
@@ -194,7 +194,7 @@ CREATE VIEW rpt.gap_items AS SELECT * FROM rpt.f_gap_items();
 
 -- the TOGAF gap matrix: baseline elements down, target elements across, by type
 CREATE VIEW rpt.gap_matrix AS
-SELECT model_id, model_name, gap_analysis, entity_type_name, layer,
+SELECT model_id, model_name, gap_analysis, entity_type_name, domain,
        coalesce(baseline_name, '(new)') AS baseline_element, coalesce(target_name, '(eliminated)') AS target_element,
        togaf_cell, status, resolution, link
   FROM rpt.gap_items;

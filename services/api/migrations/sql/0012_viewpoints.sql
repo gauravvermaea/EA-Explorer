@@ -94,7 +94,7 @@ SELECT code AS viewpoint_code, code || ' ' || name AS viewpoint, name, category,
 CREATE VIEW rpt.vp_elements AS
 SELECT v.code AS viewpoint_code, v.code || ' ' || v.name AS viewpoint, v.category AS viewpoint_category,
        e.model_id, e.model_name, e.entity_id, e.display_id, e.name, e.description, e.entity_type_code, e.entity_type,
-       e.layer, e.parent_name AS parent, e.status, e.owner, e.lifecycle, e.criticality, e.annual_cost, e.vendor,
+       e.type_domain AS domain, e.parent_name AS parent, e.status, e.owner, e.lifecycle, e.criticality, e.annual_cost, e.vendor,
        e.maturity, e.data_classification, e.priority, e.architecture_state, e.time_classification, e.link
   FROM rpt.entity_std e JOIN core.viewpoints v ON e.entity_type_code = ANY (v.element_types);
 
@@ -164,7 +164,7 @@ SELECT q.model_id, q.model_name, q.display_id, q.name, q.description, q.owner, q
 
 CREATE VIEW rpt.tc_locations AS
 SELECT l.model_id, l.model_name, l.name AS location, l.description, x.b_type AS item_type, x.b_name AS item,
-       e.layer AS item_layer, x.relationship_type, l.link
+       e.type_domain AS item_domain, x.relationship_type, l.link
   FROM rpt.entities l
   LEFT JOIN rpt.entity_pairs x ON x.a_id = l.entity_id
   LEFT JOIN rpt.entities e ON e.entity_id = x.b_id
@@ -259,7 +259,7 @@ CREATE VIEW rpt.dr_steps AS SELECT v AS steps FROM generate_series(1, 6) AS v;
 -- (downstream), up to p_steps steps, each entity once at its nearest distance, with one shortest path
 CREATE FUNCTION rpt.f_dependencies(p_label text, p_steps integer DEFAULT 4) RETURNS TABLE (
     model_id bigint, model_name text, chosen_entity text, direction text, depth integer, entity text, entity_type text,
-    layer text, lifecycle text, criticality numeric, last_relationship text, path text, link text)
+    domain text, lifecycle text, criticality numeric, last_relationship text, path text, link text)
 LANGUAGE sql STABLE AS $$
     WITH RECURSIVE root AS (
         SELECT c.model_id, e.entity_id, e.name FROM rpt.dr_entity_choices c
@@ -283,7 +283,7 @@ LANGUAGE sql STABLE AS $$
     ), best AS (
         SELECT DISTINCT ON (w.root_id, w.dir, w.id) w.* FROM walk w ORDER BY w.root_id, w.dir, w.id, w.depth
     )
-    SELECT b.model_id, m.model_name, r.name, b.dir, b.depth, x.name, x.entity_type, x.layer, s.lifecycle, s.criticality, b.via,
+    SELECT b.model_id, m.model_name, r.name, b.dir, b.depth, x.name, x.entity_type, x.type_domain, s.lifecycle, s.criticality, b.via,
            (SELECT string_agg(n.name, CASE WHEN b.dir LIKE 'Down%' THEN ' → ' ELSE ' ← ' END ORDER BY o)
               FROM unnest(b.path) WITH ORDINALITY AS u(eid, o) JOIN rpt.entities n ON n.entity_id = u.eid),
            x.link
@@ -323,7 +323,7 @@ SELECT DISTINCT t.model_id, t.model_name, t.name AS technology, t.entity_type AS
 
 -- DR-04: how many entities each entity depends on and how many depend on it (directly)
 CREATE VIEW rpt.dr_fan AS
-SELECT e.model_id, e.model_name, e.entity_type, e.layer, e.display_id, e.name, s.criticality, s.lifecycle,
+SELECT e.model_id, e.model_name, e.entity_type, e.type_domain AS domain, e.display_id, e.name, s.criticality, s.lifecycle,
        (SELECT count(DISTINCT d.dependant) FROM rpt.dependency_edges d WHERE d.provider = e.entity_id) AS dependants,
        (SELECT count(DISTINCT d.provider) FROM rpt.dependency_edges d WHERE d.dependant = e.entity_id) AS depends_on,
        e.link

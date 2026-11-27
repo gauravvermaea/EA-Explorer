@@ -43,10 +43,10 @@ from .discovery_projects_check import _whole, mcp_url
 Record = Callable[..., None]
 MISSING = "00000000-0000-0000-0000-00000000beef"        # a guid nothing has: "not found" must be said, not crash
 # tools that only read but whose arguments the run cannot know: called with one that does not exist
-GUESSED = {"survey", "request", "draft", "analysis", "run", "scenario"}
+GUESSED = {"survey", "request", "draft", "analysis", "run", "scenario", "study"}   # study: Monte Carlo (R14.7)
 # the parameters that point at one thing: a tool that changes at once is called with one that does not exist
 AN_ID = {"model", "project", "entity", "draft", "run", "document", "relationship", "view", "question", "step", "canvas",
-         "journey", "request", "stakeholder", "item", "comment", "scenario"}
+         "journey", "request", "stakeholder", "item", "comment", "scenario", "study"}
 # tools whose answer depends on what the installation has now: their own "there is none yet" is an answer
 MAY_SAY_NONE = {"what_changed", "list_drawn_views", "get_drawn_view", "ops_backups", "ops_logs",
                 # R14 (full test, 24 Nov 2026): the run's project has no scenario planning study and is not made from the
@@ -129,7 +129,7 @@ def arguments(tool: dict, ids: dict, found: dict) -> tuple[dict | None, bool]:
              "view": found.get("view") or "VP-01", "relationship": found.get("relationship", ""), "attribute": "name",
              "code": "self_test_rule", "name": "Self-test rule", "kind": "relationship", "spec": {},
              "words": "backup restore", "key": "readme", "guide": "01-overview",
-             "version": 1}                                                   # sp_version (R10): none yet says so   # the documentation tools (R9.3)
+             "version": 1, "number": 1}                                                   # sp_version (R10): none yet says so   # the documentation tools (R9.3)
     args, guessed = {}, False
     for p in tool["params"]:
         if not p["required"]:

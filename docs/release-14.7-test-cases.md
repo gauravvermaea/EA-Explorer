@@ -68,7 +68,7 @@ schedule, best, Result). It may change while R14.7.1 is built; the known answers
 
 | Id | Case | Expected |
 | --- | --- | --- |
-| MC-S01 | A study is made in a project from its work packages | each work package's range starts as its dates (likely = end − start, low = high = likely) and is marked "from the model"; the model is not changed |
+| MC-S01 | A study's inputs drafted from the project's work packages | the AI reads the work packages and their dates through MCP and drafts each range with its source; the model is not changed (built 27 Nov 2026: the study does not read the model by itself) |
 | MC-S02 | Two studies of the same project with different ranges | both kept; each run shows which study and which inputs |
 | MC-S03 | A study's currency | the installation's currency unless chosen; every amount and result in it; another study can differ |
 | MC-S04 | The risk scales set once by the organisation | Likelihood 1 to 5 as a chance, Impact 1 to 5 as a range of loss; defaults given; a study's risks take them |
@@ -86,10 +86,10 @@ schedule, best, Result). It may change while R14.7.1 is built; the known answers
 | MC-A02 | The AI's draft refused | nothing saved; the study as it was |
 | MC-A03 | The AI asks for a run | EA Explorer's engine runs it (D857 (4)); the AI reads the result; it never sends numbers as the result |
 | MC-A04 | A range out of order or a chance over 1 through the API or MCP | refused with an error code (Release 7.9) naming the input |
-| MC-A05 | 100,000 runs asked for | capped at the installation's limit, said so |
+| MC-A05 | More than 100,000 runs, or fewer than 100, asked for | refused, saying the limit |
 | MC-A06 | A person without rights to the project | 403 on the study and its runs; the MCP tools list no study of it |
 | MC-A07 | A reader (Report Viewer, Auditor) | sees studies and runs; cannot change or run |
-| MC-A08 | The same run asked for twice at once | one run; the second answer is the first's |
+| MC-A08 | The same study run twice at the same moment | one is kept; the other is refused with 409, saying to repeat |
 | MC-A09 | Every new MCP tool | in the full test's MCP check (Release 10) |
 
 ## The screens (R14.7.6, D957 (2))

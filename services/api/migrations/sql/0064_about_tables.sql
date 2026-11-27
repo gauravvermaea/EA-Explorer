@@ -26,7 +26,7 @@ BEGIN
         ('core.kpi_definitions', 'The KPIs measured on models'),
         ('core.kpi_snapshots', 'KPI values taken at a moment (at a tag or on a schedule)'),
         ('core.kpi_values', 'Each KPI''s value in a snapshot'),
-        ('core.layers', 'The layers of a model''s metamodel (Business, Application, Technology...)'),
+        ('core.domains', 'The domains of a model''s metamodel (Business, Application, Technology...)'),
         ('core.metamodel_draft_comments', 'Comments on a metamodel draft under review'),
         ('core.metamodel_draft_events', 'What happened to a metamodel draft (made, reviewed, applied)'),
         ('core.metamodel_pushes', 'Metamodel changes pushed from a parent model to its children'),

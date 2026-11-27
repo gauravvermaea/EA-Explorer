@@ -32,11 +32,8 @@ def test_the_content_tables_match_the_migration_and_databases():
     from eax import databases as dbs
     from eax import library_models as lm
     sql = (REPO / "services/api/migrations/sql/0057_library_models.sql").read_text()
-    renamed = (REPO / "services/api/migrations/sql/0126_r14_6_layer_to_domain.sql").read_text()
     for t in lm.CONTENT:
-        # domains was made as layers and renamed by 0126 (D959)
-        assert f"'{t}'" in sql or (t == "domains" and "'layers'" in sql
-                                    and "ALTER TABLE library_models.layers RENAME TO domains" in renamed), t
+        assert f"'{t}'" in sql, t
     assert "LIKE history.row_versions INCLUDING ALL" in sql and "RESTART WITH 1000000000" in sql
     assert "content_schema" in sql and "CREATE DATABASE" not in sql.upper() and "CREATE TRIGGER" not in sql.upper()
     assert dbs.TABLES["library_models"] == tuple(f"library_models.{t}" for t in (*lm.CONTENT, "row_versions"))

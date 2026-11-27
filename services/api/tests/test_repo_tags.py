@@ -10,7 +10,7 @@ def test_migration():
     for x in ("CREATE TABLE proj.repo_tags", "CREATE TABLE proj.repo_tag_docs", "offered_templates bigint[]", "'0.15.1'"):
         assert x in sql, x
     # D248: no logic in the database. The one exception: the existing typed-views function is restated with the
-    # columns renamed from layer to domain (D391); no new logic
+    # columns named domain (D391, D959); no new logic
     sql_ = sql.replace("CREATE OR REPLACE FUNCTION rpt.refresh_typed_views()", "").replace("SELECT rpt.refresh_typed_views();", "")
     assert "TRIGGER" not in sql_.upper() and "FUNCTION" not in sql_.upper()
     assert __import__("re").search(r'version = "(0\.1\d|[1-9]\d*)\.', (ROOT / "version.toml").read_text())

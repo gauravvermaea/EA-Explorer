@@ -32,7 +32,7 @@ def downgrade() -> None:
         DO $$
         DECLARE t text;
         BEGIN
-            FOREACH t IN ARRAY ARRAY['models', 'layers', 'entity_types', 'relationship_types', 'pick_lists',
+            FOREACH t IN ARRAY ARRAY['models', 'domains', 'entity_types', 'relationship_types', 'pick_lists',
                                      'pick_list_values', 'attribute_types', 'item_attributes', 'validation_rules',
                                      'allowed_relationships', 'entities', 'relationships', 'attribute_values',
                                      'display_id_counters'] LOOP

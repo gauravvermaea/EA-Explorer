@@ -1,9 +1,9 @@
--- D939: DR-01's dependencies function read rpt.entities.layer, renamed type_domain when ArchiMate 4 said domain, not layer
--- (0032, D391). A SQL function's body is not checked when a column it reads is renamed, so it failed only when run: the
--- DR-01, IT operations and Change manager dashboards answered "column x.layer does not exist" (self-test 18, 26 Nov
--- 2026). The same function, reading type_domain, and its own column named domain too (owner, 17:49: "ensure there is no
--- layer and only domain"): a function's columns cannot change in place, so it is dropped, made again and granted again.
--- The DR-01 dataset reads domain (eax/setup/superset_reports.py).
+-- D939: DR-01's dependencies function read a column of rpt.entities by its name before ArchiMate 4 (D391). A SQL
+-- function's body is not checked when a column it reads is renamed, so it failed only when run: the DR-01, IT operations
+-- and Change manager dashboards answered that the column does not exist (self-test 18, 26 Nov 2026). The same function,
+-- reading type_domain, and its own column named domain too (owner, 26 Nov 2026, 17:49: only domain): a function's
+-- columns cannot change in place, so it is dropped, made again and granted again. The DR-01 dataset reads domain
+-- (eax/setup/superset_reports.py).
 DROP FUNCTION IF EXISTS rpt.f_dependencies(text, integer);
 CREATE FUNCTION rpt.f_dependencies(p_label text, p_steps integer DEFAULT 4) RETURNS TABLE (
     model_id bigint, model_name text, chosen_entity text, direction text, depth integer, entity text, entity_type text,

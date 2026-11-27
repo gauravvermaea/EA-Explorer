@@ -1,7 +1,7 @@
 """ArchiMate 4 starter metamodel and sample data, taken from the EA Repository Workbench 1.1 seed.
 
 Used by eax.seed.build to fill the template model and the sample model. Element list follows the
-42 ArchiMate 4 elements. Domains (not layers), their colours and the allowed relationships follow the owner's
+42 ArchiMate 4 elements. Domains (ArchiMate 4's word), their colours and the allowed relationships follow the owner's
 ArchiMate 4 guide, *Modelling the Enterprise with ArchiMate 4* (owner, 9 Nov 2026, D392 to D394): the direct
 relationships it describes, plus the derived ones it says are drawn directly (each marked "derived" in its note).
 Composition is allowed exactly where aggregation is. Junctions wait for drawn views (phase 28).

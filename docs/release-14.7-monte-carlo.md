@@ -1,10 +1,10 @@
-# Release 14.7: Monte Carlo simulation (decided 27 Nov 2026, D957; to be built)
+# Release 14.7: Monte Carlo simulation (decided 27 Nov 2026, D957; built the same day, D962)
 
 The owner, 27 Nov 2026, 08:10: "will EA benefit from monte carlo simulation?"; 08:11: "Please make a new release for
 this but before we start documentation. We will discuss then". Discussed at 15:13 to 15:20 the same day ("First
 explain me what is monte carlo and how does it help?"; "Yes lets answer one by one"): the seven questions at the end
-are answered (D957), and the release's rows (R14.7.1 to R14.7.6 in docs/build-phases.md) are planned. Nothing is built
-yet. The test cases, written first (15:34): [release-14.7-test-cases.md](release-14.7-test-cases.md).
+are answered (D957), and the release's rows (R14.7.1 to R14.7.6 in docs/build-phases.md) are planned. Built the same
+evening (D962): what was built and how it is tested is in docs/decisions.md D962. The test cases, written first (15:34): [release-14.7-test-cases.md](release-14.7-test-cases.md).
 
 ## What it answers
 

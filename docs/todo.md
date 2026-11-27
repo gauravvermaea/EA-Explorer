@@ -9,7 +9,7 @@ Tick an item (`[x]`) when it is done; remove it at the next tidy-up.
 
 ## Release 14.8: a separate repository for deploying (owner, 27 Nov 2026, D961)
 
-- [ ] **When it is built**: the owner makes the repository; then discuss where and when the images are published (GitHub's registry or Docker Hub; Release 21 had it, R21.5) and what the deploy guides are. Replaces the code/ and deployment/ split (D958, D960).
+- [ ] **When it is built**: the owner makes the repository; the images go to both GitHub's registry and Docker Hub (D963): the owner makes a Docker Hub account and access token, and a GitHub token that writes packages, both kept as eax secrets; what the deploy guides are; a first-run container so `docker compose up` alone starts everything. Replaces the code/ and deployment/ split (D958, D960).
 
 ## After the last release: to be thought through (owner, 24 Nov 2026)
 

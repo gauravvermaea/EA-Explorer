@@ -10,7 +10,7 @@
 --   * Every row has the same housekeeping columns: workflow status (item_status), soft delete,
 --     created/modified by and when, and a row_version kept by trigger.
 --   * Every change is written to history.row_versions by trigger (old and new versions as JSON).
---   * A model owns its metamodel (layers, entity types, attribute types, relationship types,
+--   * A model owns its metamodel (domains, entity types, attribute types, relationship types,
 --     pick lists, rules) and its content (entities, relationships, attribute values).
 --     A template model has a metamodel only; a reference model is read-only; a project model is
 --     a working model. Models form a hierarchy of any depth: parent_model_id is the model a model
@@ -177,7 +177,7 @@ CREATE TABLE core.models (
 CREATE UNIQUE INDEX models_name_uq ON core.models (lower(name)) WHERE NOT is_deleted;
 
 -- ---------------------------------------------------------------- metamodel (owned by a model)
-CREATE TABLE core.layers (
+CREATE TABLE core.domains (
     id           bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,  -- internal key for joins
     model_id    bigint NOT NULL REFERENCES core.models (id),
     code        text NOT NULL,
@@ -199,7 +199,7 @@ CREATE TABLE core.layers (
 CREATE TABLE core.entity_types (
     id           bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,  -- internal key for joins
     model_id    bigint NOT NULL REFERENCES core.models (id),
-    layer_id    bigint NOT NULL REFERENCES core.layers (id),
+    domain_id    bigint NOT NULL REFERENCES core.domains (id),
     code        text NOT NULL,                    -- ApplicationComponent
     name        text NOT NULL,                    -- Application Component
     description text NOT NULL DEFAULT '',
@@ -450,9 +450,9 @@ CREATE TABLE core.display_id_counters (
 CREATE INDEX models_parent_model_id_idx ON core.models (parent_model_id);
 CREATE INDEX models_source_model_id_idx ON core.models (source_model_id);
 CREATE INDEX models_origin_guid_idx ON core.models (origin_guid);
-CREATE INDEX layers_model_id_idx ON core.layers (model_id);
+CREATE INDEX domains_model_id_idx ON core.domains (model_id);
 CREATE INDEX entity_types_model_id_idx ON core.entity_types (model_id);
-CREATE INDEX entity_types_layer_id_idx ON core.entity_types (layer_id);
+CREATE INDEX entity_types_domain_id_idx ON core.entity_types (domain_id);
 CREATE INDEX entity_types_origin_guid_idx ON core.entity_types (origin_guid);
 CREATE INDEX relationship_types_model_id_idx ON core.relationship_types (model_id);
 CREATE INDEX relationship_types_origin_guid_idx ON core.relationship_types (origin_guid);
@@ -642,8 +642,8 @@ CREATE TRIGGER attribute_values_check BEFORE INSERT OR UPDATE ON core.attribute_
 -- ---------------------------------------------------------------- housekeeping and history on every table
 CREATE TRIGGER models_stamp BEFORE INSERT OR UPDATE ON core.models FOR EACH ROW EXECUTE FUNCTION core.stamp_row();
 CREATE TRIGGER models_history AFTER INSERT OR UPDATE OR DELETE ON core.models FOR EACH ROW EXECUTE FUNCTION history.capture();
-CREATE TRIGGER layers_stamp BEFORE INSERT OR UPDATE ON core.layers FOR EACH ROW EXECUTE FUNCTION core.stamp_row();
-CREATE TRIGGER layers_history AFTER INSERT OR UPDATE OR DELETE ON core.layers FOR EACH ROW EXECUTE FUNCTION history.capture();
+CREATE TRIGGER domains_stamp BEFORE INSERT OR UPDATE ON core.domains FOR EACH ROW EXECUTE FUNCTION core.stamp_row();
+CREATE TRIGGER domains_history AFTER INSERT OR UPDATE OR DELETE ON core.domains FOR EACH ROW EXECUTE FUNCTION history.capture();
 CREATE TRIGGER entity_types_stamp BEFORE INSERT OR UPDATE ON core.entity_types FOR EACH ROW EXECUTE FUNCTION core.stamp_row();
 CREATE TRIGGER entity_types_history AFTER INSERT OR UPDATE OR DELETE ON core.entity_types FOR EACH ROW EXECUTE FUNCTION history.capture();
 CREATE TRIGGER relationship_types_stamp BEFORE INSERT OR UPDATE ON core.relationship_types FOR EACH ROW EXECUTE FUNCTION core.stamp_row();

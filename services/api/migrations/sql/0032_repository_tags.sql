@@ -363,24 +363,11 @@ ALTER TABLE core.allowed_relationships
 
 -- ArchiMate 4 domain colours (D392): a new domain starts Common's warm grey; existing domains are recoloured by the
 -- seed (eax.seed.recolour_domains), which runs as the installer and so may change the locked library models
-ALTER TABLE core.layers ALTER COLUMN colour SET DEFAULT 'E4DED2';
+ALTER TABLE core.domains ALTER COLUMN colour SET DEFAULT 'E4DED2';
 
--- ArchiMate 4 says domain, not layer (owner, 9 Nov 2026, D391), outright. The tables keep their internal names
--- (core.layers, layer_id); what people and tools read is renamed. In the report views the entity type's domain is
--- "domain"; where a row also carries the entities' own attributes (rpt.entities, rpt.entity_std and the typed views
--- t_<type>, which have a Domain attribute) it is "type_domain" and "type_domain_code".
-ALTER VIEW rpt.entities RENAME COLUMN layer TO type_domain;
-ALTER VIEW rpt.entities RENAME COLUMN layer_code TO type_domain_code;
-ALTER VIEW rpt.entity_std RENAME COLUMN layer TO type_domain;
-ALTER VIEW rpt.entity_std RENAME COLUMN layer_code TO type_domain_code;
-ALTER VIEW rpt.catalogue RENAME COLUMN layer TO domain;
-ALTER VIEW rpt.mo_type_counts RENAME COLUMN layer TO domain;
-ALTER VIEW rpt.sr27_orphans RENAME COLUMN layer TO domain;
-ALTER VIEW rpt.vp_elements RENAME COLUMN layer TO domain;
-ALTER VIEW rpt.tc_locations RENAME COLUMN item_layer TO item_domain;
-ALTER VIEW rpt.dr_fan RENAME COLUMN layer TO domain;
-ALTER VIEW rpt.gap_items RENAME COLUMN layer TO domain;
-ALTER VIEW rpt.gap_matrix RENAME COLUMN layer TO domain;
+-- ArchiMate 4 says domain (owner, 9 Nov 2026, D391), outright, and so does every name inside since Release 14.6 (D941:
+-- core.domains, domain_id; the report views' domain, and type_domain where a row also carries the entities' own
+-- attributes: rpt.entities, rpt.entity_std and the typed views t_<type>, which have a Domain attribute).
 CREATE OR REPLACE FUNCTION rpt.refresh_typed_views() RETURNS integer
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, core, rpt AS $$
 DECLARE
@@ -453,38 +440,6 @@ BEGIN
 END;
 $$;
 SELECT rpt.refresh_typed_views();
-
--- what was kept before in the old words: drafts' review comments, saved metamodels, snapshots, gap and common runs,
--- changes waiting to be committed
-ALTER TABLE core.metamodel_draft_comments DROP CONSTRAINT metamodel_draft_comments_section_check;
-UPDATE core.metamodel_draft_comments SET section = 'domains' WHERE section = 'layers';
-ALTER TABLE core.metamodel_draft_comments ADD CONSTRAINT metamodel_draft_comments_section_check
-    CHECK (section IS NULL OR section IN ('domains', 'pick_lists', 'attributes', 'entity_types', 'relationship_types', 'allowed', 'rules'));
-DO $$
-DECLARE
-    c record;
-BEGIN
-    FOR c IN SELECT * FROM (VALUES ('core', 'model_tags', 'spec'), ('core', 'model_tags', 'snapshot'),
-                                   ('core', 'metamodel_drafts', 'spec'), ('core', 'metamodel_drafts', 'checks'),
-                                   ('core', 'metamodel_draft_events', 'spec'),
-                                   ('core', 'metamodel_version_changes', 'payload'), ('core', 'metamodel_version_changes', 'result'),
-                                   ('core', 'gap_analyses', 'summary'), ('core', 'gap_analyses', 'baseline'), ('core', 'gap_analyses', 'target'),
-                                   ('core', 'gap_runs', 'items'), ('core', 'gap_runs', 'baseline'), ('core', 'gap_runs', 'target'),
-                                   ('core', 'gap_runs', 'totals'), ('core', 'common_analyses', 'summary'), ('core', 'common_analyses', 'sides'),
-                                   ('core', 'common_runs', 'items'), ('core', 'common_runs', 'sides'), ('core', 'common_runs', 'totals'),
-                                   ('core', 'pending_changes', 'args'), ('core', 'pending_changes', 'base'), ('core', 'pending_changes', 'mine'),
-                                   ('core', 'commit_items', 'args'), ('core', 'commit_items', 'before'), ('core', 'commit_items', 'after'),
-                                   ('core', 'merge_sessions', 'plan'), ('core', 'merge_sessions', 'result'),
-                                   ('proj', 'project_templates', 'spec')) AS v (s, t, col) LOOP
-        EXECUTE format($q$UPDATE %I.%I SET %I = replace(replace(replace(replace(replace(replace(replace(%I::text,
-                            '"layers":', '"domains":'), '"layer":', '"domain":'), '"layer_id":', '"domain_id":'),
-                            '"layer_code":', '"domain_code":'), '"layer_order":', '"domain_order":'),
-                            '"section": "layers"', '"section": "domains"'), '"item_layer":', '"item_domain":')::jsonb
-                         WHERE %I::text LIKE '%%"layer%%' OR %I::text LIKE '%%"item_layer"%%'$q$,
-                       c.s, c.t, c.col, c.col, c.col, c.col);
-    END LOOP;
-END;
-$$;
 
 -- "Viewpoint" becomes "view" (owner, 9 Nov 2026, D399; brought forward from phase 28, D355), outright. The organisation's
 -- view library keeps its internal table names (core.viewpoints, rpt.viewpoints, rpt.vp_*); what people and the reporting

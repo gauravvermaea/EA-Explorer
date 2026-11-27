@@ -21,7 +21,7 @@ DECLARE
     t text;
     a record;
 BEGIN
-    FOREACH t IN ARRAY ARRAY['layers', 'pick_lists', 'pick_list_values', 'attribute_types', 'entity_types', 'relationship_types',
+    FOREACH t IN ARRAY ARRAY['domains', 'pick_lists', 'pick_list_values', 'attribute_types', 'entity_types', 'relationship_types',
                              'item_attributes', 'allowed_relationships', 'item_attribute_mappings', 'validation_rules',
                              'metamodel_versions', 'metamodel_version_changes', 'display_id_counters', 'model_icons',
                              'entities', 'entity_aliases', 'entity_icons', 'attribute_values', 'relationships'] LOOP

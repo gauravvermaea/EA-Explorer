@@ -130,10 +130,10 @@ def sql(gid, insert, snake, empty_id: str) -> str:
             "Read-only; the TOGAF 10 project base points to it, and models start from it.",
             "template", empty_id, NAME, True, "EA Explorer", "10"]]),
         insert("domain", ["id", "model_id", "code", "name", "colour", "sort_order"],
-               [[gid(k, "layer", n), m, snake(n), n, c, i * 10] for i, (n, c) in enumerate(DOMAINS, 1)]),
+               [[gid(k, "domain", n), m, snake(n), n, c, i * 10] for i, (n, c) in enumerate(DOMAINS, 1)]),
         insert("entity_type", ["id", "model_id", "domain_id", "code", "name", "description", "id_prefix", "table_name", "content_area",
                                "sort_order", "notation"],
-               [[gid(k, "entity_type", c), m, gid(k, "layer", dom), c, n, d, pre, snake(c), area, i * 10, NOTATION.get(c, "")]
+               [[gid(k, "entity_type", c), m, gid(k, "domain", dom), c, n, d, pre, snake(c), area, i * 10, NOTATION.get(c, "")]
                 for i, (c, n, dom, pre, area, d) in enumerate(TYPES, 1)]),
         insert("relationship_type", ["id", "model_id", "code", "name", "verb", "category", "is_directed", "sort_order"],
                [[gid(k, "relationship_type", c), m, c, c, v, cat, directed, i * 10] for i, (c, v, cat, directed) in enumerate(RELS, 1)]),

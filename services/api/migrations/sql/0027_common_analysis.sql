@@ -35,7 +35,7 @@ CREATE TABLE core.common_items (
     match_key        text NOT NULL,                  -- its members, side:guid joined: notes follow a member when compared again
     entity_type      text NOT NULL,
     entity_type_name text NOT NULL DEFAULT '',
-    layer            text NOT NULL DEFAULT '',
+    domain           text NOT NULL DEFAULT '',
     name             text NOT NULL,
     members          jsonb NOT NULL DEFAULT '{}',    -- {side index: {guid, name, display_id}}
     sides_count      integer NOT NULL DEFAULT 1,

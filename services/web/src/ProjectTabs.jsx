@@ -92,6 +92,21 @@ export function ViewsByPhase({ p, fixed }) {
 }
 
 // ------------------------------------------------------------------ Reports
+// each Monte Carlo study's latest run in words in the project report (Release 14.7, D962, MC-R01)
+function MonteCarloSummary({ p }) {
+  const { data } = useApi(`/api/v1/projects/${p.id}/monte-carlo`);
+  const runs = (data?.studies || []).filter((s) => s.latest);
+  if (!runs.length) return null;
+  return (
+    <section className="report-block">
+      <h4>Monte Carlo <a className="small" href={`#/projects/${p.id}/montecarlo`}>open</a></h4>
+      {runs.map((s) => (
+        <div key={s.id}><p><b>{s.name}</b> <span className="quiet small">{s.kind_name} · run {s.latest.number}</span></p>
+          <ul className="small">{(s.latest.in_words || []).map((w, i) => <li key={i}>{w}</li>)}</ul></div>))}
+    </section>
+  );
+}
+
 // the newest finished scenario planning study in the project report (Release 10, D857): the question, the
 // recommendation, the options across the futures and the signposts due
 function PlanningSummary({ p }) {
@@ -158,6 +173,7 @@ export function ProjectReports({ p, part = "all" }) {
         </tbody>
       </table>
       {p.scenario_planning > 0 && <PlanningSummary p={p} />}
+      {p.monte_carlo > 0 && <MonteCarloSummary p={p} />}
       <div className="split-2">
         <div>
           <h4>Waiting for approval ({open.length})</h4>

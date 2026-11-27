@@ -336,6 +336,8 @@ def detail(conn, project: Any, user) -> dict:
     # the Scenario planning tab shows when there is a study (Release 10)
     from . import scenario_planning as spl
     out["scenario_planning"] = spl.count(conn, p)
+    from . import monte_carlo_studies as mcs
+    out["monte_carlo"] = mcs.count(conn, p)     # Monte Carlo studies (Release 14.7, D962)
     from . import agile
     out["agile"] = agile.count(conn, p)        # an Agile project's sprints and backlog (Release 12, D879); None otherwise
     from . import pm

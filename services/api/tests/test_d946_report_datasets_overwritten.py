@@ -1,5 +1,5 @@
 """D946: a dashboard's datasets are imported again, overwritten, with it (run 20, 26 Nov 2026: DR-01's dataset kept its
-old SQL, "layer AS domain", after the database function's column became domain; DR-01, IT operations and Change manager
+old SQL, its column under its old name, after the database function's column became domain; DR-01, IT operations and Change manager
 failed as both people)."""
 
 from __future__ import annotations

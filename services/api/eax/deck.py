@@ -40,7 +40,7 @@ def sources(conn, project: Any, user, parts: list[str] | None = None) -> dict:
     d = pj.detail(conn, project, user)                         # refuses who may not read the project
     name = d["name"]
     want = set(parts or []) or {"project", "phases", "models", "governance", "requirements", "questions", "signoffs",
-                                "stakeholders", "canvases", "journeys", "scenario_planning"}
+                                "stakeholders", "canvases", "journeys", "scenario_planning", "monte_carlo"}
     out: dict[str, Any] = {"guide": GUIDE, "not_for_ai": NOT_FOR_AI}
     it = d.get("iteration") or {}
     if "project" in want:
@@ -119,6 +119,10 @@ def sources(conn, project: Any, user, parts: list[str] | None = None) -> dict:
         sec = spl.report_section(conn, pj.project_row(conn, d.get("id") or project))
         if sec:
             out["scenario_planning"] = {**sec, "source": _src("scenario planning", f"v{sec['version']}", f"{name} › Scenario planning")}
+    if "monte_carlo" in want and d.get("monte_carlo"):   # each Monte Carlo study's latest run (Release 14.7, MC-R03)
+        from . import monte_carlo_studies as mcs
+        out["monte_carlo"] = [{**s, "source": _src("Monte Carlo study", f"run {s['run']}", f"{name} › Monte Carlo › {s['name']}")}
+                              for s in mcs.report_section(conn, pj.project_row(conn, d.get("id") or project))]
     return out
 
 
