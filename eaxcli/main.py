@@ -36,6 +36,7 @@ from .core import (
 
 DOCKER_COMMANDS = {"check", "up", "start-later", "debug", "status", "logs", "down", "backup", "backups", "restore", "restores", "databases", "footprint",
                    "restore-log", "delete-backup", "delete-restore", "app-backup", "restore-model", "restore-app",
+                   "model-backup", "project-backup", "restore-project", "check-backup",
                    "stop-backup", "services", "service", "import", "update", "rollback", "test", "standby"}
 KEEP = ("tls",)                       # in work/data: the local certificate, kept by cleanup (D107)
 KEEP_WORK = ("data", "tools")         # in work: data (its tls kept) and tools (uv and its Python, D331)
@@ -598,6 +599,10 @@ def dispatch(command: str, rest: list[str], wait_all: bool) -> None:
         stack.interactive([*ops, command], rest)
     elif command == "restore-model":
         stack.interactive([*api, "restore"], rest)
+    elif command in ("model-backup", "project-backup", "restore-project"):   # one model or project (D970)
+        stack.interactive([*api, command], rest)
+    elif command == "check-backup":     # every backup file read and checked (D968)
+        stack.interactive([*api, "check"], rest)
     elif command == "test" and "--build" in rest:   # only build the test runner image (D570; the Self-test page's button)
         say("Building the test runner (about 1.5 GB, 5 to 15 minutes the first time): base image, Python packages, "
             "Chromium, scanners.")
@@ -639,6 +644,9 @@ def dispatch(command: str, rest: list[str], wait_all: bool) -> None:
         if rest[:1] == ["restore"]:     # the others never start anything: "running" must see a stopped installation
             stack.backup_helpers()
         return drill.main(rest)
+    elif command == "test" and rest[:1] == ["backup-cases"]:   # the backup and restore use cases from the command line (D971)
+        from . import backup_cases
+        return backup_cases.main(rest[1:])
     elif command == "test" and rest[:1] in (["backup-restore"], ["restore"]):   # the backup and restore test (R5.6-B1)
         from . import backup_restore
         stack.backup_helpers()
@@ -684,6 +692,9 @@ def dispatch(command: str, rest: list[str], wait_all: bool) -> None:
                 steps.append(("self-test", failed is None, str(failed or "")))
                 if not part:
                     steps.append(full_step("backup and restore test", lambda: backup_restore.main([])))
+                    # then every model, project and scheduled backup case (D971)
+                    from . import backup_cases
+                    steps.append(full_step("backup and restore cases", lambda: backup_cases.main([])))
                 if not no_sonar and not part:
                     from . import sonar as sonar_
                     steps.append(full_step("SonarQube scan", lambda: sonar_.main([])))

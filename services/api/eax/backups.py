@@ -103,18 +103,23 @@ def model_file(conn, model: Any, by: str, why: str) -> tuple[bytes, dict]:
                        "relationships": len(side["snapshot"]["relationships"]) if side else 0},
             "contains": ["package.zip"] + (["workbook.xlsx", "restore/side.json"] if side else []),
             "later": "Documents and diagrams are added with the document management of phase 13."}
+    members: dict[str, bytes] = {"package.zip": package}
+    if side:
+        members["workbook.xlsx"] = workbook
+        members["restore/side.json"] = json.dumps({k: side[k] for k in ("commit", "metamodel_version", "spec", "snapshot")},
+                                                  default=str, ensure_ascii=False).encode("utf-8")
+    members["README.txt"] = (b"EA Explorer model backup (eax-model-backup/1). backup.json says what it is; package.zip is the "
+                             b"model package (upload it on Models > Upload a package, or restore this file on Administration > "
+                             b"Backups); workbook.xlsx is the model to read in Excel; restore/side.json puts the model back "
+                             b"over itself on the installation it came from. backup.json's \"files\" is the SHA-256 of every "
+                             b"other member: eax check-backup checks them.\n")
+    from . import backup_check as bc
+    info["files"] = bc.fingerprint(members)          # the file's fingerprint, checked after it is written (D968)
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
         z.writestr("backup.json", json.dumps(info, indent=2, ensure_ascii=False))
-        z.writestr("package.zip", package)
-        if side:
-            z.writestr("workbook.xlsx", workbook)
-            z.writestr("restore/side.json", json.dumps({k: side[k] for k in ("commit", "metamodel_version", "spec", "snapshot")},
-                                                       default=str, ensure_ascii=False))
-        z.writestr("README.txt", "EA Explorer model backup (eax-model-backup/1). backup.json says what it is; package.zip is the "
-                                 "model package (upload it on Models > Upload a package, or restore this file on Administration > "
-                                 "Backups); workbook.xlsx is the model to read in Excel; restore/side.json puts the model back "
-                                 "over itself on the installation it came from.\n")
+        for n, b in members.items():
+            z.writestr(n, b)
     return buf.getvalue(), info
 
 
@@ -224,9 +229,11 @@ def stop_application(by: str) -> list[str]:
     return out
 
 
-def application_backup(conn, user, tag: str, models: list[str] | None = None, keep_n: int | None = None) -> tuple[str, dict]:
+def application_backup(conn, user, tag: str, models: list[str] | None = None, keep_n: int | None = None,
+                       projects: list[str] | None = None) -> tuple[str, dict]:
     """Every model (or the chosen ones) into one tagged application backup; with every model, every project too, with its
-    documents (the latest version of each, from Documents)."""
+    documents (the latest version of each, from Documents). With chosen models, the chosen projects (by name or guid) go
+    with them (eax app-backup --models ... --projects ..., D970); the organisation part only with everything."""
     name = f"{_stamp()}-{_slug(tag) or 'application'}"
     folder = app_dir() / name / "models"
     folder.mkdir(parents=True, exist_ok=True)
@@ -251,8 +258,9 @@ def application_backup(conn, user, tag: str, models: list[str] | None = None, ke
             try:
                 data, info = model_file(conn, str(r["guid"]), user.username, f"application backup {tag}")
                 (folder / file).write_bytes(data)
+                checked = written_ok(folder / file)        # read back and checked (D968)
                 manifest["models"].append({"id": str(r["guid"]), "name": r["name"], "kind": r["kind_code"], "file": file,
-                                           "status": "ok", "counts": info["counts"]})
+                                           "status": "ok", "counts": info["counts"], "sha256": checked["sha256"]})
                 ok += 1
             except Exception as exc:  # noqa: BLE001 - one model does not stop the others; it is listed with why
                 manifest["models"].append({"id": str(r["guid"]), "name": r["name"], "kind": r["kind_code"], "file": "",
@@ -261,6 +269,9 @@ def application_backup(conn, user, tag: str, models: list[str] | None = None, ke
             _write_json(folder.parent / "manifest.json", manifest)
             _backup_projects(conn, user, folder.parent, manifest, tag)
             _backup_organisation(conn, folder.parent, manifest)
+        elif projects:
+            _write_json(folder.parent / "manifest.json", manifest)
+            _backup_projects(conn, user, folder.parent, manifest, tag, only={str(x).lower() for x in projects})
     finally:
         _bypass(conn, False)
     p_ok = len([p for p in manifest["projects"] if p["status"] == "ok"])
@@ -270,17 +281,28 @@ def application_backup(conn, user, tag: str, models: list[str] | None = None, ke
     missing = sum(p.get("missing", 0) for p in manifest["projects"])
     manifest.update(status="ok" if not (failed or missing) else "partial", finished=_stamp(), documents_missing=missing)
     _write_json(folder.parent / "manifest.json", manifest)
+    from . import (
+        backup_check as bc,  # the whole backup read back and checked once it is written (D968)
+    )
+    whole = bc.check_run(folder.parent)
+    manifest["checked"] = {"ok": whole["ok"], "at": _stamp(), "problems": whole["problems"][:20]}
+    if not whole["ok"]:
+        manifest["status"] = "partial"
+    _write_json(folder.parent / "manifest.json", manifest)
     removed = cleanup(keep_n or keep(conn))
     return (f"Application backup '{manifest['tag']}': {ok} model{'s' if ok != 1 else ''}"
             f"{f', {p_ok} project' + ('s' if p_ok != 1 else '') + f' with {docs} documents' if manifest['projects'] else ''} backed up"
             f"{', and the organisation part' if (manifest.get('organisation') or {}).get('status') == 'ok' else ''}"
-            f"{f', {failed} failed' if failed else ''}."
+            f"{f', {failed} failed' if failed else ''}; "
+            + ("every file checked." if whole["ok"] else f"the check found {len(whole['problems'])} problem(s): "
+               + "; ".join(whole["problems"][:3]) + ".")
             + (f" {missing} document files could not be read from Documents (is it running?): this backup is partial." if missing else ""),
             {"name": name, "models": ok, "projects": p_ok, "documents": docs, "failed": failed, "removed": removed})
 
 
-def _backup_projects(conn, user, run_dir: Path, manifest: dict, tag: str) -> None:
-    """Every project of the application backup, each to projects/<name>-<guid8>.eaxproject.zip, with its documents."""
+def _backup_projects(conn, user, run_dir: Path, manifest: dict, tag: str, only: set[str] | None = None) -> None:
+    """Every project of the application backup (or only those named, by name or guid), each to
+    projects/<name>-<guid8>.eaxproject.zip, with its documents."""
     from . import project_backup as pb
     from . import projects as pj
     from .background import _projects_beside
@@ -288,13 +310,16 @@ def _backup_projects(conn, user, run_dir: Path, manifest: dict, tag: str) -> Non
     out.mkdir(parents=True, exist_ok=True)
     with _projects_beside(conn) as pc:
         for p in pj._rows(pc, "SELECT * FROM proj.projects ORDER BY name"):
+            if only and str(p["guid"]).lower() not in only and str(p["name"]).lower() not in only:
+                continue
             file = f"{_slug(p['name'], 40) or 'project'}-{str(p['guid'])[:8]}{pb.SUFFIX}"
             try:
                 data, info = pb.project_file(conn, pc, user, p, f"application backup {tag}", with_models=False)
                 (out / file).write_bytes(data)
+                checked = written_ok(out / file)           # read back and checked (D968)
                 manifest["projects"].append({"id": str(p["guid"]), "name": p["name"], "file": file, "status": "ok",
                                              "documents": info["counts"].get("documents", 0),
-                                             "missing": len(info.get("documents_missing") or [])})
+                                             "missing": len(info.get("documents_missing") or []), "sha256": checked["sha256"]})
             except Exception as exc:  # noqa: BLE001 - one project does not stop the others; it is listed with why
                 manifest["projects"].append({"id": str(p["guid"]), "name": p["name"], "file": "", "status": "failed",
                                              "error": str(exc)[:300]})
@@ -323,9 +348,37 @@ def model_backup(conn, user, model: Any, why: str = "") -> tuple[str, dict]:
     folder.mkdir(parents=True, exist_ok=True)
     file = f"{_stamp()}-{_slug(why, 40) or 'backup'}{SUFFIX}"
     (folder / file).write_bytes(data)
-    _write_json(folder / file.replace(SUFFIX, ".json"), {**info, "pinned": False})
+    checked = written_ok(folder / file)        # read back from the disk and checked (D968)
+    _write_json(folder / file.replace(SUFFIX, ".json"), {**info, "pinned": False, "sha256": checked["sha256"]})
     cleanup(keep(conn))
-    return f"{m['name']} backed up ({len(data) // 1024 + 1} KB).", {"file": file, "model": str(m["id"]), "counts": info["counts"]}
+    return (f"{m['name']} backed up ({len(data) // 1024 + 1} KB), the file checked.",
+            {"file": file, "model": str(m["id"]), "counts": info["counts"], "sha256": checked["sha256"]})
+
+
+def refuse_unchecked(path: Path, z=None) -> None:
+    """Refuses (before anything is touched) a backup file that does not check out: damaged, changed since it was made
+    (its fingerprint), or not readable as a backup (D968). A file from before fingerprints is checked for the rest."""
+    from . import backup_check as bc
+    c = bc.check_file(path)
+    if not c["ok"]:
+        if z is not None:
+            z.close()
+        raise EditError(f"{path.name} did not check out, so nothing was restored: " + "; ".join(c["problems"][:3]), 409)
+
+
+def written_ok(path: Path) -> dict:
+    """A backup file just written, read back from the disk and checked (D968); a file that does not check out is
+    deleted and the backup refused, so a bad file is never kept as a good backup."""
+    from . import backup_check as bc
+    c = bc.check_file(path)
+    if not c["ok"]:
+        try:
+            path.unlink()
+        except OSError:
+            pass
+        raise EditError(f"The backup file {path.name} did not check out after it was written, so it was not kept: "
+                        + "; ".join(c["problems"][:3]), 500)
+    return c
 
 
 def may_back_up(conn, user, model: Any) -> dict:
@@ -507,6 +560,7 @@ def restore(conn, user, p: dict) -> tuple[str, dict]:
     (new or over), new_name, target (the model to put back, mode over). Recorded with its log (D227)."""
     path = path_of(p.get("where") or "application", p.get("name") or "", p.get("file") or "", p.get("model") or "")
     info, z = read_file(path)
+    refuse_unchecked(path, z)                 # a damaged or changed file is never restored (D968)
     mode = "over" if p.get("mode") == "over" else "new"
     rec = new_record("application", f"{info['model']['name']} ({human(info['created'])})", mode, user.username,
                      info["model"]["id"])
@@ -713,6 +767,11 @@ def restore_application(conn, user, name: str) -> tuple[str, dict]:
     projects = [p for p in manifest.get("projects") or [] if p.get("status") == "ok"]
     if not models and not projects and not (d / ORG_FILE).is_file():
         raise EditError("This application backup has no model to restore.", 409)
+    from . import backup_check as bc  # every file checked before anything is touched (D968)
+    whole = bc.check_run(d)
+    if not whole["ok"]:
+        raise EditError(f"The application backup {name} did not check out, so nothing was restored: "
+                        + "; ".join(whole["problems"][:3]), 409)
     rec = new_record("application", f"{manifest.get('tag') or name} ({human(manifest.get('created', ''))}), every model"
                      f"{' and project' if projects else ''}", "all", user.username)
     record_log(rec, f"restore of every model in {name} ({len(models)}) by {user.username}: each over itself, or made again "

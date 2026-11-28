@@ -1062,7 +1062,7 @@ if ($Command -eq "menu") {   # the numbered menu (R2.29): one Python program for
     & (Join-Path $PSScriptRoot "eaxpy.ps1") menu
     exit $LASTEXITCODE
 }
-if (($Command -in @("init", "certs", "deploy", "secrets", "packs", "schedule", "persist", "folders", "allow", "drill", "dr-pack", "sign", "verify", "db", "ticket", "jobs", "optimise", "estimate", "dev", "jenkins", "setup", "access", "hostname", "settings", "site", "errors", "sonar", "images", "diag")) -or ($Command -eq "logs" -and $RestArgs.Count -gt 0 -and $RestArgs[0] -in @("backup", "clean")) -or ($Command -eq "test" -and ($RestArgs -contains "--reset-survival" -or $RestArgs -contains "backup-restore" -or $RestArgs -contains "restore" -or $RestArgs -contains "full" -or $RestArgs -contains "sonar" -or $RestArgs[0] -eq "jenkins" -or $RestArgs[0] -eq "commands"))) {   # packs (D546); schedule (D559); test --reset-survival (D561); test backup-restore, restore, full (R5.6-B1)
+if (($Command -in @("init", "certs", "deploy", "secrets", "packs", "schedule", "persist", "folders", "allow", "drill", "dr-pack", "sign", "verify", "db", "ticket", "jobs", "optimise", "estimate", "dev", "jenkins", "setup", "access", "hostname", "settings", "site", "errors", "sonar", "images", "diag")) -or ($Command -eq "logs" -and $RestArgs.Count -gt 0 -and $RestArgs[0] -in @("backup", "clean")) -or ($Command -eq "test" -and ($RestArgs -contains "--reset-survival" -or $RestArgs -contains "backup-restore" -or $RestArgs -contains "restore" -or $RestArgs -contains "full" -or $RestArgs -contains "sonar" -or $RestArgs[0] -eq "jenkins" -or $RestArgs[0] -eq "commands" -or $RestArgs[0] -eq "backup-cases"))) {   # packs (D546); schedule (D559); test --reset-survival (D561); test backup-restore, restore, full (R5.6-B1)
     # phase 36 (D498, D504): one Python program for every form (D500); eaxpy.ps1 fetches uv and Python into work\tools
     $env:EAX_TYPED = ".\eax"   # messages then say .\eax, as typed, not .\eaxpy (R14)
     & (Join-Path $PSScriptRoot "eaxpy.ps1") $Command @RestArgs
@@ -1085,7 +1085,7 @@ if ((Test-Path "eaexplorer.env") -and -not (Test-Path $EnvFile)) {
 $failed = $false
 try {
     if ($Command -in @("check", "up", "start-later", "debug", "status", "logs", "down", "backup", "backups", "restore", "restores", "restore-log", "databases", "footprint",
-                       "delete-backup", "delete-restore", "app-backup", "restore-model", "restore-app", "stop-backup", "services", "service", "import", "update", "rollback", "test", "standby")) { Assert-Docker }
+                       "delete-backup", "delete-restore", "app-backup", "restore-model", "restore-app", "model-backup", "project-backup", "restore-project", "check-backup", "stop-backup", "services", "service", "import", "update", "rollback", "test", "standby")) { Assert-Docker }
     switch ($Command) {
         "check" {
             if ((Invoke-Logged "docker" @("version", "--format", "Docker {{.Server.Version}}")) -ne 0) { throw "Docker Desktop is not running." }
@@ -1166,6 +1166,10 @@ try {
         "update" { Start-BackupHelpers; Invoke-Interactive @("ops", "python3", "/app/ops.py", "update") $RestArgs }      # phase 36, D417
         "rollback" { Start-BackupHelpers; Invoke-Interactive @("ops", "python3", "/app/ops.py", "rollback") $RestArgs }
         "restore-model" { Invoke-Interactive @("api", "python", "-m", "eax.backups_cli", "restore") $RestArgs }
+        "model-backup" { Invoke-Interactive @("api", "python", "-m", "eax.backups_cli", "model-backup") $RestArgs }      # D970
+        "project-backup" { Invoke-Interactive @("api", "python", "-m", "eax.backups_cli", "project-backup") $RestArgs }  # D970
+        "restore-project" { Invoke-Interactive @("api", "python", "-m", "eax.backups_cli", "restore-project") $RestArgs } # D970
+        "check-backup" { Invoke-Interactive @("api", "python", "-m", "eax.backups_cli", "check") $RestArgs }            # D968
         "test" {     # the self-test (phase 36.1, D367, D529, D530): reading results in the api container; a run, at once,
                      # through the operations helper (it builds the test runner first)
             $read = @{ "--status" = "status"; "--last" = "last"; "--report" = "report"; "--fixtures" = "fixtures"; "--clean" = "clean" }

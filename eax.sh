@@ -818,7 +818,7 @@ unknown_command() {
 # ------------------------------------------------------------------ commands
 # eax test --reset-survival: settings outlive a real reset (D561); eax test backup-restore, restore and full: the backup
 # and restore test runs one command after another from eax itself (R5.6-B1): one Python program for every form
-if [ "$CMD" = "test" ]; then case " $* " in *" --reset-survival "*|*" backup-restore "*|*" restore "*|*" full "*|*" sonar "*|*" test jenkins "*|*" test commands "*) exec "$BASH" ./eaxpy.sh "$@" ;; esac; fi
+if [ "$CMD" = "test" ]; then case " $* " in *" test backup-cases "*|*" --reset-survival "*|*" backup-restore "*|*" restore "*|*" full "*|*" sonar "*|*" test jenkins "*|*" test commands "*) exec "$BASH" ./eaxpy.sh "$@" ;; esac; fi
 case "$CMD" in
   help|-h|--help|/\?) show_help "${2:-}" "${3:-}"; exit $? ;;
   document)       shift; document "$@"; exit 0 ;;
@@ -876,7 +876,7 @@ if [ -f eaexplorer.env ] && [ ! -f "$ENV_FILE" ]; then
   echo "Delete the old file and run ./eax.sh init laptop (or copy your changes into $ENV_FILE)."
 fi
 
-case "$CMD" in check|up|start-later|debug|status|logs|down|backup|backups|footprint|restore|restores|restore-log|delete-backup|delete-restore|app-backup|restore-model|restore-app|stop-backup|services|service|import|update|rollback) assert_docker ;; esac
+case "$CMD" in check|up|start-later|debug|status|logs|down|backup|backups|footprint|restore|restores|restore-log|delete-backup|delete-restore|app-backup|restore-model|restore-app|model-backup|project-backup|restore-project|check-backup|stop-backup|services|service|import|update|rollback) assert_docker ;; esac
 
 case "$CMD" in
   init)
@@ -951,6 +951,8 @@ case "$CMD" in
   update) shift; backup_helpers; compose exec ops python3 /app/ops.py update "$@" ;;      # updates (phase 36, D417)
   rollback) shift; backup_helpers; compose exec ops python3 /app/ops.py rollback "$@" ;;
   restore-model) shift; compose exec api python -m eax.backups_cli restore "$@" ;;
+  model-backup|project-backup|restore-project) C="$1"; shift; compose exec api python -m eax.backups_cli "$C" "$@" ;;   # D970
+  check-backup) shift; compose exec api python -m eax.backups_cli check "$@" ;;                                         # D968
   test) shift                                                              # the self-test (phase 36.1, D367, D529)
         case " $* " in *" --build "*)                                          # only build the runner image (D570)
           echo "Building the test runner (about 1.5 GB, 5 to 15 minutes the first time): base image, Python packages, Chromium, scanners."

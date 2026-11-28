@@ -1314,6 +1314,115 @@ def readable_metamodel_history(conn, model: Any) -> tuple[list[dict], list[dict]
     return versions, changes
 
 
+# ---------------------------------------------------------------- which version of a standard each item belongs to
+# (D965: internal to the model, not in metamodel.json nor on the metamodel screens; a package carries them in
+# metamodel/standard-versions.json so that a backup restored as a new model keeps them, D969)
+_VERSIONED = (("domains", "core.domains", "d"), ("entity_types", "core.entity_types", "t"),
+              ("relationship_types", "core.relationship_types", "r"))
+
+
+def standard_versions_out(conn, model_id: int) -> dict:
+    """The model's items that say a standard version (start, end) or what replaces them, by code; {} when none."""
+    used = _rows(conn, """SELECT DISTINCT v.id, v.standard, v.version, v.released, v.sort_order, v.description
+                            FROM core.standard_versions v
+                           WHERE v.id IN (SELECT standard_version_start_id FROM core.domains WHERE model_id = :m
+                                          UNION SELECT standard_version_end_id FROM core.domains WHERE model_id = :m
+                                          UNION SELECT standard_version_start_id FROM core.entity_types WHERE model_id = :m
+                                          UNION SELECT standard_version_end_id FROM core.entity_types WHERE model_id = :m
+                                          UNION SELECT standard_version_start_id FROM core.relationship_types WHERE model_id = :m
+                                          UNION SELECT standard_version_end_id FROM core.relationship_types WHERE model_id = :m
+                                          UNION SELECT standard_version_start_id FROM core.allowed_relationships WHERE model_id = :m
+                                          UNION SELECT standard_version_end_id FROM core.allowed_relationships WHERE model_id = :m)
+                           ORDER BY v.standard, v.sort_order""", m=model_id)
+    key = {v["id"]: f"{v['standard']} {v['version']}" for v in used}
+    out: dict[str, Any] = {}
+    for section, table, _a in _VERSIONED:
+        rows = _rows(conn, f"""SELECT x.code, x.standard_version_start_id AS s, x.standard_version_end_id AS e, rb.code AS replaced_by
+                                 FROM {table} x LEFT JOIN {table} rb ON rb.id = x.replaced_by_id
+                                WHERE x.model_id = :m AND NOT x.is_deleted
+                                  AND (x.standard_version_start_id IS NOT NULL OR x.standard_version_end_id IS NOT NULL
+                                       OR x.replaced_by_id IS NOT NULL)
+                                ORDER BY x.code""", m=model_id)
+        if rows:
+            out[section] = [{"code": r["code"], **({"start": key[r["s"]]} if r["s"] else {}),
+                             **({"end": key[r["e"]]} if r["e"] else {}),
+                             **({"replaced_by": r["replaced_by"]} if r["replaced_by"] else {})} for r in rows]
+    rows = _rows(conn, """SELECT s.code AS source, rt.code AS relationship, t.code AS target,
+                                 a.standard_version_start_id AS s_, a.standard_version_end_id AS e_,
+                                 rs.code AS rb_source, rrt.code AS rb_relationship, rtt.code AS rb_target
+                            FROM core.allowed_relationships a
+                            JOIN core.entity_types s ON s.id = a.source_type_id
+                            JOIN core.entity_types t ON t.id = a.target_type_id
+                            JOIN core.relationship_types rt ON rt.id = a.relationship_type_id
+                            LEFT JOIN core.allowed_relationships rb ON rb.id = a.replaced_by_id
+                            LEFT JOIN core.entity_types rs ON rs.id = rb.source_type_id
+                            LEFT JOIN core.entity_types rtt ON rtt.id = rb.target_type_id
+                            LEFT JOIN core.relationship_types rrt ON rrt.id = rb.relationship_type_id
+                           WHERE a.model_id = :m AND NOT a.is_deleted
+                             AND (a.standard_version_start_id IS NOT NULL OR a.standard_version_end_id IS NOT NULL
+                                  OR a.replaced_by_id IS NOT NULL)
+                           ORDER BY 1, 2, 3""", m=model_id)
+    if rows:
+        out["allowed"] = [{"source": r["source"], "relationship": r["relationship"], "target": r["target"],
+                           **({"start": key[r["s_"]]} if r["s_"] else {}), **({"end": key[r["e_"]]} if r["e_"] else {}),
+                           **({"replaced_by": {"source": r["rb_source"], "relationship": r["rb_relationship"],
+                                               "target": r["rb_target"]}} if r["rb_source"] else {})} for r in rows]
+    if out:
+        out["versions"] = [{"standard": v["standard"], "version": v["version"], "released": v["released"],
+                            "sort_order": v["sort_order"], "description": v["description"]} for v in used]
+    return out
+
+
+def standard_versions_in(conn, model_id: int, data: dict | None) -> int:
+    """Puts what standard_versions_out wrote on a model's items (matched by code); a version this installation does not
+    have yet is added to core.standard_versions. Returns how many items it marked."""
+    if not data:
+        return 0
+    ids: dict[str, int] = {}
+    for v in data.get("versions") or []:
+        _exec(conn, """INSERT INTO core.standard_versions (standard, version, released, sort_order, description)
+                       SELECT :s, :v, CAST(:r AS date), :o, :d
+                        WHERE NOT EXISTS (SELECT 1 FROM core.standard_versions WHERE standard = :s AND version = :v)
+                          AND NOT EXISTS (SELECT 1 FROM core.standard_versions WHERE standard = :s AND sort_order = :o)""",
+              s=v["standard"], v=v["version"], r=v.get("released"), o=int(v.get("sort_order") or 0), d=v.get("description") or "")
+        row = _one(conn, "SELECT id FROM core.standard_versions WHERE standard = :s AND version = :v", s=v["standard"], v=v["version"])
+        if row:
+            ids[f"{v['standard']} {v['version']}"] = row["id"]
+    marked = 0
+    for section, table, _a in _VERSIONED:      # one statement for each kind of item, from the rows as JSON
+        items = [{"code": it["code"], "s": ids.get(it.get("start") or ""), "e": ids.get(it.get("end") or ""),
+                  "rb": it.get("replaced_by")} for it in data.get(section) or []]
+        if items:
+            marked += _exec(conn, f"""UPDATE {table} x SET standard_version_start_id = j.s, standard_version_end_id = j.e,
+                                             replaced_by_id = (SELECT rb.id FROM {table} rb WHERE rb.model_id = :m AND NOT rb.is_deleted
+                                                                AND lower(rb.code) = lower(j.rb) LIMIT 1)
+                                        FROM jsonb_to_recordset(CAST(:j AS jsonb)) AS j(code text, s bigint, e bigint, rb text)
+                                       WHERE x.model_id = :m AND NOT x.is_deleted AND lower(x.code) = lower(j.code)""",
+                            m=model_id, j=json.dumps(items)).rowcount or 0
+    items = [{"src": it["source"], "rel": it["relationship"], "tgt": it["target"], "s": ids.get(it.get("start") or ""),
+              "e": ids.get(it.get("end") or ""), "rs": (it.get("replaced_by") or {}).get("source"),
+              "rr": (it.get("replaced_by") or {}).get("relationship"), "rt": (it.get("replaced_by") or {}).get("target")}
+             for it in data.get("allowed") or []]
+    if items:
+        marked += _exec(conn, """WITH j AS (SELECT * FROM jsonb_to_recordset(CAST(:j AS jsonb))
+                                              AS j(src text, rel text, tgt text, s bigint, e bigint, rs text, rr text, rt text)),
+                                     a AS (SELECT a.id, a.source_type_id, a.relationship_type_id, a.target_type_id,
+                                                  lower(s.code) AS s, lower(r.code) AS r, lower(t.code) AS t
+                                             FROM core.allowed_relationships a
+                                             JOIN core.entity_types s ON s.id = a.source_type_id
+                                             JOIN core.entity_types t ON t.id = a.target_type_id
+                                             JOIN core.relationship_types r ON r.id = a.relationship_type_id
+                                            WHERE a.model_id = :m AND NOT a.is_deleted)
+                                 UPDATE core.allowed_relationships x
+                                    SET standard_version_start_id = j.s, standard_version_end_id = j.e,
+                                        replaced_by_id = (SELECT b.id FROM a b WHERE b.s = lower(j.rs) AND b.r = lower(j.rr)
+                                                             AND b.t = lower(j.rt) LIMIT 1)
+                                   FROM j, a
+                                  WHERE x.id = a.id AND a.s = lower(j.src) AND a.r = lower(j.rel) AND a.t = lower(j.tgt)""",
+                        m=model_id, j=json.dumps(items)).rowcount or 0
+    return marked
+
+
 def _manifest(conn, m: dict, spec: dict, content: dict, actor: str | None = None) -> dict:
     root = None
     chain = _rows(conn, """WITH RECURSIVE up AS (SELECT id, source_model_id, 0 AS d FROM core.models WHERE id = :i
@@ -1366,6 +1475,10 @@ def export_package(conn, model: Any, fmt: str = "zip", actor: str | None = None,
         if with_data:
             hist["rows"] = history_portable(conn, m["_id"])
             hist["changes"] = readable_history(conn, model)
+    if fmt == "zip":                 # which version of a standard each item belongs to (D965, D969)
+        sv = standard_versions_out(conn, m["_id"])
+        if sv:
+            hist["standard_versions"] = sv
     if with_data and fmt == "zip":   # the model's drawn views and its own views travel with it (D405, D406)
         from . import views_client as vc
         try:
@@ -1408,6 +1521,8 @@ def write_package(manifest: dict, spec: dict, content: dict, hist: dict | None, 
             if hist.get("rows") is not None:
                 z.writestr("history/changes.csv", _csv(hist["changes"], ["entity", "display_id", "entity_type", "at", "by", "kind", "item", "change", "field", "old", "new"]))
                 z.writestr("history/history.json", json.dumps(hist["rows"], ensure_ascii=False, default=str))
+        if hist.get("standard_versions"):
+            z.writestr("metamodel/standard-versions.json", json.dumps(hist["standard_versions"], ensure_ascii=False, default=str))
         if hist.get("views"):
             z.writestr("views/drawn_views.json", json.dumps(hist["views"], ensure_ascii=False, default=str))
         for ic in hist.get("icons") or []:     # icons/<entity key>.svg|png and icons/icons.json (D403)
@@ -1525,8 +1640,9 @@ def read_package(data: bytes, filename: str = "") -> dict:
                     if f in names:
                         icons.append({"key": i["key"], "content_type": i["content_type"], "content": z.read(f)})
             reports = json.loads(z.read("reports/reports.json")) if "reports/reports.json" in names else None
+            versions = json.loads(z.read("metamodel/standard-versions.json")) if "metamodel/standard-versions.json" in names else None
             return {"manifest": manifest, "spec": spec, "entities": ents, "relationships": rels, "history": hist, "views": views,
-                    "icons": icons, "reports": reports, "format": "zip"}
+                    "icons": icons, "reports": reports, "standard_versions": versions, "format": "zip"}
         if "xl/workbook.xml" in names:
             return _from_xlsx(data)
     raise EditError("This zip is not an EA Explorer package: it has no manifest.json and metamodel.json.")
@@ -1716,6 +1832,7 @@ def import_package(conn, pkg: dict, placement: str, actor: str, name: str | None
                           description=mm.get("description", ""), metamodel_name=mm.get("framework") or target_name,
                           owner=mm.get("owner", ""), version_label=mm.get("version", ""))
         counts = apply_spec(conn, row["id"], spec, "new")
+        counts["standard_versions"] = standard_versions_in(conn, row["id"], pkg.get("standard_versions"))   # D969
         return {"model": repo.get_model(conn, str(row["guid"])), "root": None, "counts": counts}
     root_model = None
     if placement == "root":
@@ -1736,6 +1853,7 @@ def import_package(conn, pkg: dict, placement: str, actor: str, name: str | None
                                description=f"The metamodel of the uploaded package {mm.get('name')}",
                                metamodel_name=mm.get("framework") or target_name, version_label=mm.get("version", ""))
         apply_spec(conn, root_row["id"], spec, "new")
+        standard_versions_in(conn, root_row["id"], pkg.get("standard_versions"))     # D969: copied on to the model below
         root_model = repo.get_model(conn, str(root_row["guid"]))
     else:
         raise EditError("Placement is root or own_root.")

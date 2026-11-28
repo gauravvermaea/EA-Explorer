@@ -173,10 +173,12 @@ def backup(core, pc, user, project: Any, why: str = "") -> tuple[str, dict]:
     out_dir.mkdir(parents=True, exist_ok=True)
     file = f"{info['created']}-{bk._slug(why, 40) or 'backup'}{SUFFIX}"
     (out_dir / file).write_bytes(data)
+    checked = bk.written_ok(out_dir / file)      # read back from the disk and checked; a bad file is not kept (D968)
+    info["sha256"] = checked["sha256"]
     (out_dir / file.replace(SUFFIX, ".json")).write_text(json.dumps(info, indent=2, ensure_ascii=False))
     n_models = len([m for m in info["models"] if not m.get("error")])
     msg = (f"{p['name']} backed up: {info['counts'].get('documents', 0)} documents, {n_models} models, "
-           f"{info['counts'].get('steps', 0)} steps ({len(data) // 1024 + 1} KB).")
+           f"{info['counts'].get('steps', 0)} steps ({len(data) // 1024 + 1} KB), the file checked.")
     if info["documents_missing"]:
         msg += f" {len(info['documents_missing'])} document files could not be read from Documents and are not in it."
     cleanup_project(out_dir)
@@ -204,9 +206,13 @@ def project_file(core, pc, user, p: dict, why: str = "", with_models: bool = Tru
     _evidence_names(rows["view_evidence"])
     buf = io.BytesIO()
     skipped_docs, model_files = [], []
+    members: dict[str, bytes] = {}           # what goes in the file, fingerprinted into backup.json (D968)
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        def put(name: str, b: bytes | str) -> None:
+            members[name] = b.encode("utf-8") if isinstance(b, str) else b
+            z.writestr(name, members[name])
         for table, data in rows.items():
-            z.writestr(f"project/{table}.json", json.dumps(data, default=str, ensure_ascii=False))
+            put(f"project/{table}.json", json.dumps(data, default=str, ensure_ascii=False))
         names = {str(r["guid"]): r["name"] for r in pj._rows(core, "SELECT guid, name FROM core.models WHERE guid::text = ANY (CAST(:g AS text[]))",
                                                                 g=[str(m["model_guid"]) for m in models])}
         for m in models:
@@ -215,7 +221,7 @@ def project_file(core, pc, user, p: dict, why: str = "", with_models: bool = Tru
                 continue
             try:
                 data, info = bk.model_file(core, str(m["model_guid"]), user.username, f"with the project {p['name']}")
-                z.writestr(f"models/{m['model_guid']}{bk.SUFFIX}", data)
+                put(f"models/{m['model_guid']}{bk.SUFFIX}", data)
                 model_files.append({"guid": str(m["model_guid"]), "name": info["model"]["name"], "how": m["how"], "in_file": True})
             except Exception as exc:  # noqa: BLE001 - a model gone or unreadable: said in the result
                 model_files.append({"guid": str(m["model_guid"]), "error": str(exc)[:200], "how": m["how"]})
@@ -228,20 +234,23 @@ def project_file(core, pc, user, p: dict, why: str = "", with_models: bool = Tru
                 continue
             try:
                 content, _ct, _name = mayan.download(d["mayan_document_id"])
-                z.writestr(f"documents/{d['guid']}/{d['file_name']}", content)
+                put(f"documents/{d['guid']}/{d['file_name']}", content)
             except Exception as exc:  # noqa: BLE001 - Documents down or the file gone: the row is kept, the file said missing
                 skipped_docs.append(f"{d['file_name']}: {str(exc)[:120]}")
         library = _library_out(str(p["guid"]))
         if library.get("data"):
-            z.writestr("library/library.json", json.dumps(library.pop("data"), ensure_ascii=False))
+            put("library/library.json", json.dumps(library.pop("data"), ensure_ascii=False))
         info = {"format": FORMAT, "format_version": FORMAT_VERSION, "version": __version__, "created": _stamp(), "by": user.username, "why": why,
                 "project": {"id": str(p["guid"]), "name": p["name"]},
                 "counts": {t: len(v) for t, v in rows.items()}, "models": model_files,
                 "documents_missing": skipped_docs, "links": _links(pc, rows), "library": library}
+        put("README.txt", f"EA Explorer project backup ({FORMAT}): the project's rows, the models it works on "
+                          "(model backups) and the latest version of each document. Restore it on the project page "
+                          "(Admin › Back up and restore) or in Project admin; it comes back as a new project. backup.json's "
+                          "\"files\" is the SHA-256 of every other member: eax check-backup checks them.\n")
+        from . import backup_check as bc
+        info["files"] = bc.fingerprint(members)
         z.writestr("backup.json", json.dumps(info, indent=2, ensure_ascii=False))
-        z.writestr("README.txt", f"EA Explorer project backup ({FORMAT}): the project's rows, the models it works on "
-                                 "(model backups) and the latest version of each document. Restore it on the project page "
-                                 "(Admin › Back up and restore) or in Project admin; it comes back as a new project.\n")
     return buf.getvalue(), info
 
 
@@ -521,6 +530,11 @@ def restore(core, pc, user, path: Path, new_name: str = "", over: bool = False, 
     if not over and not may_restore_new(user):
         raise EditError("Restoring a project makes a new one: it needs the right to create projects (or IT).", 403)
     info, z = _read(path)
+    try:
+        bk.refuse_unchecked(path)               # a damaged or changed file is never restored (D968)
+    except EditError:
+        z.close()
+        raise
     links = info.get("links") or {}
     with z:
         names = set(z.namelist())

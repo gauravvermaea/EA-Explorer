@@ -299,7 +299,29 @@ def metamodel_sql(model_key: str, origin_key: str | None, missing_only: bool = F
                      gid(model_key, "entity_type", t), note])
     out.append(insert("allowed_relationship", ["id", "origin_id", "model_id", "relationship_type_id",
                                                "source_type_id", "target_type_id", "note"], rows))
+    if not missing_only:            # an upgrade adds what is missing and changes nothing (R12)
+        out.append(standard_version_sql(m))
     return "".join(out)
+
+
+ARCHIMATE = ("ArchiMate", "4.0")    # the version the seed's metamodel is (D965)
+
+
+def standard_version_sql(model_guid: str) -> str:
+    """The model's domains, element types, relationship types and allowed relationships marked as ArchiMate 4.0 (D965),
+    but for the extensions (A.EXTENSION_DESCRIPTIONS: not ArchiMate's, an exchange leaves them out) and the allowed
+    relationships to or from one. The end stays empty: they are in the latest version."""
+    v = f"(SELECT id FROM core.standard_versions WHERE standard = {lit(ARCHIMATE[0])} AND version = {lit(ARCHIMATE[1])})"
+    mod = f"(SELECT id FROM core.models WHERE guid = {lit(model_guid)})"
+    ext = "ARRAY[" + ", ".join(lit(c) for c in sorted(A.EXTENSION_DESCRIPTIONS)) + "]::text[]"
+    return (f"UPDATE core.domains SET standard_version_start_id = {v} WHERE model_id = {mod} AND standard_version_start_id IS NULL;\n"
+            f"UPDATE core.entity_types SET standard_version_start_id = {v} WHERE model_id = {mod} AND standard_version_start_id IS NULL"
+            f" AND NOT code = ANY ({ext});\n"
+            f"UPDATE core.relationship_types SET standard_version_start_id = {v} WHERE model_id = {mod}"
+            " AND standard_version_start_id IS NULL;\n"
+            f"UPDATE core.allowed_relationships a SET standard_version_start_id = {v} FROM core.entity_types s, core.entity_types t"
+            f" WHERE a.model_id = {mod} AND a.standard_version_start_id IS NULL AND s.id = a.source_type_id AND t.id = a.target_type_id"
+            f" AND NOT s.code = ANY ({ext}) AND NOT t.code = ANY ({ext});\n")
 
 
 _insert = insert

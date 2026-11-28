@@ -4372,5 +4372,6 @@
   "button:Save the scale": "Saves the organisation's risk scale: studies use it from their next run.",
   "button:▶ Run": "Runs the study with EA Explorer's engine and keeps the run with the inputs and seed it used.",
   "button:✎ Change the scale": "Changes what Likelihood and Impact 1 to 5 mean (Super Admins).",
-  "button:⬇ The figures as CSV": "Downloads the run's figures (percentiles, chances, drivers) as a CSV file."
+  "button:⬇ The figures as CSV": "Downloads the run's figures (percentiles, chances, drivers) as a CSV file.",
+  "field:ArchiMate version": "The version of ArchiMate the new model is made for. ArchiMate 4.0 is the one there is for now; later versions will be offered here when they come."
 }

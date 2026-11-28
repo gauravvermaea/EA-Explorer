@@ -305,14 +305,57 @@ $ {eax} restore-log 12
 > Stops the backups running; the partial backup is deleted. A restore cannot be stopped.
 Infrastructure backups stop at once; application backups after the model they are on.
 
-### app-backup [tag]
+### app-backup [tag] [--models <names>] [--projects <names>]
 > Backs up every model now (an application backup), into work/backups/application.
+Every model and every project with its documents, and the organisation part. With --models (names or ids, separated by
+commas) only those models, and with --projects only those projects beside them. Each file is read back and checked as
+soon as it is written (D968): a file that does not check out is not kept, and the backup says so. The last lines say
+the run's name (Run: ...), which check-backup, restore-model and restore-app take.
 $ {eax} app-backup month-end
+$ {eax} app-backup before-workshop --models "Protea Insurance (demo estate)" --projects "Protea Claims Transformation 2028 (sample)"
+
+### model-backup <model> [why]
+> Backs up one model now, as its Model Admin does on the model page.
+The model by its name (in quotes when it has spaces) or its id. The file goes in work/backups/application/models/<model
+id>/ and is checked as soon as it is written. The last lines say the file (File: ...), its SHA-256 and the command that
+restores it. Needs the api container running (D970).
+$ {eax} model-backup "Protea Insurance (demo estate)" before-merge
 
 ### restore-model
 > Restores one model from an application backup, as a new model or over itself.
 Lists the backups and the models in them to choose from. Needs the api container running. Without questions: the
 backup's run and the model's backup file, then --new <name> (a new model of that name) or --over (over itself).
+From one of the model's own backups (made by model-backup or on the model page): model <model> <file>. From a file
+brought from elsewhere (in work/backups/application/uploaded): uploaded <file>. The file is checked first: a damaged
+file, or one changed since it was made, is refused and nothing changes (D968).
+$ {eax} restore-model 20261128T200000Z-month-end protea-insurance-1a2b3c4d.eaxbackup.zip --new "Protea (restored)" --yes
+$ {eax} restore-model model "Protea Insurance (demo estate)" 20261128T201500Z-before-merge.eaxbackup.zip --over --yes
+
+### project-backup <project> [why]
+> Backs up one project now, with its models and the latest version of each document.
+The project by its name (in quotes when it has spaces) or its id. The file goes in work/backups/application/projects/
+<project id>/ and is checked as soon as it is written. The last lines say the file (File: ...) and the command that
+restores it. Needs the api container running (D970).
+$ {eax} project-backup "Protea Claims Transformation 2028 (sample)" end-of-phase-B
+
+### restore-project <project|run> <file> [--new <name>] [--over] [--yes]
+> Restores a project from a backup file: as a new project (the default) or over itself.
+The file is one of the project's own backups (the project, then the file project-backup named) or a project in an
+application backup (the run, then the file). As a new project it gets new ids and the name given; --over puts the
+project back as it was, its documents too. The file is checked first; asks RESTORE to confirm unless --yes. Its
+repository is built and its documents put back before it ends (Documents must be running) (D970).
+$ {eax} restore-project "Protea Claims Transformation 2028 (sample)" 20261128T201500Z-end-of-phase-B.eaxproject.zip --new "Protea (restored)"
+
+### check-backup [latest|all|<run>|<tag>|<file>]
+> Checks backups: each zip file, its fingerprint and what it holds. 1 when any is not right.
+Each file is opened and every member's checksum read; its fingerprint (the SHA-256 of every member, written into it
+when it was made) compared; a model backup's package read and counted, a project backup's rows, models and document
+files counted. An application backup's files are also compared with the SHA-256 its manifest gives. latest (the
+default): the newest application backup; all: every backup there is; or a run, a tag, or a file's name. Reads only,
+changes nothing (D968).
+$ {eax} check-backup
+$ {eax} check-backup all
+$ {eax} check-backup 20261128T201500Z-before-merge.eaxbackup.zip
 
 ### restore-app [run|tag|latest] [--yes]
 > Restores every model of an application backup, each over itself (each backed up first).
@@ -492,6 +535,18 @@ and IT Admins.
   backup  only the backup checks (the last part of full): an infrastructure and an application backup, each restored into
           a scratch copy and counted, then removed; nothing live is touched (R2.45). Until they pass, the Backups page shows
           these commands instead of its buttons (R2.46)
+  backup-cases  model and project backups and restores, case by case, through the eax commands (D971): every
+          kind of backup (app-backup, app-backup --models, model-backup, project-backup) made and checked
+          (check-backup); restored as a new model or project and over itself (restore-model, restore-project,
+          restore-app), each compared with its fingerprint (metamodel with its ArchiMate versions, entities, values,
+          relationships, drawn views, KPIs, icons; a project's rows and each document file's SHA-256); a deleted model
+          made again and a newer one left alone; a file brought from elsewhere and one from before fingerprints
+          restored; damaged, changed, newer and wrong files refused with nothing changed;
+          the scheduled application backup and a scheduled eax command each run and restored from; no secret in any
+          output; nothing left behind, every other backup still there. It makes and removes its own models and
+          project; it does not touch others'
+          (about 20 to 40 minutes). Runs in eax test full after backup-restore. The report:
+          work/tests/backup-cases-<time>/report.md. The command line only.
   backup-restore  the backup and restore test, on this installation (R5.6-B1; restore is the same): one command
           after another from eax itself, each waited for (no test container, no job queue). A backup B1; a test
           project and models with content of every kind (documents, a KPI, a custom view, tags, an uncommitted change,
@@ -558,6 +613,7 @@ $ {eax} test performance --size medium --users 50
 $ {eax} test attack
 $ {eax} test backup
 $ {eax} test backup-restore
+$ {eax} test backup-cases
 $ {eax} test api GET /api/v1/models --as architect
 $ {eax} test watch
 $ {eax} test watch --browser

@@ -103,7 +103,7 @@ def test_the_migration_holds_rows_only_and_project_backups_carry_it():
         assert f"CREATE TABLE IF NOT EXISTS {t}" in sql
     assert "CREATE FUNCTION" not in sql.upper() and "CREATE TRIGGER" not in sql.upper()      # rows only (D248)
     wrapper = (API / "migrations" / "versions" / "0127_r14_7_monte_carlo.py").read_text(encoding="utf-8")
-    assert 'down_revision = "0125_release_14_5_0"' in wrapper
+    assert 'down_revision = "0126_r14_6_standard_versions"' in wrapper
     from eax import project_backup as pb
     names = [t[0] for t in pb.TABLES]
     assert names.index("mc_studies") < names.index("mc_runs") and {"mc_studies", "mc_runs"} <= pb.NEW_GUID

@@ -443,6 +443,17 @@ JOURNEYS: list[dict] = [
          {"expect": "Risk register"},
          {"expect_sel": ".ba-box h4"},
      ]},
+    # the ArchiMate version on the New model form (D966): ArchiMate 4.0, the one there is for now; nothing is made
+    {"name": "new model: the ArchiMate version is 4.0", "smoke": False, "roles": ["super-admin", "model-creator"],
+     "refused": {"role": "report-viewer", "open": "#/metamodel", "disabled_or_absent": "+ New model"},
+     "steps": [
+         {"open": "#/metamodel", "expect": "New model"},
+         {"click": "+ New model"},
+         {"expect": "ArchiMate version"},
+         {"expect": "ArchiMate 4.0"},
+         {"click": "Cancel", "exact": True},
+         {"expect_not": "ArchiMate version"},
+     ]},
     # a ready-made survey (D890): a draft made in one step, its questions there, then deleted (nothing left behind)
     {"name": "ready-made survey: start one, then delete the draft", "smoke": False, "roles": ["super-admin", "model-creator"],
      "refused": {"role": "architect", "open": "#/surveys", "disabled_or_absent": "Start a draft"},

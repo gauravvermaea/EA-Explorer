@@ -66,6 +66,10 @@ const COPIES = [
   ["history", "Deep copy: the data with its full history", "As above, and every entity keeps its whole history from the source, even if the source changes or is deleted later"],
 ];
 
+// the ArchiMate version a new model is made for (owner, 28 Nov 2026, 07:59, D966): only ArchiMate 4.0 for now, written
+// here; the versions themselves are core.standard_versions (D965), and choosing among them comes later
+export const ARCHIMATE_VERSIONS = [["4.0", "ArchiMate 4.0"]];
+
 export function NewModelDialog({ from, onClose, preset = {}, admin = false, onCreated = null }) {
   const { data: models_ } = useApi("/api/v1/models?archived=false");
   const models = models_ && liveModels(models_).concat(from ? models_.filter((x) => x.id === from && isRetiredModel(x)) : []);
@@ -92,6 +96,7 @@ export function NewModelDialog({ from, onClose, preset = {}, admin = false, onCr
   const [iconFile, setIconFile] = useState(null);
   const [description, setDescription] = useState("");
   const [framework, setFramework] = useState("");
+  const [archimate, setArchimate] = useState(ARCHIMATE_VERSIONS[0][0]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -152,6 +157,11 @@ export function NewModelDialog({ from, onClose, preset = {}, admin = false, onCr
           {createWhy && <span className="status bad">{createWhy}</span>}
         </Field>
         <Field label="Name" tip="Shown everywhere the model is listed. It must not be the same as another model's name."><input value={name} onChange={(e) => setName(e.target.value)} autoFocus /></Field>
+        <Field label="ArchiMate version" tip="The version of ArchiMate the model is made for. ArchiMate 4.0 is the one there is for now.">
+          <select aria-label="ArchiMate version" value={archimate} onChange={(e) => setArchimate(e.target.value)}>
+            {ARCHIMATE_VERSIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+        </Field>
         <Field label="Start from" hint={kind === "root" ? "(empty: a new framework from scratch, under Root)" : "(the metamodel it is built on)"}
           tip="The new model gets a copy of this model's metamodel, and sits under it in the hierarchy. Choose a library model or one of your own models to copy its content too.">
           <select value={source} onChange={(e) => {

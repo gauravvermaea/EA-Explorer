@@ -1210,6 +1210,10 @@ def cmd_run(args) -> int:
                 keep_open = True
             if "api" in suites and not area:          # container alerts and their recovery (R2.19)
                 alert_check(API, tokens.get("super-admin", ""), r.recorder("api"), r.log)
+            if "api" in suites and not area:          # the OData feed read as Power BI reads it, against the database (D972)
+                from . import odata_check
+                r.counts.update({f"odata {k}": v for k, v in
+                                 odata_check.run(API, tokens, ids, r.recorder("api"), r.log, r.repo).items()})
             if "reports" in suites:                   # every report in Reports, signed in as people (R4.1)
                 _reports_suite(r, tokens, ids)
             if "performance" in suites:              # the benchmark (R5.18): the data, the reads, then k6 by the helper

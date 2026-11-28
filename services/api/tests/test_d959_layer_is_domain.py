@@ -43,7 +43,7 @@ def test_the_tables_are_made_as_domains():
     sql = (API / "migrations" / "sql" / "0002_metamodel.sql").read_text(encoding="utf-8")
     assert "CREATE TABLE core.domains (" in sql and "domain_id    bigint NOT NULL REFERENCES core.domains (id)" in sql
     assert not list((API / "migrations").rglob("*layer*"))                       # no renaming migration
-    v = (API / "migrations" / "versions" / "0127_r14_7_monte_carlo.py").read_text(encoding="utf-8")
+    v = (API / "migrations" / "versions" / "0126_r14_6_standard_versions.py").read_text(encoding="utf-8")
     assert 'down_revision = "0125_release_14_5_0"' in v
 
 

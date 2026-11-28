@@ -204,8 +204,16 @@ Linux and macOS: `./eax.sh ...`.
 | `eax restore-log <id>` | A restore's whole log |
 | `eax delete-backup <name>` | Deletes an infrastructure backup (unpin it first) |
 | `eax delete-restore <id>` | Forgets a finished restore and its log |
-| `eax app-backup [tag]` | Backs up every model and every project with its documents now (an application backup) |
-| `eax restore-model` | Lists the application backups and their models to choose from, then restores one as a new model or over itself (the api container must run) |
+| `eax app-backup [tag] [--models <names>] [--projects <names>]` | Backs up every model and every project with its documents now (an application backup); with `--models` only those models, with `--projects` only those projects beside them (D970) |
+| `eax model-backup <model> [why]` | One model backed up now, as on its model page; says the file, its SHA-256 and how to restore it (D970) |
+| `eax project-backup <project> [why]` | One project backed up now, with its models and documents; says the file and how to restore it (D970) |
+| `eax check-backup [latest\|all\|<run>\|<tag>\|<file>]` | Reads backups and checks them, changing nothing: every zip member's checksum, the file's fingerprint (SHA-256 of every member), the package or project rows, models and document files inside; 1 when any is not right (D968) |
+| `eax restore-model` | Lists the application backups and their models to choose from, then restores one as a new model or over itself (the api container must run); without questions `<run> <file>`, `model <model> <file>` (its own backups) or `uploaded <file>`, then `--new "<name>"` or `--over`, and `--yes` |
+| `eax restore-project <project\|run> <file> [--new <name>] [--over] [--yes]` | A project back from one of its own backups or from an application backup, as a new project or over itself; its repository and documents are put back before it ends (D970) |
+| `eax test backup-cases` | Every kind of model and project backup and restore tried with these commands and compared by fingerprint, scheduled backups too; part of `eax test full` (D971) |
+
+Every backup file is read back and checked as soon as it is written, and again before it is restored: a damaged file,
+or one changed since it was made, is never kept as a good backup and never restored (D968).
 
 ## Restore
 

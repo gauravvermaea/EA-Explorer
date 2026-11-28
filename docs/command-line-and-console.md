@@ -65,7 +65,7 @@ start when something is wrong. It is a numbered menu that says what to do in pla
 |---|---|
 | Start and stop | up (run), stop (down), restart, cleanup, clean-restart, clean-run, maintenance |
 | Status and logs | status, url, logins, logs, diag, footprint, databases, persist |
-| Backups and restores | backup, backups, restore, restores, restore-log, delete-backup, delete-restore, stop-backup, app-backup, restore-model, restore-app, schedule |
+| Backups and restores | backup, backups, restore, restores, restore-log, delete-backup, delete-restore, stop-backup, app-backup, model-backup, project-backup, check-backup, restore-model, restore-project, restore-app, schedule |
 | Updates | update, rollback, packs, import |
 | Test | check, test |
 | Settings and services | services, service, servers, standby, secrets, trust |
@@ -205,12 +205,16 @@ There are two kinds of backup:
 | Command | What it does |
 |---|---|
 | `eax backup [tag]` | An infrastructure backup now, with a tag to find it by. |
-| `eax app-backup [tag]` | An application backup now (needs the API running). |
+| `eax app-backup [tag] [--models <names>] [--projects <names>]` | An application backup now (needs the API running): everything, or with `--models` (names or ids, separated by commas) only those models and with `--projects` only those projects beside them. Its last lines say the run's name (`Run: ...`). |
+| `eax model-backup <model> [why]` | One model backed up now, as its Model Admin does on the model page. Its last lines say the file (`File: ...`), its SHA-256 and the command that restores it. |
+| `eax project-backup <project> [why]` | One project backed up now, with its models and the latest version of each document. Its last lines say the file and the command that restores it. |
+| `eax check-backup [latest\|all\|<run>\|<tag>\|<file>]` | Checks backups and changes nothing: each zip file opens and every member's checksum is right, its fingerprint (the SHA-256 of every member, written into it when it was made) matches, a model backup's package reads with the counts it says, a project backup's rows, models and document files are all there, and an application backup's files have the SHA-256 its manifest gives. Ends with 1 when any is not right. |
 | `eax import [source\|--all] [--as user]` | Takes the files other systems dropped in their delivery folders (phase 34): each becomes a delivery, previewed and waiting for review on the model's Deliveries tab. Without a source: lists the sources, their folders and what waits. See [import-formats.md](import-formats.md). |
 | `eax backups [words]` | Lists every backup (infrastructure ones numbered); with words, only those whose tag, name or maker has them. |
 | `eax restore [name\|tag\|latest] [--what ...] [--yes]` | Restores an infrastructure backup (see the list of what it can put back below). Without a name it lists the backups to choose from, asks what to restore, and asks you to type RESTORE. A backup of the current state is taken first, and nothing live changes until everything is restored cleanly. It works when the screens are down. |
 | `eax restore-app [run\|tag\|latest] [--yes]` | Puts every model of an application backup back over itself (each model is backed up first). Models no longer there are made again; newer models stay as they are. |
-| `eax restore-model` | Choose an application backup and one model in it, then restore that model as a new model or over itself. |
+| `eax restore-model` | Choose an application backup and one model in it, then restore that model as a new model or over itself. Without questions: `eax restore-model <run> <file> --new "<name>"` or `--over`, and `--yes`; from one of the model's own backups `eax restore-model model <model> <file> ...`; from a file brought from elsewhere (in `work/backups/application/uploaded`) `eax restore-model uploaded <file> ...`. |
+| `eax restore-project <project\|run> <file> [--new <name>] [--over] [--yes]` | A project back from one of its own backups (the project, then the file) or from an application backup (the run, then the file): as a new project (the default) or over itself. Its repository is built and its documents put back before it ends (Documents must be running). |
 | `eax restores` | Every restore with its status. |
 | `eax restore-log <id>` | One restore's whole log. |
 | `eax stop-backup` | Stops the backups that are running; the partial backup is deleted. A restore cannot be stopped. |
@@ -228,7 +232,40 @@ What `eax restore --what` can put back:
 | `files` | The document files (with Documents' database), the certificate, the reports' home, and the import and export folders |
 
 A **project backup** (one architecture project, with its documents and models) is made and restored on the project's
-page or in Project admin. One made by an older EA Explorer is upgraded as it is restored (D328).
+page or in Project admin, or with `eax project-backup` and `eax restore-project`. One made by an older EA Explorer is
+upgraded as it is restored (D328).
+
+**Every backup file is checked (D968).** As soon as a model, project or application backup is written, it is read back
+from the disk and checked as `eax check-backup` does; a file that does not check out is deleted and the backup says so,
+so a bad file is never kept as a good backup. Each model and project backup holds its own fingerprint (in its
+`backup.json`, `files`: the SHA-256 of every other member), and an application backup's `manifest.json` holds the
+SHA-256 of each file in it. Before anything is restored the file is checked again: a damaged file, or one changed since
+it was made, is refused and nothing changes. A file made before 14.6 has no fingerprint; it is checked for everything
+else and the check says so.
+
+For example, a model backed up before a big change, checked, and put back if the change goes wrong:
+
+```
+eax model-backup "Protea Insurance (demo estate)" before-merge
+eax check-backup 20261128T201500Z-before-merge.eaxbackup.zip
+eax restore-model model "Protea Insurance (demo estate)" 20261128T201500Z-before-merge.eaxbackup.zip --over --yes
+```
+
+And a project copied into a new project from its backup:
+
+```
+eax project-backup "Protea Claims Transformation 2028 (sample)" end-of-phase-B
+eax restore-project "Protea Claims Transformation 2028 (sample)" 20261128T201700Z-end-of-phase-B.eaxproject.zip --new "Protea (copy)" --yes
+```
+
+**`eax test backup-cases` (D971)** tries all of this on the installation, case by case, with the commands above: every
+kind of backup made and checked; models and projects restored as new and over themselves and compared with their
+fingerprints (the metamodel with each item's ArchiMate version, the entities, values, relationships, drawn views, KPIs
+and icons; a project's rows and each document file's SHA-256); a deleted model made again and a newer one left alone;
+damaged, changed, newer and wrong files refused with nothing changed; the scheduled application backup and a scheduled
+`eax app-backup` each run and restored from; no secret in any output. It makes and removes its own models and
+project and touches no one else's. `eax test full` runs it after `eax test backup-restore`. Its report is in
+`work/tests/backup-cases-<time>/`.
 
 ## Updating to a new release
 

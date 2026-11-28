@@ -134,6 +134,55 @@ CHECKS: list[tuple[str, str, str]] = [
 ]
 
 
+# which version of a standard each metamodel item belongs to (D965, D966): ArchiMate 4.0 is there, the ArchiMate root
+# metamodel says it (but for the extensions), an end is never before its start, and what replaces an item is in its model
+_VERSIONED = ("domains", "entity_types", "relationship_types", "allowed_relationships")
+_ARCHIMATE_ROOT = "060b8041-a7aa-5b8f-a0f3-ca1562a15105"      # eax.seed.build.TEMPLATE_ID: gid("model", "archimate4-template")
+_EXTENSIONS = ("BusinessScenario", "Contract", "Control", "Junction", "Measure", "ProductLifecycleStage", "ValueStreamStage")
+CHECKS += [
+    ("ArchiMate 4.0 is a standard version (D965)", """
+        SELECT 'ArchiMate 4.0 is missing from core.standard_versions'
+         WHERE NOT EXISTS (SELECT 1 FROM core.standard_versions WHERE standard = 'ArchiMate' AND version = '4.0')""", "failed"),
+    ("the ArchiMate root metamodel says its ArchiMate version (D965)", f"""
+        SELECT x.what FROM (
+            SELECT 'domain ' || d.code AS what, d.standard_version_start_id AS v FROM core.domains d
+              JOIN core.models m ON m.id = d.model_id WHERE m.guid = '{_ARCHIMATE_ROOT}' AND NOT d.is_deleted
+            UNION ALL
+            SELECT 'element type ' || t.code, t.standard_version_start_id FROM core.entity_types t
+              JOIN core.models m ON m.id = t.model_id WHERE m.guid = '{_ARCHIMATE_ROOT}' AND NOT t.is_deleted
+               AND t.code NOT IN ({", ".join(f"'{c}'" for c in _EXTENSIONS)})
+            UNION ALL
+            SELECT 'relationship type ' || r.code, r.standard_version_start_id FROM core.relationship_types r
+              JOIN core.models m ON m.id = r.model_id WHERE m.guid = '{_ARCHIMATE_ROOT}' AND NOT r.is_deleted
+        ) x LEFT JOIN core.standard_versions v ON v.id = x.v
+         WHERE v.id IS NULL OR v.standard <> 'ArchiMate' OR v.version <> '4.0'
+         LIMIT 50""", "failed"),
+    ("an extension says no ArchiMate version (D965)", f"""
+        SELECT m.name || ': ' || t.code FROM core.entity_types t JOIN core.models m ON m.id = t.model_id
+         WHERE m.guid = '{_ARCHIMATE_ROOT}' AND t.code IN ({", ".join(f"'{c}'" for c in _EXTENSIONS)})
+           AND t.standard_version_start_id IS NOT NULL
+         LIMIT 50""", "failed"),
+    ("an item's end version is not before its start (D965)", " UNION ALL ".join(f"""
+        SELECT '{t} ' || x.id FROM core.{t} x
+          JOIN core.standard_versions s ON s.id = x.standard_version_start_id
+          JOIN core.standard_versions e ON e.id = x.standard_version_end_id
+         WHERE e.standard <> s.standard OR e.sort_order < s.sort_order""" for t in _VERSIONED) + " LIMIT 50", "failed"),
+    ("an item has an end version only with a start (D965)", " UNION ALL ".join(f"""
+        SELECT '{t} ' || x.id FROM core.{t} x
+         WHERE x.standard_version_end_id IS NOT NULL AND x.standard_version_start_id IS NULL""" for t in _VERSIONED)
+     + " LIMIT 50", "failed"),
+    ("what replaces an item is another item of its own model (D965)", " UNION ALL ".join(f"""
+        SELECT '{t} ' || x.id FROM core.{t} x JOIN core.{t} r ON r.id = x.replaced_by_id
+         WHERE r.model_id <> x.model_id OR r.id = x.id""" for t in _VERSIONED) + " LIMIT 50", "failed"),
+    ("a copied metamodel item keeps its origin's version (D965)", " UNION ALL ".join(f"""
+        SELECT '{t} ' || x.id FROM core.{t} x JOIN core.{t} o ON o.guid = x.origin_guid
+         WHERE NOT x.is_deleted AND NOT o.is_deleted
+           AND (x.standard_version_start_id IS DISTINCT FROM o.standard_version_start_id
+                OR x.standard_version_end_id IS DISTINCT FROM o.standard_version_end_id)""" for t in _VERSIONED)
+     + " LIMIT 50", "failed"),
+]
+
+
 # checks of the self-test's own tables: they run on the tests database (store.tests), the rest on the repository
 IN_TESTS_DB = {"self-test fixtures are named after their run"}
 

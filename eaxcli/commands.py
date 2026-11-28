@@ -29,7 +29,7 @@ NOT_ALLOWED = set(";|&$`<>()\\\"'\n\r\t*?![]{}~#")
 OFFLINE = {"stop", "restart", "up", "update", "rollback", "restore", "restore-app", "maintenance", "standby"}
 WIPE = {"cleanup", "clean-run", "clean-restart", "clean-debug"}
 HOST = {"init", "check", "trust", "deploy", "document", "schedule", "persist", "drill", "dr-pack"}   # secrets, certs: from the web too (R6-S1)
-INTERACTIVE = {"console", "restore-model"}     # ask as they go: in the Console only
+INTERACTIVE = {"console", "restore-model", "restore-project"}     # ask as they go: in the Console only
 FOLLOWS = {"logs", "debug"}                       # keep going until stopped: the page offers Stop
 STOPPABLE = FOLLOWS | {"status", "diag", "test", "backups", "restores", "databases", "footprint", "url", "logins", "services", "help", "import",
                        "restore-log", "servers"}

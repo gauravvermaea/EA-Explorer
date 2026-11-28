@@ -1,7 +1,7 @@
 """Release 14.7: Monte Carlo studies in a project, their runs, and the organisation's risk scale (D957, D962).
 
 Revision ID: 0127_r14_7_monte_carlo
-Revises: 0125_release_14_5_0
+Revises: 0126_r14_6_standard_versions
 Create Date: 2026-11-27
 
 The SQL lives in migrations/sql/0127_r14_7_monte_carlo.sql.
@@ -12,7 +12,7 @@ from pathlib import Path
 from alembic import op
 
 revision = "0127_r14_7_monte_carlo"
-down_revision = "0125_release_14_5_0"
+down_revision = "0126_r14_6_standard_versions"
 branch_labels = None
 depends_on = None
 
