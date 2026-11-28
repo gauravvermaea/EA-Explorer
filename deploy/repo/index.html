@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EA Explorer {{VERSION}}: deploy, run and recover</title>
+<!-- The deploy page (Release 14.8, D974, D977, D979): made by EA Explorer's tools/deploy_repo.py (deploy/repo/index.html
+     there). One file, no other files, no network calls: it asks, then writes a script for you to download and run. A
+     browser page cannot start programs, open SSH or write files, so the script does the work. It never holds a
+     password: the scripts ask for what they need when they run, or read it from the installation. -->
+<style>
+  :root { --ink:#1d2433; --muted:#5b6475; --line:#d9dee7; --bg:#f6f7fa; --card:#fff; --accent:#0b6e4f; --accent-soft:#e3f2ed;
+          --warn:#8a5a00; --warn-soft:#fff4d6; --info-soft:#eef3fb; --code:#0f172a; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color:var(--ink); background:var(--bg); }
+  header { background:var(--card); border-bottom:1px solid var(--line); padding:18px 28px; }
+  header h1 { margin:0; font-size:20px; } header p { margin:4px 0 0; color:var(--muted); }
+  header a { color:var(--accent); }
+  nav.tabs { display:flex; flex-wrap:wrap; gap:4px; padding:12px 28px 0; background:var(--card); border-bottom:1px solid var(--line); }
+  nav.tabs .group { width:100%; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:6px 0 0 4px; }
+  nav.tabs button { border:1px solid transparent; border-bottom:none; background:none; padding:8px 13px; border-radius:8px 8px 0 0;
+                    font:inherit; color:var(--muted); cursor:pointer; }
+  nav.tabs button[aria-selected="true"] { background:var(--bg); border-color:var(--line); color:var(--ink); font-weight:600; }
+  main { max-width:980px; margin:0 auto; padding:22px 28px 60px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:20px 22px; margin-bottom:16px; }
+  .steps { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
+  .steps span { font-size:13px; padding:3px 10px; border-radius:999px; background:#eceff4; color:var(--muted); }
+  .steps span.on { background:var(--accent); color:#fff; } .steps span.done { background:var(--accent-soft); color:var(--accent); }
+  h2 { margin:0 0 4px; font-size:18px; } .lead { color:var(--muted); margin:0 0 16px; }
+  .field { margin:0 0 14px; } .field > label { display:block; font-weight:600; margin-bottom:4px; }
+  .field .hint { color:var(--muted); font-size:13px; margin-top:3px; }
+  .field .hint code, .info code { background:#eef0f4; padding:0 4px; border-radius:4px; }
+  input[type=text] { width:100%; max-width:560px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; font:inherit; background:#fff; }
+  .choices { display:flex; flex-wrap:wrap; gap:8px; }
+  .choices label { border:1px solid var(--line); border-radius:8px; padding:8px 12px; cursor:pointer; background:#fff; font-weight:400; }
+  .choices label:has(input:checked) { border-color:var(--accent); background:var(--accent-soft); }
+  .choices input { margin-right:6px; }
+  .info { background:var(--info-soft); border-radius:8px; padding:10px 14px; margin:0 0 14px; font-size:14px; }
+  .info table { border-collapse:collapse; margin:6px 0; } .info td { padding:2px 10px 2px 0; vertical-align:top; }
+  .nav { display:flex; gap:10px; margin-top:18px; }
+  button.primary, button.secondary { font:inherit; border-radius:8px; padding:9px 16px; cursor:pointer; }
+  button.primary, a.button.primary { background:var(--accent); color:#fff; border:1px solid var(--accent); }
+  a.button { display:inline-block; font:inherit; border-radius:8px; padding:9px 16px; text-decoration:none; }
+  button.secondary { background:#fff; color:var(--ink); border:1px solid var(--line); }
+  pre { background:var(--code); color:#e2e8f0; padding:14px; border-radius:8px; overflow:auto; max-height:480px; font-size:12.5px; }
+  .note { background:var(--warn-soft); color:var(--warn); border-radius:8px; padding:10px 12px; margin:10px 0; font-size:14px; }
+  ul.check { padding-left:20px; } ul.check li { margin:3px 0; }
+  header p.quick { margin-top:12px; display:flex; flex-wrap:wrap; align-items:center; gap:8px; color:var(--ink); }
+  header p.quick span { color:var(--muted); font-size:13px; flex-basis:100%; }
+  header a.button { color:#fff; }
+  .tiles { display:grid; grid-template-columns:repeat(auto-fill, minmax(270px, 1fr)); gap:14px; }
+  .tile { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; cursor:pointer; text-align:left;
+          font:inherit; color:var(--ink); display:flex; flex-direction:column; gap:6px; }
+  .tile:hover, .tile:focus { border-color:var(--accent); box-shadow:0 2px 10px rgba(11,110,79,.12); outline:none; }
+  .tile b { font-size:16px; } .tile span { color:var(--muted); font-size:14px; }
+  .tile.first { border-color:var(--accent); background:var(--accent-soft); }
+  .tile .tag { align-self:flex-start; font-size:12px; background:var(--accent); color:#fff; border-radius:999px; padding:1px 9px; }
+  .crumbs { margin:0 0 12px; } .crumbs button { background:none; border:none; color:var(--accent); font:inherit; cursor:pointer; padding:0; }
+  .picks { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:12px; }
+  footer { color:var(--muted); font-size:13px; text-align:center; padding:20px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>EA Explorer {{VERSION}}: deploy, run and recover</h1>
+  <p>Answer the questions; get a script made for your case; run it. Nothing you type leaves this page, and no script
+     it writes holds a password. <a href="{{DEPLOY_REPO}}">The deploy repository</a> ·
+     <a href="https://gauravvermaea.github.io/EA-Explorer/">How to use EA Explorer (the website)</a> ·
+     <a href="{{CODE_REPO}}">The code</a></p>
+</header>
+<main id="main"></main>
+<footer>EA Explorer is open source (AGPL-3.0). This page runs only in your browser.</footer>
+
+<script>
+"use strict";
+const VERSION = "{{VERSION}}", DEPLOY_REPO = "{{DEPLOY_REPO}}", REGISTRY = "{{REGISTRY}}";
+
+// ---------------------------------------------------------------- the answers, shared by every tab
+const A = { where: "local", from_os: "linux", server_os: "ubuntu", ssh_host: "", ssh_user: "ubuntu", ssh_port: "22",
+  ssh_key: "~/.ssh/id_ed25519", folder: "", ref: "main", runner: "eax", tool: "eax",
+  jenkins_url: "http://127.0.0.1:8088", jenkins_user: "admin",
+  kind: "server", hostname: "", http_port: "80", https_port: "443", install_docker: "yes",
+  data_root: "", db_dir: "", docs_dir: "", logs_dir: "", backup_dir: "", import_dir: "", export_dir: "",
+  auth: "password", passwords: "generated", save_logins: "screen", logins_which: "admins", logins_file: "",
+  db: "containers", db_host: "", db_port: "5432", db_admin: "eax_admin",
+  reports: "on", documents: "on", library: "on", drawio: "on", jenkins: "yes",
+  cloud_name: "ea-explorer", region: "", size: "", cloud_db: "no", ssh_pub: "~/.ssh/id_ed25519.pub",
+  test: "smoke", backup_kind: "infrastructure", backup_tag: "manual", model: "", project: "", copy_to: "",
+  dr_folder: "", temp_folder: "", drill_smoke: "yes", pack_folder: "", pack_from: "",
+  restore_kind: "infrastructure", restore_name: "latest", restore_what: "full", restore_file: "", restore_mode: "new",
+  new_name: "", installation: "",
+  admin_task: "status", admin_user: "", console_task: "status", service: "api", shell_kind: "folder", jenkins_task: "open" };
+
+const isWin = () => A.from_os === "windows";
+const remote = () => A.where !== "local";
+const cloud = () => ["aws", "azure", "do"].includes(A.where);
+const serverWin = () => A.where === "local" && isWin();          // the machine EA Explorer runs on is Windows
+const defFolder = () => serverWin() ? "C:\\EA-Explorer" : (remote() ? "/opt/ea-explorer" : "~/ea-explorer");
+const folder = () => A.folder || defFolder();
+// an example path in the style of the machine EA Explorer runs on; Windows: both styles, both work
+const ex = (linux, win) => serverWin() ? `<code>${win}</code> or <code>${win.replace(/\\/g, "/")}</code>` : `<code>${linux}</code>`;
+const base = () => A.data_root || (serverWin() ? "" : (A.kind === "server" ? "/srv/eax" : ""));
+const sub = (name) => base() ? base() + (serverWin() ? "\\" : "/") + name : "";
+
+// ---------------------------------------------------------------- the questions
+const F = {
+  where: { label: "Where is EA Explorer (or where will it be)?", type: "choice",
+    choices: [["local", "This machine"], ["ssh", "A remote server (over SSH)"], ["aws", "AWS (a new server)"], ["azure", "Azure (a new server)"], ["do", "DigitalOcean droplet (new)"]] },
+  from_os: { label: "Which operating system will run the script?", type: "choice", hint: "The computer you are at now. Windows gets a PowerShell script (.ps1); Linux and macOS a bash script (.sh).",
+    choices: [["linux", "Linux"], ["mac", "macOS"], ["windows", "Windows"]] },
+  server_os: { label: "The server's operating system", type: "choice", show: () => remote() || !isWin(),
+    choices: [["ubuntu", "Ubuntu"], ["debian", "Debian"], ["rhel", "RHEL / Rocky / Alma"], ["amazon", "Amazon Linux"], ["mac", "macOS"]] },
+  ssh_host: { label: "The server's address (name or IP)", type: "text", show: () => A.where === "ssh", hint: "For a new cloud server the script finds it." },
+  ssh_user: { label: "The user to sign in as over SSH", type: "text", show: remote, hint: "One that may use Docker (in the docker group) or sudo." },
+  ssh_port: { label: "SSH port", type: "text", show: remote },
+  ssh_key: { label: "Your SSH private key file (its path on this computer)", type: "text", show: remote,
+    hint: () => "Only the path goes in the script, never the key. " + (isWin() ? "Windows: <code>C:\\Users\\you\\.ssh\\id_ed25519</code> or <code>C:/Users/you/.ssh/id_ed25519</code>." : "e.g. <code>~/.ssh/id_ed25519</code>.") },
+  folder: { label: "EA Explorer's folder", type: "text", placeholder: () => defFolder(),
+    hint: () => "Where the deploy repository is (or will be) on the machine, e.g. " + ex("/opt/ea-explorer", "C:\\EA-Explorer") + "." },
+  ref: { label: "The release", type: "text", hint: `main is the newest (${VERSION}); a tag such as v${VERSION} keeps to one release.` },
+  runner: { label: "Run it with", type: "choice", hint: "Jenkins keeps a history of every run; eax in its container needs only Docker on the machine (a last resort).",
+    choices: [["eax", "eax"], ["jenkins", "Jenkins (its pipeline)"], ["container", "eax in its container"]] },
+  tool: { label: "Run eax as", type: "choice", hint: "eax in its container needs only Docker on the machine (Linux): ./eax pulls its image the first time it runs.",
+    choices: [["eax", "eax (./eax.sh)"], ["container", "eax in its container (./eax)"]] },
+  jenkins_url: { label: "Jenkins' address, as the machine sees it", type: "text", show: () => A.runner === "jenkins" },
+  jenkins_user: { label: "Your Jenkins user", type: "text", show: () => A.runner === "jenkins", hint: "The script asks for your Jenkins API token when it runs (never stored)." },
+
+  kind: { label: "What kind of installation?", type: "choice",
+    choices: [["laptop", "Laptop: one person or a demo (simple passwords, sample data)"], ["server", "Server: a team (strong passwords, HTTPS)"]] },
+  hostname: { label: "The address people will open", type: "text", show: () => A.kind === "server", hint: "A name, not an IP address: EA Explorer is at https://&lt;name&gt;, Reports at https://reports.&lt;name&gt; and Documents at https://docs.&lt;name&gt;, so all three need DNS records pointing at the server, and the certificate covers all three. An IP address cannot carry reports. and docs. in front. A test server with only an IP: use a free wildcard name such as <code>203-0-113-10.sslip.io</code> for 203.0.113.10 (all three work with no DNS set up). For real use, your own domain, e.g. <code>ea.example.org</code>." },
+  http_port: { label: "HTTP port", type: "text" }, https_port: { label: "HTTPS port", type: "text" },
+  install_docker: { label: "Install Docker when it is missing (Linux)?", type: "choice", show: () => A.server_os !== "mac" && !serverWin(),
+    choices: [["yes", "Yes (Docker's own installer)"], ["no", "No: stop and say so"]] },
+
+  mounts_note: { type: "note", text: () => `<b>Where the data goes.</b> Give one <b>base folder</b> on the machine's own disk; each kind of
+      data gets its own folder under it by itself. Give a folder only for what you want somewhere else (a network share for the
+      documents, the logs or the backups, say). An empty box means: under the base folder.
+      <table>
+      <tr><td><b>Databases</b></td><td>the machine's own disk <b>only</b>: never a NAS, NFS or SMB share (PostgreSQL can lose data on one). The script stops if it is one.</td></tr>
+      <tr><td>Base folder</td><td>the machine's own disk.</td></tr>
+      <tr><td>Documents, logs, backups, imports, exports</td><td>the local disk or a mounted share, as you choose.</td></tr>
+      </table>
+      ${serverWin() ? "Windows paths can be written either way: <code>D:\\EA-Explorer\\data</code> or <code>D:/EA-Explorer/data</code> (the script stores them with /, which Docker reads). A share: <code>\\\\nas\\eax\\documents</code> or <code>//nas/eax/documents</code>. Leave the databases empty on Windows: they stay in Docker's own volume, as PostgreSQL cannot run on a Windows folder." : "These are paths on the server, Linux style: <code>/srv/eax</code>, <code>/mnt/nas/eax-documents</code>. Mount a share on the server first (in /etc/fstab), then give its path."}` },
+  data_root: { label: "Base folder (the machine's own disk)", type: "text", placeholder: () => serverWin() ? "D:\\EA-Explorer\\data" : (A.kind === "server" ? "/srv/eax" : ""),
+    hint: () => (A.kind === "laptop" ? "Empty on a laptop: Docker's own volumes. " : "") + "e.g. " + ex("/srv/eax", "D:\\EA-Explorer\\data") + ". Under it: databases, documents, logs, backups, imports, exports, certificates, reports." },
+  db_dir: { label: "Databases (the machine's own disk only, never a NAS)", type: "text", placeholder: () => serverWin() ? "(Docker's own volume)" : (sub("databases") || "(Docker's own volume)"),
+    hint: () => serverWin() ? "Leave it empty on Windows (Docker's own volume)." : "Empty: <code>&lt;base&gt;/databases</code>. Or another local disk, e.g. <code>/data/eax-db</code> (an SSD mounted on the machine)." },
+  docs_dir: { label: "Documents (the documents' files)", type: "text", placeholder: () => sub("documents"),
+    hint: () => "Empty: under the base folder. A share is fine, e.g. " + ex("/mnt/nas/eax-documents", "\\\\nas\\eax\\documents") + "." },
+  logs_dir: { label: "Logs (every container's daily log)", type: "text", placeholder: () => sub("logs"),
+    hint: () => "Empty: under the base folder. e.g. " + ex("/var/log/eax", "D:\\EA-Explorer\\logs") + "." },
+  backup_dir: { label: "Backups", type: "text", placeholder: () => sub("backups"),
+    hint: () => "Empty: under the base folder. Best off the machine: a share or a cloud file share mounted on it, e.g. " + ex("/mnt/backup/eax", "\\\\nas\\backups\\eax") + "." },
+  import_dir: { label: "Imports (files to load)", type: "text", placeholder: () => sub("imports"), hint: () => "Empty: under the base folder. e.g. " + ex("/mnt/nas/eax-imports", "D:\\EA-Explorer\\imports") + "." },
+  export_dir: { label: "Exports (files written out)", type: "text", placeholder: () => sub("exports"), hint: () => "Empty: under the base folder. e.g. " + ex("/mnt/nas/eax-exports", "D:\\EA-Explorer\\exports") + "." },
+
+  auth: { label: "How the services sign in to each other", type: "choice",
+    choices: [["password", "Password mode"], ["certificate", "Key mode (certificates)"]] },
+  passwords: { label: "The Super Admin's password", type: "choice",
+    choices: [["generated", "Made strong and random"], ["set", "Typed by me when the script runs"]] },
+  save_logins: { label: "At the end, the passwords", type: "choice", hint: "The file is made readable by you only. Put the passwords in your password manager, then delete the file.",
+    choices: [["screen", "Shown on the screen"], ["file", "Shown, and downloaded to a file on this computer"]] },
+  logins_which: { label: "Which passwords", type: "choice", show: () => A.save_logins === "file" || (tab.id === "admin" && ["logins", "logins-file"].includes(A.admin_task)),
+    choices: [["admins", "The admin accounts (Super Admin, Keycloak, break-glass, Jenkins)"], ["all", "Every login"]] },
+  logins_file: { label: "The file, on this computer", type: "text", show: () => (tab.id === "new" && A.save_logins === "file") || (tab.id === "admin" && A.admin_task === "logins-file"),
+    placeholder: () => isWin() ? "C:\\Users\\you\\Documents\\ea-explorer-logins.txt" : "~/ea-explorer-logins.txt" },
+  db: { label: "The database", type: "choice", hint: "Several database servers (for performance) come in a later release.",
+    choices: [["containers", "In the containers (simplest)"], ["existing", "An existing PostgreSQL server"], ["rds", "AWS RDS for PostgreSQL"], ["azuredb", "Azure Database for PostgreSQL"], ["dodb", "DigitalOcean Managed PostgreSQL"]] },
+  db_host: { label: "The database server's address", type: "text", show: () => A.db !== "containers" && !(A.cloud_db === "yes" && cloud()) },
+  db_port: { label: "Its port", type: "text", show: () => A.db !== "containers" },
+  db_admin: { label: "The admin login EA Explorer uses there", type: "text", show: () => A.db !== "containers", hint: "Your DBA makes it once with deploy/external-db/prepare.sql (the script says how)." },
+  reports: { label: "Reports (Superset)", type: "choice", choices: [["on", "On"], ["off", "Off"]] },
+  documents: { label: "Documents (Mayan)", type: "choice", choices: [["on", "On"], ["off", "Off"]] },
+  library: { label: "The Enterprise library", type: "choice", choices: [["on", "On"], ["off", "Off"]] },
+  drawio: { label: "draw.io (drawn views)", type: "choice", choices: [["on", "On"], ["off", "Off"]] },
+  jenkins: { label: "Jenkins (every eax command from a browser, with a history)", type: "choice", choices: [["yes", "Yes (part of the installation)"], ["no", "Not now"]] },
+  cloud_name: { label: "A name for the new server", type: "text", show: cloud },
+  region: { label: "Region", type: "text", show: cloud, placeholder: () => ({ aws: "eu-west-1", azure: "southafricanorth", do: "lon1" })[A.where] || "" },
+  size: { label: "Size", type: "text", show: cloud, placeholder: () => ({ aws: "t3.xlarge", azure: "Standard_D4s_v5", do: "s-4vcpu-16gb" })[A.where] || "", hint: "16 GB of memory or more." },
+  ssh_pub: { label: "Your SSH public key file (put on the new server)", type: "text", show: cloud },
+  cloud_db: { label: "Also make a managed PostgreSQL in the same cloud?", type: "choice", show: cloud, choices: [["no", "No: the database in the containers"], ["yes", "Yes"]] },
+
+  test: { label: "Which test?", type: "choice",
+    choices: [["smoke", "Smoke (minutes)"], ["full", "Full: everything, with backups and DR (hours)"], ["backup-cases", "Backup and restore cases"], ["backup-restore", "Whole-installation backup and restore (locks people out)"], ["commands", "Every safe eax command"]] },
+  backup_kind: { label: "What to back up", type: "choice",
+    choices: [["infrastructure", "The whole installation (infrastructure)"], ["application", "Every model and project (application)"], ["model", "One model"], ["project", "One project"]] },
+  backup_tag: { label: "A tag, to find it by", type: "text" },
+  model: { label: "The model's name", type: "text", show: () => (tab.id === "backup" && A.backup_kind === "model") || (tab.id === "restore" && A.restore_kind === "model") },
+  project: { label: "The project's name", type: "text", show: () => (tab.id === "backup" && A.backup_kind === "project") || (tab.id === "restore" && A.restore_kind === "project") },
+  copy_to: { label: "Copy it off the machine, to (optional)", type: "text",
+    hint: () => "A folder on this computer (fetched over SSH), e.g. " + (isWin() ? "<code>D:\\ea-backups</code>" : "<code>~/ea-backups</code>") + ", or <code>user@host:/path</code>. Empty: it stays on the machine." },
+  dr_folder: { label: "A new, empty folder for the DR copy", type: "text", placeholder: () => remote() ? "/srv/ea-dr/drill" : "~/ea-dr/drill" },
+  temp_folder: { label: "A temporary folder", type: "text", placeholder: () => remote() ? "/srv/ea-dr/temp" : "~/ea-dr/temp" },
+  drill_smoke: { label: "Run the smoke test on the DR copy?", type: "choice", choices: [["yes", "Yes"], ["no", "No"]] },
+  pack_folder: { label: "Where the DR pack is written (on the machine; new or empty, outside EA Explorer's folder)", type: "text", placeholder: () => "/srv/ea-dr-pack-" + new Date().toISOString().slice(0, 10) },
+  pack_from: { label: "Where the DR pack is now", type: "text", hint: () => "A folder on this computer (copied to the new machine over SSH), e.g. " + (isWin() ? "<code>D:\\ea-dr-pack</code>" : "<code>~/ea-dr-pack</code>") + "." },
+  restore_kind: { label: "What to restore", type: "choice",
+    choices: [["infrastructure", "The whole installation"], ["application", "Every model and project (an application backup)"], ["model", "One model"], ["project", "One project"]] },
+  restore_name: { label: "Which backup", type: "text", hint: "Its name, its tag, or latest. eax backups lists them." },
+  restore_what: { label: "Restore what", type: "choice", show: () => A.restore_kind === "infrastructure",
+    choices: [["full", "Everything"], ["app+data", "The settings, the databases and the documents"], ["db", "The databases"], ["files", "The document files"], ["app", "The settings file"]] },
+  restore_file: { label: "The backup file", type: "text", show: () => ["model", "project"].includes(A.restore_kind), hint: "eax backups and eax check-backup <run> list the files." },
+  restore_mode: { label: "Restore it", type: "choice", show: () => ["model", "project"].includes(A.restore_kind), choices: [["new", "As a new one (the original stays)"], ["over", "Over itself (it goes back to the backup)"]] },
+  new_name: { label: "The new one's name", type: "text", show: () => ["model", "project"].includes(A.restore_kind) && A.restore_mode === "new" },
+  installation: { label: "The installation's name (Jenkins asks it to confirm a restore)", type: "text", show: () => A.runner === "jenkins" },
+
+  admin_task: { label: "What to do", type: "choice", choices: ADMIN_TASKS().map((t) => [t[0], t[1]]) },
+  admin_user: { label: "The person's user name", type: "text", show: () => ["reset-password", "unlock", "mfa-off"].includes(A.admin_task) },
+  console_task: { label: "What to do", type: "choice", choices: CONSOLE_TASKS().map((t) => [t[0], t[1]]) },
+  service: { label: "The container (its service name)", type: "choice", show: () => ["logs", "restart-one", "exec", "inspect"].includes(A.console_task),
+    choices: ["api", "web", "proxy", "db", "keycloak", "jobs", "library", "views", "ops", "reports", "dms", "drawio", "backup"].map((s) => [s, s]) },
+  shell_kind: { label: "Which shell", type: "choice",
+    choices: [["folder", "On the machine, in EA Explorer's folder (eax.sh and docker ready)"], ["container", "eax's own container (needs only Docker; eax on the path)"], ["api", "Inside the api container (for support)"], ["psql", "The database (psql)"]] },
+  jenkins_task: { label: "What to do", type: "choice",
+    choices: [["open", "Start Jenkins if it is not running, and open it here"], ["start", "Start Jenkins and its agent"], ["status", "Is it running? Its address"], ["pipelines", "Write the pipelines again (after an update)"], ["stop", "Stop Jenkins (its history is kept)"]] },
+};
+
+function ADMIN_TASKS() {
+  return [   // [id, label, eax words, what it does]
+    ["status", "Status: is everything up?", "status", "Everything's state, and what is wrong"],
+    ["problems", "Only the problems", "status problems", "What needs attention"],
+    ["url", "The addresses", "url", "Where people open it"],
+    ["logins", "See the passwords (on the screen)", "logins", "The passwords, shown here only"],
+    ["logins-file", "Download the passwords to a file", "logins", "The passwords, saved to a file on this computer (readable by you only)"],
+    ["backups", "List the backups", "backups", "Every backup, newest first"],
+    ["backup-now", "Take a backup now", "backup manual", "An infrastructure backup, then its check"],
+    ["reset-password", "Reset someone's password", "access reset-password", "A temporary password for them, shown once"],
+    ["unlock", "Unlock someone", "access unlock", "After too many wrong passwords"],
+    ["mfa-off", "Turn off someone's second factor", "access mfa-off", "When they lost their phone"],
+    ["admins", "Who are the admins", "access admins", "Every account with an admin role"],
+    ["services", "Which parts are on", "services", "Reports, documents, draw.io, the library, ..."],
+    ["restart", "Restart everything", "restart --wait-all", "Every container restarted; nothing lost"],
+    ["maintenance-on", "Maintenance page on", "maintenance on", "People see a 'back soon' page"],
+    ["maintenance-off", "Maintenance page off", "maintenance off", "People are let back in"],
+    ["certs", "Check the certificate", "certs check", "When it runs out"],
+    ["update", "Update to a newer release", "", "A backup, the new release, its images, a restart"],
+    ["diag", "A report for support", "diag", "Versions, containers, logs, the masked settings"],
+  ];
+}
+function CONSOLE_TASKS() {
+  return [   // [id, label, what it does]
+    ["status", "The containers and how they are", "Each container, whether it is healthy, its memory and CPU now"],
+    ["logs", "Follow one container's log", "The last 200 lines, then new ones as they come (Ctrl+C stops)"],
+    ["restart-one", "Restart one container", "Only that one; the others keep running"],
+    ["exec", "A shell inside one container", "For looking around (exit leaves)"],
+    ["inspect", "One container in detail", "Its image, start time, restarts, health and mounts"],
+    ["disk", "Disk space", "The machine's disks and what Docker uses"],
+    ["stop-all", "Stop everything", "Every container stopped; the data kept"],
+    ["start-all", "Start everything", "eax up: checks the folders, then starts and waits"],
+    ["prune", "Free space: unused images", "Old image versions no container uses (nothing running is touched)"],
+    ["events", "Watch what Docker does", "Containers starting, stopping, dying, as it happens (Ctrl+C stops)"],
+  ];
+}
+
+// the front page: a tile for each kind of work; a tile with several wizards asks which first
+const TILES = [
+  { id: "basic", title: "Basic install", tag: "Start here", blurb: "EA Explorer on this computer, no questions: everything installed, started, smoke-tested, the passwords shown and your browser opened. Then a full test if you want.", tabs: ["basic"] },
+  { id: "advanced", title: "Advanced install", blurb: "A server for a team, this machine or a remote one over SSH: the folders, HTTPS, the database, the add-ons, Jenkins, eax in its container.", tabs: ["new"] },
+  { id: "backup", title: "Backup and restore", blurb: "Back up the whole installation, every model and project, or one; check it; copy it off the machine. Or restore from a backup.", tabs: ["backup", "restore"] },
+  { id: "dr", title: "Disaster recovery", blurb: "Test DR with the automated drill, make a DR pack to keep safe, or rebuild EA Explorer on a new machine from a pack.", tabs: ["drill", "drpack", "recover"] },
+  { id: "commands", title: "Commands", blurb: "The everyday admin commands: status, the passwords, someone locked out, maintenance, restarting, updating.", tabs: ["admin"] },
+  { id: "jenkins", title: "Jenkins", blurb: "Start Jenkins and open it in your browser: every eax command as a pipeline, with a history of each run.", tabs: ["jenkins"] },
+  { id: "console", title: "Docker console", blurb: "Sign in to the machine and look at the containers: their state, one container's log, restart one, open a shell in one or in the database.", tabs: ["console", "shell"] },
+  { id: "test", title: "Test an installation", blurb: "The smoke test, the full test, the backup and restore cases or every eax command, with eax or through Jenkins.", tabs: ["test"] },
+];
+
+const WHERE = ["where", "from_os", "server_os", "ssh_host", "ssh_user", "ssh_port", "ssh_key", "folder"];
+const TABS = [
+  { group: "Install", id: "basic", title: "Basic install", quick: true, steps: [], make: null },
+  { group: "Install", id: "new", title: "New deployment", lead: "A new installation: the script checks the machine, installs what is missing, gets the deploy repository, makes the settings and the folders, pulls the images, starts EA Explorer and Jenkins, and gives you the passwords.",
+    steps: [["Where", ["where", "from_os", "server_os", "ssh_host", "ssh_user", "ssh_port", "ssh_key", "folder", "ref"]],
+            ["New server", ["cloud_name", "region", "size", "ssh_pub", "cloud_db"], cloud],
+            ["The installation", ["kind", "hostname", "http_port", "https_port", "install_docker"]],
+            ["Mount points", ["mounts_note", "data_root", "db_dir", "docs_dir", "logs_dir", "backup_dir", "import_dir", "export_dir"]],
+            ["Security", ["auth", "passwords", "save_logins", "logins_which", "logins_file"]],
+            ["Database", ["db", "db_host", "db_port", "db_admin"]],
+            ["What to switch on", ["jenkins", "reports", "documents", "library", "drawio"]]], make: makeNew },
+  { group: "Install", id: "test", title: "Test it", lead: "Runs EA Explorer's tests on an installation, with eax or through Jenkins.",
+    steps: [["Where", WHERE], ["How", ["runner", "jenkins_url", "jenkins_user", "test"]]], make: makeTest },
+  { group: "Run it", id: "admin", title: "Admin commands", lead: "The everyday admin commands: status, the passwords, people locked out, backups, maintenance, updates.",
+    steps: [["Where", WHERE], ["What", ["tool", "admin_task", "admin_user", "logins_which", "logins_file"]]], make: makeAdmin },
+  { group: "Run it", id: "console", title: "Docker commands", lead: "Signs in to the machine and runs Docker's own commands for the situation: the containers, one container's log, restarting one, a shell in one, disk space.",
+    steps: [["Where", WHERE], ["What", ["console_task", "service"]]], make: makeConsole },
+  { group: "Run it", id: "shell", title: "A command shell", lead: "Opens a shell where eax is ready: on the machine in EA Explorer's folder, in eax's own container, in the api container or in the database.",
+    steps: [["Where", WHERE], ["Which", ["shell_kind"]]], make: makeShell },
+  { group: "Run it", id: "jenkins", title: "Jenkins", lead: "Starts Jenkins (every eax command as a pipeline, with a history) and opens it in your browser here, through an SSH tunnel for a server. Its admin login is shown.",
+    steps: [["Where", WHERE], ["What", ["jenkins_task"]]], make: makeJenkins },
+  { group: "Back up and recover", id: "backup", title: "Back up", lead: "An infrastructure backup, an application backup, or one model or project; checked, and copied off the machine if you want.",
+    steps: [["Where", WHERE], ["What", ["runner", "jenkins_url", "jenkins_user", "backup_kind", "backup_tag", "model", "project", "copy_to"]]], make: makeBackup },
+  { group: "Back up and recover", id: "restore", title: "Restore", lead: "Put an installation, the application, or one model or project back from a backup. A backup of the current state is taken first.",
+    steps: [["Where", WHERE], ["What", ["runner", "jenkins_url", "jenkins_user", "installation", "restore_kind", "restore_name", "restore_what", "model", "project", "restore_file", "restore_mode", "new_name"]]], make: makeRestore },
+  { group: "Back up and recover", id: "drill", title: "Test DR", lead: "The automated restore drill: a backup, the installation shut down, a copy rebuilt from it in another folder, restored, signed in to and compared. Your installation stays stopped while the DR copy runs (they share the ports).",
+    steps: [["Where", WHERE], ["The drill", ["dr_folder", "temp_folder", "drill_smoke"]]], make: makeDrill },
+  { group: "Back up and recover", id: "drpack", title: "Do DR (make a DR pack)", lead: "A DR pack: a backup, the settings, EA Explorer's folder and the DR tool, with checksums and a fingerprint. Keep it off the machine: it holds every password and all the data.",
+    steps: [["Where", WHERE], ["The pack", ["runner", "jenkins_url", "jenkins_user", "pack_folder", "copy_to"]]], make: makePack },
+  { group: "Back up and recover", id: "recover", title: "Recover from DR", lead: "EA Explorer rebuilt on a new machine from a DR pack: the pack checked, the same release installed, everything restored and compared with the pack's fingerprint, then the smoke test.",
+    steps: [["The new machine", ["where", "from_os", "server_os", "ssh_host", "ssh_user", "ssh_port", "ssh_key", "folder", "install_docker"]], ["The pack", ["pack_from"]]], make: makeRecover },
+];
+
+// ---------------------------------------------------------------- the page
+let tile = null, tab = null, step = 0;
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const fn = (v) => (typeof v === "function" ? v() : v) || "";
+
+function steps() { return tab.steps.filter((s) => !s[2] || s[2]()); }
+
+function crumbs() {
+  const t = TILES.find((x) => x.id === tile);
+  const multi = t && t.tabs.length > 1 && tab;
+  return `<p class="crumbs"><button id="home">← Everything</button>${multi ? ` · <button id="up">${esc(t.title)}</button>` : ""}</p>`;
+}
+function bindCrumbs() {
+  if ($("#home")) $("#home").onclick = () => { tile = null; tab = null; step = 0; render(); };
+  if ($("#up")) $("#up").onclick = () => { tab = null; step = 0; render(); };
+}
+const TAB = (id) => TABS.find((t) => t.id === id);
+
+function render() {
+  window.scrollTo(0, 0);
+  if (!tile) {
+    $("#main").innerHTML = `<h2>What do you want to do?</h2><p class="lead">Pick one: a few questions, then a script made for your case.</p>
+      <div class="tiles">${TILES.map((t, i) => `<button class="tile${i === 0 ? " first" : ""}" data-tile="${t.id}">${t.tag ? `<em class="tag">${esc(t.tag)}</em>` : ""}<b>${esc(t.title)}</b><span>${esc(t.blurb)}</span></button>`).join("")}</div>`;
+    $("#main").querySelectorAll("[data-tile]").forEach((b) => b.onclick = () => {
+      tile = b.dataset.tile; const t = TILES.find((x) => x.id === tile);
+      tab = t.tabs.length === 1 ? TAB(t.tabs[0]) : null; step = 0; render();
+    });
+    return;
+  }
+  if (!tab) {
+    const t = TILES.find((x) => x.id === tile);
+    $("#main").innerHTML = `${crumbs()}<h2>${esc(t.title)}</h2><p class="lead">${esc(t.blurb)}</p>
+      <div class="picks">${t.tabs.map((id) => `<button class="tile" data-tab="${id}"><b>${esc(TAB(id).title)}</b><span>${esc(TAB(id).lead)}</span></button>`).join("")}</div>`;
+    bindCrumbs();
+    $("#main").querySelectorAll("[data-tab]").forEach((b) => b.onclick = () => { tab = TAB(b.dataset.tab); step = 0; render(); });
+    return;
+  }
+  if (tab.quick) { renderQuick(); return; }
+  const st = steps(), last = step >= st.length;
+  const bar = st.map((s, i) => `<span class="${i === step ? "on" : i < step ? "done" : ""}">${esc(s[0])}</span>`).join("") +
+    `<span class="${last ? "on" : ""}">Your script</span>`;
+  let body;
+  if (last) {
+    const s = build();
+    const name = `ea-explorer-${tab.id}.${s.kind}`;
+    const run = s.kind === "ps1" ? `powershell -ExecutionPolicy Bypass -File .\\${name}` : `bash ${name}`;
+    body = `<h2>Your script</h2><p class="lead">Read it, then run it on this computer: <code>${esc(run)}</code></p>
+      ${s.notes.map((n) => `<div class="note">${esc(n)}</div>`).join("")}
+      <h3>What it will do</h3><ul class="check">${s.plan.map((p) => `<li>${esc(p)}</li>`).join("")}</ul>
+      <div class="nav"><button class="primary" id="dl">Download ${esc(name)}</button><button class="secondary" id="copy">Copy</button>
+      <button class="secondary" id="back">Back</button></div><pre id="script">${esc(s.text)}</pre>`;
+    $("#main").innerHTML = `${crumbs()}<div class="card"><div class="steps">${bar}</div>${body}</div>`;
+    $("#dl").onclick = () => download(name, s.text);
+    $("#copy").onclick = () => navigator.clipboard && navigator.clipboard.writeText(s.text);
+    $("#back").onclick = () => { step -= 1; render(); };
+  } else {
+    const [title, keys] = st[step];
+    const fields = keys.filter((k) => !F[k].show || F[k].show()).map(fieldHtml).join("");
+    body = `<h2>${esc(title)}</h2>${step === 0 ? `<p class="lead">${esc(tab.lead)}</p>` : ""}${fields}
+      <div class="nav">${step > 0 ? '<button class="secondary" id="back">Back</button>' : ""}
+      <button class="primary" id="next">${step === st.length - 1 ? "Write my script" : "Next"}</button></div>`;
+    $("#main").innerHTML = `${crumbs()}<div class="card"><div class="steps">${bar}</div>${body}</div>`;
+    $("#main").querySelectorAll("[data-k]").forEach((el) => el.addEventListener("change", () => {
+      A[el.dataset.k] = el.type === "radio" ? el.value : el.value.trim(); render();
+    }));
+    if ($("#back")) $("#back").onclick = () => { step -= 1; render(); };
+    $("#next").onclick = () => { step += 1; render(); };
+  }
+  bindCrumbs();
+}
+
+// ---------------------------------------------------------------- The basic install: no questions, one file to run
+function renderQuick() {
+  $("#main").innerHTML = `${crumbs()}<div class="card"><h2>Basic install: EA Explorer on this computer, no questions</h2>
+    <p class="lead">No questions. Download the file for your computer and run it: it installs what is missing (Docker, and
+    on Windows Docker Desktop), gets EA Explorer, starts it, runs the smoke test (a few minutes), shows you the passwords and opens it in your browser; then it asks whether to run the full test (hours). It is the
+    laptop setup: for trying it, one person or a demo, never for a team (the server tabs are for that).</p>
+    <div class="nav"><a class="primary button" href="downloads/ea-explorer-basic.cmd" download>Download for Windows</a>
+      <a class="primary button" href="downloads/ea-explorer-basic.sh" download>Download for Linux or macOS</a></div>
+    <p class="small">Or in a Linux or macOS terminal, in one go:<br><code>curl -fsSLO ${location.origin}${location.pathname.replace(/[^/]*$/, "")}downloads/ea-explorer-basic.sh && bash ea-explorer-basic.sh</code></p>
+    <h3>Windows</h3>
+    <ul class="check"><li>Double-click <code>ea-explorer-basic.cmd</code>. A window shows each step. If Windows says it protected your PC,
+      press <b>More info</b>, then <b>Run anyway</b> (the file is not signed).</li>
+      <li>Docker Desktop is installed if it is missing (Windows asks for an administrator's yes, and may ask to restart: run the file again after).</li>
+      <li>EA Explorer goes in <code>%USERPROFILE%\\EA-Explorer</code>. The first start takes 10 to 20 minutes (the images are downloaded once).</li></ul>
+    <h3>Linux or macOS</h3>
+    <ul class="check"><li>In a terminal: <code>bash ea-explorer-basic.sh</code>. It asks for your password (sudo) only to install Docker.</li>
+      <li>macOS needs Docker Desktop: the script installs it with Homebrew when Homebrew is there, or says where to get it.</li>
+      <li>EA Explorer goes in <code>~/ea-explorer</code>.</li></ul>
+    <p class="small">Needs 16 GB of memory and 30 GB of free disk. Afterwards, in its folder: <code>eax stop</code>, <code>eax up</code>,
+      <code>eax logins</code>. Ready for more? The other tabs write scripts for servers, tests, backups and DR.</p></div>`;
+  bindCrumbs();
+}
+
+// hints and notes are this page's own text (they may hold <code>); what people type is always escaped
+function fieldHtml(k) {
+  const f = F[k];
+  if (f.type === "note") return `<div class="info">${fn(f.text)}</div>`;
+  const h = fn(f.hint);
+  const hint = h ? `<div class="hint">${h}</div>` : "";
+  if (f.type === "choice") {
+    return `<div class="field"><label>${esc(f.label)}</label><div class="choices">${f.choices.map(([v, l]) =>
+      `<label><input type="radio" name="${k}" value="${esc(v)}" data-k="${k}" ${A[k] === v ? "checked" : ""}>${esc(l)}</label>`).join("")}</div>${hint}</div>`;
+  }
+  return `<div class="field"><label for="f_${k}">${esc(f.label)}</label><input type="text" id="f_${k}" data-k="${k}" value="${esc(A[k])}" placeholder="${esc(fn(f.placeholder))}">${hint}</div>`;
+}
+
+function download(name, text) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type: "text/plain" }));
+  a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+// ---------------------------------------------------------------- writing the scripts
+// A bash script runs here and sends each command to the server over SSH (Linux, macOS), or runs on this machine.
+// From Windows to a server, a PowerShell script copies the same bash script to the server and runs it there, so a
+// Windows computer needs only its own ssh. Windows as the machine itself: PowerShell with eax.cmd.
+let MODE = "client";                       // "server": the bash is written to run on the server itself
+const overSsh = () => remote() && MODE === "client";
+const q = (s) => "'" + String(s).replace(/'/g, "'\\''") + "'";
+const pq = (s) => "'" + String(s).replace(/'/g, "''") + "'";
+const val = (k) => A[k] || fn(F[k] && F[k].placeholder);
+const useContainer = () => ["admin", "shell", "console", "jenkins"].includes(tab.id) ? A.tool === "container" : A.runner === "container";
+const ANSI = "sed -E 's/\\x1b\\[[0-9;]*[A-Za-z]//g'";
+
+function build() {
+  MODE = "client";
+  const r = tab.make();
+  if (serverWin()) return { kind: "ps1", plan: r.plan, notes: r.notes, text: `${header(r.title, r.plan)}\n${psCommon()}\n${r.ps}\n` };
+  if (remote() && isWin()) {
+    if (cloud()) r.notes.unshift("Making a cloud server needs the cloud's own tool in bash: run this script in WSL (Windows Subsystem for Linux).");
+    else {
+      MODE = "server";
+      const s = tab.make();
+      MODE = "client";
+      return { kind: "ps1", plan: r.plan, notes: r.notes, text: psRemote(r.title, r.plan, s.sh, s.before || [], s.after || []) };
+    }
+  }
+  return { kind: "sh", plan: r.plan, notes: r.notes, text: `#!/usr/bin/env bash\n${header(r.title, r.plan)}\n${shCommon()}\n${r.sh}\n` };
+}
+
+function header(title, plan) {
+  const when = new Date().toISOString().slice(0, 16).replace("T", " ");
+  const lines = [`EA Explorer ${VERSION}: ${title}`, `Written by the deploy page on ${when} UTC. It holds no password.`, "", "What it does:", ...plan.map((p) => "  - " + p)];
+  return lines.map((l) => (l ? "# " + l : "#")).join("\n");
+}
+
+// The common part of every bash script: on the machine itself, or over SSH
+function shCommon() {
+  return `set -euo pipefail
+FOLDER=${q(folder())}
+${overSsh() ? `HOST=${q(A.ssh_host || "")}
+SSH_USER=${q(A.ssh_user)}
+SSH_PORT=${q(A.ssh_port || "22")}
+SSH_KEY=${q(A.ssh_key)}
+SSH_KEY="\${SSH_KEY/#\\~/$HOME}"
+ssh_opts=(-i "$SSH_KEY" -p "$SSH_PORT" -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30)
+scp_opts=(-i "$SSH_KEY" -P "$SSH_PORT" -o StrictHostKeyChecking=accept-new)
+# on(): a command on the server, its output here; there(): a bash script (standard input) on the server
+on() { ssh "\${ssh_opts[@]}" -t "$SSH_USER@$HOST" "$@"; }
+on_quiet() { ssh "\${ssh_opts[@]}" "$SSH_USER@$HOST" "$@"; }
+there() { ssh "\${ssh_opts[@]}" "$SSH_USER@$HOST" "env $(printf '%q ' "$@") bash -s"; }` : `FOLDER="\${FOLDER/#\\~/$HOME}"
+on() { bash -c "$*"; }
+on_quiet() { bash -c "$*"; }
+there() { env "$@" bash -s; }`}
+step() { printf '\\n\\033[36m== %s\\033[0m\\n' "$*"; }
+stop() { printf '\\033[31mSTOPPED: %s\\033[0m\\n' "$*"; exit 1; }
+EAX=${useContainer() ? "./eax" : "'bash ./eax.sh'"}
+# eax(): one eax command in EA Explorer's folder on the machine
+eax() { on "cd $FOLDER && $EAX $*"; }
+`;
+}
+function shCommonServer() { const m = MODE; MODE = "server"; const s = shCommon(); MODE = m; return s; }
+
+const PS_SAVE = `function Save-Private([string]$File, [string[]]$Lines) {
+  $esc = [char]27; $Lines = $Lines | ForEach-Object { $_ -replace "$esc\\[[0-9;]*[A-Za-z]", "" }
+  [IO.File]::WriteAllLines($File, $Lines)
+  icacls $File /inheritance:r /grant:r "$($env:USERNAME):F" | Out-Null
+  Write-Host "Saved to $File (only you can read it). Put the passwords in your password manager, then delete the file." -ForegroundColor Yellow
+}`;
+
+function psCommon() {
+  return `$ErrorActionPreference = "Stop"
+$Folder = ${pq(folder())}
+function Eax([string]$Words) { Push-Location $Folder; try { & .\\eax.cmd @($Words -split ' '); if ($LASTEXITCODE -ne 0) { throw "eax $Words failed" } } finally { Pop-Location } }
+function Step([string]$Text) { Write-Host ""; Write-Host "== $Text" -ForegroundColor Cyan }
+${PS_SAVE}
+`;
+}
+
+// Windows to a server: the bash script copied there and run there; before/after: PowerShell on this computer
+function psRemote(title, plan, sh, before, after) {
+  return `${header(title + " (from Windows: run on the server over SSH)", plan)}
+$ErrorActionPreference = "Stop"
+$HostName = ${pq(A.ssh_host || "")}
+$SshUser = ${pq(A.ssh_user)}
+$SshPort = ${pq(A.ssh_port || "22")}
+$SshKey = ${pq(A.ssh_key)}
+$Folder = ${pq(folder())}
+$Ssh = @("-i", $SshKey, "-p", $SshPort, "-o", "StrictHostKeyChecking=accept-new", "-o", "ServerAliveInterval=30")
+$Scp = @("-i", $SshKey, "-P", $SshPort, "-o", "StrictHostKeyChecking=accept-new")
+if (-not (Get-Command ssh -ErrorAction SilentlyContinue)) { throw "Windows' OpenSSH client is missing: Settings > System > Optional features > OpenSSH Client." }
+${PS_SAVE}
+${before.join("\n")}
+# The part that runs on the server (bash), copied there and run there
+$Script = @'
+${shCommonServer()}
+${sh}
+'@
+$tmp = Join-Path $env:TEMP "ea-explorer-$PID.sh"
+[IO.File]::WriteAllText($tmp, ($Script -replace "\`r\`n", "\`n"))
+& scp @Scp $tmp "$($SshUser)@$($HostName):/tmp/ea-explorer-run.sh"; if ($LASTEXITCODE -ne 0) { throw "Could not copy the script to the server." }
+Remove-Item $tmp
+& ssh @Ssh -t "$SshUser@$HostName" "bash /tmp/ea-explorer-run.sh; s=\`$?; rm -f /tmp/ea-explorer-run.sh; exit \`$s"
+if ($LASTEXITCODE -ne 0) { throw "Stopped on the server (its words are above)." }
+${after.join("\n")}
+`;
+}
+
+// Jenkins: a pipeline started over its API, on the machine (the token asked for here, passed on standard input)
+function shJenkins(job, params) {
+  const p = Object.entries(params).map(([k, v]) => `--data-urlencode ${q(k + "=" + v)}`).join(" ");
+  return `read -r -s -p "Your Jenkins API token (Jenkins > your name > Security > API token): " TOKEN; echo
+printf '%s\\n' "$TOKEN" | on_quiet "read -r T; curl -fsS -X POST -u ${A.jenkins_user}:\\"\\$T\\" ${A.jenkins_url}/job/eax/job/${job}/buildWithParameters ${p.replace(/"/g, '\\"')} && echo 'Started: ${A.jenkins_url}/job/eax/job/${job}/'"
+unset TOKEN
+echo "Follow it in Jenkins (the Jenkins tab of the deploy page opens it)."`;
+}
+const eaxOrJenkins = (cmd, job, params) => A.runner === "jenkins" ? shJenkins(job, params) : `eax ${cmd}`;
+
+// the passwords downloaded to a file on this computer (bash: here; PowerShell: after the server part)
+const loginWords = (which) => which === "all" ? "logins --yes" : "logins --admins --yes";
+function shSaveLogins(file, which) {
+  return `LOGINS_FILE=${q(file)}; LOGINS_FILE="\${LOGINS_FILE/#\\~/$HOME}"
+( umask 077; on_quiet "cd $FOLDER && $EAX ${loginWords(which)}" | ${ANSI} > "$LOGINS_FILE" )
+chmod 600 "$LOGINS_FILE"
+echo "Saved to $LOGINS_FILE (only you can read it). Put the passwords in your password manager, then delete the file."`;
+}
+function psSaveLogins(file, which, local) {
+  return local
+    ? `Push-Location $Folder; try { $out = & .\\eax.cmd ${loginWords(which)} } finally { Pop-Location }\nSave-Private ${pq(file)} $out`
+    : `$out = & ssh @Ssh "$SshUser@$HostName" "cd $Folder && ${useContainer() ? "./eax" : "bash ./eax.sh"} ${loginWords(which)}"\nSave-Private ${pq(file)} $out`;
+}
+const loginsFile = () => A.logins_file || fn(F.logins_file.placeholder);
+const savesHere = () => MODE === "client" || !remote();     // the bash itself can write the file on this computer
+
+// ---------------------------------------------------------------- 1. a new deployment
+function folderSettings() {
+  const out = [["EAX_DATA_ROOT", A.data_root || (A.kind === "server" && !serverWin() ? "/srv/eax" : "")], ["EAX_DATA_DIR", A.db_dir],
+    ["EAX_DOCS_DIR", A.docs_dir], ["EAX_LOGS_DIR", A.logs_dir], ["EAX_BACKUP_DIR", A.backup_dir], ["EAX_IMPORT_DIR", A.import_dir],
+    ["EAX_EXPORT_DIR", A.export_dir]];
+  return out.filter(([, v]) => v).map(([k, v]) => [k, v.replace(/\\/g, "/")]);
+}
+
+function makeNew() {
+  const plan = [], notes = [];
+  if (cloud()) plan.push(`Create a server in ${({ aws: "AWS", azure: "Azure", do: "DigitalOcean" })[A.where]} (${val("region")}, ${val("size")}), with Docker, ports 22, 80 and 443 open${A.cloud_db === "yes" ? ", and a managed PostgreSQL" : ""}`);
+  plan.push(remote() ? `Connect to ${cloud() ? "the new server" : A.ssh_host} over SSH as ${A.ssh_user}` : "Work on this machine");
+  plan.push("Check Docker and Compose" + (A.install_docker === "yes" && !serverWin() ? ", installing Docker when it is missing" : ""), "Check disk and memory");
+  plan.push(`Get the deploy repository (${A.ref}) into ${folder()}`, `Make the settings (${A.kind}${A.kind === "server" ? ", strong random passwords" : ""}) and your choices`);
+  const fs = folderSettings();
+  if (fs.length) plan.push("Make the folders: " + fs.map(([k, v]) => `${({ EAX_DATA_ROOT: "base", EAX_DATA_DIR: "databases", EAX_DOCS_DIR: "documents", EAX_LOGS_DIR: "logs", EAX_BACKUP_DIR: "backups", EAX_IMPORT_DIR: "imports", EAX_EXPORT_DIR: "exports" })[k]} ${v}`).join(", ") + (serverWin() ? "" : "; stop if the databases' folder is on a network share"));
+  if (A.db !== "containers") plan.push("Point EA Explorer at your PostgreSQL (after your DBA has run deploy/external-db/prepare.sql)");
+  plan.push(`Pull the images (${REGISTRY}<image>:${VERSION})`, "Start EA Explorer and wait until it answers");
+  if (A.jenkins === "yes") plan.push("Start Jenkins and its agent");
+  plan.push(A.save_logins === "file" ? `Show the admin passwords, and save the ${A.logins_which === "all" ? "" : "admin "}passwords to ${loginsFile()} on this computer` : "Show the admin passwords on the screen");
+  if (A.kind === "laptop") notes.push("A laptop installation uses simple shared passwords: for one person or a demo, never for a team.");
+  if (A.db !== "containers") notes.push("Before running it: your DBA prepares the database server once with deploy/external-db/prepare.sql (eax setup external-db --dba prints the command).");
+  if (cloud()) notes.push("You need the cloud's command-line tool signed in on this computer (aws configure / az login / doctl auth init). The script creates billable resources: check the size and region.");
+  if (A.save_logins === "file") notes.push("The passwords file is readable by you only. Move the passwords into your password manager and delete the file.");
+  const services = ["reports", "documents", "library", "drawio"].filter((s) => A[s] === "off");
+  const after = A.save_logins === "file" ? [psSaveLogins(loginsFile(), A.logins_which, false)] : [];
+  const sh = `${cloud() && MODE === "client" ? cloudPart() : ""}
+step "1. The machine"
+there INSTALL=${q(A.install_docker)} <<'EOS'
+set -e
+if ! command -v docker >/dev/null; then
+  [ "$INSTALL" = yes ] || { echo "STOPPED: Docker is not installed (https://docs.docker.com/engine/install/)."; exit 1; }
+  echo "Docker is missing: installing it with Docker's own installer..."
+  curl -fsSL https://get.docker.com | sudo sh
+  sudo usermod -aG docker "$USER"
+  echo "Docker is installed. Sign in again (so the docker group applies) and run this script again."; exit 1
+fi
+docker info >/dev/null 2>&1 || sudo systemctl start docker || { echo "STOPPED: Docker does not answer: start it, and check you are in the docker group."; exit 1; }
+docker compose version >/dev/null 2>&1 || { echo "STOPPED: Docker Compose (docker-compose-plugin) is missing."; exit 1; }
+command -v git >/dev/null || { (command -v apt-get >/dev/null && sudo apt-get install -y git) || (command -v dnf >/dev/null && sudo dnf install -y git) || (command -v yum >/dev/null && sudo yum install -y git); }
+g=$(df -Pk / | awk 'NR==2 {print int($4/1048576)}'); echo "   free disk: $g GB"; [ "$g" -ge 20 ] || echo "   warn: 20 GB or more is advised"
+m=$(awk '/MemTotal/ {print int($2/1048576)}' /proc/meminfo 2>/dev/null || echo 16); echo "   memory: $m GB"; [ "$m" -ge 15 ] || echo "   warn: 16 GB of memory or more is advised"
+EOS
+
+step "2. The deploy repository (${A.ref})"
+on "if [ -d $FOLDER/.git ]; then cd $FOLDER && git fetch --tags --quiet && git checkout --quiet ${q(A.ref)} && (git pull --quiet || true); else ${remote() ? "sudo mkdir -p $FOLDER && sudo chown \\$USER $FOLDER && " : ""}git clone --quiet --branch ${q(A.ref)} ${DEPLOY_REPO}.git $FOLDER; fi"
+
+step "3. The settings"
+on "cd $FOLDER && if [ -f work/eaexplorer.env ]; then echo '   kept: work/eaexplorer.env is already there'; else EAX_NONINTERACTIVE=1 bash ./eax.sh init ${A.kind} --${A.auth}${A.kind === "server" && A.hostname ? " --hostname " + A.hostname : ""}; fi"
+# setting(): one setting written into work/eaexplorer.env
+setting() { on "cd $FOLDER && if grep -q '^$1=' work/eaexplorer.env; then sed -i.bak 's|^$1=.*|$1=$2|' work/eaexplorer.env; else echo '$1=$2' >> work/eaexplorer.env; fi"; }
+${[["EAX_HOSTNAME", A.kind === "server" ? A.hostname : ""], ["EAX_HTTP_PORT", A.http_port], ["EAX_HTTPS_PORT", A.https_port]].filter(([, v]) => v).map(([k, v]) => `setting ${k} ${q(v)}`).join("\n")}
+${fs.length ? `
+step "4. The folders (mount points)"
+${fs.map(([k, v]) => `setting ${k} ${q(v)}`).join("\n")}
+there DB=${q(A.db_dir || sub("databases"))} BASE=${q(base())} <<'EOS'
+set -e
+# fstype(): the file system a folder is on (the folder made first); network(): whether that is a share
+fstype() { mkdir -p "$1" 2>/dev/null || sudo mkdir -p "$1"; sudo chown "$USER" "$1" 2>/dev/null || true; df -PT "$1" | awk 'NR==2 {print $2}'; }
+network() { case "$1" in nfs*|cifs|smb*|fuse.sshfs|9p|glusterfs|ceph|lustre|davfs) return 0 ;; *) return 1 ;; esac; }
+if [ -n "$BASE" ]; then t=$(fstype "$BASE"); if network "$t"; then echo "   warn: the base folder $BASE is on a network share ($t); a local disk is advised."; else echo "   base folder: $BASE ($t, local)"; fi; fi
+if [ -n "$DB" ]; then t=$(fstype "$DB"); if network "$t"; then echo "STOPPED: the databases' folder $DB is on a network share ($t). PostgreSQL needs the machine's own disk: give a local folder."; exit 1; fi; echo "   databases: $DB ($t, local)"; fi
+EOS
+on "cd $FOLDER && bash ./eax.sh folders"` : ""}
+${A.db !== "containers" ? `eax setup external-db --host ${q(A.db_host || "$DB_HOST")} --port ${q(A.db_port)} --admin-user ${q(A.db_admin)}` : ""}
+${services.map((s) => `eax service ${s} off`).join("\n")}
+${A.passwords === "set" ? `echo "Type the Super Admin's password (it goes into the settings on the machine, nowhere else):"
+eax secrets set EAX_FIRST_ADMIN_PASSWORD` : ""}
+
+step "5. The images (${VERSION})"
+eax images pull
+
+step "6. Starting EA Explorer (the first start takes several minutes)"
+eax up --wait-all
+${A.jenkins === "yes" ? `\nstep "7. Jenkins"\neax jenkins up\n` : ""}
+step "Done: the admin logins (save them in your password manager)"
+eax url || true
+eax logins --admins --yes
+${A.save_logins === "file" && savesHere() ? shSaveLogins(loginsFile(), A.logins_which) : ""}
+cat <<'TEXT'
+
+The passwords again, on the machine:  eax logins --admins   (the admin and break-glass accounts)   eax logins   (every login)
+Test it: eax test smoke  (minutes)   eax test full  (hours)        Jenkins: the deploy page's Jenkins tab opens it
+The deploy page's other tabs write the scripts to run, test, back up, test DR, make a DR pack, recover and restore.
+TEXT`;
+  return { title: "a new deployment", plan, notes, sh, ps: psNewLocal(fs, services), after };
+}
+
+function psNewLocal(fs, services) {
+  return `Step "1. This machine"
+if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { throw "Docker Desktop is not installed: https://docs.docker.com/desktop/setup/install/windows-install/" }
+docker info *> $null; if ($LASTEXITCODE -ne 0) { throw "Docker Desktop is not running: start it, wait until it says running, and run this again." }
+if (-not (Get-Command git -ErrorAction SilentlyContinue)) { throw "git is not installed: https://git-scm.com/download/win" }
+
+Step "2. The deploy repository (${A.ref})"
+if (Test-Path (Join-Path $Folder ".git")) { git -C $Folder fetch --tags --quiet; git -C $Folder checkout --quiet ${pq(A.ref)} }
+else { git clone --quiet --branch ${pq(A.ref)} ${DEPLOY_REPO}.git $Folder }
+
+Step "3. The settings"
+if (-not (Test-Path (Join-Path $Folder "work\\eaexplorer.env"))) { $env:EAX_NONINTERACTIVE = "1"; Eax "init ${A.kind} --${A.auth}" }
+# Set-Setting: one setting in work\\eaexplorer.env (paths kept with /, which Docker reads on Windows too)
+function Set-Setting([string]$Key, [string]$Value) {
+  $f = Join-Path $Folder "work\\eaexplorer.env"; $done = $false
+  $lines = @(Get-Content $f | ForEach-Object { if ($_ -match "^$Key=") { $done = $true; "$Key=$Value" } else { $_ } })
+  if (-not $done) { $lines += "$Key=$Value" }
+  [IO.File]::WriteAllLines($f, $lines)
+}
+${[["EAX_HTTP_PORT", A.http_port], ["EAX_HTTPS_PORT", A.https_port], ...fs].filter(([, v]) => v).map(([k, v]) => `Set-Setting ${k} ${pq(v)}`).join("\n")}
+${fs.length ? `Step "4. The folders"\n${fs.map(([, v]) => `New-Item -ItemType Directory -Force ${pq(v)} | Out-Null`).join("\n")}\nEax "folders"` : ""}
+${services.map((s) => `Eax "service ${s} off"`).join("\n")}
+${A.passwords === "set" ? `Write-Host "Type the Super Admin's password (it goes into the settings, nowhere else):"\nEax "secrets set EAX_FIRST_ADMIN_PASSWORD"` : ""}
+
+Step "5. The images (${VERSION})"
+Eax "images pull"
+
+Step "6. Starting EA Explorer (the first start takes several minutes)"
+Eax "up --wait-all"
+${A.jenkins === "yes" ? 'Step "7. Jenkins"\nEax "jenkins up"' : ""}
+Step "Done: the admin logins (save them in your password manager)"
+Eax "logins --admins --yes"
+${A.save_logins === "file" ? psSaveLogins(loginsFile(), A.logins_which, true) : ""}
+Write-Host "The passwords again: .\\eax.cmd logins --admins   (every login: .\\eax.cmd logins). Test: .\\eax.cmd test smoke"`;
+}
+
+// a new server in the cloud, made with the cloud's own command-line tool; HOST is then its address
+function cloudPart() {
+  const n = A.cloud_name, reg = val("region"), size = val("size"), pub = A.ssh_pub;
+  if (A.where === "aws") return `step "0. A new server in AWS (${reg}, ${size})"
+command -v aws >/dev/null || stop "The AWS command-line tool is not installed here (https://aws.amazon.com/cli/), or not signed in (aws configure)."
+export AWS_DEFAULT_REGION=${q(reg)}
+PUB="\${HOME}/${pub.replace(/^~\//, "")}"
+aws ec2 import-key-pair --key-name ${q(n)} --public-key-material "fileb://$PUB" >/dev/null 2>&1 || true
+SG=$(aws ec2 create-security-group --group-name ${q(n)} --description "EA Explorer" --query GroupId --output text 2>/dev/null || aws ec2 describe-security-groups --group-names ${q(n)} --query 'SecurityGroups[0].GroupId' --output text)
+for p in 22 80 443; do aws ec2 authorize-security-group-ingress --group-id "$SG" --protocol tcp --port $p --cidr 0.0.0.0/0 >/dev/null 2>&1 || true; done
+AMI=$(aws ssm get-parameters --names /aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id --query 'Parameters[0].Value' --output text)
+ID=$(aws ec2 run-instances --image-id "$AMI" --instance-type ${q(size)} --key-name ${q(n)} --security-group-ids "$SG" \\
+  --block-device-mappings 'DeviceName=/dev/sda1,Ebs={VolumeSize=100,VolumeType=gp3}' \\
+  --tag-specifications 'ResourceType=instance,Tags=[{Key=Name,Value=${n}}]' --query 'Instances[0].InstanceId' --output text)
+aws ec2 wait instance-running --instance-ids "$ID"
+HOST=$(aws ec2 describe-instances --instance-ids "$ID" --query 'Reservations[0].Instances[0].PublicIpAddress' --output text)
+echo "   the server: $ID at $HOST"
+${A.cloud_db === "yes" ? `read -r -s -p "A password for the database's admin (kept by you; EA Explorer's own logins are made by prepare.sql): " DBPW; echo
+aws rds create-db-instance --db-instance-identifier ${q(n + "-db")} --engine postgres --engine-version 16 --db-instance-class db.t4g.medium \\
+  --allocated-storage 50 --master-username eaxmaster --master-user-password "$DBPW" --vpc-security-group-ids "$SG" --no-publicly-accessible >/dev/null
+unset DBPW
+aws rds wait db-instance-available --db-instance-identifier ${q(n + "-db")}
+DB_HOST=$(aws rds describe-db-instances --db-instance-identifier ${q(n + "-db")} --query 'DBInstances[0].Endpoint.Address' --output text)
+echo "   the database: $DB_HOST (allow port 5432 from the server's security group, then prepare it with deploy/external-db/prepare.sql)"` : ""}
+until on_quiet true 2>/dev/null; do echo "   waiting for SSH..."; sleep 10; done
+`;
+  if (A.where === "azure") return `step "0. A new server in Azure (${reg}, ${size})"
+command -v az >/dev/null || stop "The Azure command-line tool is not installed here (https://aka.ms/azure-cli), or not signed in (az login)."
+az group create --name ${q(n)} --location ${q(reg)} >/dev/null
+HOST=$(az vm create --resource-group ${q(n)} --name ${q(n)} --image Ubuntu2404 --size ${q(size)} --admin-username "$SSH_USER" \\
+  --ssh-key-values ${q(pub)} --os-disk-size-gb 100 --public-ip-sku Standard --query publicIpAddress --output tsv)
+az vm open-port --resource-group ${q(n)} --name ${q(n)} --port 80,443 --priority 1010 >/dev/null
+echo "   the server: $HOST"
+${A.cloud_db === "yes" ? `read -r -s -p "A password for the database's admin: " DBPW; echo
+az postgres flexible-server create --resource-group ${q(n)} --name ${q(n + "-db")} --location ${q(reg)} --tier GeneralPurpose \\
+  --sku-name Standard_D2ds_v5 --storage-size 64 --version 16 --admin-user eaxmaster --admin-password "$DBPW" --public-access "$HOST" >/dev/null
+unset DBPW
+DB_HOST=$(az postgres flexible-server show --resource-group ${q(n)} --name ${q(n + "-db")} --query fullyQualifiedDomainName --output tsv)
+az postgres flexible-server parameter set --resource-group ${q(n)} --server-name ${q(n + "-db")} --name azure.extensions --value pgcrypto,pg_trgm,amcheck >/dev/null
+echo "   the database: $DB_HOST (prepare it with deploy/external-db/prepare.sql)"` : ""}
+until on_quiet true 2>/dev/null; do echo "   waiting for SSH..."; sleep 10; done
+`;
+  return `step "0. A new DigitalOcean droplet (${reg}, ${size})"
+command -v doctl >/dev/null || stop "doctl is not installed here (https://docs.digitalocean.com/reference/doctl/), or not signed in (doctl auth init)."
+KEY=$(doctl compute ssh-key import ${q(n)} --public-key-file "\${HOME}/${pub.replace(/^~\//, "")}" --format ID --no-header 2>/dev/null || doctl compute ssh-key list --format ID,Name --no-header | awk -v n=${q(n)} '$2==n {print $1; exit}')
+HOST=$(doctl compute droplet create ${q(n)} --region ${q(reg)} --size ${q(size)} --image ubuntu-24-04-x64 --ssh-keys "$KEY" --wait --format PublicIPv4 --no-header)
+echo "   the droplet: $HOST"
+${A.cloud_db === "yes" ? `doctl databases create ${q(n + "-db")} --engine pg --version 16 --region ${q(reg)} --size db-s-2vcpu-4gb --num-nodes 1 --wait >/dev/null
+DB_HOST=$(doctl databases list --format Name,Host --no-header | awk -v n=${q(n + "-db")} '$1==n {print $2}')
+echo "   the database: $DB_HOST (add the droplet to its trusted sources, then prepare it with deploy/external-db/prepare.sql)"` : ""}
+until on_quiet true 2>/dev/null; do echo "   waiting for SSH..."; sleep 10; done
+`;
+}
+
+// ---------------------------------------------------------------- testing
+function makeTest() {
+  const how = A.runner === "jenkins" ? "through Jenkins' pipeline" : "with eax";
+  const plan = [`Run the ${A.test} test ${how}${remote() ? " on " + A.ssh_host : ""}`, "Say where its report is"];
+  const notes = A.test === "backup-restore" ? ["This test restores the whole installation twice: everyone is locked out while each restore runs (about an hour)."] : [];
+  const cmd = `test ${A.test}`;
+  return { title: `test a deployment (${A.test})`, plan, notes,
+    sh: `step "The ${A.test} test"\n${eaxOrJenkins(cmd, "test", { what: A.test })}\n${A.runner === "jenkins" ? "" : `echo "Its report: in the screens (Self-test) and in $FOLDER/work/tests/."`}`,
+    ps: `Step "The ${A.test} test"\nEax "${cmd}"` };
+}
+
+// ---------------------------------------------------------------- running it
+function makeAdmin() {
+  const t = ADMIN_TASKS().find((x) => x[0] === A.admin_task) || ADMIN_TASKS()[0];
+  const user = A.admin_user || "USER";
+  const plan = [t[3]], notes = [];
+  let sh, ps, after = [];
+  if (A.admin_task === "update") {
+    plan.splice(0, 1, "An infrastructure backup first (before-update)", "The deploy repository moved to the newest release", "Its images pulled", "EA Explorer restarted on them, waiting until it answers");
+    notes.push("Everyone sees the maintenance page for the few minutes the restart takes.");
+    sh = `step "1. A backup first"\neax backup before-update\nstep "2. The newest release"\non "cd $FOLDER && git fetch --tags --quiet && git pull --quiet && sed -n 's/^version = //p' services/api/version.toml"\nstep "3. Its images"\neax images pull\nstep "4. Restarting on them"\neax up --wait-all\neax status`;
+    ps = `Step "1. A backup first"\nEax "backup before-update"\nStep "2. The newest release"\ngit -C $Folder pull --quiet\nStep "3. Its images"\nEax "images pull"\nStep "4. Restarting on them"\nEax "up --wait-all"`;
+  } else if (A.admin_task === "logins-file") {
+    notes.push("Move the passwords into your password manager and delete the file. The installation's audit log keeps who looked and when.");
+    sh = savesHere() ? `step "The passwords"\n${shSaveLogins(loginsFile(), A.logins_which)}` : `echo "The passwords are fetched next, over SSH."`;
+    after = [psSaveLogins(loginsFile(), A.logins_which, false)];
+    ps = psSaveLogins(loginsFile(), A.logins_which, true);
+  } else if (A.admin_task === "backup-now") {
+    sh = `step "A backup"\neax backup manual\nstep "Checking it"\neax check-backup latest`;
+    ps = `Step "A backup"\nEax "backup manual"\nStep "Checking it"\nEax "check-backup latest"`;
+  } else {
+    let words = t[2];
+    if (A.admin_task === "logins") words = A.logins_which === "all" ? "logins" : "logins --admins";
+    const who = ["reset-password", "unlock", "mfa-off"].includes(A.admin_task);
+    sh = `step ${q(t[1])}\neax ${words}${who ? " " + q(user) : ""}`;
+    ps = `Step ${pq(t[1])}\nEax "${words}${who ? " " + user : ""}"`;
+  }
+  return { title: "admin: " + t[1], plan, notes, sh, ps, after };
+}
+
+// Docker's own commands; a container is found by its compose service name, whatever the project is called
+function makeConsole() {
+  const t = CONSOLE_TASKS().find((x) => x[0] === A.console_task) || CONSOLE_TASKS()[0];
+  const s = A.service;
+  const find = `$(docker ps -q --filter label=com.docker.compose.service=${s} | head -1)`;
+  const c = {
+    "status": `docker ps --filter label=com.docker.compose.project --format 'table {{.Names}}\\t{{.Status}}\\t{{.Image}}'; docker stats --no-stream --format 'table {{.Name}}\\t{{.CPUPerc}}\\t{{.MemUsage}}'`,
+    "logs": `docker logs --tail 200 -f ${find}`,
+    "restart-one": `docker restart ${find} && docker ps --filter label=com.docker.compose.service=${s} --format '{{.Names}}: {{.Status}}'`,
+    "exec": `docker exec -it ${find} sh -c 'command -v bash >/dev/null && exec bash || exec sh'`,
+    "inspect": `docker inspect ${find} --format '{{.Name}}  image {{.Config.Image}}  started {{.State.StartedAt}}  restarts {{.RestartCount}}  health {{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}{{range .Mounts}}  | {{.Source}} -> {{.Destination}}{{end}}'`,
+    "disk": `df -h | grep -v -E 'tmpfs|overlay'; docker system df`,
+    "stop-all": `cd $FOLDER && $EAX stop`,
+    "start-all": `cd $FOLDER && $EAX up --wait-all`,
+    "prune": `docker image prune -f`,
+    "events": `docker events --filter label=com.docker.compose.project --format '{{.Time}} {{.Action}} {{.Actor.Attributes.name}}'`,
+  }[A.console_task];
+  const plan = [(remote() ? `Sign in to ${A.ssh_host || "the server"} over SSH, then: ` : "") + t[2]];
+  const notes = A.console_task === "stop-all" ? ["Everyone is cut off until it is started again (the data is kept)."] : [];
+  // $FOLDER and $EAX are this script's; the rest runs on the machine as it is
+  const onServer = c.replace(/\$FOLDER/g, folder()).replace(/\$EAX/g, useContainer() ? "./eax" : "bash ./eax.sh");
+  const psCmd = onServer.replace(/\$\(docker ps -q --filter label=com\.docker\.compose\.service=(\w+) \| head -1\)/g, "(docker ps -q --filter label=com.docker.compose.service=$1 | Select-Object -First 1)")
+    .replace(/^cd .* && \.\\?\/?(eax|bash \.\/eax\.sh) (.*)$/, 'Eax "$2"').replace("df -h | grep -v -E 'tmpfs|overlay'", "Get-PSDrive -PSProvider FileSystem");
+  return { title: "Docker console: " + t[1], plan, notes, sh: `step ${q(t[1])}\non ${q(onServer)}`, ps: `Step ${pq(t[1])}\n${psCmd}` };
+}
+
+function makeShell() {
+  const k = A.shell_kind;
+  const plan = [{ folder: "A shell on the machine in EA Explorer's folder, with eax.sh, docker and git ready (exit leaves)",
+    container: "eax's own container (./eax shell): eax on the path, the machine's Docker reached (exit leaves)",
+    api: "A shell inside the api container (exit leaves)", psql: "psql in the database container (\\q leaves)" }[k]];
+  const notes = k === "psql" ? ["The database itself: read freely; change nothing unless support asked you to (take a backup first)."] : [];
+  const c = { folder: `cd ${folder()} && echo 'EA Explorer: ./eax.sh help lists every command' && exec bash -l`,
+    container: `cd ${folder()} && exec ./eax shell`,
+    api: `exec docker exec -it $(docker ps -q --filter label=com.docker.compose.service=api | head -1) bash`,
+    psql: `exec docker exec -it $(docker ps -q --filter label=com.docker.compose.service=db | head -1) psql -U postgres` }[k];
+  const ps = { folder: `Set-Location $Folder; Write-Host "EA Explorer: .\\eax.cmd help lists every command"; powershell -NoExit`,
+    container: `Write-Host "eax's own container is for Linux machines: on Windows, .\\eax.cmd in the folder does the same."; Set-Location $Folder; powershell -NoExit`,
+    api: `docker exec -it (docker ps -q --filter label=com.docker.compose.service=api | Select-Object -First 1) bash`,
+    psql: `docker exec -it (docker ps -q --filter label=com.docker.compose.service=db | Select-Object -First 1) psql -U postgres` }[k];
+  return { title: "command shell (" + k + ")", plan, notes, sh: `step "The shell"\non ${q(c)}`, ps };
+}
+
+function makeJenkins() {
+  const k = A.jenkins_task;
+  const plan = { open: ["Start Jenkins and its agent if they are not running", "Show Jenkins' admin login",
+                        ...(remote() ? ["Open a tunnel, so Jenkins on the server is at http://localhost:8088 here"] : []), "Open Jenkins in your browser"],
+    start: ["Start Jenkins and its agent, and write the pipelines"], status: ["Whether Jenkins and its agent run, and the address"],
+    pipelines: ["Write the pipelines again from the installed release's help"], stop: ["Stop Jenkins and its agent (the jobs' history is kept)"] }[k];
+  const notes = k === "open" && remote() ? ["The tunnel stays open while the script runs: press Ctrl+C when you are done with Jenkins."] : [];
+  const words = { start: "jenkins up", status: "jenkins status", pipelines: "jenkins pipelines", stop: "jenkins down" }[k];
+  const browse = `(command -v xdg-open >/dev/null && xdg-open http://localhost:8088) || (command -v open >/dev/null && open http://localhost:8088) || echo "Open http://localhost:8088"`;
+  const sh = k !== "open" ? `step "Jenkins"\neax ${words}` :
+    `step "Jenkins"\non "cd $FOLDER && ($EAX jenkins status >/dev/null 2>&1 || $EAX jenkins up)"
+step "Jenkins' admin login (in the list below)"
+eax logins --admins --yes
+${overSsh() ? `step "The tunnel: Jenkins at http://localhost:8088 here (Ctrl+C closes it)"\n(sleep 3; ${browse}) &\nssh "\${ssh_opts[@]}" -N -L 8088:127.0.0.1:8088 "$SSH_USER@$HOST"` : MODE === "server" ? "" : browse}`;
+  const after = k === "open" ? [`Write-Host "The tunnel: Jenkins at http://localhost:8088 here (Ctrl+C closes it)" -ForegroundColor Cyan`,
+    `Start-Job { Start-Sleep 3; Start-Process "http://localhost:8088" } | Out-Null`, `& ssh @Ssh -N -L 8088:127.0.0.1:8088 "$SshUser@$HostName"`] : [];
+  const ps = k === "open" ? `Step "Jenkins"\nPush-Location $Folder; try { & .\\eax.cmd jenkins status *> $null; if ($LASTEXITCODE -ne 0) { Eax "jenkins up" } } finally { Pop-Location }\nEax "logins --admins --yes"\nStart-Process "http://localhost:8088"`
+    : `Step "Jenkins"\nEax "${words}"`;
+  return { title: "Jenkins: " + k, plan, notes, sh, ps, after };
+}
+
+// ---------------------------------------------------------------- backing up and recovering
+function makeBackup() {
+  const k = A.backup_kind, tag = A.backup_tag || "manual";
+  const cmd = { infrastructure: `backup ${tag}`, application: `app-backup ${tag}`, model: `model-backup ${q(A.model)} ${tag}`, project: `project-backup ${q(A.project)} ${tag}` }[k];
+  const job = { infrastructure: "backup", application: "app-backup", model: "model-backup", project: "project-backup" }[k];
+  const params = { infrastructure: { arg0: tag }, application: { arg0: tag }, model: { arg0: A.model, arg1: tag }, project: { arg0: A.project, arg1: tag } }[k];
+  const plan = [`Take ${({ infrastructure: "an infrastructure backup", application: "an application backup", model: "a backup of " + A.model, project: "a backup of " + A.project })[k]} (tag ${tag})`,
+    "Check it (every zip, its fingerprint, what it holds)"];
+  if (A.copy_to) plan.push(`Copy it to ${A.copy_to}`);
+  const where = k === "infrastructure" ? "work/backups/infrastructure" : k === "application" ? "work/backups/application" : "work/backups/application/" + (k === "model" ? "models" : "projects");
+  const toHere = A.copy_to && !A.copy_to.includes(":");
+  const copy = !A.copy_to ? "" : (overSsh() && toHere) ? `mkdir -p ${q(A.copy_to)}\nscp "\${scp_opts[@]}" -r "$SSH_USER@$HOST:$FOLDER/${where}" ${q(A.copy_to)}`
+    : (MODE === "server" && toHere) ? "" : `on "cd $FOLDER && cp -r ${where} ${q(A.copy_to)} 2>/dev/null || scp -r ${where} ${q(A.copy_to)}"`;
+  const after = A.copy_to && toHere ? [`New-Item -ItemType Directory -Force ${pq(A.copy_to)} | Out-Null`, `& scp @Scp -r "$($SshUser)@$($HostName):$Folder/${where}" ${pq(A.copy_to)}`] : [];
+  return { title: `back up (${k})`, plan, notes: [], after,
+    sh: `step "The backup"\n${eaxOrJenkins(cmd, job, params)}\n${A.runner === "jenkins" ? "" : `step "Checking it"\neax check-backup latest`}\n${copy ? `step "Copying it off the machine"\n${copy}` : ""}`,
+    ps: `Step "The backup"\nEax "${cmd.replace(/'/g, "")}"\nStep "Checking it"\nEax "check-backup latest"${A.copy_to ? `\nCopy-Item -Recurse (Join-Path $Folder "${where.replace(/\//g, "\\")}") ${pq(A.copy_to)}` : ""}` };
+}
+
+function makeRestore() {
+  const k = A.restore_kind, mode = A.restore_mode === "over" ? "--over" : `--new ${q(A.new_name || "restored")}`;
+  const cmd = { infrastructure: `restore ${A.restore_name} --what ${A.restore_what} --yes`, application: `restore-app ${A.restore_name} --yes`,
+    model: `restore-model ${A.restore_name} ${A.restore_file} ${mode} --yes`, project: `restore-project ${q(A.project)} ${A.restore_file} ${mode} --yes` }[k];
+  const job = { infrastructure: "restore", application: "restore-app", model: "restore-model", project: "restore-project" }[k];
+  const plan = ["Check the backup before anything is touched", `Restore ${({ infrastructure: "the installation (" + A.restore_what + ")", application: "every model and project of the application backup", model: "the model " + (A.restore_mode === "over" ? "over itself" : "as a new model"), project: "the project " + (A.restore_mode === "over" ? "over itself" : "as a new project") })[k]} from ${A.restore_name}`,
+    "A backup of the current state is taken first"];
+  const notes = k === "infrastructure" ? ["Everyone is locked out (the maintenance page) while the installation is restored."] : [];
+  const check = k === "infrastructure" ? "eax backups" : k === "application" ? `eax check-backup ${A.restore_name}` : `eax check-backup ${A.restore_file}`;
+  return { title: `restore (${k})`, plan, notes,
+    sh: `step "The backup"\n${A.runner === "jenkins" ? "" : check}\nread -r -p "Type RESTORE to restore: " OK; [ "$OK" = RESTORE ] || stop "Nothing restored."\nstep "Restoring"\n${eaxOrJenkins(cmd, job, { arg0: A.restore_name, CONFIRM: A.installation })}`,
+    ps: `$ok = Read-Host "Type RESTORE to restore"; if ($ok -ne "RESTORE") { throw "Nothing restored." }\nStep "Restoring"\nEax "${cmd.replace(/'/g, "")}"` };
+}
+
+function makeDrill() {
+  const dr = val("dr_folder"), tmp = val("temp_folder");
+  const plan = ["Check the machine has room for a backup, its copy and the DR copy", "Take a backup and copy it out", "Shut the installation down (its data kept)",
+    `Rebuild a DR copy in ${dr} from it, restore, sign in and compare`, ...(A.drill_smoke === "yes" ? ["Run the smoke test on the DR copy"] : []),
+    "Leave the DR copy running for you to test; your installation stays stopped (they share the ports)"];
+  const notes = ["Your installation is stopped during and after the drill. Back to it: eax stop in the DR folder, then eax up in the installation's folder."];
+  return { title: "test DR (the restore drill)", plan, notes,
+    sh: `step "The restore drill"\non "cd $FOLDER/dr && bash ./eax-drill.sh --install $FOLDER --dr ${q(dr)} --temp ${q(tmp)}${A.drill_smoke === "yes" ? " --smoke" : ""}"\necho "Its report: $FOLDER/work/tests/drill-*/report.md (with the recovery time)."`,
+    ps: `Step "The restore drill"\nPush-Location (Join-Path $Folder "dr"); try { & .\\eax-drill.ps1 -Install $Folder -Dr ${pq(dr)} -Temp ${pq(tmp)}${A.drill_smoke === "yes" ? " -Smoke" : ""} } finally { Pop-Location }` };
+}
+
+function makePack() {
+  const pack = val("pack_folder");
+  const plan = [`Write a DR pack to ${pack} (the maintenance page on for a few minutes)`, "Check it (every file's checksum)"];
+  if (A.copy_to) plan.push(`Copy it to ${A.copy_to}`);
+  const notes = ["The pack holds every password and all the data: keep it safe, away from this machine (an encrypted disk, a vault)."];
+  const toHere = A.copy_to && !A.copy_to.includes(":");
+  const copy = !A.copy_to ? "" : (overSsh() && toHere) ? `mkdir -p ${q(A.copy_to)}\nscp "\${scp_opts[@]}" -r "$SSH_USER@$HOST:${pack}" ${q(A.copy_to)}` : (MODE === "server" && toHere) ? "" : `on "scp -r ${pack} ${q(A.copy_to)}"`;
+  const after = A.copy_to && toHere ? [`New-Item -ItemType Directory -Force ${pq(A.copy_to)} | Out-Null`, `& scp @Scp -r "$($SshUser)@$($HostName):${pack}" ${pq(A.copy_to)}`] : [];
+  return { title: "do DR (make a DR pack)", plan, notes, after,
+    sh: `step "The DR pack"\n${eaxOrJenkins(`dr-pack ${q(pack)}`, "dr-pack", { arg0: pack })}\n${copy ? `step "Copying it off the machine"\n${copy}` : ""}`,
+    ps: `Step "The DR pack"\nEax "dr-pack ${pack}"` };
+}
+
+function makeRecover() {
+  const from = A.pack_from || "(where the pack is)";
+  const plan = [remote() ? `Connect to the new machine ${A.ssh_host}` : "Work on this machine", "Check Docker (install it on Linux when missing)",
+    `Copy the DR pack there from ${from}`, `Run the DR tool: check the pack, install the same release into ${folder()}, restore everything, compare with the pack's fingerprint, smoke test`];
+  const notes = ["The new machine must use the same address as the old one (point its DNS name at the new machine) so sign-in and bookmarks keep working."];
+  const before = [`& ssh @Ssh "$SshUser@$HostName" "rm -rf /tmp/ea-dr-pack && mkdir -p /tmp/ea-dr-pack"`, `& scp @Scp -r (Join-Path ${pq(from)} "*") "$($SshUser)@$($HostName):/tmp/ea-dr-pack/"`,
+    `if ($LASTEXITCODE -ne 0) { throw "Could not copy the DR pack to the new machine." }`];
+  const sh = `step "1. The machine"
+on_quiet "command -v docker >/dev/null" || ${A.install_docker === "yes" ? `on "curl -fsSL https://get.docker.com | sudo sh && sudo usermod -aG docker \\$USER"` : `stop "Docker is not installed on the new machine."`}
+step "2. The DR pack"
+PACK=/tmp/ea-dr-pack
+${overSsh() ? `on "rm -rf $PACK && mkdir -p $PACK"\nscp "\${scp_opts[@]}" -r ${q(from)}/. "$SSH_USER@$HOST:$PACK/"` : MODE === "server" ? "" : `PACK=${q(from)}`}
+step "3. Recovering (it says each step; the report goes in the install folder's work/dr/)"
+on "cd $PACK/dr && bash ./eax-dr.sh --pack .. --install $FOLDER"`;
+  const ps = `Step "Recovering from the DR pack"\nPush-Location (Join-Path ${pq(from)} "dr"); try { & .\\eax-dr.ps1 -Pack .. -Install $Folder } finally { Pop-Location }`;
+  return { title: "recover from DR on a new machine", plan, notes, sh, ps, before };
+}
+
+render();
+</script>
+</body>
+</html>

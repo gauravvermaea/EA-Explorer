@@ -477,7 +477,9 @@ up_services() {
     case " $* " in *" api "*) compose up -d --build --scale "api=$(api_servers)" "$@" ;; *) compose up -d --build "$@" ;; esac
     return
   fi
-  if [ "${EAX_BUILD_PULL:-}" = 1 ]; then   # a clean rebuild: fresh base images, with their fixes (R3.12, D673)
+  if [ "$(setting EAX_IMAGES_FROM)" = registry ]; then   # made from the deploy repository: our images pulled (D973)
+    "$BASH" ./eaxpy.sh images pull $([ "${EAX_BUILD_PULL:-}" = 1 ] || echo --missing) || return 1
+  elif [ "${EAX_BUILD_PULL:-}" = 1 ]; then   # a clean rebuild: fresh base images, with their fixes (R3.12, D673)
     echo "Fetching the current base images and building on them (a clean rebuild)..."
     compose pull --ignore-buildable --quiet || true
     # --no-cache too (D951): an unchanged base image kept the Debian fixes' layer built before, without newer fixes
@@ -604,7 +606,12 @@ trust() {
   echo "MCP clients that run on Node (Claude Code, mcp-remote): export NODE_EXTRA_CA_CERTS=\"$(pwd)/$ca\""
 }
 
+# the logins go to the screen only (fd 3), never to this command's log (D975)
 show_logins() {
+  show_logins_on_screen >&3
+  echo "(the logins were shown on the screen; they are not written to this log)"
+}
+show_logins_on_screen() {
   if [ "$(kind)" != "laptop" ]; then
     echo "Logins are only printed for a laptop (development) installation. See $ENV_FILE."
     return 0
@@ -1017,7 +1024,8 @@ case "$CMD" in
       compose up -d --no-deps --no-recreate --scale "api=$2" api
     fi ;;
   url)     show_urls; show_logins ;;
-  logins)  [ -f "$ENV_FILE" ] || { err "no $ENV_FILE yet: run ./eax.sh init first."; exit 1; }; show_logins ;;
+  logins)  [ -f "$ENV_FILE" ] || { err "no $ENV_FILE yet: run ./eax.sh init first."; exit 1; }   # a server too (D975)
+           shift; exec "$BASH" ./eaxpy.sh logins "$@" ;;
   trust)   [ -f "$ENV_FILE" ] || { err "no $ENV_FILE yet: run ./eax.sh init first."; exit 1; }; trust "${2:-}" ;;
   *)       err "$(unknown_command "$CMD")"; exit 1 ;;
 esac

@@ -5,6 +5,8 @@
 # Another uv (an offline server, say): set EAX_UV to its path. Another uv version: set EAX_UV_VERSION.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
+# inside the eax container (D976) its own Python runs eaxpy.py: nothing is fetched
+if [ -n "${EAX_PYTHON:-}" ]; then exec "$EAX_PYTHON" "$ROOT/eaxpy.py" "$@"; fi
 TOOLS="$ROOT/work/tools"
 VERSION="${EAX_UV_VERSION:-0.9.5}"
 UV="${EAX_UV:-$TOOLS/uv}"

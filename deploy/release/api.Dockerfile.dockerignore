@@ -1,0 +1,12 @@
+# only what api.Dockerfile copies (the context is the whole repository)
+*
+!docs
+!README.md
+!eaxcli/help.txt
+!releases
+!documents
+!services/web/src/help/catalogue.json
+!library/templates/ea-explorer
+!library/industry-packs
+!deploy
+deploy/release

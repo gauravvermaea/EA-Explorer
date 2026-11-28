@@ -16,6 +16,12 @@ A free, open-source enterprise architecture platform you run yourself:
 - **integration and operations**: a REST API, signed webhooks, Excel and CSV loads, one `eax` command, health,
   tagged backups and restores; single sign-on through Keycloak.
 
+**Deploy it:** answer a few questions on the **[deploy page](https://gauravvermaea.github.io/EA-Explorer-Deploy/)** and it writes your own script
+(a laptop, a server, AWS, Azure or DigitalOcean; also testing, backups, DR and restoring). How to run EA Explorer, its
+compose files and scripts: the deploy repository, **[EA-Explorer-Deploy](https://github.com/gauravvermaea/EA-Explorer-Deploy)**. How to use it, the books and
+every guide: the **[website](https://gauravvermaea.github.io/EA-Explorer/)**. This repository is the code, the documentation and the books; the images are
+published from here ([docs/images.md](docs/images.md)).
+
 **Watch it:** EA Explorer in five minutes, and more videos, on the YouTube channel **[EA Explorer](https://www.youtube.com/@ea-explorer-os)**.
 
 Everything runs in Docker containers from one config file. **What it does today, area by area, and what is still

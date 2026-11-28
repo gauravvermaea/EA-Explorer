@@ -23,7 +23,7 @@ import re
 import secrets as _random
 import subprocess
 
-from .core import EAX, ROOT, Failure, compose_args, say, setting
+from .core import EAX, ROOT, Failure, compose_args, log_only, say, setting
 
 # MFA off for everyone (R12.20; owner, 22 Nov 2026, 10:49: "Can we have a command in eax to disable mfa", "I want to run
 # it now"): run in the api container with the code already there, so it works without a rebuild. The setting is stored
@@ -192,7 +192,8 @@ def main(argv: list[str]) -> int:
     if action == "reset-password":
         pw = reset_password(who)
         say(f"{who}'s new temporary password (shown once; it must be changed at the next sign-in):")
-        say(f"  {pw}")
+        print(f"  {pw}", flush=True)                 # the screen only: no password goes in a log (D975)
+        log_only("  (the temporary password was shown on the screen; it is not written here)")
         return 0
     if action == "unlock":
         unlock(who)

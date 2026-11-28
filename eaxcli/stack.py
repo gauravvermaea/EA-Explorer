@@ -127,13 +127,45 @@ def start_later() -> None:
         "(log: work/logs/eax-*-start-later.log).")
 
 
+def _published() -> bool:
+    from . import images
+    return images.published_mode()
+
+
+def published_images_here() -> int:
+    """An installation made from the deploy repository (D973): our images pulled from the registry (those missing), not
+    built. 0 when they are all here."""
+    from . import images
+    if not images.published_mode():
+        return 0
+    failed = images.pull(images.wanted_version(), images.OURS, only_missing=os.environ.get("EAX_BUILD_PULL") != "1")
+    for f in failed:
+        say(f"  NOT PULLED {f}", "red")
+    return 1 if failed else 0
+
+
+def testrunner_ready() -> None:
+    """The test runner, ready to run: built here, or (an installation from the deploy repository) pulled (D973)."""
+    from . import images
+    if images.published_mode():
+        failed = images.pull(images.wanted_version(), ["testrunner"], only_missing=True)
+        if failed:
+            raise Failure("The test runner could not be pulled: " + "; ".join(failed))
+        return
+    compose(["--profile", "test", "build", "testrunner"])
+
+
 def up(names: list[str], wait_everything: bool, no_throw: bool = False) -> int:
     """Starts the stack (or some parts), first the core then the rest."""
     write_services_file()
+    if published_images_here() != 0:
+        if no_throw:
+            return 1
+        raise Failure("Not every image could be pulled: eax images pull says which, and why.")
     scale = ["--scale", f"api={api_servers()}"]
     if names:
         return compose(["up", "-d", "--build", *(scale if "api" in names else []), *names], no_throw=no_throw)
-    if os.environ.get("EAX_BUILD_PULL") == "1":   # a clean rebuild: fresh base images, with their fixes (R3.12, D673)
+    if os.environ.get("EAX_BUILD_PULL") == "1" and not _published():   # a clean rebuild (R3.12, D673); published: pulled above
         say("Fetching the current base images and building on them (a clean rebuild)...", "cyan")
         compose(["pull", "--ignore-buildable", "--quiet"], no_throw=True)
         # --no-cache too (D951): with a base image that had not changed, Docker kept the Debian fixes' layer it built

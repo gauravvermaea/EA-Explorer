@@ -2,6 +2,8 @@
 Add a schedule to check for latets images every 3 months and we will tackle it there"; D841, D843).
 
   eax images [check] [--no-tell]   every image EA Explorer uses, the one in use and whether a newer one is published
+  eax images pull [--with-tests] [--missing]   our published images for this version, from the registry, named as the code knows
+                                   them (an installation made from the deploy repository, D973)
 
 What it looks at: each image the installation runs or builds on. For our own images (api, web, ops and the rest, built
 here) that is the image each Dockerfile starts FROM; for the others (PostgreSQL, Keycloak, Superset and the rest) the
@@ -187,11 +189,72 @@ def tell(rows: list[dict], path: Path, post=None) -> bool:
         return False
 
 
+# ---------------------------------------------------------------- our published images (Release 14.8.1, D973)
+OURS = ["api", "web", "backup", "library", "views", "ops", "drawio", "superset", "jenkins"]   # + testrunner, when testing
+REGISTRY = "ghcr.io/gauravvermaea/eaexplorer-"      # where they are published; EAX_IMAGES_REGISTRY changes it
+
+
+def published_mode() -> bool:
+    """An installation made from the deploy repository: our images come from a registry, never built here."""
+    return setting("EAX_IMAGES_FROM", "").strip().lower() == "registry"
+
+
+def registry() -> str:
+    """Where our images are pulled from: <registry><image>:<version> (EAX_IMAGES_REGISTRY; GitHub's registry by
+    default, or Docker Hub, e.g. eaexplorer/)."""
+    return setting("EAX_IMAGES_REGISTRY", "").strip() or REGISTRY
+
+
+def wanted_version() -> str:
+    """The version to run: EAX_VERSION in the case file (the deploy repository sets the release), else this folder's."""
+    from .core import version
+    v = setting("EAX_VERSION", "").strip()
+    return v if v and v != "dev" else version()
+
+
+def pull(version: str, names: list[str] | None = None, run=capture, only_missing: bool = False) -> list[str]:
+    """Each image pulled from the registry and named eaexplorer/<image>:<version>, as the compose file and the code know
+    them (the test runner, the drill and the scans find them by that name). Returns the ones that failed, with why."""
+    failed = []
+    for name in names or OURS:
+        local_ref = f"eaexplorer/{name}:{version}"
+        if only_missing and run(["docker", "image", "inspect", local_ref])[0] == 0:
+            continue
+        remote = f"{registry()}{name}:{version}"
+        say(f"  pulling {remote}")
+        code, out = run(["docker", "pull", "--quiet", remote])
+        if code != 0:
+            failed.append(f"{remote}: {out.strip().splitlines()[-1] if out.strip() else 'the pull failed'}")
+            continue
+        code, out = run(["docker", "tag", remote, local_ref])
+        if code != 0:
+            failed.append(f"{local_ref}: {out.strip()[-200:]}")
+    return failed
+
+
+def pull_main(argv: list[str], run=capture) -> int:
+    """eax images pull [--with-tests] [--version V]."""
+    v = argv[argv.index("--version") + 1] if "--version" in argv and argv.index("--version") + 1 < len(argv) else wanted_version()
+    names = OURS + (["testrunner"] if "--with-tests" in argv else [])
+    say(f"Pulling EA Explorer {v}'s images from {registry()} ...", "cyan")
+    failed = pull(v, names, run, only_missing="--missing" in argv)
+    for f in failed:
+        say(f"  NOT PULLED {f}", "red")
+    if failed:
+        say("Is the version published, and can this machine reach the registry? A private package needs "
+            "docker login ghcr.io first.", "yellow")
+        return 1
+    say(f"The {len(names)} images are here, named eaexplorer/<image>:{v}.", "green")
+    return 0
+
+
 def main(argv: list[str], run=capture) -> int:
     """eax images [check] [--no-tell]."""
     words = [a for a in argv if not a.startswith("--")]
+    if words and words[0] == "pull":
+        return pull_main(argv[1:], run)
     if words and words[0] != "check":
-        raise Failure(f"{EAX} images [check] [--no-tell]")
+        raise Failure(f"{EAX} images [check|pull] [--no-tell] [--with-tests]")
     code, out = run(compose_args(["--profile", "test", "--profile", "platform", "config", "--format", "json"]))
     if code != 0:
         raise Failure(f"docker compose config failed: {out.strip()[-300:]}")

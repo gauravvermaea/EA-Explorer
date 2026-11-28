@@ -681,7 +681,7 @@ def dispatch(command: str, rest: list[str], wait_all: bool) -> None:
             rest = [a for a in rest if a not in ("--no-dev-check", "--no-sonar", "--no-dr")]
             # always prepare the runner first (D584): seconds when it is current, rebuilt when the code or version changed
             say("Preparing the test runner... (the first time about 5 to 15 minutes; seconds when it is current)")
-            compose(["--profile", "test", "build", "testrunner"])
+            stack.testrunner_ready()                  # built here, or pulled in a deploy-repository installation (D973)
             stack.backup_helpers()
             failed = None
             try:
@@ -730,10 +730,10 @@ def dispatch(command: str, rest: list[str], wait_all: bool) -> None:
     elif command == "url":
         info.show_urls()
         info.show_logins()
-    elif command == "logins":
+    elif command == "logins":           # on a laptop and on a server, on the screen only (D975)
         if not ENV_FILE.exists():
             raise Failure(f"No {ENV_REL} yet: run {EAX} init first.")
-        info.show_logins()
+        info.show_logins(admins_only="--admins" in rest, asked=True, args=rest)
     elif command == "trust":
         if not ENV_FILE.exists():
             raise Failure(f"No {ENV_REL} yet: run {EAX} init first.")

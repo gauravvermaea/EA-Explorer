@@ -402,7 +402,11 @@ function Invoke-Up([string[]]$Names, [switch]$NoThrow) {
         if ($Names -contains "api") { return (Invoke-Compose (@("up", "-d", "--build") + $scale + $Names) -NoThrow:$NoThrow) }
         return (Invoke-Compose (@("up", "-d", "--build") + $Names) -NoThrow:$NoThrow)
     }
-    if ($env:EAX_BUILD_PULL -eq "1") {   # a clean rebuild: fresh base images, with their fixes (R3.12, D673)
+    if ((Get-Setting "EAX_IMAGES_FROM" "") -eq "registry") {   # made from the deploy repository: our images pulled (D973)
+        $pullArgs = @("images", "pull"); if ($env:EAX_BUILD_PULL -ne "1") { $pullArgs += "--missing" }
+        & (Join-Path $PSScriptRoot "eaxpy.ps1") @pullArgs
+        if ($LASTEXITCODE -ne 0) { if ($NoThrow) { return 1 }; throw "Not every image could be pulled (see above)." }
+    } elseif ($env:EAX_BUILD_PULL -eq "1") {   # a clean rebuild: fresh base images, with their fixes (R3.12, D673)
         Write-Log "Fetching the current base images and building on them (a clean rebuild)..." "Cyan"
         Invoke-Compose @("pull", "--ignore-buildable", "--quiet") -NoThrow | Out-Null
         # --no-cache too (D951): an unchanged base image kept the Debian fixes' layer built before, without newer fixes
@@ -645,11 +649,13 @@ function Show-Logins {
         @("user_stakeholder", "eax-user", "Stakeholder of the sample architecture project (reads; approves documents in 13.1)")
     )
     foreach ($t in $tests) { $rows += ,@("Test user ($($t[1]))", $t[0], $testPw, $t[2]) }
-    Write-Log ""
-    Write-Log "================ DEVELOPMENT LOGINS (laptop only - never use these on a server) ================" "Yellow"
-    Write-Log ("{0,-38} {1,-22} {2,-16} {3}" -f "Account", "User", "Password", "Notes")
-    foreach ($r in $rows) { Write-Log ("{0,-38} {1,-22} {2,-16} {3}" -f $r[0], $r[1], $r[2], $r[3]) }
-    Write-Log "=================================================================================================" "Yellow"
+    # Write-Host, never Write-Log: no password goes in a log (D975)
+    Write-Host ""
+    Write-Host "================ DEVELOPMENT LOGINS (laptop only - never use these on a server) ================" -ForegroundColor Yellow
+    Write-Host ("{0,-38} {1,-22} {2,-16} {3}" -f "Account", "User", "Password", "Notes")
+    foreach ($r in $rows) { Write-Host ("{0,-38} {1,-22} {2,-16} {3}" -f $r[0], $r[1], $r[2], $r[3]) }
+    Write-Host "=================================================================================================" -ForegroundColor Yellow
+    if ($script:Log) { $script:Log.WriteLine("(the logins were shown on the screen; they are not written to this log, D975)") }
 }
 
 # After starting only some services: where to reach them directly (laptop)
@@ -1240,7 +1246,8 @@ try {
             Set-Service $RestArgs[0] $RestArgs[1].ToLower()
         }
         "url"     { Show-Urls; Show-Logins }
-        "logins"  { if (-not (Test-Path $EnvFile)) { throw "No $EnvFile yet: run .\eax init first." }; Show-Logins }
+        "logins"  { if (-not (Test-Path $EnvFile)) { throw "No $EnvFile yet: run .\eax init first." }   # a server too (D975)
+                    $env:EAX_TYPED = ".\eax"; & (Join-Path $PSScriptRoot "eaxpy.ps1") logins @RestArgs; exit $LASTEXITCODE }
         "trust"   { if (-not (Test-Path $EnvFile)) { throw "No $EnvFile yet: run .\eax init first." }; Invoke-Trust $RestArgs }
         default   { throw (Get-UnknownCommand $Command) }
     }

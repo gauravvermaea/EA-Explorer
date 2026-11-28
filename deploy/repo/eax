@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# eax in a container (D976): this machine needs only Docker. The last resort; Jenkins and the deploy page's scripts are
+# the usual way. Made by EA Explorer's tools/deploy_repo.py: change it there.
+#
+#   ./eax <command>     one eax command (./eax status, ./eax logins --admins, ./eax test full, ./eax backup)
+#   ./eax shell         a shell in the container, eax on the path; leave with exit
+#
+# The deploy folder is mounted at the same path inside, so the compose files' folders mean the same to Docker, and the
+# machine's Docker is reached through its socket. It runs as you, so what it writes in the folder stays yours.
+# EAX_TOOL_IMAGE: another image (the default is this release's, from GitHub's registry).
+set -euo pipefail
+HERE="$(cd "$(dirname "$0")" && pwd)"
+VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' "$HERE/services/api/version.toml")"
+IMAGE="${EAX_TOOL_IMAGE:-{{REGISTRY}}eax:$VERSION}"
+SOCK="${DOCKER_SOCK:-/var/run/docker.sock}"
+if ! command -v docker >/dev/null 2>&1; then
+  echo "Docker is not installed on this machine. Install it first: https://docs.docker.com/engine/install/"
+  exit 1
+fi
+if [ ! -S "$SOCK" ]; then
+  echo "Docker's socket is not at $SOCK. Is Docker running? (DOCKER_SOCK names another.)"
+  exit 1
+fi
+case "$(uname -s)" in
+  Linux) net=(--network host) ;;                 # https://localhost on the machine is reachable from inside
+  *) net=() ;;
+esac
+tty=(-i); if [ -t 0 ] && [ -t 1 ]; then tty=(-it); fi
+args=("$@"); [ "${1:-}" = "shell" ] && args=(__shell__)
+group=(); gid="$(stat -c %g "$SOCK" 2>/dev/null || stat -f %g "$SOCK" 2>/dev/null || echo "")"
+[ -n "$gid" ] && group=(--group-add "$gid")
+exec docker run --rm "${tty[@]}" "${net[@]}" "${group[@]}" \
+  --name "eax-$$" --user "$(id -u):$(id -g)" \
+  -v "$SOCK:/var/run/docker.sock" -v "$HERE:$HERE" -w "$HERE" \
+  -e EAX_HOME="$HERE" -e EAX_HOST_USER="$(id -un)" -e TERM="${TERM:-xterm}" \
+  "$IMAGE" "${args[@]}"

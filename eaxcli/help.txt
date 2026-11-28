@@ -120,8 +120,15 @@ $ {eax} errors backup
 ### url
 > Prints the addresses to open (and the logins on a laptop).
 
-### logins
-> Prints every user name and password (laptop only).
+### logins [--admins] [--yes]
+> Shows the user names and passwords on the screen: every one, or with --admins the admin accounts only.
+--admins: EA Explorer's Super Admin, Keycloak's administrator, the break-glass account (for when Keycloak is down) and
+Jenkins' administrator when Jenkins is on. On a laptop it shows them at once (and after eax up). On a server it asks you
+to type YES first (--yes: no question, for a script you run yourself), and only works for whoever can read the config
+file. The passwords are never written to a log; on a server the audit log keeps who looked and when (D975). Save the
+admin and break-glass passwords in your password manager.
+$ {eax} logins --admins
+$ {eax} logins
 
 ### logs [service|backup|clean] [--older-than N] [--yes]
 > Follows the logs of every container, or of one; or backs up or cleans the logs kept on disk.

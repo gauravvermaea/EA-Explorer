@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
+import sys
 from pathlib import Path
 
 from .core import (
@@ -18,6 +20,8 @@ from .core import (
     compose_args,
     hide_secrets,
     kind,
+    log_only,
+    paint,
     say,
     setting,
 )
@@ -57,9 +61,10 @@ def templates_hint() -> None:
     say("One-time admin task: the TOGAF template deliverables (for architecture projects)", "yellow")
     say("  1. Download 'The TOGAF Standard, 10th Edition - Template Deliverables' (The Open Group publication I094):", "yellow")
     say("     https://publications.opengroup.org/i094", "yellow")
-    say(f"  2. Unzip it into {togaf}, keeping its phase folders (the files stay on this computer; git ignores them).", "yellow")
-    say(f"     To use another folder, set EAX_LIBRARY_DIR in {ENV_REL} (it must hold templates/togaf) and run {EAX} up.", "yellow")
-    say("  3. As a Super Admin: Administration > Project library > Load templates from the folder.", "yellow")
+    say("  2. As a Super Admin: Administration > Project library > Upload the TOGAF zip, and choose the zip exactly", "yellow")
+    say("     as you downloaded it (each template is stored unchanged, in the background).", "yellow")
+    say(f"  Or unzip it into {togaf}, keeping its phase folders (git ignores the files), and press", "yellow")
+    say("  Load templates from the folder there. The files are The Open Group's: never commit or share them.", "yellow")
 
 
 # ---------------------------------------------------------------- the local certificate (D107)
@@ -164,11 +169,33 @@ TEST_USERS = [
 ]
 
 
-def show_logins() -> None:
-    """Prints the laptop's test logins."""
-    if kind() != "laptop":
-        say(f"Logins are only printed for a laptop (development) installation. See {ENV_REL}.")
-        return
+ADMIN_ACCOUNTS = ("EA Explorer (Keycloak realm)", "Keycloak administrator", "Break-glass account", "Jenkins administrator")
+
+
+def _who() -> str:
+    import getpass
+    try:
+        return getpass.getuser()
+    except Exception:  # noqa: BLE001
+        return "someone"
+
+
+def show_logins(admins_only: bool = False, asked: bool = False, args: list[str] | None = None) -> None:
+    """The user names and passwords (D975): on the screen only, never in a log. A laptop shows them as it always has
+    (after eax up and with eax logins); on a server eax logins shows them to whoever can read the config file (who can
+    open it already), after YES, and the audit log keeps who looked and when. admins_only: the admin accounts only."""
+    args = args or []
+    server = kind() != "laptop"
+    if server and not asked:
+        return                                       # eax up on a server never prints them; eax logins does, when asked
+    if server and "--yes" not in args:
+        if not sys.stdin.isatty() or os.environ.get("EAX_NONINTERACTIVE"):
+            say(f"The passwords are shown only to a person: run {EAX} logins{' --admins' if admins_only else ''} --yes, or in a window.")
+            return
+        print(paint("The passwords of this installation will be shown on this screen (never written to a log).", "yellow"))
+        if input("Type YES to see them: ").strip() != "YES":
+            say("Nothing shown.")
+            return
     g = setting
     rows = [
         ("EA Explorer (Keycloak realm)", g("EAX_FIRST_ADMIN_USER", "eaadmin"), g("EAX_FIRST_ADMIN_PASSWORD"), "start page sign-in; Superset and Mayan via SSO"),
@@ -190,14 +217,30 @@ def show_logins() -> None:
         ("Keycloak API client (eax-admin)", "eax-admin", g("EAX_KC_SERVICE_SECRET"), "reads people and roles"),
         ("Break-glass account", "break-glass", g("EAX_BREAK_GLASS_PASSWORD"), "when Keycloak is down: start page"),
     ]
-    test_pw = g("EAX_TEST_USER_PASSWORD", "") or g("EAX_FIRST_ADMIN_PASSWORD")
-    rows += [(f"Test user ({role})", user, test_pw, note) for user, role, note in TEST_USERS]
-    say("")
-    say("================ DEVELOPMENT LOGINS (laptop only - never use these on a server) ================", "yellow")
-    say(f"{'Account':<38} {'User':<22} {'Password':<16} Notes")
+    if g("EAX_JENKINS_ADMIN_PASSWORD"):
+        rows.append(("Jenkins administrator", g("EAX_JENKINS_ADMIN_USER", "admin"), g("EAX_JENKINS_ADMIN_PASSWORD"),
+                     "eax jenkins up, then its address"))
+    if admins_only:
+        rows = [r for r in rows if r[0] in ADMIN_ACCOUNTS]
+    if not server and not admins_only:
+        test_pw = g("EAX_TEST_USER_PASSWORD", "") or g("EAX_FIRST_ADMIN_PASSWORD")
+        rows += [(f"Test user ({role})", user, test_pw, note) for user, role, note in TEST_USERS]
+    title = ("ADMIN LOGINS" if admins_only else "LOGINS") if server else \
+        ("DEVELOPMENT ADMIN LOGINS" if admins_only else "DEVELOPMENT LOGINS") + " (laptop only - never use these on a server)"
+    # print, never say(): say() writes the line to this command's log too, and no password goes in a log (D975)
+    print("")
+    print(paint(f"================ {title} ================", "yellow"))
+    print(f"{'Account':<38} {'User':<22} {'Password':<16} Notes")
     for r in rows:
-        say(f"{r[0]:<38} {r[1]:<22} {r[2]:<16} {r[3]}")
-    say("=================================================================================================", "yellow")
+        print(f"{r[0]:<38} {r[1]:<22} {r[2]:<16} {r[3]}")
+    print(paint("Save the admin and break-glass passwords in your password manager. They are not written to any log.", "yellow"))
+    log_only(f"{'admin ' if admins_only else ''}logins shown on the screen to {_who()} (the passwords are not written here)")
+    if server:
+        try:
+            capture(compose_args(["exec", "-T", "api", "python", "-m", "eax.audit_cli", "installation.logins_shown", _who(),
+                                  "admins only" if admins_only else "every login"]))
+        except Exception:  # noqa: BLE001 - the API not running: this log says it instead
+            log_only("the audit log could not be written (the api container is not running)")
 
 
 def show_part_urls(services: list[str]) -> None:

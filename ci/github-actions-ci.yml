@@ -2,8 +2,8 @@ name: CI
 
 # CI on every change (8.5, D513): every push to any branch (main, rc, release and work branches), every pull request,
 # and every version tag. A version tag (vX.Y.Z or vX.Y.Z-rc.N) also checks that the release is consistent and makes the
-# GitHub release with its notes (releases/<version>.md). No images are published: every installation builds them on its
-# own host (D417).
+# GitHub release with its notes (releases/<version>.md). The images are published by publish-images.yml (D973); an
+# installation made from this repository still builds its own (D417).
 on:
   push:
     branches: ["**"]

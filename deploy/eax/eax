@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# eax inside the eax container: the deploy folder's own eax.sh (D976)
+exec bash "${EAX_HOME:-$PWD}/eax.sh" "$@"

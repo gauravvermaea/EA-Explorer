@@ -11,6 +11,13 @@ with your permissions.
 It is free and open source (AGPL-3.0), with no charge per user, per object or per module, and it runs where you choose:
 a laptop, one server, or a machine in your cloud.
 
+## Install it
+
+The [deploy page](https://gauravvermaea.github.io/EA-Explorer-Deploy/) asks where and how you want EA Explorer (this machine, a remote server, AWS,
+Azure or DigitalOcean; the operating system, mount points, the database) and writes a script for your case to download
+and run. Its other tabs write the scripts to test an installation, back it up, test DR, make a DR pack, recover and
+restore. Everything it uses is in the deploy repository, [EA-Explorer-Deploy](https://github.com/gauravvermaea/EA-Explorer-Deploy).
+
 ## Start with your role
 
 Each page says what EA Explorer has for you, how it is put together, and the tasks you will do, with a How do I page

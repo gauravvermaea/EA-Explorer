@@ -79,6 +79,7 @@ MANUALS = ROOT / "docs" / "manuals" / "manuals.json"
 YOUTUBE = "https://www.youtube.com/@ea-explorer-os"
 VIDEOS = ROOT / "docs" / "site" / "videos.json"   # a How do I page's video, once it is out: {"tag-a-model": "https://..."}
 GITHUB = "https://github.com/gauravvermaea/EA-Explorer"
+DEPLOY = "https://gauravvermaea.github.io/EA-Explorer-Deploy/"   # the deploy page (D977): writes the install script
 
 ROLES = [   # (code, the name people know it by, one line)
     ("system-admin", "System Admin", "Run the installation: people, security, backups, updates, health"),
@@ -683,6 +684,7 @@ def render(page: Page, pages: list[Page], sources: dict[str, str]) -> str:
   <span>EA Explorer: free and open source (AGPL-3.0).</span>
   <span class="site-build" data-version="{html.escape(version())}">Version {html.escape(version())}</span>
   <a href="{YOUTUBE}" target="_blank" rel="noopener">Videos on YouTube ↗</a>
+  <a href="{DEPLOY}" target="_blank" rel="noopener">Install it: the deploy page ↗</a>
   <a href="{GITHUB}" target="_blank" rel="noopener">The code on GitHub ↗</a>
   <span class="printed-from">Printed from the EA Explorer website: {html.escape(page.out)}</span>
 </footer>

@@ -1,0 +1,12 @@
+# An installation's own files: its settings with every password, its logs, its data and backups. Never commit them.
+work/
+logs/
+data/
+persist/
+*.env
+!deploy/templates/*.env
+library/templates/togaf/*
+!library/templates/togaf/.gitignore
+!library/templates/togaf/README.md
+!library/templates/togaf/README.txt
+__pycache__/
